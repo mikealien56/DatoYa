@@ -135,6 +135,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   payments INTEGER NOT NULL DEFAULT 1,
   marketing INTEGER NOT NULL DEFAULT 0
 );
+`);
 
 // Compatibilidad futura: radio de trabajo configurable por profesional.
 const cols = db.prepare('PRAGMA table_info(worker_profiles)').all().map(x => x.name);
