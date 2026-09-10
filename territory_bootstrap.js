@@ -1,10 +1,8 @@
 // DatoYa — migración de territorio Chile (fase 1)
 // Crea la jerarquía Región -> Provincia -> Comuna sin borrar datos DEMO existentes.
-const Database = require('better-sqlite3');
-const path = require('path');
-
-const db = new Database(path.join(__dirname, 'datoya.db'));
-db.pragma('foreign_keys = ON');
+// Reutiliza la misma conexión SQLite que inicializa db.js para evitar bloqueos
+// durante el arranque del servicio en Render.
+const { db } = require('./db');
 
 const provinces = [
   ['01','Iquique'],['01','Tamarugal'],
@@ -57,19 +55,21 @@ const tx = db.transaction(() => {
   }
 
   const regionByCode = new Map();
-  const findRegion = db.prepare('SELECT id FROM regions WHERE code=? OR printf("%02d", id)=? LIMIT 1');
+  // Primero buscar por el código administrativo real almacenado; no usar el
+  // ID numérico de la fila como sustituto del código de región.
+  const findRegion = db.prepare('SELECT id FROM regions WHERE code=? LIMIT 1');
   const insertRegion = db.prepare('INSERT INTO regions(name,code) VALUES(?,?)');
+  const findRegionByName = db.prepare('SELECT id FROM regions WHERE lower(name)=lower(?) LIMIT 1');
+  const setRegionCode = db.prepare('UPDATE regions SET code=? WHERE id=? AND (code IS NULL OR code="")');
+
   for (const [code, name] of regions) {
-    let r = findRegion.get(code, code);
-    if (!r) {
-      const byName = db.prepare('SELECT id FROM regions WHERE lower(name)=lower(?) LIMIT 1').get(name);
-      if (byName) r = byName;
-    }
+    let r = findRegion.get(code);
+    if (!r) r = findRegionByName.get(name);
     if (!r) {
       const info = insertRegion.run(name, code);
       r = { id: info.lastInsertRowid };
     } else {
-      db.prepare('UPDATE regions SET code=? WHERE id=? AND (code IS NULL OR code="")').run(code, r.id);
+      setRegionCode.run(code, r.id);
     }
     regionByCode.set(code, r.id);
   }
@@ -80,12 +80,12 @@ const tx = db.transaction(() => {
   `);
   for (const [regionCode, name] of provinces) {
     const seq = provinces.filter(p => p[0] === regionCode).findIndex(p => p[1] === name) + 1;
-    // El código administrativo interno queda alineado con región + ordinal provincial.
+    // Código administrativo interno temporal: región + ordinal provincial.
+    // Se reemplazará por el código DPA validado cuando carguemos las 346 comunas.
     const code = `${regionCode}${String(seq).padStart(2,'0')}`;
     upsertProvince.run(regionByCode.get(regionCode), name, code);
   }
 });
 
 tx();
-db.close();
 console.log('DatoYa territorio: provincias inicializadas');
