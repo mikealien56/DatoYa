@@ -128,6 +128,13 @@ const jobsReplacement = `app.post('/api/jobs/:id/status', auth, (req, res) => {
 `;
 source = source.slice(0, jobsStartIndex) + jobsReplacement + source.slice(adminIndex);
 
+// Render exige que el proceso web escuche en 0.0.0.0 y en PORT.
+// Se aplica aquí para mantener server.js intacto y conservar el parcheado actual.
+const listenMarker = "app.listen(PORT, () => console.log(`[DatoYa] Servidor corriendo en http://localhost:${PORT}`));";
+const listenReplacement = "app.get('/health', (req, res) => res.status(200).json({ ok: true, service: 'datoya' }));\napp.listen(PORT, '0.0.0.0', () => console.log(`[DatoYa] Servidor corriendo en 0.0.0.0:${PORT}`));";
+if (!source.includes(listenMarker)) throw new Error('No se encontró el arranque HTTP de DatoYa');
+source = source.replace(listenMarker, listenReplacement);
+
 const patched = new Module(filename, module.parent);
 patched.filename = filename;
 patched.paths = Module._nodeModulePaths(__dirname);
