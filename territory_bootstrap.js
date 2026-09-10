@@ -37,6 +37,7 @@ const tx = db.transaction(() => {
   }
 
   const findProvince = db.prepare('SELECT id FROM provinces WHERE region_id=? AND name=? LIMIT 1');
+  const findProvinceByCode = db.prepare('SELECT id FROM provinces WHERE code=? LIMIT 1');
   const insertProvince = db.prepare('INSERT INTO provinces(region_id,name,code) VALUES(?,?,?)');
   const updateProvince = db.prepare('UPDATE provinces SET name=?, region_id=? WHERE id=?');
   const provinceByKey = new Map();
@@ -48,7 +49,7 @@ const tx = db.transaction(() => {
       let p = findProvince.get(regionId, name);
       const internalCode = `${region.code}${String(index + 1).padStart(2, '0')}`;
       if (!p) {
-        const byCode = db.prepare('SELECT id FROM provinces WHERE code=? LIMIT 1').get(internalCode);
+        const byCode = findProvinceByCode.get(internalCode);
         if (byCode) { updateProvince.run(name, regionId, byCode.id); p = byCode; }
         else p = { id: Number(insertProvince.run(regionId, name, internalCode).lastInsertRowid) };
       }
@@ -74,7 +75,7 @@ const tx = db.transaction(() => {
   }
 
   const counts = {
-    regions: db.prepare('SELECT COUNT(*) c FROM regions WHERE code GLOB "0[1-9]" OR code IN ("10","11","12","13","14","15","16")').get().c,
+    regions: db.prepare("SELECT COUNT(*) c FROM regions WHERE code GLOB '0[1-9]' OR code IN ('10','11','12','13','14','15','16')").get().c,
     provinces: db.prepare('SELECT COUNT(*) c FROM provinces').get().c,
     comunas: db.prepare('SELECT COUNT(*) c FROM comunas').get().c
   };
