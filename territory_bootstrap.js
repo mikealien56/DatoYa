@@ -75,7 +75,7 @@ const tx = db.transaction(() => {
   }
 
   const counts = {
-    regions: db.prepare("SELECT COUNT(*) c FROM regions WHERE code GLOB '0[1-9]' OR code IN ('10','11','12','13','14','15','16')").get().c,
+    regions: db.prepare('SELECT COUNT(*) c FROM regions').get().c,
     provinces: db.prepare('SELECT COUNT(*) c FROM provinces').get().c,
     comunas: db.prepare('SELECT COUNT(*) c FROM comunas').get().c
   };
