@@ -1,5 +1,5 @@
-// Ejecuta primero el esquema base y luego las migraciones territoriales y de seguridad.
-// El bootstrap territorial necesita que la tabla comunas ya exista.
+// Ejecuta primero el esquema base y luego las migraciones de DatoYa.
+// El orden es importante: el esquema avanzado crea tablas que el backend necesita.
 // También prepara public/ para que el servidor pueda atender el fallback SPA
 // cuando se ejecuta directamente en CI/local (Render lo prepara en el build).
 const fs = require('fs');
