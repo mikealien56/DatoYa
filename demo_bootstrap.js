@@ -19,8 +19,20 @@ const requestDetailReplacement = `app.get('/api/requests/:id', auth, (req, res) 
   const isWorker = !!wp;
   if (!isOwner && !isWorker && !isAdmin) return res.status(403).json({ error: 'Sin acceso' });
 
-  // Regla crítica DatoYa: cliente/admin pueden ver todas las cotizaciones;
-  // cada trabajador solo puede ver la suya. Esto también bloquea IDOR por URL/API.
+  // Regla crítica DatoYa: un trabajador solo puede acceder a solicitudes
+  // compatibles con su disponibilidad, categoría y zona. Esto evita que
+  // alguien use /api/requests/:id para saltarse el filtro de la bandeja.
+  if (isWorker && !isOwner && !isAdmin) {
+    if (wp.status !== 'disponible') return res.status(403).json({ error: 'Tu perfil no está disponible para nuevas solicitudes' });
+    const categoryMatch = db.prepare('SELECT 1 FROM worker_categories WHERE worker_id=? AND category_id=?').get(wp.id, r.category_id);
+    if (!categoryMatch) return res.status(403).json({ error: 'No eres compatible con la categoría de esta solicitud' });
+    if (r.comuna_id) {
+      const zoneMatch = wp.comuna_id === r.comuna_id || !!db.prepare('SELECT 1 FROM worker_comunas WHERE worker_id=? AND comuna_id=?').get(wp.id, r.comuna_id);
+      if (!zoneMatch) return res.status(403).json({ error: 'Esta solicitud está fuera de tu zona de trabajo' });
+    }
+  }
+
+  // Cliente/admin ven todas las cotizaciones; cada trabajador solo la suya.
   let quotes;
   if (isOwner || isAdmin) {
     quotes = db.prepare(\`SELECT q.*, wp.rating_avg, wp.rating_count, wp.jobs_completed, wp.verified_identity, wp.is_pro,
