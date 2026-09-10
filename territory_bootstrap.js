@@ -60,7 +60,9 @@ const tx = db.transaction(() => {
   const findRegion = db.prepare('SELECT id FROM regions WHERE code=? LIMIT 1');
   const insertRegion = db.prepare('INSERT INTO regions(name,code) VALUES(?,?)');
   const findRegionByName = db.prepare('SELECT id FROM regions WHERE lower(name)=lower(?) LIMIT 1');
-  const setRegionCode = db.prepare('UPDATE regions SET code=? WHERE id=? AND (code IS NULL OR code="")');
+  // SQLite interpreta "" como identificador en esta expresión; usar NULL/''
+  // explícitamente evita el error de arranque detectado por CI.
+  const setRegionCode = db.prepare("UPDATE regions SET code=? WHERE id=? AND (code IS NULL OR code='')");
 
   for (const [code, name] of regions) {
     let r = findRegion.get(code);
