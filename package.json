@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node demo_bootstrap.js",
     "start:original": "node server.js",
-    "test": "bash test_e2e.sh"
+    "test": "bash test_ci.sh",
+    "test:e2e": "bash test_e2e.sh"
   },
   "keywords": [],
   "author": "",
