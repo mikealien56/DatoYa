@@ -4,7 +4,7 @@
   "description": "DatoYa - Marketplace de servicios locales para Chile",
   "main": "server.js",
   "scripts": {
-    "start": "node demo_bootstrap.js",
+    "start": "node territory_start.js",
     "start:original": "node server.js",
     "test": "bash test_ci.sh",
     "test:e2e": "bash test_e2e.sh"
