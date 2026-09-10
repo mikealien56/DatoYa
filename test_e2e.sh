@@ -66,9 +66,7 @@ R=$(curl -s -b /tmp/dy_tra2 -X POST $B/quotes -H "$J" -d "{\"request_id\":$REQ2,
 ck "Trabajador B envía su propia cotización" "$R" '"ok":true'
 DETAIL2=$(curl -s -b /tmp/dy_tra2 $B/requests/$REQ2)
 ck "Trabajador B solo ve su cotización" "$DETAIL2" 'Cotización trabajador B'
-ck "Trabajador B no ve texto de cotización A" "$DETAIL2" 'Cotización trabajador A' && true
-# El helper anterior espera coincidencia; invertimos explícitamente la prueba negativa.
-if echo "$DETAIL2" | grep -q 'Cotización trabajador A'; then echo "❌ Aislamiento de cotización A falló"; F=$((F+1)); else echo "✅ Aislamiento de cotización A correcto"; P=$((P+1)); fi
+if echo "$DETAIL2" | grep -q 'Cotización trabajador A'; then echo "❌ Trabajador B recibió la cotización de A"; F=$((F+1)); else echo "✅ Trabajador B no recibió la cotización de A"; P=$((P+1)); fi
 # Trabajador incompatible por categoría no puede consultar la solicitud directamente.
 R=$(curl -s -b /tmp/dy_tra2 -X PUT $B/worker/profile -H "$J" -d '{"categories":[2],"comunas":[4],"comuna_id":4,"status":"disponible"}')
 ck "Segundo trabajador cambia a categoría incompatible" "$R" '"ok":true'
