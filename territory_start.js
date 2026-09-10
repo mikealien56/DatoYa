@@ -1,4 +1,4 @@
-// Ejecuta primero el esquema base y luego la migración territorial.
+// Ejecuta primero el esquema base y luego las migraciones territoriales y de seguridad.
 // El bootstrap territorial necesita que la tabla comunas ya exista.
 // También prepara public/ para que el servidor pueda atender el fallback SPA
 // cuando se ejecuta directamente en CI/local (Render lo prepara en el build).
@@ -16,5 +16,6 @@ for (const file of ['index.html', 'app.js', 'styles.css']) {
 }
 
 require('./db');
+require('./hardening_schema');
 require('./territory_bootstrap');
 require('./demo_bootstrap');
