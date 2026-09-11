@@ -18,5 +18,6 @@ for (const file of ['index.html', 'app.js', 'styles.css']) {
 require('./db');
 require('./hardening_schema');
 require('./protection_schema');
+require('./evidence_schema');
 require('./territory_bootstrap');
-require('./protection_bootstrap');
+require('./evidence_runtime');
