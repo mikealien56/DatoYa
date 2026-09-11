@@ -11,31 +11,13 @@
 <body>
 <div id="app">
   <header id="topbar">
-    <a href="#/" class="logo">
-      <span class="logo-mark">D</span>
-      <span class="logo-text">Dato<em>Ya</em></span>
-    </a>
-    <nav id="topnav">
-      <a href="#/buscar">Buscar</a>
-      <a href="#/trabaja">Ofrecer servicios</a>
-      <span id="auth-area"></span>
-    </nav>
+    <a href="#/" class="logo"><span class="logo-mark">D</span><span class="logo-text">Dato<em>Ya</em></span></a>
+    <nav id="topnav"><a href="#/buscar">Buscar</a><a href="#/trabaja">Ofrecer servicios</a><span id="auth-area"></span></nav>
   </header>
-
   <main id="view"></main>
-
-  <nav id="bottomnav" class="hidden">
-    <a href="#/" data-nav="inicio"><span>🏠</span>Inicio</a>
-    <a href="#/buscar" data-nav="buscar"><span>🔍</span>Buscar</a>
-    <a href="#/solicitudes" data-nav="solicitudes"><span>📋</span>Solicitudes</a>
-    <a href="#/mensajes" data-nav="mensajes"><span>💬</span>Mensajes<b id="msg-badge" class="badge hidden"></b></a>
-    <a href="#/perfil" data-nav="perfil"><span>👤</span>Perfil</a>
-  </nav>
+  <nav id="bottomnav" class="hidden"><a href="#/" data-nav="inicio"><span>🏠</span>Inicio</a><a href="#/buscar" data-nav="buscar"><span>🔍</span>Buscar</a><a href="#/solicitudes" data-nav="solicitudes"><span>📋</span>Solicitudes</a><a href="#/mensajes" data-nav="mensajes"><span>💬</span>Mensajes<b id="msg-badge" class="badge hidden"></b></a><a href="#/perfil" data-nav="perfil"><span>👤</span>Perfil</a></nav>
 </div>
-
-<div id="toast" class="hidden"></div>
-<div id="modal" class="hidden"><div id="modal-card"></div></div>
-<script src="/app.js"></script>
-<script src="/protection_ui.js"></script>
+<div id="toast" class="hidden"></div><div id="modal" class="hidden"><div id="modal-card"></div></div>
+<script src="/app.js"></script><script src="/protection_ui.js"></script><script src="/gps_ui.js"></script>
 </body>
 </html>
