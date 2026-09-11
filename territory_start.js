@@ -7,7 +7,7 @@ const path = require('path');
 
 const publicDir = path.join(__dirname, 'public');
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-for (const file of ['index.html', 'app.js', 'styles.css']) {
+for (const file of ['index.html', 'app.js', 'styles.css', 'protection_ui.js']) {
   const source = path.join(__dirname, file);
   const target = path.join(publicDir, file);
   if (fs.existsSync(source) && !fs.existsSync(target)) {
@@ -19,5 +19,7 @@ require('./db');
 require('./hardening_schema');
 require('./protection_schema');
 require('./evidence_schema');
+require('./gps_schema');
 require('./territory_bootstrap');
 require('./evidence_runtime');
+require('./gps_bootstrap');
