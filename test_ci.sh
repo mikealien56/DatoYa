@@ -6,6 +6,15 @@ cd "$BASE_DIR"
 # CI starts from a clean workspace. Remove any prior SQLite files so tests are deterministic.
 rm -f datoya.db datoya.db-shm datoya.db-wal
 npm install --silent
+
+# Validación rápida de sintaxis de los módulos frontend añadidos en DatoYa 2.0.
+for js in gps_ui.js workflow_v2_ui.js gps_map_ui.js protection_ui.js evidence_ui.js; do
+  if [ -f "$js" ] && ! node --check "$js"; then
+    echo "Error de sintaxis en $js"
+    exit 1
+  fi
+done
+
 npm start >/tmp/datoya-ci.log 2>&1 &
 PID=$!
 cleanup() {
