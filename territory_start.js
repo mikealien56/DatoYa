@@ -1,18 +1,14 @@
 // Ejecuta primero el esquema base y luego las migraciones de DatoYa.
 // El orden es importante: el esquema avanzado crea tablas que el backend necesita.
-// También prepara public/ para que el servidor pueda atender el fallback SPA
-// cuando se ejecuta directamente en CI/local (Render lo prepara en el build).
 const fs = require('fs');
 const path = require('path');
 
 const publicDir = path.join(__dirname, 'public');
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-for (const file of ['index.html', 'app.js', 'styles.css', 'protection_ui.js']) {
+for (const file of ['index.html', 'app.js', 'styles.css', 'protection_ui.js', 'gps_ui.js', 'workflow_v2_ui.js', 'gps_map_ui.js']) {
   const source = path.join(__dirname, file);
   const target = path.join(publicDir, file);
-  if (fs.existsSync(source) && !fs.existsSync(target)) {
-    fs.copyFileSync(source, target);
-  }
+  if (fs.existsSync(source)) fs.copyFileSync(source, target);
 }
 
 require('./db');
