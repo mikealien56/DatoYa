@@ -20,4 +20,4 @@ require('./hardening_schema');
 require('./protection_schema');
 require('./evidence_schema');
 require('./territory_bootstrap');
-require('./evidence_bootstrap');
+require('./evidence_runtime');
