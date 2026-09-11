@@ -16,6 +16,8 @@ require('./hardening_schema');
 require('./protection_schema');
 require('./evidence_schema');
 require('./gps_schema');
+require('./dispute_schema');
 require('./territory_bootstrap');
 require('./evidence_runtime');
 require('./gps_bootstrap');
+require('./dispute_bootstrap');
