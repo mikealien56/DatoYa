@@ -36,7 +36,7 @@
       shell('Reclamos y denuncias', reports.map(r => `<div class="card"><div class="row between"><b>⚑ ${esc(r.reason.replace(/_/g,' '))}</b><span class="status-tag ${r.status==='pendiente'?'st-DISPUTA':'st-FINALIZADO'}">${r.status}</span></div><div class="small muted">Ticket #${r.id} · ${esc(r.reporter)} · ${esc(r.target_type)} #${r.target_id} · ${fmtHora(r.created_at)}</div><p class="small">${esc(r.details||'Sin detalles')}</p>${r.status==='pendiente'?`<div class="row"><button class="btn btn-green btn-sm" onclick="resolveReport(${r.id},'resuelta')">Resolver</button><button class="btn btn-ghost btn-sm" onclick="resolveReport(${r.id},'descartada')">Descartar</button></div>`:''}</div>`).join('')||'<div class="empty">No hay reclamos.</div>');
     } else if (tab === 'disputas') {
       const { disputes } = await api('/admin/disputes');
-      shell('Disputas de trabajos', disputes.map(d => `<div class="card"><div class="row between"><b>⚖️ Disputa #${d.id}</b><span class="status-tag st-DISPUTA">${d.status}</span></div><div class="small muted">Cliente: ${esc(d.client_name)} · Profesional: ${esc(d.worker_name)} · ${fmtCLP(d.price)}</div><div class="small muted">Creada: ${fmtHora(d.created_at)}</div><p class="small">La resolución definitiva debe conservar evidencia e historial del trabajo.</p></div>`).join('')||'<div class="empty">No hay disputas abiertas.</div>');
+      shell('Disputas de trabajos', disputes.map(d => `<div class="card"><div class="row between"><b>⚖️ Disputa #${d.id}</b><span class="status-tag st-DISPUTA">${esc(d.status)}</span></div><div class="small muted">Cliente: ${esc(d.client_name)} · Profesional: ${esc(d.worker_name)} · ${fmtCLP(d.price)}</div><div class="small muted">Creada: ${fmtHora(d.created_at)}</div><div class="row" style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="openDisputeCase(${d.id})">📁 Ver expediente</button><button class="btn btn-outline btn-sm" onclick="startDisputeReview(${d.id})">Revisar</button></div></div>`).join('')||'<div class="empty">No hay disputas abiertas.</div>');
     } else if (tab === 'ganancias') {
       const r = await api('/admin/earnings');
       shell('Ganancias DatoYa', `<div class="admin-grid"><div class="stat-card"><b>${fmtCLP(r.gross)}</b><span>Volumen bruto</span></div><div class="stat-card"><b>${fmtCLP(r.commissions)}</b><span>Comisiones DatoYa</span></div><div class="stat-card"><b>${fmtCLP(r.workers)}</b><span>Parte profesionales</span></div><div class="stat-card"><b>${fmtCLP(r.payouts)}</b><span>Retiros pagados</span></div></div><div class="lock-note" style="margin-top:12px">MODO DEMO: estas cifras son internas de prueba. La comisión configurada actualmente es 10%.</div>`);
@@ -69,5 +69,31 @@
   window.resolveAdminVerification = async function(id, action) {
     try { const r = await api('/admin/verification-requests/'+id+'/resolve',{method:'POST',body:{action}}); toast(r.status==='aprobada'?'Verificación aprobada ✓':'Solicitud rechazada','ok'); route(); }
     catch(e){ toast(e.message,'err'); }
+  };
+
+  window.startDisputeReview = async function(id) {
+    try {
+      const reason = prompt('Motivo de revisión administrativa:');
+      if (!reason) return;
+      const r = await api('/admin/jobs/'+id+'/dispute/review',{method:'POST',body:{reason}});
+      toast('Disputa enviada a revisión ✓','ok'); openDisputeCase(id);
+    } catch(e) { toast(e.message,'err'); }
+  };
+
+  window.openDisputeCase = async function(id) {
+    try {
+      const c = await api('/admin/jobs/'+id+'/dispute/case');
+      const d = c.dispute;
+      openModal(`<h3>📁 Expediente del trabajo #${id}</h3><div class="small muted">Estado del trabajo: ${esc(c.job.status)} · Protección: ${esc(c.protection?.status||'—')} · Disputa: ${esc(d?.status||'—')}</div><div class="admin-grid" style="margin:14px 0"><div class="stat-card"><b>${c.evidence?.length||0}</b><span>Evidencias</span></div><div class="stat-card"><b>${c.photos?.length||0}</b><span>Fotos</span></div><div class="stat-card"><b>${c.messages?.length||0}</b><span>Mensajes</span></div><div class="stat-card"><b>${c.history?.length||0}</b><span>Cambios de estado</span></div></div><div class="card"><b>Motivo</b><p class="small">${esc(d?.reason||c.protection?.dispute_reason||'Sin motivo registrado')}</p><b>Resolución actual</b><p class="small">${esc(d?.resolution||c.protection?.resolution||'Sin resolución')}</p></div><div class="card"><b>Acciones</b><div class="row" style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="startDisputeReview(${id})">🔎 Iniciar revisión</button><button class="btn btn-accent btn-sm" onclick="requestDisputeCorrection(${id})">🛠️ Solicitar corrección</button></div></div><div class="lock-note">El expediente conserva evidencias, fotos, mensajes e historial para auditoría. MODO DEMO: ninguna decisión libera o transfiere dinero real.</div>`);
+    } catch(e) { toast(e.message,'err'); }
+  };
+
+  window.requestDisputeCorrection = async function(id) {
+    try {
+      const resolution = prompt('Indica qué debe corregir el profesional:');
+      if (!resolution) return;
+      await api('/admin/jobs/'+id+'/protection/resolve',{method:'POST',body:{action:'correction',resolution}});
+      toast('Corrección solicitada al profesional ✓','ok'); closeModal(); route();
+    } catch(e) { toast(e.message,'err'); }
   };
 })();
