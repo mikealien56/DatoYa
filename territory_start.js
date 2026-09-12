@@ -12,5 +12,6 @@ for (const file of ['index.html', 'datoya-logo.svg', 'app.js', 'styles.css', 'pr
   if (fs.existsSync(source)) fs.copyFileSync(source, target);
 }
 
-// server.js ya contiene app.listen(); no agregamos un segundo listener.
-require('./server');
+// server.js contiene la aplicación Express, pero el archivo no inicia el listener.
+// El bootstrap agrega el listener sin modificar el backend recuperado.
+require('./server_boot');
