@@ -1,3 +1,4 @@
+// CI: validar nuevamente el flujo completo sobre este commit.
 // DatoYa 2.0 — Rutas del expediente administrativo de denuncias
 function reportPartyContext(report) {
   let targetUserId = null, jobId = null, requestId = null, reviewId = null;
