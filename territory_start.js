@@ -12,5 +12,5 @@ for (const file of ['index.html', 'datoya-logo.svg', 'app.js', 'styles.css', 'pr
   if (fs.existsSync(source)) fs.copyFileSync(source, target);
 }
 
-// server_boot.js ejecuta server.js y abre el listener en PORT.
-require('./server_boot');
+// server.js ya contiene app.listen(); no agregamos un segundo listener.
+require('./server');
