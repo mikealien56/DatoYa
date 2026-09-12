@@ -1,6 +1,18 @@
 // DatoYa — fotos del problema al publicar una solicitud (DEMO)
 const injection = `
 // ============ FOTOS DE SOLICITUD DATOYA ============
+function cleanRequestPhotoInput(item) {
+  const mime = String(item?.mime_type || item?.mime || '');
+  const name = String(item?.original_name || item?.name || 'foto').slice(0, 160);
+  const data = String(item?.data || '');
+  const allowed = ['image/jpeg','image/png','image/webp'];
+  if (!allowed.includes(mime)) throw new Error('Solo se permiten imágenes JPG, PNG o WebP');
+  const match = data.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+  if (!match || match[1] !== mime) throw new Error('Imagen inválida');
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length || buffer.length > 320 * 1024) throw new Error('Cada foto debe pesar como máximo 320 KB');
+  return { data, mime_type: mime, original_name: name, size_bytes: buffer.length };
+}
 function requestPhotoAccess(row, user) {
   if (!row || !user) return false;
   if (user.role === 'admin') return true;
@@ -62,19 +74,6 @@ function requestWorkerCanAccess(row, user) {
 }
 `;
 const requestMarker = "app.get('/api/requests/:id', auth, (req, res) => {";
-
-function cleanRequestPhotoInput(item) {
-  const mime = String(item?.mime_type || item?.mime || '');
-  const name = String(item?.original_name || item?.name || 'foto').slice(0, 160);
-  const data = String(item?.data || '');
-  const allowed = ['image/jpeg','image/png','image/webp'];
-  if (!allowed.includes(mime)) throw new Error('Solo se permiten imágenes JPG, PNG o WebP');
-  const match = data.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
-  if (!match || match[1] !== mime) throw new Error('Imagen inválida');
-  const buffer = Buffer.from(match[2], 'base64');
-  if (!buffer.length || buffer.length > 320 * 1024) throw new Error('Cada foto debe pesar como máximo 320 KB');
-  return { data, mime_type: mime, original_name: name, size_bytes: buffer.length };
-}
 
 function applyRequestPhotosPatch(source) {
   let patched = source;
