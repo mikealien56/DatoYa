@@ -50,6 +50,25 @@ app.post('/api/requests/:id/photos', auth, requireRole('cliente'), (req, res) =>
 // ================================================
 `;
 
+const requestAccessMiddleware = `
+// ============ ACCESO SOLICITUDES Y PRIVACIDAD COTIZACIONES DATOYA ============
+function requestWorkerCanAccess(row, user) {
+  if (!row || !user) return false;
+  if (user.role === 'admin' || row.client_id === user.id) return true;
+  if (user.role !== 'trabajador') return false;
+  const wp = getWorkerByUser(user.id);
+  if (!wp) return false;
+  const assigned = db.prepare('SELECT 1 FROM jobs WHERE request_id=? AND worker_id=? LIMIT 1').get(row.id, wp.id);
+  if (assigned) return true;
+  const categoryOk = !!db.prepare('SELECT 1 FROM worker_categories WHERE worker_id=? AND category_id=? LIMIT 1').get(wp.id, row.category_id);
+  if (!categoryOk) return false;
+  if (!row.comuna_id) return true;
+  if (wp.comuna_id === row.comuna_id) return true;
+  return !!db.prepare('SELECT 1 FROM worker_comunas WHERE worker_id=? AND comuna_id=? LIMIT 1').get(wp.id, row.comuna_id);
+}
+`;
+const requestMarker = "app.get('/api/requests/:id', auth, (req, res) => {";
+
 function cleanRequestPhotoInput(item) {
   const mime = String(item?.mime_type || item?.mime || '');
   const name = String(item?.original_name || item?.name || 'foto').slice(0, 160);
@@ -66,14 +85,27 @@ function cleanRequestPhotoInput(item) {
 const original = fs.readFileSync(serverFile, 'utf8');
 const marker = "// ============ ADMIN ============";
 if (!original.includes(marker)) throw new Error('No se encontró el punto de inyección de fotos de solicitud');
-const patched = original.includes('// ============ FOTOS DE SOLICITUD DATOYA ============')
+let patched = original.includes('// ============ FOTOS DE SOLICITUD DATOYA ============')
   ? original
   : original.replace(marker, injection + '\n' + marker);
 
-fs.readFileSync = function(file, enc) {
-  if (path.resolve(String(file)) === path.resolve(serverFile)) {
-    return enc ? patched : Buffer.from(patched);
+if (!patched.includes('// ============ ACCESO SOLICITUDES Y PRIVACIDAD COTIZACIONES DATOYA ============')) {
+  if (!patched.includes(requestMarker)) throw new Error('No se encontró la ruta de detalle de solicitud');
+  patched = patched.replace(requestMarker, requestAccessMiddleware + `
+${requestMarker}`);
+  const accessStart = "if (!isOwner && !isWorker && req.user.role !== 'admin') return res.status(403).json({ error: 'Sin acceso' });";
+  const accessGuard = "if (!isOwner && isWorker) { const rowForAccess = db.prepare('SELECT id,client_id,category_id,comuna_id FROM service_requests WHERE id=?').get(req.params.id); if (!requestWorkerCanAccess(rowForAccess, req.user)) return res.status(403).json({ error: 'No eres compatible con esta solicitud' }); const wpForQuotes = getWorkerByUser(req.user.id); const originalJson = res.json.bind(res); res.json = body => { if (body && Array.isArray(body.quotes) && wpForQuotes) body = { ...body, quotes: body.quotes.filter(q => q.worker_profile_id === wpForQuotes.id || q.worker_id === wpForQuotes.id) }; return originalJson(body); }; }";
+  if (!patched.includes(accessGuard)) {
+    if (!patched.includes(accessStart)) throw new Error('No se encontró el control de acceso de solicitudes');
+    patched = patched.replace(accessStart, accessStart + '\n  ' + accessGuard);
   }
+}
+
+// Este bootstrap se encadena con Admin, pero deja el parche completo en memoria/disco
+// durante el require para que todas las rutas anteriores queden disponibles.
+fs.writeFileSync(serverFile, patched);
+fs.readFileSync = function(file, enc) {
+  if (path.resolve(String(file)) === path.resolve(serverFile)) return enc ? patched : Buffer.from(patched);
   return originalReadFileSync.apply(fs, arguments);
 };
 try { require('./admin_v2_bootstrap'); }
