@@ -27,13 +27,21 @@ function reportUserSummary(id) {
   return db.prepare('SELECT u.id, u.name, u.email, u.role, u.is_active, c.name AS comuna, wp.id AS worker_id, wp.oficio, wp.verified_identity, wp.is_pro, wp.rating_avg, wp.rating_count FROM users u LEFT JOIN comunas c ON c.id=u.comuna_id LEFT JOIN worker_profiles wp ON wp.user_id=u.id WHERE u.id=?').get(id) || null;
 }
 
+function reportRoleLabel(role) {
+  return role === 'cliente' ? 'Cliente' : role === 'trabajador' ? 'Profesional' : role === 'admin' ? 'Administrador' : (role || 'No identificado');
+}
+
+function reportTableExists(name) {
+  return !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+}
+
 app.get('/api/admin/reports', auth, requireRole('admin'), (req, res) => {
-  const rows = db.prepare("SELECT r.*, reporter.name AS reporter_name, reporter.role AS reporter_role, target.name AS target_name, target.role AS target_role, CASE WHEN reporter.role='cliente' AND target.role='trabajador' THEN 'Cliente → Profesional' WHEN reporter.role='trabajador' AND target.role='cliente' THEN 'Profesional → Cliente' ELSE reporter.role || ' → ' || COALESCE(target.role,'objetivo') END AS direction FROM reports r JOIN users reporter ON reporter.id=r.reporter_id LEFT JOIN users target ON target.id = CASE WHEN r.target_type='usuario' THEN r.target_id WHEN r.target_type='resena' THEN (SELECT reviewee_id FROM reviews WHERE id=r.target_id) WHEN r.target_type='trabajo' THEN (SELECT CASE WHEN j.client_id=r.reporter_id THEN wp.user_id ELSE j.client_id END FROM jobs j JOIN worker_profiles wp ON wp.id=j.worker_id WHERE j.id=r.target_id) END ORDER BY r.created_at DESC").all();
+  const rows = db.prepare("SELECT r.*, reporter.name AS reporter_name, reporter.role AS reporter_role, target.name AS target_name, target.role AS target_role, CASE WHEN reporter.role='cliente' AND target.role='trabajador' THEN 'Cliente → Profesional' WHEN reporter.role='trabajador' AND target.role='cliente' THEN 'Profesional → Cliente' ELSE reportRoleLabel(reporter.role) || ' → ' || COALESCE(reportRoleLabel(target.role),'Objetivo') END AS direction FROM reports r JOIN users reporter ON reporter.id=r.reporter_id LEFT JOIN users target ON target.id = CASE WHEN r.target_type='usuario' THEN r.target_id WHEN r.target_type='resena' THEN (SELECT reviewee_id FROM reviews WHERE id=r.target_id) WHEN r.target_type='trabajo' THEN (SELECT CASE WHEN j.client_id=r.reporter_id THEN wp.user_id ELSE j.client_id END FROM jobs j JOIN worker_profiles wp ON wp.id=j.worker_id WHERE j.id=r.target_id) END ORDER BY r.created_at DESC").all();
   const reports = rows.map(r => {
     const ctx = reportPartyContext(r);
     const job = ctx.jobId ? db.prepare("SELECT j.id, j.request_id, j.status, j.price, j.created_at, u.name AS client_name, wp.user_id AS worker_user_id, wu.name AS worker_name, sr.title AS request_title, sr.description AS request_description, c.name AS comuna FROM jobs j JOIN users u ON u.id=j.client_id JOIN worker_profiles wp ON wp.id=j.worker_id JOIN users wu ON wu.id=wp.user_id LEFT JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE j.id=?").get(ctx.jobId) : null;
     const request = !job && ctx.requestId ? db.prepare("SELECT sr.id, sr.title, sr.description, sr.status, sr.created_at, u.name AS client_name, c.name AS comuna FROM service_requests sr JOIN users u ON u.id=sr.client_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE sr.id=?").get(ctx.requestId) : null;
-    return { ...r, reporter: r.reporter_name, target_name: r.target_name || 'No identificado', target_role: r.target_role || '—', direction: r.direction, job, request };
+    return { ...r, reporter: r.reporter_name, target_name: r.target_name || 'No identificado', target_role: r.target_role || '—', reporter_role_label: reportRoleLabel(r.reporter_role), target_role_label: reportRoleLabel(r.target_role), direction: r.direction, job, request };
   });
   res.json({ reports });
 });
@@ -59,5 +67,9 @@ app.get('/api/admin/reports/:id/case', auth, requireRole('admin'), (req, res) =>
   if (request && request.photos) { try { photos = JSON.parse(request.photos || '[]'); } catch (_) { photos = []; } }
   photos = photos.map((p, i) => ({ index: i + 1, mime_type: p.mime_type || p.mimeType || '', original_name: p.original_name || p.name || 'foto', size_bytes: p.size_bytes || 0 }));
   const history = ctx.jobId ? db.prepare('SELECT h.status, h.created_at, u.name AS changed_by_name FROM job_status_history h LEFT JOIN users u ON u.id=h.changed_by WHERE h.job_id=? ORDER BY h.created_at ASC').all(ctx.jobId) : [];
-  res.json({ report, direction: reporter && target ? reporter.role + ' → ' + target.role : '—', reporter, target, job, request, review, photos, messages, history });
+  const evidence = ctx.jobId && reportTableExists('job_evidence') ? db.prepare('SELECT e.id, e.job_id, e.uploader_user_id, e.stage, e.storage_key, e.original_name, e.mime_type, e.size_bytes, e.latitude, e.longitude, e.accuracy_m, e.note, e.created_at, u.name AS uploader_name, u.role AS uploader_role FROM job_evidence e LEFT JOIN users u ON u.id=e.uploader_user_id WHERE e.job_id=? ORDER BY e.created_at ASC, e.id ASC').all(ctx.jobId) : [];
+  const jobEvents = ctx.jobId && reportTableExists('job_events') ? db.prepare('SELECT e.*, u.name AS actor_name, u.role AS actor_role FROM job_events e LEFT JOIN users u ON u.id=e.user_id WHERE e.job_id=? ORDER BY e.created_at ASC, e.id ASC').all(ctx.jobId) : [];
+  const dispute = ctx.jobId && reportTableExists('job_disputes') ? db.prepare('SELECT * FROM job_disputes WHERE job_id=? ORDER BY id DESC LIMIT 1').get(ctx.jobId) || null : null;
+  const disputeEvents = dispute && reportTableExists('job_dispute_events') ? db.prepare('SELECT e.*, u.name AS actor_name, u.role AS actor_role FROM job_dispute_events e LEFT JOIN users u ON u.id=e.actor_user_id WHERE e.dispute_id=? ORDER BY e.created_at ASC, e.id ASC').all(dispute.id) : [];
+  res.json({ report, direction: reporter && target ? (reporter.role === 'cliente' && target.role === 'trabajador' ? 'Cliente → Profesional' : reporter.role === 'trabajador' && target.role === 'cliente' ? 'Profesional → Cliente' : reportRoleLabel(reporter.role) + ' → ' + reportRoleLabel(target.role)) : '—', reporter, target, job, request, review, photos, evidence, messages, history, job_events:jobEvents, dispute, dispute_events:disputeEvents });
 });
