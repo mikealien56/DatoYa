@@ -86,4 +86,9 @@ const marker="app.listen(PORT, () => console.log(`[DatoYa] Servidor corriendo en
 const patched=original.includes('// ============ DATOYA 2.0 ADMIN / PRO ============')?original:original.replace(marker,injection+'\n'+marker);
 if(patched===original && !original.includes('// ============ DATOYA 2.0 ADMIN / PRO ============')) throw new Error('No se encontró el marcador de arranque de server.js');
 fs.readFileSync=function(file,enc){if(path.resolve(file)===serverFile)return enc?patched:Buffer.from(patched);return originalReadFileSync.apply(fs,arguments)};
-try{require('./server')}finally{fs.readFileSync=originalReadFileSync}
+// Si se ejecuta desde territory_start, server.js se carga una sola vez al final de la cadena.
+if (require.main === module) {
+  try { require('./server'); } finally { fs.readFileSync=originalReadFileSync; }
+} else {
+  fs.readFileSync=originalReadFileSync;
+}
