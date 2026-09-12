@@ -51,4 +51,12 @@ if [ "$READY" -ne 1 ]; then
   exit 1
 fi
 
+# Healthcheck de producción: valida que el proceso web y SQLite estén operativos.
+if ! curl -fsS http://localhost:3000/health | grep -q '"status":"healthy"'; then
+  echo "Healthcheck DatoYa no está saludable"
+  cat /tmp/datoya-ci.log
+  exit 1
+fi
+
+echo "Healthcheck DatoYa OK"
 bash test_e2e.sh
