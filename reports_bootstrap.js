@@ -22,5 +22,7 @@ patched = injectEvidence(patched);
 // El parche debe quedar escrito antes de cargar cualquier bootstrap posterior.
 fs.writeFileSync(serverPath, patched);
 
-// admin_v2_bootstrap volverá a leer el server.js ya compuesto y cargará sus rutas.
+// admin_v2_bootstrap vuelve a leer el server.js ya compuesto y carga sus rutas.
 require('./admin_v2_bootstrap');
+// verification_bootstrap agrega antecedentes, historial y permisos de revisión.
+require('./verification_bootstrap');
