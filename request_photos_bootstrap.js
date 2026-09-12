@@ -7,9 +7,10 @@ function cleanRequestPhotoInput(item) {
   const data = String(item?.data || '');
   const allowed = ['image/jpeg','image/png','image/webp'];
   if (!allowed.includes(mime)) throw new Error('Solo se permiten imágenes JPG, PNG o WebP');
-  const match = data.match(new RegExp('^data:(image/(?:jpeg|png|webp));base64,(.+)$'));
-  if (!match || match[1] !== mime) throw new Error('Imagen inválida');
-  const buffer = Buffer.from(match[2], 'base64');
+  const prefix = 'data:' + mime + ';base64,';
+  if (!data.startsWith(prefix)) throw new Error('Imagen inválida');
+  const base64 = data.slice(prefix.length);
+  const buffer = Buffer.from(base64, 'base64');
   if (!buffer.length || buffer.length > 320 * 1024) throw new Error('Cada foto debe pesar como máximo 320 KB');
   return { data, mime_type: mime, original_name: name, size_bytes: buffer.length };
 }
