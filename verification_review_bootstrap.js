@@ -24,6 +24,6 @@ app.post('/api/admin/verification-requests/:id/review', auth, requireRole('admin
 `;
 const original=fs.readFileSync(serverPath,'utf8');
 const marker='// ============ DENUNCIAS ============';
-const patched=original.includes('// ============ REVISIÓN VERIFICACIÓN DATOYA ============')?original:original.replace(marker,injection+'\\n'+marker);
+const patched=original.includes('// ============ REVISIÓN VERIFICACIÓN DATOYA ============')?original:original.replace(marker,injection+'\n'+marker);
 if(patched===original && !original.includes('// ============ REVISIÓN VERIFICACIÓN DATOYA ============')) throw new Error('No se encontró el marcador para revisión de verificación');
 fs.writeFileSync(serverPath,patched);
