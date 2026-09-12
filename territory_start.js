@@ -1,8 +1,6 @@
 // DatoYa territory bootstrap / static server
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
-const https = require('https');
 
 const ROOT = __dirname;
 const publicDir = path.join(ROOT, 'public');
@@ -14,9 +12,10 @@ for (const file of ['index.html', 'datoya-logo.svg', 'app.js', 'styles.css', 'pr
   if (fs.existsSync(source)) fs.copyFileSync(source, target);
 }
 
-const server = require('./server');
-
+// server.js exports the Express app. Express provides .listen() directly.
+const app = require('./server');
 const port = Number(process.env.PORT || 3000);
-server.listen(port, '0.0.0.0', () => {
+
+app.listen(port, '0.0.0.0', () => {
   console.log(`DatoYa escuchando en ${port}`);
 });
