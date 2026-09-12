@@ -83,3 +83,5 @@ try {
 } finally {
   fs.readFileSync = originalReadFileSync;
 }
+
+module.exports = { injectEvidence };
