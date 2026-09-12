@@ -23,6 +23,10 @@
     view.innerHTML = `<h2 class="section-title" style="margin-top:0">🛡️ ${title}</h2>${adminMenu}${body}`;
   }
 
+  function reportRole(role) {
+    return role === 'cliente' ? '👤 Cliente' : role === 'trabajador' ? '🔧 Profesional' : role === 'admin' ? '🛡️ Admin' : esc(role || '—');
+  }
+
   routes.admin = async function (tab = 'dashboard') {
     if (!ME || ME.role !== 'admin') { view.innerHTML = '<div class="empty"><b>🛡️</b>Acceso solo para administradores.</div>'; return; }
     if (!['reclamos','disputas','ganancias','banco','mensajes','suscripciones','verificaciones'].includes(tab)) return originalAdmin(tab);
@@ -33,7 +37,7 @@
     }
     if (tab === 'reclamos') {
       const { reports } = await api('/admin/reports');
-      shell('Reclamos y denuncias', reports.map(r => `<div class="card"><div class="row between"><b>⚑ ${esc(r.reason.replace(/_/g,' '))}</b><span class="status-tag ${r.status==='pendiente'?'st-DISPUTA':'st-FINALIZADO'}">${r.status}</span></div><div class="small muted">Ticket #${r.id} · ${esc(r.reporter)} · ${esc(r.target_type)} #${r.target_id} · ${fmtHora(r.created_at)}</div><p class="small">${esc(r.details||'Sin detalles')}</p>${r.status==='pendiente'?`<div class="row"><button class="btn btn-green btn-sm" onclick="resolveReport(${r.id},'resuelta')">Resolver</button><button class="btn btn-ghost btn-sm" onclick="resolveReport(${r.id},'descartada')">Descartar</button></div>`:''}</div>`).join('')||'<div class="empty">No hay reclamos.</div>');
+      shell('Reclamos y denuncias', `<div class="lock-note">⚑ Cada denuncia muestra claramente quién denuncia y a quién se denuncia. Si está vinculada a un trabajo, también puedes abrir el expediente completo con solicitud, profesional, mensajes e historial.</div>${reports.map(r => `<div class="card"><div class="row between"><b>⚑ ${esc(r.reason.replace(/_/g,' '))}</b><span class="status-tag ${r.status==='pendiente'?'st-DISPUTA':r.status==='resuelta'?'st-FINALIZADO':'st-CANCELADO'}">${esc(r.status)}</span></div><div class="admin-grid" style="margin:12px 0"><div class="stat-card"><span>Denunciante</span><b style="font-size:16px">${esc(r.reporter_name||r.reporter||'—')}</b><small>${reportRole(r.reporter_role)}</small></div><div class="stat-card"><span>Denunciado</span><b style="font-size:16px">${esc(r.target_name||'No identificado')}</b><small>${reportRole(r.target_role)}</small></div></div><div class="small"><b>Dirección:</b> ${esc(r.direction||'—')}</div><div class="small muted">Ticket #${r.id} · ${esc(r.target_type)} #${r.target_id} · ${fmtHora(r.created_at)}</div>${r.job?`<div class="small muted" style="margin-top:5px"><b>Trabajo #${r.job.id}</b> · ${esc(r.job.request_title||'Servicio')} · ${esc(r.job.comuna||'Comuna no indicada')} · ${fmtCLP(r.job.price)}</div>`:r.request?`<div class="small muted" style="margin-top:5px"><b>Solicitud #${r.request.id}</b> · ${esc(r.request.title||'Servicio')} · ${esc(r.request.comuna||'Comuna no indicada')}</div>`:''}<p class="small">${esc(r.details||'Sin detalles')}</p><div class="row" style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="openReportCase(${r.id})">📁 Ver expediente</button>${r.status==='pendiente'?`<button class="btn btn-green btn-sm" onclick="resolveReport(${r.id},'resuelta')">Resolver</button><button class="btn btn-ghost btn-sm" onclick="resolveReport(${r.id},'descartada')">Descartar</button>`:''}</div></div>`).join('')||'<div class="empty">No hay reclamos.</div>');
     } else if (tab === 'disputas') {
       const { disputes } = await api('/admin/disputes');
       shell('Disputas de trabajos', disputes.map(d => `<div class="card"><div class="row between"><b>⚖️ Disputa #${d.id}</b><span class="status-tag st-DISPUTA">${esc(d.status)}</span></div><div class="small muted">Cliente: ${esc(d.client_name)} · Profesional: ${esc(d.worker_name)} · ${fmtCLP(d.price)}</div><div class="small muted">Creada: ${fmtHora(d.created_at)}</div><div class="row" style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="openDisputeCase(${d.id})">📁 Ver expediente</button><button class="btn btn-outline btn-sm" onclick="startDisputeReview(${d.id})">Revisar</button></div></div>`).join('')||'<div class="empty">No hay disputas abiertas.</div>');
@@ -69,6 +73,25 @@
   window.resolveAdminVerification = async function(id, action) {
     try { const r = await api('/admin/verification-requests/'+id+'/resolve',{method:'POST',body:{action}}); toast(r.status==='aprobada'?'Verificación aprobada ✓':'Solicitud rechazada','ok'); route(); }
     catch(e){ toast(e.message,'err'); }
+  };
+
+  window.openReportCase = async function(id) {
+    try {
+      const c = await api('/admin/reports/'+id+'/case');
+      const r = c.report || {};
+      const reporter = c.reporter || {};
+      const target = c.target || {};
+      const job = c.job;
+      const request = c.request;
+      const evidenceCount = Array.isArray(c.evidence) ? c.evidence.length : 0;
+      const photoCount = Array.isArray(c.photos) ? c.photos.length : 0;
+      const messageCount = Array.isArray(c.messages) ? c.messages.length : 0;
+      const historyCount = Array.isArray(c.history) ? c.history.length : 0;
+      const jobHtml = job ? `<div class="card"><b>🛠️ Trabajo #${job.id}</b><div class="small">${esc(job.request_title||'Servicio')} · ${esc(job.comuna||'Comuna no indicada')}</div><div class="small muted">Estado: ${esc(job.status)} · Precio: ${fmtCLP(job.price)} · Solicitud #${job.request_id}</div><p class="small">${esc(job.request_description||'Sin descripción')}</p></div>` : request ? `<div class="card"><b>📋 Solicitud #${request.id}</b><div class="small">${esc(request.title||'Servicio')} · ${esc(request.comuna||'Comuna no indicada')}</div><div class="small muted">Estado: ${esc(request.status)}</div><p class="small">${esc(request.description||'Sin descripción')}</p></div>` : '<div class="card"><b>Sin trabajo o solicitud vinculada</b><p class="small muted">La denuncia fue registrada directamente sobre un usuario.</p></div>';
+      const messagesHtml = messageCount ? `<div class="card"><b>💬 Conversación relacionada</b>${c.messages.slice(-30).map(m=>`<div class="small" style="padding:7px 0;border-bottom:1px solid var(--borde)"><b>${esc(m.sender_name)}</b> <span class="muted">(${esc(m.sender_role)})</span>: ${esc(m.body)}</div>`).join('')}</div>` : '';
+      const historyHtml = historyCount ? `<div class="card"><b>🕘 Historial del trabajo</b>${c.history.map(h=>`<div class="small" style="padding:5px 0"><b>${esc(h.status)}</b> · ${esc(h.changed_by_name||'Sistema')} · ${fmtHora(h.created_at)}</div>`).join('')}</div>` : '';
+      openModal(`<h3>📁 Expediente de denuncia #${r.id}</h3><div class="small muted">Estado: ${esc(r.status)} · Creada: ${fmtHora(r.created_at)}</div><div class="admin-grid" style="margin:14px 0"><div class="stat-card"><span>Denunciante</span><b style="font-size:17px">${esc(reporter.name||'—')}</b><small>${reportRole(reporter.role)}</small></div><div class="stat-card"><span>Denunciado</span><b style="font-size:17px">${esc(target.name||'No identificado')}</b><small>${reportRole(target.role)}</small></div><div class="stat-card"><b>${evidenceCount}</b><span>Evidencias</span></div><div class="stat-card"><b>${photoCount}</b><span>Fotos</span></div></div><div class="card"><b>⚑ Motivo</b><p class="small">${esc(String(r.reason||'').replace(/_/g,' '))}</p><b>Detalles</b><p class="small">${esc(r.details||'Sin detalles')}</p><b>Dirección</b><p class="small">${esc(c.direction||'—')}</p></div><div class="card"><b>👤 Partes involucradas</b><p class="small"><b>Denunciante:</b> ${esc(reporter.name||'—')} · ${reportRole(reporter.role)}</p><p class="small"><b>Denunciado:</b> ${esc(target.name||'—')} · ${reportRole(target.role)}</p>${target.oficio?`<p class="small"><b>Oficio:</b> ${esc(target.oficio)} · ${target.verified_identity?'✓ Verificado':'Sin verificar'}${target.is_pro?' · ⭐ PRO':''}</p>`:''}</div>${jobHtml}${messagesHtml}${historyHtml}<div class="lock-note">Este expediente está pensado para resolver la denuncia sin tener que buscar manualmente al cliente, profesional, solicitud o trabajo relacionado. La información se mantiene dentro del panel administrativo.</div>`);
+    } catch(e) { toast(e.message,'err'); }
   };
 
   window.startDisputeReview = async function(id) {
