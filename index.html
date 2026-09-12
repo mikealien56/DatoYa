@@ -11,7 +11,22 @@
 <body>
 <div id="app">
   <header id="topbar">
-    <a href="#/" class="logo" aria-label="DatoYa, inicio"><img src="/datoya-logo.svg" alt="DatoYa — Encuentra. Contrata. Resuelve." style="width:120px;height:40px;object-fit:contain;display:block;"></a>
+    <a href="#/" class="logo" aria-label="DatoYa, inicio">
+      <svg class="datoya-inline-logo" viewBox="0 0 768 256" role="img" aria-label="DatoYa — Encuentra. Contrata. Resuelve." xmlns="http://www.w3.org/2000/svg" style="width:150px;height:50px;display:block;flex:0 0 auto;">
+        <defs>
+          <linearGradient id="datoyaLogoGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#FFB300"/><stop offset=".55" stop-color="#FF8A00"/><stop offset="1" stop-color="#FF4B00"/>
+          </linearGradient>
+        </defs>
+        <rect x="8" y="8" width="240" height="240" rx="48" fill="url(#datoyaLogoGradient)"/>
+        <circle cx="128" cy="128" r="72" fill="#12345B" stroke="#fff" stroke-width="13"/>
+        <path d="M92 177l45-45 13 13 30-30-4-22-21 9-14-14-23 5-6 22 14 14-48 48z" fill="#fff"/>
+        <path d="M92 177l34 34 24-24-34-34z" fill="#fff"/>
+        <text x="276" y="142" font-family="Arial,Helvetica,sans-serif" font-size="106" font-weight="800" fill="#06295C" letter-spacing="-5">Dato</text>
+        <text x="548" y="142" font-family="Arial,Helvetica,sans-serif" font-size="106" font-weight="800" fill="#FF8500" letter-spacing="-5">Ya</text>
+        <text x="276" y="190" font-family="Arial,Helvetica,sans-serif" font-size="31" font-weight="600" fill="#06295C" letter-spacing="1">Encuentra. Contrata. Resuelve.</text>
+      </svg>
+    </a>
     <nav id="topnav"><a href="#/buscar">Buscar</a><a href="#/trabaja">Ofrecer servicios</a><span id="auth-area"></span></nav>
   </header>
   <main id="view"></main>
