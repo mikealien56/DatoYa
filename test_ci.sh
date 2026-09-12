@@ -12,8 +12,11 @@ if [ ! -d node_modules ]; then
   npm ci --silent
 fi
 
+# Aplicar las mismas reparaciones previas que usa el arranque de producción.
+node app_runtime_fix.js
+
 # Validación rápida de sintaxis del frontend y módulos de UI añadidos en DatoYa 2.0.
-for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js; do
+for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js; do
   if [ -f "$js" ] && ! node --check "$js"; then
     echo "Error de sintaxis en $js"
     exit 1
@@ -21,7 +24,7 @@ for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js protection_ui.js evid
 done
 
 # Validación rápida de sintaxis de los módulos Node que componen el servidor.
-for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js request_photos_bootstrap.js evidence_bootstrap.js admin_v2_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_bootstrap.js; do
+for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js request_photos_bootstrap.js evidence_bootstrap.js admin_v2_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_bootstrap.js request_target_bootstrap.js app_runtime_fix.js; do
   if [ -f "$js" ] && ! node --check "$js"; then
     echo "Error de sintaxis en $js"
     exit 1
