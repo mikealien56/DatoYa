@@ -12,10 +12,5 @@ for (const file of ['index.html', 'datoya-logo.svg', 'app.js', 'styles.css', 'pr
   if (fs.existsSync(source)) fs.copyFileSync(source, target);
 }
 
-// server.js exports the Express app. Express provides .listen() directly.
-const app = require('./server');
-const port = Number(process.env.PORT || 3000);
-
-app.listen(port, '0.0.0.0', () => {
-  console.log(`DatoYa escuchando en ${port}`);
-});
+// server.js es el proceso HTTP principal y se encarga de app.listen().
+require('./server');
