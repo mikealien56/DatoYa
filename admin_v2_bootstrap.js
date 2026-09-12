@@ -86,4 +86,6 @@ const marker="app.listen(PORT, () => console.log(`[DatoYa] Servidor corriendo en
 const patched=original.includes('// ============ DATOYA 2.0 ADMIN / PRO ============')?original:original.replace(marker,injection+'\n'+marker);
 if(patched===original && !original.includes('// ============ DATOYA 2.0 ADMIN / PRO ============')) throw new Error('No se encontró el marcador de arranque de server.js');
 fs.readFileSync=function(file,enc){if(path.resolve(file)===serverFile)return enc?patched:Buffer.from(patched);return originalReadFileSync.apply(fs,arguments)};
-try{require('./server')}finally{fs.readFileSync=originalReadFileSync}
+// Este bootstrap solo compone server.js; territory_start es quien lo arranca.
+fs.writeFileSync(serverFile, patched);
+fs.readFileSync=originalReadFileSync;
