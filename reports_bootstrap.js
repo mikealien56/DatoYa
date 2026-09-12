@@ -26,3 +26,5 @@ fs.writeFileSync(serverPath, patched);
 require('./admin_v2_bootstrap');
 // verification_bootstrap agrega antecedentes, historial y permisos de revisión.
 require('./verification_bootstrap');
+// verification_review_bootstrap agrega la resolución con observaciones del administrador.
+require('./verification_review_bootstrap');
