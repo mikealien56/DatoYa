@@ -1,5 +1,14 @@
 // CI: validar nuevamente el flujo completo sobre este commit.
 // DatoYa 2.0 — Rutas del expediente administrativo de denuncias
+app.get('/health', (req, res) => {
+  try {
+    db.prepare('SELECT 1 AS ok').get();
+    res.status(200).json({ ok: true, service: 'datoya', status: 'healthy' });
+  } catch (_) {
+    res.status(503).json({ ok: false, service: 'datoya', status: 'unhealthy' });
+  }
+});
+
 function reportPartyContext(report) {
   let targetUserId = null, jobId = null, requestId = null, reviewId = null;
   if (report.target_type === 'usuario') targetUserId = report.target_id;
