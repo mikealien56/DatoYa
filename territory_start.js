@@ -12,5 +12,5 @@ for (const file of ['index.html', 'datoya-logo.svg', 'app.js', 'styles.css', 'pr
   if (fs.existsSync(source)) fs.copyFileSync(source, target);
 }
 
-// server.js es el proceso HTTP principal y se encarga de app.listen().
-require('./server');
+// server_boot.js ejecuta server.js y abre el listener en PORT.
+require('./server_boot');
