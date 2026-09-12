@@ -58,7 +58,7 @@ const marker = "// ============ ADMIN ============";
 if (!original.includes(marker)) throw new Error('No se encontró el punto de inyección de fotos de solicitud');
 const patched = original.includes('// ============ FOTOS DE SOLICITUD DATOYA ============')
   ? original
-  : original.replace(marker, injection + '\\n' + marker);
+  : original.replace(marker, injection + '\n' + marker);
 
 fs.readFileSync = function(file, enc) {
   if (path.resolve(String(file)) === path.resolve(serverFile)) {
