@@ -6,7 +6,6 @@ const serverFile = path.join(ROOT, 'server.js');
 const originalReadFileSync = fs.readFileSync;
 const { db } = require('./db');
 
-// Migraciones compatibles con la base existente.
 for (const sql of [
   "ALTER TABLE verification_requests ADD COLUMN document_type TEXT",
   "ALTER TABLE verification_requests ADD COLUMN document_reference TEXT",
@@ -69,6 +68,10 @@ app.post('/api/worker/subscription', auth, requireRole('trabajador'), (req,res) 
 });
 app.get('/api/worker/subscription', auth, requireRole('trabajador'), (req,res) => {
   const wp=getWorkerByUser(req.user.id); const row=db.prepare("SELECT * FROM subscriptions WHERE worker_id=? AND status='activa' ORDER BY id DESC LIMIT 1").get(wp.id); res.json({subscription:row||null});
+});
+app.get('/api/worker/bank', auth, requireRole('trabajador'), (req,res) => {
+  const wp=getWorkerByUser(req.user.id); const account=db.prepare('SELECT bank_name,account_type,account_last4,updated_at FROM worker_bank_accounts WHERE worker_id=?').get(wp.id);
+  res.json({account:account||null,mode:'DEMO'});
 });
 app.post('/api/worker/bank', auth, requireRole('trabajador'), (req,res) => {
   const wp=getWorkerByUser(req.user.id), {bank_name,account_type,account_last4}=req.body||{};
