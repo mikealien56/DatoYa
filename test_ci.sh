@@ -12,8 +12,16 @@ if [ ! -d node_modules ]; then
   npm ci --silent
 fi
 
-# Validación rápida de sintaxis de los módulos frontend añadidos en DatoYa 2.0.
-for js in gps_ui.js workflow_v2_ui.js gps_map_ui.js protection_ui.js evidence_ui.js; do
+# Validación rápida de sintaxis del frontend y módulos de UI añadidos en DatoYa 2.0.
+for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js worker_v2_ui.js; do
+  if [ -f "$js" ] && ! node --check "$js"; then
+    echo "Error de sintaxis en $js"
+    exit 1
+  fi
+done
+
+# Validación rápida de sintaxis de los módulos Node que componen el servidor.
+for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js request_photos_bootstrap.js evidence_bootstrap.js admin_v2_bootstrap.js protection_bootstrap.js; do
   if [ -f "$js" ] && ! node --check "$js"; then
     echo "Error de sintaxis en $js"
     exit 1
