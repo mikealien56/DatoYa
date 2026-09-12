@@ -1,10 +1,4 @@
 // DatoYa — fotos del problema al publicar una solicitud (DEMO)
-const fs = require('fs');
-const path = require('path');
-const ROOT = __dirname;
-const serverFile = path.join(ROOT, 'server.js');
-const originalReadFileSync = fs.readFileSync;
-
 const injection = `
 // ============ FOTOS DE SOLICITUD DATOYA ============
 function requestPhotoAccess(row, user) {
@@ -82,31 +76,20 @@ function cleanRequestPhotoInput(item) {
   return { data, mime_type: mime, original_name: name, size_bytes: buffer.length };
 }
 
-const original = fs.readFileSync(serverFile, 'utf8');
-const marker = "// ============ ADMIN ============";
-if (!original.includes(marker)) throw new Error('No se encontró el punto de inyección de fotos de solicitud');
-let patched = original.includes('// ============ FOTOS DE SOLICITUD DATOYA ============')
-  ? original
-  : original.replace(marker, injection + '\n' + marker);
-
-if (!patched.includes('// ============ ACCESO SOLICITUDES Y PRIVACIDAD COTIZACIONES DATOYA ============')) {
-  if (!patched.includes(requestMarker)) throw new Error('No se encontró la ruta de detalle de solicitud');
-  patched = patched.replace(requestMarker, requestAccessMiddleware + `
-${requestMarker}`);
-  const accessStart = "if (!isOwner && !isWorker && req.user.role !== 'admin') return res.status(403).json({ error: 'Sin acceso' });";
-  const accessGuard = "if (!isOwner && isWorker) { const rowForAccess = db.prepare('SELECT id,client_id,category_id,comuna_id FROM service_requests WHERE id=?').get(req.params.id); if (!requestWorkerCanAccess(rowForAccess, req.user)) return res.status(403).json({ error: 'No eres compatible con esta solicitud' }); const wpForQuotes = getWorkerByUser(req.user.id); const originalJson = res.json.bind(res); res.json = body => { if (body && Array.isArray(body.quotes) && wpForQuotes) body = { ...body, quotes: body.quotes.filter(q => q.worker_profile_id === wpForQuotes.id || q.worker_id === wpForQuotes.id) }; return originalJson(body); }; }";
-  if (!patched.includes(accessGuard)) {
-    if (!patched.includes(accessStart)) throw new Error('No se encontró el control de acceso de solicitudes');
-    patched = patched.replace(accessStart, accessStart + '\n  ' + accessGuard);
+function applyRequestPhotosPatch(source) {
+  let patched = source;
+  const marker = "// ============ ADMIN ============";
+  if (!patched.includes('// ============ FOTOS DE SOLICITUD DATOYA ============') && patched.includes(marker)) {
+    patched = patched.replace(marker, injection + '\n' + marker);
   }
+  if (!patched.includes('// ============ ACCESO SOLICITUDES Y PRIVACIDAD COTIZACIONES DATOYA ============') && patched.includes(requestMarker)) {
+    patched = patched.replace(requestMarker, requestAccessMiddleware + `
+${requestMarker}`);
+    const accessStart = "if (!isOwner && !isWorker && req.user.role !== 'admin') return res.status(403).json({ error: 'Sin acceso' });";
+    const accessGuard = "if (!isOwner && isWorker) { const rowForAccess = db.prepare('SELECT id,client_id,category_id,comuna_id FROM service_requests WHERE id=?').get(req.params.id); if (!requestWorkerCanAccess(rowForAccess, req.user)) return res.status(403).json({ error: 'No eres compatible con esta solicitud' }); const wpForQuotes = getWorkerByUser(req.user.id); const originalJson = res.json.bind(res); res.json = body => { if (body && Array.isArray(body.quotes) && wpForQuotes) body = { ...body, quotes: body.quotes.filter(q => q.worker_profile_id === wpForQuotes.id || q.worker_id === wpForQuotes.id) }; return originalJson(body); }; }";
+    if (!patched.includes(accessGuard) && patched.includes(accessStart)) patched = patched.replace(accessStart, accessStart + '\n  ' + accessGuard);
+  }
+  return patched;
 }
 
-// Este bootstrap se encadena con Admin, pero deja el parche completo en memoria/disco
-// durante el require para que todas las rutas anteriores queden disponibles.
-fs.writeFileSync(serverFile, patched);
-fs.readFileSync = function(file, enc) {
-  if (path.resolve(String(file)) === path.resolve(serverFile)) return enc ? patched : Buffer.from(patched);
-  return originalReadFileSync.apply(fs, arguments);
-};
-try { require('./admin_v2_bootstrap'); }
-finally { fs.readFileSync = originalReadFileSync; }
+module.exports = { applyRequestPhotosPatch };
