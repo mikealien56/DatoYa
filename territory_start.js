@@ -24,6 +24,9 @@ if(fs.existsSync(indexTarget)){
   if(!html.includes('/gps_map_ui_v2.js')) html=html.replace('</body>','<script src="/gps_map_ui_v2.js?v=1"></script>\n</body>');
   if(!html.includes('/job_finish_guard_ui.js')) html=html.replace('</body>','<script src="/job_finish_guard_ui.js?v=1"></script>\n</body>');
   else html=html.replace(/\/job_finish_guard_ui\.js(?:\?v=\d+)?/g,'/job_finish_guard_ui.js?v=1');
+  // Cache-bust del flujo de evidencias/confirmación.
+  if(!html.includes('/workflow_v2_ui.js')) html=html.replace('</body>','<script src="/workflow_v2_ui.js?v=3"></script>\n</body>');
+  else html=html.replace(/\/workflow_v2_ui\.js(?:\?v=\d+)?/g,'/workflow_v2_ui.js?v=3');
   fs.writeFileSync(indexTarget,html);
 }
 // Datos DEMO adicionales para que el panel administrativo tenga usuarios y profesionales visibles.
@@ -31,8 +34,7 @@ require('./demo_admin_seed');
 // Componer denuncias/fotos/evidencias/admin/verificación antes de cargar el servidor real.
 require('./reports_bootstrap');
 require('./request_target_bootstrap');
-// El seed financiero debe ejecutarse después de los bootstraps que crean/alteran
-// tablas de administración (suscripciones, banco y verificación).
+// El seed financiero debe ejecutarse después de los bootstraps que crean/alteran tablas de administración (suscripciones, banco y verificación).
 require('./demo_runtime_seed');
 // Compatibilidad de los datos DEMO con el flujo E2E, sin alterar las reglas reales.
 require('./demo_compat_fix');
@@ -40,6 +42,9 @@ require('./demo_compat_fix');
 require('./gps_syntax_fix');
 require('./gps_schema');
 require('./gps_bootstrap');
+// Protección DatoYa: esquema + rutas DEMO de retención, confirmación y disputa.
+require('./protection_schema');
+require('./protection_bootstrap');
 // Impide saltos de estado inválidos antes de registrar cambios en el servidor legacy.
 require('./workflow_guard_bootstrap');
 // Portafolio real: agrega la columna de imagen y reemplaza el endpoint antiguo por uno que acepta fotos.
