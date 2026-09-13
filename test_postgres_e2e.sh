@@ -9,7 +9,7 @@ export PORT="${PORT:-3000}"
 B="http://127.0.0.1:${PORT}/api"
 J="Content-Type: application/json"
 
-npm start >/tmp/datoya-pg-e2e.log 2>&1 &
+node production_start.js >/tmp/datoya-pg-e2e.log 2>&1 &
 PID=$!
 cleanup(){ kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; }
 on_error(){ echo '=== LOG SERVIDOR POSTGRESQL E2E ==='; tail -160 /tmp/datoya-pg-e2e.log || true; }
