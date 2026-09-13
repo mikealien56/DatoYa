@@ -16,7 +16,7 @@ fi
 node app_runtime_fix.js
 
 # Validación rápida de sintaxis del frontend y módulos de UI añadidos en DatoYa 2.0.
-for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js; do
+for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js; do
   if [ -f "$js" ] && ! node --check "$js"; then
     echo "Error de sintaxis en $js"
     exit 1
@@ -24,7 +24,7 @@ for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js protection_ui.js evid
 done
 
 # Validación rápida de sintaxis de los módulos Node que componen el servidor.
-for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js request_photos_bootstrap.js evidence_bootstrap.js admin_v2_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_bootstrap.js request_target_bootstrap.js app_runtime_fix.js; do
+for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js request_photos_bootstrap.js evidence_bootstrap.js admin_v2_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js app_runtime_fix.js; do
   if [ -f "$js" ] && ! node --check "$js"; then
     echo "Error de sintaxis en $js"
     exit 1
@@ -70,4 +70,35 @@ if ! curl -fsS http://localhost:3000/health | grep -q '"status":"healthy"'; then
 fi
 
 echo "Healthcheck DatoYa OK"
+
+# Smoke test GPS: las tablas/configuración deben existir y las rutas deben estar
+# montadas (sin sesión deben responder 401, no 404). También comprobamos que la
+# UI GPS se publique realmente desde el servidor estático.
+node - <<'NODE'
+const {db}=require('./db');
+for (const t of ['job_travel_sessions','job_location_events']) {
+  const ok=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(t);
+  if(!ok) { console.error('Falta tabla GPS: '+t); process.exit(1); }
+}
+for (const k of ['gps_arrival_radius_m','gps_max_accuracy_m']) {
+  const ok=db.prepare('SELECT value FROM settings WHERE key=?').get(k);
+  if(!ok) { console.error('Falta configuración GPS: '+k); process.exit(1); }
+}
+console.log('GPS schema/config OK');
+NODE
+
+GPS_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/jobs/1/travel)
+if [ "$GPS_STATUS" != "401" ]; then
+  echo "Ruta GPS /api/jobs/:id/travel no está protegida/montada correctamente (HTTP $GPS_STATUS)"
+  cat /tmp/datoya-ci.log
+  exit 1
+fi
+
+if ! curl -fsS http://localhost:3000/gps_ui.js >/dev/null; then
+  echo "UI GPS no publicada"
+  exit 1
+fi
+
+echo "GPS smoke test OK"
+
 bash test_e2e.sh
