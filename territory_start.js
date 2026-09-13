@@ -58,6 +58,7 @@ require('./protection_schema');
 require('./protection_bootstrap');
 require('./protection_flow_guard');
 require('./protection_complete_fix');
+require('./dispute_loader');
 require('./verification_bootstrap');
 require('./verification_review_bootstrap');
 require('./chat_workflow_bootstrap');
