@@ -53,6 +53,8 @@ require('./gps_bootstrap');
 require('./protection_schema');
 // Guard previo: evita que el cliente salte directamente a FINALIZADO antes de la confirmación del profesional.
 require('./protection_flow_guard');
+// Garantiza el endpoint de declaración de término si la composición de protección no lo montó.
+require('./protection_complete_fix');
 // Impide saltos de estado inválidos antes de registrar cambios en el servidor legacy.
 require('./workflow_guard_bootstrap');
 // Portafolio real: agrega la columna de imagen y reemplaza el endpoint antiguo por uno que acepta fotos.
