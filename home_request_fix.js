@@ -20,22 +20,29 @@
       if(me.user.role!=='cliente'){window.toast('Inicia sesión como cliente para solicitar','err');return;}
       const {worker}=await api0('/workers/'+encodeURIComponent(workerId));
       if(!worker)throw new Error('No se encontró el profesional.');
-      const {categories}=await api0('/categories');
-      const categoryId=Number(worker.category_id||worker.categoryId||worker.oficio_category_id||0);
-      const category=categories.find(c=>Number(c.id)===categoryId);
-      if(!category)throw new Error('La especialidad del profesional no está configurada correctamente.');
-      dw={step:1,comunas:(await api0('/comunas')).comunas,targetWorkerId:Number(worker.id),targetWorkerName:worker.name,category_id:categoryId,catName:category.name};
+      const assigned=(worker.categories||[]).filter(c=>c&&c.active!==0);
+      if(!assigned.length)throw new Error('Este profesional no tiene una especialidad configurada.');
+      dw={step:assigned.length>1?0:1,comunas:(await api0('/comunas')).comunas,targetWorkerId:Number(worker.id),targetWorkerName:worker.name,targetCategories:assigned};
+      if(assigned.length===1){dw.category_id=Number(assigned[0].id);dw.catName=assigned[0].name;}
       drawDirect();
     }catch(e){window.toast(e.message||'No se pudo iniciar la solicitud','err');}
   }
   function drawDirect(){
     let body='';
-    const target=`<div class="lock-note" style="margin-bottom:14px">👷 <b>Profesional seleccionado:</b> ${esc0(dw.targetWorkerName)}<br>🛠️ <b>Especialidad:</b> ${esc0(dw.catName)}<br><span class="small muted">La especialidad está fijada al perfil del profesional.</span></div>`;
-    if(dw.step===1)body=`${target}<h2>Describe el problema</h2><div class="field"><input id="dw-title" placeholder="Título" required></div><div class="field"><textarea id="dw-desc" rows="4" placeholder="Detalle" required></textarea></div><button class="btn btn-primary btn-block" onclick="directNext(1)">Continuar</button>`;
-    else if(dw.step===2)body=`${target}<h2>¿Dónde?</h2><select id="dw-comuna">${dw.comunas.map(c=>`<option value="${c.id}">${esc0(c.name)}</option>`).join('')}</select><div class="field"><input id="dw-address" placeholder="Dirección" required></div><button class="btn btn-primary btn-block" onclick="directNext(2)">Continuar</button>`;
-    else body=`${target}<h2>Confirmar solicitud</h2><p><b>${esc0(dw.title)}</b></p><p>${esc0(dw.description)}</p><p class="small muted">Se enviará directamente a este profesional como <b>${esc0(dw.catName)}</b>.</p><button class="btn btn-green btn-block" onclick="directSubmit()">Publicar solicitud</button>`;
+    const categoryStep=dw.step===0;
+    const target=dw.category_id?`<div class="lock-note" style="margin-bottom:14px">👷 <b>Profesional seleccionado:</b> ${esc0(dw.targetWorkerName)}<br>🛠️ <b>Especialidad:</b> ${esc0(dw.catName)}<br><span class="small muted">La especialidad está fijada al perfil del profesional.</span></div>`:`<div class="lock-note" style="margin-bottom:14px">👷 <b>Profesional seleccionado:</b> ${esc0(dw.targetWorkerName)}<br><span class="small muted">Solo puedes elegir una especialidad que este profesional tenga registrada.</span></div>`;
+    if(categoryStep){
+      body=`${target}<h2>¿Qué servicio necesitas de este profesional?</h2><div class="cat-grid">${dw.targetCategories.map(c=>`<button class="cat-item" onclick="directPickCategory(${Number(c.id)},'${esc0(c.name)}')"><span>${c.icon||'🛠️'}</span>${esc0(c.name)}</button>`).join('')}</div>`;
+    }else if(dw.step===1){
+      body=`${target}<h2>Describe el problema</h2><div class="field"><input id="dw-title" placeholder="Título" required></div><div class="field"><textarea id="dw-desc" rows="4" placeholder="Detalle" required></textarea></div><button class="btn btn-primary btn-block" onclick="directNext(1)">Continuar</button>`;
+    }else if(dw.step===2){
+      body=`${target}<h2>¿Dónde?</h2><select id="dw-comuna">${dw.comunas.map(c=>`<option value="${c.id}">${esc0(c.name)}</option>`).join('')}</select><div class="field"><input id="dw-address" placeholder="Dirección" required></div><button class="btn btn-primary btn-block" onclick="directNext(2)">Continuar</button>`;
+    }else{
+      body=`${target}<h2>Confirmar solicitud</h2><p><b>${esc0(dw.title)}</b></p><p>${esc0(dw.description)}</p><p class="small muted">Se enviará directamente a <b>${esc0(dw.targetWorkerName)}</b> como <b>${esc0(dw.catName)}</b>.</p><button class="btn btn-green btn-block" onclick="directSubmit()">Publicar solicitud</button>`;
+    }
     view0.innerHTML=`<div class="card"><a href="#/buscar" class="small">← Volver</a>${body}</div>`;
   }
+  window.directPickCategory=function(id,name){dw.category_id=Number(id);dw.catName=name;dw.step=1;drawDirect();};
   window.directNext=function(step){
     if(step===1){dw.title=(document.querySelector('#dw-title')?.value||'').trim();dw.description=(document.querySelector('#dw-desc')?.value||'').trim();if(!dw.title||!dw.description)return window.toast('Completa el título y el detalle','err');dw.step=2;drawDirect();}
     else{dw.comuna_id=Number(document.querySelector('#dw-comuna')?.value||0);dw.address_detail=(document.querySelector('#dw-address')?.value||'').trim();if(!dw.comuna_id||!dw.address_detail)return window.toast('Completa la comuna y la dirección','err');dw.step=3;drawDirect();}
