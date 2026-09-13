@@ -14,7 +14,8 @@ if(fs.existsSync(indexTarget)){
   if(!html.includes('/verification_worker_ui.js')) html=html.replace('</body>','<script src="/verification_worker_ui.js?v=1"></script>\n</body>');
   if(!html.includes('/request_target_ui.js')) html=html.replace('</body>','<script src="/request_target_ui.js?v=3"></script>\n</body>');
   else html=html.replace(/\/request_target_ui\.js(?:\?v=\d+)?/g,'/request_target_ui.js?v=3');
-  if(!html.includes('/direct_worker_category_fix.js')) html=html.replace('</body>','<script src="/direct_worker_category_fix.js?v=1"></script>\n</body>');
+  if(!html.includes('/direct_worker_category_fix.js')) html=html.replace('</body>','<script src="/direct_worker_category_fix.js?v=2"></script>\n</body>');
+  else html=html.replace(/\/direct_worker_category_fix\.js(?:\?v=\d+)?/g,'/direct_worker_category_fix.js?v=2');
   if(!html.includes('/admin_v3_fix.js')) html=html.replace('</body>','<script src="/admin_v3_fix.js?v=2"></script>\n</body>');
   else html=html.replace(/\/admin_v3_fix\.js(?:\?v=\d+)?/g,'/admin_v3_fix.js?v=2');
   if(!html.includes('/worker_profile_fix.js')) html=html.replace('</body>','<script src="/worker_profile_fix.js?v=1"></script>\n</body>');
