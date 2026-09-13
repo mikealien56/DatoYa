@@ -20,4 +20,7 @@ require('./demo_admin_seed');
 // Componer denuncias/fotos/evidencias/admin/verificación antes de cargar el servidor real.
 require('./reports_bootstrap');
 require('./request_target_bootstrap');
+// El seed financiero debe ejecutarse después de los bootstraps que crean/alteran
+// tablas de administración (suscripciones, banco y verificación).
+require('./demo_runtime_seed');
 require('./server');
