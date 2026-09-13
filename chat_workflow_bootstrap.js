@@ -20,7 +20,8 @@ app.use('/api/conversations', auth, (req,res,next) => {
   if (req.user.role === 'trabajador' && !getWorkerByUser(req.user.id)) {
     return res.status(409).json({ error:'Tu perfil profesional no está disponible. Completa tu perfil antes de usar el chat.' });
   }
-  if (!/^\\/api\\/conversations\\/\\d+\\/messages$/.test(req.path)) return next();
+  // En middleware montado en /api/conversations, req.path es relativo al montaje.
+  if (!/^\\/\\d+\\/messages$/.test(req.path)) return next();
   const id = req.path.split('/')[1];
   const ctx = chatConversationContext(id);
   if (!ctx) return res.status(404).json({ error:'Conversación no encontrada' });
