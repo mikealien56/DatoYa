@@ -8,7 +8,7 @@ if [ ! -d node_modules ]; then npm ci --silent; fi
 
 node app_runtime_fix.js
 
-for js in app.js frontend_globals_bridge.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
+for js in app.js frontend_globals_bridge.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
   if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
 done
 
@@ -50,12 +50,15 @@ NODE
 
 GPS_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/jobs/1/travel)
 if [ "$GPS_STATUS" != "401" ]; then echo "Ruta GPS no protegida/montada correctamente (HTTP $GPS_STATUS)"; cat /tmp/datoya-ci.log; exit 1; fi
-for asset in frontend_globals_bridge.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js; do
+for asset in frontend_globals_bridge.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js; do
   if ! curl -fsS "http://localhost:3000/$asset" >/dev/null; then echo "Archivo estático no publicado: $asset"; exit 1; fi
 done
 INDEX_HTML=$(curl -fsS http://localhost:3000/)
 if ! printf '%s' "$INDEX_HTML" | grep -q '/frontend_globals_bridge.js'; then
   echo "El puente de estado frontend no está cargado en index.html"; exit 1
+fi
+if ! printf '%s' "$INDEX_HTML" | grep -q '/admin_core_ui_fix.js'; then
+  echo "La UI administrativa completa no está cargada en index.html"; exit 1
 fi
 if ! printf '%s' "$INDEX_HTML" | grep -q '/datoya-logo.svg'; then
   echo "El logo de DatoYa no está referenciado en la página"; exit 1
