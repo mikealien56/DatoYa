@@ -23,4 +23,6 @@ require('./request_target_bootstrap');
 // El seed financiero debe ejecutarse después de los bootstraps que crean/alteran
 // tablas de administración (suscripciones, banco y verificación).
 require('./demo_runtime_seed');
+// Compatibilidad de los datos DEMO con el flujo E2E, sin alterar las reglas reales.
+require('./demo_compat_fix');
 require('./server');
