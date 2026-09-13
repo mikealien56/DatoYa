@@ -3,7 +3,7 @@ const fs=require('fs'); const path=require('path'); const ROOT=__dirname; const 
 require('./app_runtime_fix');
 require('./worker_demo_badge_runtime_fix');
 require('./backend_runtime_fix');
-for(const file of ['index.html','datoya-logo.svg','app.js','frontend_globals_bridge.js','chat_ui_fix.js','notifications_ui_fix.js','home_request_fix.js','worker_own_profile_ui.js','nearby_ui.js','styles.css','role_ui_fix.js','admin_v2_ui.js','admin_core_ui_fix.js','admin_operations_ui.js','admin_v3_fix.js','worker_v2_ui.js','worker_profile_fix.js','worker_portfolio_ui.js','worker_finance_ui.js','request_photos_ui.js','protection_ui.js','gps_ui.js','workflow_v2_ui.js','gps_map_ui.js','gps_map_ui_v2.js','evidence_ui.js','verification_admin_ui.js','verification_worker_ui.js','request_target_ui.js','direct_worker_category_fix.js','job_finish_guard_ui.js','request_detail_ui_fix.js']){const source=path.join(ROOT,file),target=path.join(publicDir,file);if(fs.existsSync(source))fs.copyFileSync(source,target)}
+for(const file of ['index.html','datoya-logo.svg','app.js','frontend_globals_bridge.js','chat_ui_fix.js','notifications_ui_fix.js','home_request_fix.js','worker_own_profile_ui.js','nearby_ui.js','styles.css','role_ui_fix.js','admin_v2_ui.js','admin_core_ui_fix.js','admin_operations_ui.js','admin_v3_fix.js','worker_v2_ui.js','worker_profile_fix.js','worker_portfolio_ui.js','worker_finance_ui.js','request_photos_ui.js','protection_ui.js','gps_ui.js','workflow_v2_ui.js','gps_map_ui.js','gps_map_ui_v2.js','evidence_ui.js','review_ui.js','verification_admin_ui.js','verification_worker_ui.js','request_target_ui.js','direct_worker_category_fix.js','job_finish_guard_ui.js','request_detail_ui_fix.js']){const source=path.join(ROOT,file),target=path.join(publicDir,file);if(fs.existsSync(source))fs.copyFileSync(source,target)}
 const indexTarget=path.join(publicDir,'index.html');
 if(fs.existsSync(indexTarget)){const html=fs.readFileSync(indexTarget,'utf8');if(!html.includes('/request_photos_ui.js'))fs.writeFileSync(indexTarget,html.replace('</body>','<script src="/request_photos_ui.js"></script>\n</body>'));}
 if(fs.existsSync(indexTarget)){const html=fs.readFileSync(indexTarget,'utf8');if(!html.includes('/evidence_ui.js'))fs.writeFileSync(indexTarget,html.replace('</body>','<script src="/evidence_ui.js?v=2"></script>\n</body>'));}
@@ -29,6 +29,7 @@ if(fs.existsSync(indexTarget)){
   if(!html.includes('/gps_map_ui_v2.js')) html=html.replace('</body>','<script src="/gps_map_ui_v2.js?v=1"></script>\n</body>');
   if(!html.includes('/job_finish_guard_ui.js')) html=html.replace('</body>','<script src="/job_finish_guard_ui.js?v=1"></script>\n</body>'); else html=html.replace(/\/job_finish_guard_ui\.js(?:\?v=\d+)?/g,'/job_finish_guard_ui.js?v=1');
   if(!html.includes('/workflow_v2_ui.js')) html=html.replace('</body>','<script src="/workflow_v2_ui.js?v=3"></script>\n</body>'); else html=html.replace(/\/workflow_v2_ui\.js(?:\?v=\d+)?/g,'/workflow_v2_ui.js?v=3');
+  if(!html.includes('/review_ui.js')) html=html.replace('</body>','<script src="/review_ui.js?v=1"></script>\n</body>'); else html=html.replace(/\/review_ui\.js(?:\?v=\d+)?/g,'/review_ui.js?v=1');
   // Debe quedar al final: reemplaza routes.solicitud después de los wrappers legacy de fotos/target.
   if(!html.includes('/request_detail_ui_fix.js')) html=html.replace('</body>','<script src="/request_detail_ui_fix.js?v=1"></script>\n</body>'); else html=html.replace(/\/request_detail_ui_fix\.js(?:\?v=\d+)?/g,'/request_detail_ui_fix.js?v=1');
   fs.writeFileSync(indexTarget,html);
@@ -61,4 +62,6 @@ require('./portfolio_runtime_fix');
 require('./admin_v2_bootstrap');
 require('./admin_operations_bootstrap');
 require('./admin_case_bootstrap');
+// Este bootstrap solo intercepta la lectura final de server.js; debe quedar inmediatamente antes del servidor.
+require('./review_status_bootstrap');
 require('./server');
