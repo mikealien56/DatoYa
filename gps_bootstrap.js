@@ -22,7 +22,7 @@ function gpsAccess(job, userId, role) {
   return role === 'admin' || job.client_id === userId || (wp && wp.user_id === userId);
 }
 function gpsDistanceM(lat1,lon1,lat2,lon2) {
-  const R=6371000, p=Math.PI/180, a=Math.sin((lat2-lat1)*p/2)**2 + Math.cos(lat1*p)*Math.cos(lat2*p)*Math.sin((lon2-lon2)*p/2)**2;
+  const R=6371000, p=Math.PI/180, a=Math.sin((lat2-lat1)*p/2)**2 + Math.cos(lat1*p)*Math.cos(lat2*p)*Math.sin((lon2-lon1)*p/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 function gpsRecord(jobId, sessionId, userId, type, lat, lng, accuracy, metadata) {
