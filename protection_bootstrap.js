@@ -166,7 +166,7 @@ app.post('/api/admin/jobs/:id/protection/resolve', auth, requireRole('admin'), (
     if (worker) notify(worker.user_id,'disputa','DatoYa solicitó una corrección del trabajo.','#/trabajos');
   } else if (action === 'release') {
     finalizeProtectedJob({ ...job, status:'DISPUTA' }, req.user.id);
-    db.prepare('UPDATE payment_protections SET resolution=?,resolved_by=?,updated_at=datetime(\'now\') WHERE job_id=?').run(resolution,req.user.id,job.id);
+    db.prepare("UPDATE payment_protections SET resolution=?,resolved_by=?,updated_at=datetime('now') WHERE job_id=?").run(resolution,req.user.id,job.id);
     addProtectionEvent(protection.id,'admin_release',req.user.id,{ resolution });
   } else {
     const status = action === 'refund' ? 'REFUNDED' : 'PARTIAL_REFUND';
