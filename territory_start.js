@@ -2,7 +2,7 @@
 const fs=require('fs'); const path=require('path'); const ROOT=__dirname; const publicDir=path.join(ROOT,'public'); fs.mkdirSync(publicDir,{recursive:true});
 // Corrige el frontend antes de copiarlo a public/ para evitar que un error de sintaxis deje la app en blanco.
 require('./app_runtime_fix');
-for(const file of ['index.html','datoya-logo.svg','app.js','styles.css','role_ui_fix.js','admin_v2_ui.js','admin_v3_fix.js','worker_v2_ui.js','worker_profile_fix.js','worker_portfolio_ui.js','request_photos_ui.js','protection_ui.js','gps_ui.js','workflow_v2_ui.js','gps_map_ui.js','gps_map_ui_v2.js','evidence_ui.js','verification_admin_ui.js','verification_worker_ui.js','request_target_ui.js','direct_worker_category_fix.js','job_finish_guard_ui.js']){const source=path.join(ROOT,file),target=path.join(publicDir,file);if(fs.existsSync(source))fs.copyFileSync(source,target)}
+for(const file of ['index.html','datoya-logo.svg','app.js','home_request_fix.js','styles.css','role_ui_fix.js','admin_v2_ui.js','admin_v3_fix.js','worker_v2_ui.js','worker_profile_fix.js','worker_portfolio_ui.js','request_photos_ui.js','protection_ui.js','gps_ui.js','workflow_v2_ui.js','gps_map_ui.js','gps_map_ui_v2.js','evidence_ui.js','verification_admin_ui.js','verification_worker_ui.js','request_target_ui.js','direct_worker_category_fix.js','job_finish_guard_ui.js']){const source=path.join(ROOT,file),target=path.join(publicDir,file);if(fs.existsSync(source))fs.copyFileSync(source,target)}
 const indexTarget=path.join(publicDir,'index.html');
 if(fs.existsSync(indexTarget)){const html=fs.readFileSync(indexTarget,'utf8');if(!html.includes('/request_photos_ui.js'))fs.writeFileSync(indexTarget,html.replace('</body>','<script src="/request_photos_ui.js"></script>\n</body>'));}
 // Evidencias de trabajos: se cargan como módulo UI desde el frontend.
@@ -16,6 +16,8 @@ if(fs.existsSync(indexTarget)){
   else html=html.replace(/\/request_target_ui\.js(?:\?v=\d+)?/g,'/request_target_ui.js?v=3');
   if(!html.includes('/direct_worker_category_fix.js')) html=html.replace('</body>','<script src="/direct_worker_category_fix.js?v=2"></script>\n</body>');
   else html=html.replace(/\/direct_worker_category_fix\.js(?:\?v=\d+)?/g,'/direct_worker_category_fix.js?v=2');
+  if(!html.includes('/admin_v2_ui.js')) html=html.replace('</body>','<script src="/admin_v2_ui.js?v=5"></script>\n</body>');
+  else html=html.replace(/\/admin_v2_ui\.js(?:\?v=\d+)?/g,'/admin_v2_ui.js?v=5');
   if(!html.includes('/admin_v3_fix.js')) html=html.replace('</body>','<script src="/admin_v3_fix.js?v=4"></script>\n</body>');
   else html=html.replace(/\/admin_v3_fix\.js(?:\?v=\d+)?/g,'/admin_v3_fix.js?v=4');
   if(!html.includes('/worker_profile_fix.js')) html=html.replace('</body>','<script src="/worker_profile_fix.js?v=1"></script>\n</body>');
@@ -51,7 +53,6 @@ require('./gps_bootstrap');
 require('./protection_schema');
 // Guard previo: evita que el cliente salte directamente a FINALIZADO antes de la confirmación del profesional.
 require('./protection_flow_guard');
-require('./protection_bootstrap');
 // Impide saltos de estado inválidos antes de registrar cambios en el servidor legacy.
 require('./workflow_guard_bootstrap');
 // Portafolio real: agrega la columna de imagen y reemplaza el endpoint antiguo por uno que acepta fotos.
