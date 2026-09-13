@@ -1,6 +1,11 @@
 // DatoYa 2.0 — protección de integración Chat + Cotizaciones
 // Se inyecta antes de cargar server.js para evitar errores de datos incompletos
 // y para que el backend aplique las mismas reglas que la interfaz.
+const fs = require('fs');
+const path = require('path');
+const serverPath = path.join(__dirname, 'server.js');
+const originalReadFileSync = fs.readFileSync;
+
 function applyChatWorkflowPatch(source) {
   const marker = '// ============ CHAT ============';
   if (!source.includes(marker)) throw new Error('No se encontró el punto de inyección de Chat DatoYa');
@@ -15,7 +20,7 @@ function chatConversationContext(id) {
   return { cv, wp };
 }
 
-// Evita que una sesión de trabajador sin perfil asociado provoque un error 500.
+// Evita que datos incompletos u obsoletos provoquen errores 500 en el chat.
 app.use('/api/conversations', auth, (req,res,next) => {
   if (req.user.role === 'trabajador' && !getWorkerByUser(req.user.id)) {
     return res.status(409).json({ error:'Tu perfil profesional no está disponible. Completa tu perfil antes de usar el chat.' });
@@ -53,6 +58,19 @@ app.use('/api/quotes', auth, (req,res,next) => {
 });
 `;
   return source.replace(marker, block + '\n' + marker);
+}
+
+// Instala realmente el parche al ser requerido por territory_start.js.
+// Antes este archivo solo exportaba la función y por eso el guard no entraba al runtime.
+if (!global.__DATOYA_CHAT_WORKFLOW_PATCH_INSTALLED__) {
+  global.__DATOYA_CHAT_WORKFLOW_PATCH_INSTALLED__ = true;
+  fs.readFileSync = function(file, options) {
+    const value = originalReadFileSync.call(fs, file, options);
+    if (path.resolve(String(file)) === path.resolve(serverPath) && typeof value === 'string') {
+      return applyChatWorkflowPatch(value);
+    }
+    return value;
+  };
 }
 
 module.exports = { applyChatWorkflowPatch };
