@@ -52,5 +52,6 @@ require('./workflow_guard_bootstrap');
 require('./portfolio_runtime_fix');
 // Composición administrativa V2: monta las rutas que alimentan todas las pestañas del panel.
 require('./admin_v2_bootstrap');
+require('./admin_operations_bootstrap');
 require('./admin_case_bootstrap');
 require('./server');
