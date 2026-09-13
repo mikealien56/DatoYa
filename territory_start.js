@@ -32,9 +32,7 @@ require('./demo_runtime_seed');
 // Compatibilidad de los datos DEMO con el flujo E2E, sin alterar las reglas reales.
 require('./demo_compat_fix');
 // Impide saltos de estado inválidos antes de registrar cambios en el servidor legacy.
-const workflowGuard = require('./workflow_guard_bootstrap');
-const workflowServer = require('fs').readFileSync(require('path').join(__dirname,'server.js'),'utf8');
-require('fs').writeFileSync(require('path').join(__dirname,'server.js'), workflowGuard.injectWorkflowGuard(workflowServer));
+require('./workflow_guard_bootstrap');
 // Portafolio real: agrega la columna de imagen y reemplaza el endpoint antiguo por uno que acepta fotos.
 require('./portfolio_runtime_fix');
 require('./server');
