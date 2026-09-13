@@ -1,4 +1,4 @@
-// DatoYa — esquema de GPS durante el viaje al trabajo (DEMO)
+// DatoYa — esquema de GPS durante el viaje (DEMO)
 const { db } = require('./db');
 
 db.exec(`
@@ -33,6 +33,16 @@ CREATE TABLE IF NOT EXISTS job_location_events (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_job_location_events_job ON job_location_events(job_id, created_at);
+CREATE TABLE IF NOT EXISTS worker_locations (
+  worker_id INTEGER PRIMARY KEY,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  accuracy_m REAL,
+  consent INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY(worker_id) REFERENCES worker_profiles(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_worker_locations_coords ON worker_locations(lat,lng);
 `);
 
 function setting(name, fallback) {
@@ -40,9 +50,5 @@ function setting(name, fallback) {
   return row ? row.value : fallback;
 }
 
-if (!db.prepare('SELECT 1 FROM settings WHERE key=?').get('gps_arrival_radius_m')) {
-  db.prepare('INSERT INTO settings(key,value) VALUES(?,?)').run('gps_arrival_radius_m','100');
-}
-if (!db.prepare('SELECT 1 FROM settings WHERE key=?').get('gps_max_accuracy_m')) {
-  db.prepare('INSERT INTO settings(key,value) VALUES(?,?)').run('gps_max_accuracy_m','150');
-}
+if (!db.prepare('SELECT 1 FROM settings WHERE key=?').get('gps_arrival_radius_m')) db.prepare('INSERT INTO settings(key,value) VALUES(?,?)').run('gps_arrival_radius_m','100');
+if (!db.prepare('SELECT 1 FROM settings WHERE key=?').get('gps_max_accuracy_m')) db.prepare('INSERT INTO settings(key,value) VALUES(?,?)').run('gps_max_accuracy_m','150');
