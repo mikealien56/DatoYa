@@ -9,8 +9,6 @@ const serverFile = path.join(__dirname, 'server.js');
 function injectProtection(source) {
   const marker = '// ============ AUTH ============';
   if (!source.includes(marker)) throw new Error('No se encontró el punto de inyección de Protección DatoYa');
-  // El endpoint de respaldo puede existir en server.js sin que estén montadas
-  // las rutas completas de Protección. Usamos un sentinel propio del runtime.
   if (source.includes('DAT0YA_PROTECTION_RUNTIME')) return source;
 
   const block = `
@@ -33,8 +31,8 @@ function createProtectionForJob(job) {
   const protectionAmount = Math.round(job.price * cfg.pct / 100);
   const clientTotal = job.price + protectionAmount;
   const workerNet = job.worker_amount;
-  const id = db.prepare(`INSERT INTO payment_protections(job_id,service_amount,commission_pct,commission_amount,protection_pct,protection_amount,client_total,worker_net,status)
-    VALUES(?,?,?,?,?,?,?,?,?)`).run(job.id, job.price, job.commission_pct, job.commission_amount, cfg.pct, protectionAmount, clientTotal, workerNet, 'HELD').lastInsertRowid;
+  const id = db.prepare('INSERT INTO payment_protections(job_id,service_amount,commission_pct,commission_amount,protection_pct,protection_amount,client_total,worker_net,status) VALUES(?,?,?,?,?,?,?,?,?)')
+    .run(job.id, job.price, job.commission_pct, job.commission_amount, cfg.pct, protectionAmount, clientTotal, workerNet, 'HELD').lastInsertRowid;
   db.prepare('INSERT INTO payment_protection_events(protection_id,event_type,actor_user_id,metadata) VALUES(?,?,?,?)')
     .run(id, 'payment_held_demo', job.client_id, JSON.stringify({ demo:true, protection_pct:cfg.pct }));
   return protectionForJob(job.id);
@@ -43,15 +41,17 @@ function addProtectionEvent(protectionId, type, actor, metadata) {
   db.prepare('INSERT INTO payment_protection_events(protection_id,event_type,actor_user_id,metadata) VALUES(?,?,?,?)')
     .run(protectionId, type, actor || null, metadata ? JSON.stringify(metadata) : null);
 }
-function insertDemoRelease(job, actorId) {
+function insertDemoRelease(job) {
   if (!db.prepare('SELECT id FROM payments WHERE job_id=?').get(job.id)) {
-    db.prepare(`INSERT INTO payments(job_id,amount,commission,worker_amount,method,provider,status) VALUES(?,?,?,?,'tarjeta','DEMO','demo_liberado_protegido')`)
+    db.prepare("INSERT INTO payments(job_id,amount,commission,worker_amount,method,provider,status) VALUES(?,?,?,?,'tarjeta','DEMO','demo_liberado_protegido')")
       .run(job.id, job.price, job.commission_amount, job.worker_amount);
     db.prepare('INSERT INTO commissions(job_id,pct,amount) VALUES(?,?,?)').run(job.id, job.commission_pct, job.commission_amount);
     const payment = db.prepare('SELECT id FROM payments WHERE job_id=? ORDER BY id DESC LIMIT 1').get(job.id);
     const wp = db.prepare('SELECT user_id FROM worker_profiles WHERE id=?').get(job.worker_id);
-    db.prepare('INSERT INTO ledger_entries(user_id,job_id,payment_id,type,amount,reference,metadata) VALUES(?,?,?,?,?,?,?)')
-      .run(wp.user_id, job.id, payment.id, 'INGRESO', job.worker_amount, 'datoya_protected_release', JSON.stringify({ demo:true }));
+    if (wp) {
+      db.prepare('INSERT INTO ledger_entries(user_id,job_id,payment_id,type,amount,reference,metadata) VALUES(?,?,?,?,?,?,?)')
+        .run(wp.user_id, job.id, payment.id, 'INGRESO', job.worker_amount, 'datoya_protected_release', JSON.stringify({ demo:true }));
+    }
     db.prepare('INSERT INTO ledger_entries(user_id,job_id,payment_id,type,amount,reference,metadata) VALUES(?,?,?,?,?,?,?)')
       .run(job.client_id, job.id, payment.id, 'COMISION', job.commission_amount, 'datoya_commission', JSON.stringify({ demo:true, pct:job.commission_pct }));
   }
@@ -61,18 +61,18 @@ function finalizeProtectedJob(job, actorId) {
   const wp = db.prepare('SELECT * FROM worker_profiles WHERE id=?').get(job.worker_id);
   const protection = createProtectionForJob(job);
   const tx = db.transaction(() => {
-    db.prepare(`UPDATE jobs SET status='FINALIZADO',updated_at=datetime('now') WHERE id=?`).run(job.id);
+    db.prepare("UPDATE jobs SET status='FINALIZADO',updated_at=datetime('now') WHERE id=?").run(job.id);
     db.prepare('INSERT INTO job_status_history(job_id,status,changed_by) VALUES(?,?,?)').run(job.id, 'FINALIZADO', actorId);
     db.prepare('INSERT INTO job_events(job_id,event_type,user_id,metadata) VALUES(?,?,?,?)')
       .run(job.id, 'status_changed', actorId, JSON.stringify({ from: job.status, to: 'FINALIZADO', protected_payment:true }));
     if (job.status !== 'FINALIZADO') db.prepare('UPDATE worker_profiles SET jobs_completed=jobs_completed+1 WHERE id=?').run(job.worker_id);
-    insertDemoRelease(job, actorId);
-    db.prepare(`UPDATE payment_protections SET status='RELEASED',released_at=datetime('now'),updated_at=datetime('now') WHERE job_id=?`).run(job.id);
+    insertDemoRelease(job);
+    db.prepare("UPDATE payment_protections SET status='RELEASED',released_at=datetime('now'),updated_at=datetime('now') WHERE job_id=?").run(job.id);
     addProtectionEvent(protection.id, 'payment_released', actorId, { demo:true });
   });
   tx();
-  notify(job.client_id, 'pago', `Trabajo confirmado. Pago protegido liberado en MODO DEMO: ${fmtCLP(job.price)}.`, '#/trabajos');
-  notify(wp.user_id, 'pago', `El cliente confirmó el trabajo. Pago liberado: ${fmtCLP(job.worker_amount)}. MODO DEMO.`, '#/trabajos');
+  notify(job.client_id, 'pago', 'Trabajo confirmado. Pago protegido liberado en MODO DEMO: ' + fmtCLP(job.price) + '.', '#/trabajos');
+  if (wp) notify(wp.user_id, 'pago', 'El cliente confirmó el trabajo. Pago liberado: ' + fmtCLP(job.worker_amount) + '. MODO DEMO.', '#/trabajos');
   return protectionForJob(job.id);
 }
 
@@ -99,7 +99,7 @@ app.post('/api/jobs/:id/complete-request', auth, (req, res) => {
   const protection = createProtectionForJob(job);
   const cfg = protectionConfig();
   const deadline = cfg.reviewHours > 0 ? new Date(Date.now() + cfg.reviewHours * 3600000).toISOString().slice(0,19).replace('T',' ') : null;
-  db.prepare(`UPDATE payment_protections SET status='AWAITING_CONFIRMATION',review_deadline=?,updated_at=datetime('now') WHERE job_id=?`).run(deadline, job.id);
+  db.prepare("UPDATE payment_protections SET status='AWAITING_CONFIRMATION',review_deadline=?,updated_at=datetime('now') WHERE job_id=?").run(deadline, job.id);
   const eventId = db.prepare('INSERT INTO job_events(job_id,event_type,user_id,metadata) VALUES(?,?,?,?)').run(job.id, 'trabajo_terminado', req.user.id, JSON.stringify({ review_deadline:deadline })).lastInsertRowid;
   addProtectionEvent(protection.id, 'awaiting_client_confirmation', req.user.id, { event_id:eventId, review_deadline:deadline });
   notify(job.client_id, 'trabajo', 'El profesional indicó que terminó el trabajo. Revisa las evidencias y confirma o reporta un problema.', '#/trabajos');
@@ -129,10 +129,10 @@ app.use('/api/jobs/:id/status', auth, (req, res, next) => {
   const reason = String((req.body || {}).reason || '').trim().slice(0,2000);
   if (!reason) return res.status(400).json({ error:'Debes indicar el motivo de la disputa' });
   const protection = createProtectionForJob(job);
-  db.prepare(`UPDATE jobs SET status='DISPUTA',updated_at=datetime('now') WHERE id=?`).run(job.id);
+  db.prepare("UPDATE jobs SET status='DISPUTA',updated_at=datetime('now') WHERE id=?").run(job.id);
   db.prepare('INSERT INTO job_status_history(job_id,status,changed_by) VALUES(?,?,?)').run(job.id,'DISPUTA',req.user.id);
   db.prepare('INSERT INTO job_events(job_id,event_type,user_id,metadata) VALUES(?,?,?,?)').run(job.id,'status_changed',req.user.id,JSON.stringify({ from:job.status,to:'DISPUTA',reason }));
-  db.prepare(`UPDATE payment_protections SET status='DISPUTED',dispute_reason=?,updated_at=datetime('now') WHERE job_id=?`).run(reason,job.id);
+  db.prepare("UPDATE payment_protections SET status='DISPUTED',dispute_reason=?,updated_at=datetime('now') WHERE job_id=?").run(reason,job.id);
   addProtectionEvent(protection.id,'dispute_opened',req.user.id,{ reason });
   notify(isClient ? wp.user_id : job.client_id,'disputa','Se abrió una disputa sobre el trabajo. El pago permanece protegido en MODO DEMO mientras se revisa.','#/trabajos');
   res.json({ ok:true,status:'DISPUTA',protection:protectionForJob(job.id),demo:true });
@@ -160,18 +160,18 @@ app.post('/api/admin/jobs/:id/protection/resolve', auth, requireRole('admin'), (
   if (!resolution) return res.status(400).json({ error:'La resolución es obligatoria' });
 
   if (action === 'correction') {
-    db.prepare(`UPDATE payment_protections SET status='CORRECTION',resolution=?,resolved_by=?,updated_at=datetime('now') WHERE job_id=?`).run(resolution,req.user.id,job.id);
+    db.prepare("UPDATE payment_protections SET status='CORRECTION',resolution=?,resolved_by=?,updated_at=datetime('now') WHERE job_id=?").run(resolution,req.user.id,job.id);
     addProtectionEvent(protection.id,'correction_requested',req.user.id,{ resolution });
     const worker = job.worker_id ? db.prepare('SELECT user_id FROM worker_profiles WHERE id=?').get(job.worker_id) : null;
     if (worker) notify(worker.user_id,'disputa','DatoYa solicitó una corrección del trabajo.','#/trabajos');
   } else if (action === 'release') {
     finalizeProtectedJob({ ...job, status:'DISPUTA' }, req.user.id);
-    db.prepare(`UPDATE payment_protections SET resolution=?,resolved_by=?,updated_at=datetime('now') WHERE job_id=?`).run(resolution,req.user.id,job.id);
+    db.prepare('UPDATE payment_protections SET resolution=?,resolved_by=?,updated_at=datetime(\'now\') WHERE job_id=?').run(resolution,req.user.id,job.id);
     addProtectionEvent(protection.id,'admin_release',req.user.id,{ resolution });
   } else {
     const status = action === 'refund' ? 'REFUNDED' : 'PARTIAL_REFUND';
-    db.prepare(`UPDATE payment_protections SET status=?,resolution=?,resolved_by=?,updated_at=datetime('now') WHERE job_id=?`).run(status,resolution,req.user.id,job.id);
-    db.prepare(`UPDATE jobs SET status='FINALIZADO',updated_at=datetime('now') WHERE id=?`).run(job.id);
+    db.prepare('UPDATE payment_protections SET status=?,resolution=?,resolved_by=?,updated_at=datetime(\'now\') WHERE job_id=?').run(status,resolution,req.user.id,job.id);
+    db.prepare('UPDATE jobs SET status=\'FINALIZADO\',updated_at=datetime(\'now\') WHERE id=?').run(job.id);
     db.prepare('INSERT INTO job_status_history(job_id,status,changed_by) VALUES(?,?,?)').run(job.id,'FINALIZADO',req.user.id);
     addProtectionEvent(protection.id,action === 'refund' ? 'refund' : 'partial_refund',req.user.id,{ resolution, demo:true });
     const amount = action === 'refund' ? protection.service_amount : Math.floor(protection.service_amount / 2);
