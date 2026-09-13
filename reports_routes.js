@@ -14,8 +14,12 @@ function reportPartyContext(report) {
   if (report.target_type === 'usuario') targetUserId = report.target_id;
   else if (report.target_type === 'resena') {
     reviewId = report.target_id;
-    const review = db.prepare('SELECT reviewee_id, job_id FROM reviews WHERE id=?').get(report.target_id);
-    if (review) { targetUserId = review.reviewee_id; jobId = review.job_id; }
+    const review = db.prepare('SELECT reviewer_id, reviewee_id, job_id FROM reviews WHERE id=?').get(report.target_id);
+    if (review) {
+      targetUserId = report.reporter_id === review.reviewer_id ? review.reviewee_id : review.reviewer_id;
+      if (report.reporter_id === review.reviewer_id && !targetUserId) targetUserId = review.reviewee_id;
+      jobId = review.job_id;
+    }
   } else if (report.target_type === 'trabajo') {
     jobId = report.target_id;
     const job = db.prepare('SELECT id, request_id, client_id, worker_id FROM jobs WHERE id=?').get(report.target_id);
@@ -65,7 +69,7 @@ app.post('/api/reports', auth, (req, res) => {
     const review = db.prepare('SELECT id, reviewer_id, reviewee_id FROM reviews WHERE id=?').get(id);
     if (!review) return res.status(404).json({ error: 'Reseña no encontrada' });
     if (req.user.role !== 'admin' && ![review.reviewer_id, review.reviewee_id].includes(req.user.id)) return res.status(403).json({ error: 'Sin acceso a esta reseña' });
-    targetUserId = review.reviewee_id;
+    targetUserId = req.user.id === review.reviewer_id ? review.reviewee_id : review.reviewer_id;
   } else {
     const job = db.prepare('SELECT id, client_id, worker_id FROM jobs WHERE id=?').get(id);
     if (!job) return res.status(404).json({ error: 'Trabajo no encontrado' });
@@ -80,11 +84,11 @@ app.post('/api/reports', auth, (req, res) => {
 });
 
 app.get('/api/admin/reports', auth, requireRole('admin'), (req, res) => {
-  const rows = db.prepare("SELECT r.*, reporter.name AS reporter_name, reporter.role AS reporter_role, target.name AS target_name, target.role AS target_role, CASE WHEN reporter.role='cliente' AND target.role='trabajador' THEN 'Cliente → Profesional' WHEN reporter.role='trabajador' AND target.role='cliente' THEN 'Profesional → Cliente' WHEN reporter.role='cliente' THEN 'Cliente → ' || COALESCE(target.role,'objetivo') WHEN reporter.role='trabajador' THEN 'Profesional → ' || COALESCE(target.role,'objetivo') ELSE COALESCE(reporter.role,'No identificado') || ' → ' || COALESCE(target.role,'objetivo') END AS direction FROM reports r JOIN users reporter ON reporter.id=r.reporter_id LEFT JOIN users target ON target.id = CASE WHEN r.target_type='usuario' THEN r.target_id WHEN r.target_type='resena' THEN (SELECT reviewee_id FROM reviews WHERE id=r.target_id) WHEN r.target_type='trabajo' THEN (SELECT CASE WHEN j.client_id=r.reporter_id THEN wp.user_id ELSE j.client_id END FROM jobs j JOIN worker_profiles wp ON wp.id=j.worker_id WHERE j.id=r.target_id) END ORDER BY r.created_at DESC").all();
+  const rows = db.prepare("SELECT r.*, reporter.name AS reporter_name, reporter.role AS reporter_role, target.name AS target_name, target.role AS target_role, CASE WHEN reporter.role='cliente' AND target.role='trabajador' THEN 'Cliente → Profesional' WHEN reporter.role='trabajador' AND target.role='cliente' THEN 'Profesional → Cliente' WHEN reporter.role='cliente' THEN 'Cliente → ' || COALESCE(target.role,'objetivo') WHEN reporter.role='trabajador' THEN 'Profesional → ' || COALESCE(target.role,'objetivo') ELSE COALESCE(reporter.role,'No identificado') || ' → ' || COALESCE(target.role,'objetivo') END AS direction FROM reports r JOIN users reporter ON reporter.id=r.reporter_id LEFT JOIN users target ON target.id = CASE WHEN r.target_type='usuario' THEN r.target_id WHEN r.target_type='resena' THEN (SELECT CASE WHEN r.reporter_id=rv.reviewer_id THEN rv.reviewee_id ELSE rv.reviewer_id END FROM reviews rv WHERE rv.id=r.target_id) WHEN r.target_type='trabajo' THEN (SELECT CASE WHEN j.client_id=r.reporter_id THEN wp.user_id ELSE j.client_id END FROM jobs j JOIN worker_profiles wp ON wp.id=j.worker_id WHERE j.id=r.target_id) END ORDER BY r.created_at DESC").all();
   const reports = rows.map(r => {
     const ctx = reportPartyContext(r);
-    const job = ctx.jobId ? db.prepare("SELECT j.id, j.request_id, j.status, j.price, j.created_at, u.name AS client_name, wp.user_id AS worker_user_id, wu.name AS worker_name, sr.title AS request_title, sr.description AS request_description, c.name AS comuna FROM jobs j JOIN users u ON u.id=j.client_id JOIN worker_profiles wp ON wp.id=j.worker_id JOIN users wu ON wu.id=wp.user_id LEFT JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE j.id=?").get(ctx.jobId) : null;
-    const request = !job && ctx.requestId ? db.prepare("SELECT sr.id, sr.title, sr.description, sr.status, sr.created_at, u.name AS client_name, c.name AS comuna FROM service_requests sr JOIN users u ON u.id=sr.client_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE sr.id=?").get(ctx.requestId) : null;
+    const job = ctx.jobId ? db.prepare("SELECT j.id, j.request_id, j.status, j.price, j.created_at, u.name AS client_name, wp.user_id AS worker_user_id, wu.name AS worker_name, sr.title AS request_title, sr.description AS request_description, sr.address_detail AS address_detail, c.name AS comuna FROM jobs j JOIN users u ON u.id=j.client_id JOIN worker_profiles wp ON wp.id=j.worker_id JOIN users wu ON wu.id=wp.user_id LEFT JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE j.id=?").get(ctx.jobId) : null;
+    const request = !job && ctx.requestId ? db.prepare("SELECT sr.id, sr.title, sr.description, sr.address_detail, sr.status, sr.created_at, u.name AS client_name, c.name AS comuna FROM service_requests sr JOIN users u ON u.id=sr.client_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE sr.id=?").get(ctx.requestId) : null;
     return { ...r, reporter: r.reporter_name, target_name: r.target_name || 'No identificado', target_role: r.target_role || '—', reporter_role_label: reportRoleLabel(r.reporter_role), target_role_label: reportRoleLabel(r.target_role), direction: r.direction, job, request };
   });
   res.json({ reports });
@@ -96,7 +100,7 @@ app.get('/api/admin/reports/:id/case', auth, requireRole('admin'), (req, res) =>
   const ctx = reportPartyContext(report);
   const reporter = reportUserSummary(report.reporter_id);
   const target = reportUserSummary(ctx.targetUserId);
-  const job = ctx.jobId ? db.prepare("SELECT j.*, u.name AS client_name, u.email AS client_email, wp.user_id AS worker_user_id, wp.oficio, wp.description AS worker_description, wp.verified_identity, wp.is_pro, wp.rating_avg, wp.rating_count, wu.name AS worker_name, sr.title AS request_title, sr.description AS request_description, sr.photos AS request_photos, sr.status AS request_status, sr.created_at AS request_created_at, c.name AS comuna FROM jobs j JOIN users u ON u.id=j.client_id JOIN worker_profiles wp ON wp.id=j.worker_id JOIN users wu ON wu.id=wp.user_id LEFT JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE j.id=?").get(ctx.jobId) : null;
+  const job = ctx.jobId ? db.prepare("SELECT j.*, u.name AS client_name, u.email AS client_email, wp.user_id AS worker_user_id, wp.oficio, wp.description AS worker_description, wp.verified_identity, wp.is_pro, wp.rating_avg, wp.rating_count, wu.name AS worker_name, sr.title AS request_title, sr.description AS request_description, sr.photos AS request_photos, sr.address_detail AS address_detail, sr.status AS request_status, sr.created_at AS request_created_at, c.name AS comuna FROM jobs j JOIN users u ON u.id=j.client_id JOIN worker_profiles wp ON wp.id=j.worker_id JOIN users wu ON wu.id=wp.user_id LEFT JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE j.id=?").get(ctx.jobId) : null;
   const request = ctx.requestId ? db.prepare("SELECT sr.*, c.name AS comuna, u.name AS client_name FROM service_requests sr JOIN users u ON u.id=sr.client_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE sr.id=?").get(ctx.requestId) : null;
   let messages = [];
   if (ctx.jobId || ctx.requestId) {
