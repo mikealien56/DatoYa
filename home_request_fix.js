@@ -1,89 +1,54 @@
-/* DatoYa — home + directed request fix
- * Keeps the existing SPA and workflow intact.
- * 1) Home loads the complete Chilean comuna catalogue instead of a hard-coded region.
- * 2) "Solicitar" on a worker opens a real request with that worker targeted.
- * 3) Targeted requests preselect and lock the worker's category, so a painter cannot be requested as an electrician.
- */
+/* DatoYa — home + directed request fix. Keeps the existing SPA/workflow. */
 (function(){
-  const esc0=window.esc||function(s){return String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));};
   const api0=window.api;
   const view0=window.view;
+  const esc0=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 
   async function renderHomeFixed(){
     const {categories}=await api0('/categories');
-    window.CATS=categories;
     const {comunas}=await api0('/comunas');
     const feat=await api0('/workers?featured=1');
     const destacados=feat.workers.length?feat.workers:(await api0('/workers')).workers.slice(0,4);
     view0.innerHTML=`<div class="hero"><h1>Encuentra a la persona indicada<br>para tu trabajo.</h1><p>Gasfíter, electricista, pintor y más — cerca de ti, verificados y con reseñas reales.</p><form class="searchbox" onsubmit="event.preventDefault();location.hash='#/buscar?q='+encodeURIComponent(this.q.value)+'&comuna='+this.comuna.value"><input name="q" placeholder="¿Qué servicio necesitas?"><select name="comuna"><option value="">¿Dónde? — Todas las comunas</option>${comunas.map(c=>`<option value="${c.id}">${esc0(c.name)}</option>`).join('')}</select><button class="btn btn-accent">🔍 Buscar</button></form></div><h2 class="section-title">Servicios cerca de ti</h2><div class="cat-grid">${categories.slice(0,9).map(c=>`<a class="cat-item" href="#/buscar?cat=${c.id}"><span>${c.icon}</span>${esc0(c.name)}</a>`).join('')}<a class="cat-item" href="#/buscar"><span>➕</span>Ver todos</a></div><h2 class="section-title">Trabajadores destacados</h2><div class="cards">${destacados.map(window.workerCard).join('')}</div>`;
   }
 
+  let dw={};
   async function solicitarDirectoFixed(workerId){
-    if(!window.ME){location.hash='#/login';return;}
-    if(window.ME.role!=='cliente'){window.toast('Inicia sesión como cliente para solicitar','err');return;}
     try{
+      const me=await api0('/auth/me');
+      if(!me.user){location.hash='#/login';return;}
+      if(me.user.role!=='cliente'){window.toast('Inicia sesión como cliente para solicitar','err');return;}
       const {worker}=await api0('/workers/'+encodeURIComponent(workerId));
-      if(!worker){throw new Error('No se encontró el profesional.');}
+      if(!worker)throw new Error('No se encontró el profesional.');
+      const {categories}=await api0('/categories');
       const categoryId=Number(worker.category_id||worker.categoryId||worker.oficio_category_id||0);
-      if(!categoryId){throw new Error('Este profesional no tiene una especialidad configurada.');}
-      location.hash='#/solicitar?worker_id='+encodeURIComponent(worker.id)+'&category_id='+encodeURIComponent(categoryId);
+      const category=categories.find(c=>Number(c.id)===categoryId);
+      if(!category)throw new Error('La especialidad del profesional no está configurada correctamente.');
+      dw={step:1,comunas:(await api0('/comunas')).comunas,targetWorkerId:Number(worker.id),targetWorkerName:worker.name,category_id:categoryId,catName:category.name};
+      drawDirect();
     }catch(e){window.toast(e.message||'No se pudo iniciar la solicitud','err');}
   }
-
-  async function renderNewRequestFixed(){
-    if(!window.ME||window.ME.role!=='cliente'){location.hash='#/login';return;}
-    const qs=new URLSearchParams(location.hash.split('?')[1]||'');
-    const workerId=Number(qs.get('worker_id')||0);
-    const categoryId=Number(qs.get('category_id')||0);
-    window.wiz={step:workerId?2:1};
-    window.wiz.comunas=(await api0('/comunas')).comunas;
-    if(!window.CATS.length)window.CATS=(await api0('/categories')).categories;
-    if(workerId){
-      const {worker}=await api0('/workers/'+workerId);
-      if(!worker)throw new Error('No se encontró el profesional.');
-      const realCategoryId=Number(worker.category_id||worker.categoryId||worker.oficio_category_id||categoryId||0);
-      const category=window.CATS.find(c=>Number(c.id)===realCategoryId);
-      if(!category)throw new Error('La especialidad del profesional no está configurada correctamente.');
-      window.wiz.targetWorkerId=workerId;
-      window.wiz.targetWorkerName=worker.name;
-      window.wiz.category_id=realCategoryId;
-      window.wiz.catName=category.name;
-    }
-    drawWizardFixed();
+  function drawDirect(){
+    let body='';
+    const target=`<div class="lock-note" style="margin-bottom:14px">👷 <b>Profesional seleccionado:</b> ${esc0(dw.targetWorkerName)}<br>🛠️ <b>Especialidad:</b> ${esc0(dw.catName)}<br><span class="small muted">La especialidad está fijada al perfil del profesional.</span></div>`;
+    if(dw.step===1)body=`${target}<h2>Describe el problema</h2><div class="field"><input id="dw-title" placeholder="Título" required></div><div class="field"><textarea id="dw-desc" rows="4" placeholder="Detalle" required></textarea></div><button class="btn btn-primary btn-block" onclick="directNext(1)">Continuar</button>`;
+    else if(dw.step===2)body=`${target}<h2>¿Dónde?</h2><select id="dw-comuna">${dw.comunas.map(c=>`<option value="${c.id}">${esc0(c.name)}</option>`).join('')}</select><div class="field"><input id="dw-address" placeholder="Dirección" required></div><button class="btn btn-primary btn-block" onclick="directNext(2)">Continuar</button>`;
+    else body=`${target}<h2>Confirmar solicitud</h2><p><b>${esc0(dw.title)}</b></p><p>${esc0(dw.description)}</p><p class="small muted">Se enviará directamente a este profesional como <b>${esc0(dw.catName)}</b>.</p><button class="btn btn-green btn-block" onclick="directSubmit()">Publicar solicitud</button>`;
+    view0.innerHTML=`<div class="card"><a href="#/buscar" class="small">← Volver</a>${body}</div>`;
   }
-
-  function drawWizardFixed(){
-    let body;
-    if(window.wiz.targetWorkerId && window.wiz.step===1)window.wiz.step=2;
-    if(window.wiz.step===1){
-      body=`<h2>¿Qué necesitas?</h2><div class="cat-grid">${window.CATS.map(c=>`<button class="cat-item" onclick="wizSet('category_id',${c.id});wizSet('catName','${esc0(c.name)}')"><span>${c.icon}</span>${esc0(c.name)}</button>`).join('')}</div>`;
-    }else if(window.wiz.step===2){
-      const target=window.wiz.targetWorkerId?`<div class="lock-note" style="margin-bottom:14px">👷 <b>Profesional seleccionado:</b> ${esc0(window.wiz.targetWorkerName)}<br>🛠️ <b>Especialidad:</b> ${esc0(window.wiz.catName)}<br><span class="small muted">La especialidad está fijada al perfil del profesional.</span></div>`:'';
-      body=`${target}<h2>Describe el problema</h2><div class="field"><input id="w-title" placeholder="Título"></div><div class="field"><textarea id="w-desc" rows="4" placeholder="Detalle"></textarea></div><button class="btn btn-primary btn-block" onclick="wizNext(['title','description'])">Continuar</button>`;
-    }else if(window.wiz.step===3){
-      body=`<h2>¿Dónde?</h2><select id="w-comuna">${window.wiz.comunas.map(c=>`<option value="${c.id}">${esc0(c.name)}</option>`).join('')}</select><div class="field"><input id="w-address" placeholder="Dirección"></div><button class="btn btn-primary btn-block" onclick="wizNext(['comuna_id','address_detail'])">Continuar</button>`;
-    }else{
-      body=`<h2>Confirmar solicitud</h2><p><b>${esc0(window.wiz.title)}</b></p><p>${esc0(window.wiz.description)}</p>${window.wiz.targetWorkerId?`<p class="small muted">Se enviará directamente a <b>${esc0(window.wiz.targetWorkerName)}</b> como <b>${esc0(window.wiz.catName)}</b>.</p>`:''}<button class="btn btn-green btn-block" onclick="wizSubmit()">Publicar solicitud</button>`;
-    }
-    view0.innerHTML=`<div class="card">${body}</div>`;
-  }
-
-  async function wizSubmitFixed(){
+  window.directNext=function(step){
+    if(step===1){dw.title=(document.querySelector('#dw-title')?.value||'').trim();dw.description=(document.querySelector('#dw-desc')?.value||'').trim();if(!dw.title||!dw.description)return window.toast('Completa el título y el detalle','err');dw.step=2;drawDirect();}
+    else{dw.comuna_id=Number(document.querySelector('#dw-comuna')?.value||0);dw.address_detail=(document.querySelector('#dw-address')?.value||'').trim();if(!dw.comuna_id||!dw.address_detail)return window.toast('Completa la comuna y la dirección','err');dw.step=3;drawDirect();}
+  };
+  window.directSubmit=async function(){
     try{
-      const payload={category_id:window.wiz.category_id,title:window.wiz.title,description:window.wiz.description,comuna_id:window.wiz.comuna_id,address_detail:window.wiz.address_detail};
-      if(window.wiz.targetWorkerId)payload.worker_id=window.wiz.targetWorkerId;
-      const r=await api0('/requests',{method:'POST',body:payload});
-      view0.innerHTML=`<div class="card"><h2>¡Solicitud publicada!</h2><p>${r.notificados||0} trabajador(es) notificados.</p>${window.wiz.targetWorkerId?'<p>El profesional seleccionado recibirá esta solicitud directamente.</p>':''}<a href="#/solicitudes" class="btn btn-primary">Ver solicitudes</a></div>`;
-    }catch(e){window.toast(e.message,'err');}
-  }
-
+      const r=await api0('/requests',{method:'POST',body:{category_id:dw.category_id,title:dw.title,description:dw.description,comuna_id:dw.comuna_id,address_detail:dw.address_detail,worker_id:dw.targetWorkerId}});
+      view0.innerHTML=`<div class="card"><h2>¡Solicitud publicada!</h2><p>La solicitud fue enviada directamente a <b>${esc0(dw.targetWorkerName)}</b>.</p><p class="small muted">Especialidad: ${esc0(dw.catName)}</p><a href="#/solicitudes" class="btn btn-primary">Ver solicitud</a></div>`;
+    }catch(e){window.toast(e.message||'No se pudo publicar la solicitud','err');}
+  };
   window.renderHome=renderHomeFixed;
   window.solicitarDirecto=solicitarDirectoFixed;
-  window.renderNewRequest=renderNewRequestFixed;
-  window.drawWizard=drawWizardFixed;
-  window.wizSubmit=wizSubmitFixed;
-  if(window.routes){window.routes['']=renderHomeFixed;window.routes['solicitar']=renderNewRequestFixed;}
-
-  const h=location.hash||'#/' ;
-  if(h==='#/'||h==='#')window.setTimeout(()=>window.route(),0);
+  const originalHash=location.hash;
+  window.addEventListener('hashchange',()=>{if((location.hash||'#/')==='#/'||location.hash==='#')setTimeout(()=>renderHomeFixed().catch(()=>{}),0);});
+  if(originalHash==='#/'||originalHash==='#'||!originalHash)setTimeout(()=>renderHomeFixed().catch(()=>{}),0);
 })();
