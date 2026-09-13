@@ -5,10 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const serverPath = path.join(__dirname, 'server.js');
 const marker = '// ============ AUTH ============';
-const sentinel = "// ============ DATOYA COMPLETE REQUEST FIX ============";
+const routeSentinel = "app.post('/api/jobs/:id/complete-request'";
 
 let source = fs.readFileSync(serverPath, 'utf8');
-if (!source.includes(sentinel)) {
+if (!source.includes(routeSentinel)) {
   if (!source.includes(marker)) throw new Error('No se encontró AUTH para montar complete-request');
   const block = `
 // ============ DATOYA COMPLETE REQUEST FIX ============
