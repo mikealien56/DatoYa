@@ -3,6 +3,7 @@
 (() => {
   const TARGET_KEY = 'datoya_target_worker';
   const originalRender = routes.solicitar;
+  const originalDrawWizard = window.drawWizard;
 
   function compressPhoto(file) {
     return new Promise((resolve, reject) => {
@@ -34,7 +35,7 @@
     if (!box) return;
     box.innerHTML = (wiz.photos || []).map((p, i) => `
       <div style="position:relative;width:82px;height:82px">
-        <img src="${String(p.data).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" alt="Foto ${i + 1}" style="width:82px;height:82px;object-fit:cover;border-radius:10px;border:1px solid var(--borde)">
+        <img src="${String(p.data).replace(/&/g,'&amp;').replace(/\"/g,'&quot;')}" alt="Foto ${i + 1}" style="width:82px;height:82px;object-fit:cover;border-radius:10px;border:1px solid var(--borde)">
         <button type="button" title="Quitar" onclick="removeRequestPhoto(${i})" style="position:absolute;right:-6px;top:-6px;border:0;border-radius:50%;width:24px;height:24px;background:#fff;box-shadow:0 1px 5px #0003;cursor:pointer">×</button>
       </div>`).join('');
   }
@@ -47,7 +48,8 @@
 
   async function attachPhotoInput() {
     const input = document.querySelector('#w-photos');
-    if (!input) return;
+    if (!input || input.dataset.targetPhotosBound === '1') return;
+    input.dataset.targetPhotosBound = '1';
     input.addEventListener('change', async () => {
       try {
         const files = [...(input.files || [])];
@@ -67,16 +69,15 @@
     });
   }
 
-  routes.solicitar = async function () {
-    await originalRender();
-    const workerId = Number(sessionStorage.getItem(TARGET_KEY) || 0);
-    if (!workerId || !view) return;
-
+  function injectPhotosField() {
+    if (!window.wiz || wiz.step !== 3 || !view) return;
+    if (document.querySelector('#w-photos')) {
+      attachPhotoInput();
+      renderPhotoPreviews();
+      return;
+    }
     const card = view.querySelector('.card');
     if (!card) return;
-
-    card.insertAdjacentHTML('afterbegin', '<div class="lock-note" style="margin-bottom:14px"><b>Solicitud dirigida a este profesional</b><br>Su solicitud será enviada directamente al profesional seleccionado. Complete el problema, ubicación y fotos para que pueda cotizar.</div>');
-
     const photosField = document.createElement('div');
     photosField.className = 'field';
     photosField.innerHTML = `
@@ -84,11 +85,28 @@
       <input id="w-photos" type="file" accept="image/*" multiple>
       <div id="w-preview" class="row wrap" style="gap:10px;margin-top:10px"></div>
       <div class="small muted" style="margin-top:6px">Las fotos ayudan al profesional a entender el trabajo y preparar su cotización.</div>`;
-
     const address = card.querySelector('#w-address');
     if (address && address.parentElement) address.parentElement.insertAdjacentElement('afterend', photosField);
-    wiz.photos = [];
-    await attachPhotoInput();
+    attachPhotoInput();
+    renderPhotoPreviews();
+  }
+
+  // Importante: el wizard vuelve a dibujar el HTML al pasar del paso 3 al 4.
+  // Por eso el campo de fotos se inyecta después de CADA render del paso 3.
+  window.drawWizard = function() {
+    originalDrawWizard();
+    injectPhotosField();
+  };
+
+  routes.solicitar = async function () {
+    await originalRender();
+    const workerId = Number(sessionStorage.getItem(TARGET_KEY) || 0);
+    if (!workerId || !view) return;
+
+    const card = view.querySelector('.card');
+    if (!card) return;
+    card.insertAdjacentHTML('afterbegin', '<div class="lock-note" style="margin-bottom:14px"><b>Solicitud dirigida a este profesional</b><br>Su solicitud será enviada directamente al profesional seleccionado. Complete el problema, ubicación y fotos para que pueda cotizar.</div>');
+    injectPhotosField();
   };
 
   window.solicitarDirecto = function (workerId) {
