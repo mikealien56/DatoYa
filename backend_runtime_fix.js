@@ -15,5 +15,12 @@ if (fs.existsSync(file)) {
     "sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });"
   );
 
+  // El frontend debe distinguir cuentas DEMO de profesionales reales sin
+  // exponer correo, teléfono ni ningún otro dato privado del trabajador.
+  src = src.replace(
+    'SELECT wp.*, u.name, u.phone IS NOT NULL AS has_phone, c.name AS comuna, c.lat, c.lng, r.name AS region',
+    'SELECT wp.*, u.name, u.is_demo, u.phone IS NOT NULL AS has_phone, c.name AS comuna, c.lat, c.lng, r.name AS region'
+  );
+
   fs.writeFileSync(file, src);
 }
