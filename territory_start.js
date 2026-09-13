@@ -25,6 +25,7 @@ if(fs.existsSync(indexTarget)){
 require('./demo_admin_seed');
 require('./reports_bootstrap');
 require('./request_target_bootstrap');
+require('./territory_seed');
 require('./worker_category_repair');
 require('./demo_runtime_seed');
 require('./demo_compat_fix');
