@@ -7,7 +7,7 @@ if(fs.existsSync(indexTarget)){const html=fs.readFileSync(indexTarget,'utf8');if
 if(fs.existsSync(indexTarget)){const html=fs.readFileSync(indexTarget,'utf8');if(!html.includes('/evidence_ui.js'))fs.writeFileSync(indexTarget,html.replace('</body>','<script src="/evidence_ui.js?v=2"></script>\n</body>'));}
 if(fs.existsSync(indexTarget)){
   let html=fs.readFileSync(indexTarget,'utf8');
-  if(!html.includes('/nearby_ui.js')) html=html.replace('</body>','<script src="/nearby_ui.js?v=1"></script>\n</body>'); else html=html.replace(/\/nearby_ui\.js(?:\?v=\d+)?/g,'/nearby_ui.js?v=1');
+  if(!html.includes('/nearby_ui.js')) html=html.replace('</body>','<script src="/nearby_ui.js?v=3"></script>\n</body>'); else html=html.replace(/\/nearby_ui\.js(?:\?v=\d+)?/g,'/nearby_ui.js?v=3');
   if(!html.includes('/verification_admin_ui.js')) html=html.replace('</body>','<script src="/verification_admin_ui.js?v=1"></script>\n</body>');
   if(!html.includes('/verification_worker_ui.js')) html=html.replace('</body>','<script src="/verification_worker_ui.js?v=1"></script>\n</body>');
   if(!html.includes('/request_target_ui.js')) html=html.replace('</body>','<script src="/request_target_ui.js?v=3"></script>\n</body>'); else html=html.replace(/\/request_target_ui\.js(?:\?v=\d+)?/g,'/request_target_ui.js?v=3');
