@@ -44,6 +44,8 @@ require('./gps_schema');
 require('./gps_bootstrap');
 // Protección DatoYa: esquema + rutas DEMO de retención, confirmación y disputa.
 require('./protection_schema');
+// Guard previo: evita que el cliente salte directamente a FINALIZADO antes de la confirmación del profesional.
+require('./protection_flow_guard');
 require('./protection_bootstrap');
 // Impide saltos de estado inválidos antes de registrar cambios en el servidor legacy.
 require('./workflow_guard_bootstrap');
