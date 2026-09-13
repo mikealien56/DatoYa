@@ -9,7 +9,9 @@ const serverFile = path.join(__dirname, 'server.js');
 function injectProtection(source) {
   const marker = '// ============ AUTH ============';
   if (!source.includes(marker)) throw new Error('No se encontró el punto de inyección de Protección DatoYa');
-  if (source.includes('payment_protections')) return source;
+  // No usar `payment_protections` como sentinel: otros guards pueden referenciar
+  // esa tabla sin haber instalado las rutas de Protección DatoYa.
+  if (source.includes("app.post('/api/jobs/:id/complete-request'")) return source;
 
   const block = `
 // ============ PROTECCIÓN DATOYA ============
