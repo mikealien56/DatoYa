@@ -3,8 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const serverFile = path.join(__dirname, 'server.js');
 const marker = '// ============ ADMIN ============';
+const sentinel = "app.get('/api/admin/reports/:id/case'";
 let source = fs.readFileSync(serverFile, 'utf8');
-if (!source.includes('GET /api/admin/reports/:id/case')) {
+
+if (!source.includes(sentinel)) {
   const block = `
 // ============ EXPEDIENTES ADMINISTRATIVOS DATOYA ============
 function adminRelatedJob(report) {
@@ -30,7 +32,7 @@ app.get('/api/admin/reports/:id/case', auth, requireRole('admin'), (req,res) => 
   res.json(adminCase(report));
 });
 app.get('/api/admin/disputes/:id/case', auth, requireRole('admin'), (req,res) => {
-  const job = db.prepare('SELECT j.*,sr.title AS request_title,sr.description AS request_description,c.name AS comuna FROM jobs j LEFT JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE j.id=? AND j.status=\'DISPUTA\'').get(Number(req.params.id));
+  const job = db.prepare("SELECT j.*,sr.title AS request_title,sr.description AS request_description,c.name AS comuna FROM jobs j LEFT JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE j.id=? AND j.status='DISPUTA'").get(Number(req.params.id));
   if (!job) return res.status(404).json({error:'Disputa no encontrada'});
   const client=db.prepare('SELECT id,name,email,role FROM users WHERE id=?').get(job.client_id);
   const wp=db.prepare('SELECT id,user_id,oficio FROM worker_profiles WHERE id=?').get(job.worker_id);
