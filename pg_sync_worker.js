@@ -3,7 +3,12 @@
 // ejecuta I/O asíncrono contra PostgreSQL y devuelve el resultado mediante un archivo temporal.
 const { parentPort, workerData } = require('worker_threads');
 const fs = require('fs');
-const { Client } = require('pg');
+const { Client, types } = require('pg');
+
+// better-sqlite3 devuelve IDs enteros como Number. node-postgres, en cambio,
+// devuelve INT8/BIGSERIAL como string por defecto. DatoYa compara muchos IDs
+// con ===, por lo que normalizamos INT8 para conservar la semántica existente.
+types.setTypeParser(20, value => Number(value));
 
 let client = null;
 let connecting = null;
