@@ -7,11 +7,13 @@
     try{
       const data=await api('/worker/verification-requests');
       const requests=data.requests||[];
-      const current=requests.find(x=>x.status==='pendiente_antecedentes')||requests[0];
+      const current=requests.find(x=>x.needs_documents)||requests[0];
       if(!current)return;
       const card=document.createElement('div');card.className='card';
-      const history=(data.history||[]).filter(h=>h.verification_id===current.id);
-      card.innerHTML=`<h3>📋 Estado de verificación</h3><div class="row between"><span>Solicitud #${current.id}</span><span class="status-tag ${current.status==='aprobada'?'st-FINALIZADO':current.status==='pendiente_antecedentes'?'st-DISPUTA':'st-CANCELADO'}">${esc(current.status)}</span></div>${current.status==='pendiente_antecedentes'?`<div class="lock-note" style="margin-top:10px">📎 DatoYa necesita antecedentes adicionales. Revise la solicitud y envíe lo pedido.</div><form onsubmit="addVerificationDocument(event,${current.id})" style="margin-top:12px"><div class="field"><label>Tipo de antecedente</label><input name="document_type" placeholder="Ej: Certificado profesional" required></div><div class="field"><label>Referencia</label><input name="document_reference" placeholder="Indique el antecedente que está aportando" required></div><button class="btn btn-primary btn-block">Enviar antecedente</button></form>`:''}<div class="small muted" style="margin-top:10px">${history.length} actividad(es) en el historial.</div>`;
+      const history=(data.history||[]).filter(h=>Number(h.verification_id)===Number(current.id));
+      const needsDocs=!!current.needs_documents;
+      const latestRequest=history.find(h=>h.action==='antecedentes_solicitados');
+      card.innerHTML=`<h3>📋 Estado de verificación</h3><div class="row between"><span>Solicitud #${current.id}</span><span class="status-tag ${current.status==='aprobada'?'st-FINALIZADO':current.status==='pendiente'?'st-DISPUTA':'st-CANCELADO'}">${needsDocs?'pendiente de antecedentes':esc(current.status)}</span></div>${needsDocs?`<div class="lock-note" style="margin-top:10px">📎 DatoYa necesita antecedentes adicionales.${latestRequest?.requested_documents?`<div class="small" style="margin-top:7px"><b>Solicitado:</b><br>${esc(latestRequest.requested_documents).replace(/\n/g,'<br>')}</div>`:''}${latestRequest?.note?`<div class="small" style="margin-top:6px">${esc(latestRequest.note)}</div>`:''}</div><form onsubmit="addVerificationDocument(event,${current.id})" style="margin-top:12px"><div class="field"><label>Tipo de antecedente</label><input name="document_type" placeholder="Ej: Certificado profesional" required></div><div class="field"><label>Referencia</label><input name="document_reference" placeholder="Indique el antecedente que está aportando" required></div><button class="btn btn-primary btn-block">Enviar antecedente</button></form>`:''}<div class="small muted" style="margin-top:10px">${history.length} actividad(es) en el historial.</div>`;
       view.appendChild(card);
     }catch(e){console.warn('verification worker ui',e)}
   };
