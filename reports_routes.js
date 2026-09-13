@@ -45,6 +45,40 @@ function reportTableExists(name) {
   return !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
 }
 
+// Crear una denuncia con objetivo existente y contexto verificable.
+app.post('/api/reports', auth, (req, res) => {
+  const { target_type, target_id, reason } = req.body || {};
+  const details = String(req.body?.details || '').trim().slice(0, 4000);
+  const razones = ['estafa', 'incumplimiento', 'mal_comportamiento', 'trabajo_defectuoso', 'pago_no_realizado', 'perfil_falso'];
+  const type = String(target_type || '');
+  const id = Number(target_id);
+  if (!['usuario','resena','trabajo'].includes(type) || !Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Objetivo de denuncia inválido' });
+  if (!razones.includes(reason)) return res.status(400).json({ error: 'Motivo inválido' });
+
+  let targetUserId = null;
+  if (type === 'usuario') {
+    const target = db.prepare('SELECT id FROM users WHERE id=?').get(id);
+    if (!target) return res.status(404).json({ error: 'Usuario denunciado no existe' });
+    if (target.id === req.user.id) return res.status(400).json({ error: 'No puedes denunciar tu propia cuenta' });
+    targetUserId = target.id;
+  } else if (type === 'resena') {
+    const review = db.prepare('SELECT id, reviewer_id, reviewee_id FROM reviews WHERE id=?').get(id);
+    if (!review) return res.status(404).json({ error: 'Reseña no encontrada' });
+    if (req.user.role !== 'admin' && ![review.reviewer_id, review.reviewee_id].includes(req.user.id)) return res.status(403).json({ error: 'Sin acceso a esta reseña' });
+    targetUserId = review.reviewee_id;
+  } else {
+    const job = db.prepare('SELECT id, client_id, worker_id FROM jobs WHERE id=?').get(id);
+    if (!job) return res.status(404).json({ error: 'Trabajo no encontrado' });
+    const worker = db.prepare('SELECT user_id FROM worker_profiles WHERE id=?').get(job.worker_id);
+    const participant = req.user.role === 'admin' || req.user.id === job.client_id || (worker && worker.user_id === req.user.id);
+    if (!participant) return res.status(403).json({ error: 'Solo participantes del trabajo pueden denunciarlo' });
+    targetUserId = req.user.id === job.client_id ? (worker ? worker.user_id : null) : job.client_id;
+  }
+
+  db.prepare('INSERT INTO reports(reporter_id,target_type,target_id,reason,details) VALUES(?,?,?,?,?)').run(req.user.id, type, id, reason, details);
+  res.json({ ok: true, message: 'Denuncia recibida. El equipo DatoYa la revisará.', target_user_id: targetUserId });
+});
+
 app.get('/api/admin/reports', auth, requireRole('admin'), (req, res) => {
   const rows = db.prepare("SELECT r.*, reporter.name AS reporter_name, reporter.role AS reporter_role, target.name AS target_name, target.role AS target_role, CASE WHEN reporter.role='cliente' AND target.role='trabajador' THEN 'Cliente → Profesional' WHEN reporter.role='trabajador' AND target.role='cliente' THEN 'Profesional → Cliente' WHEN reporter.role='cliente' THEN 'Cliente → ' || COALESCE(target.role,'objetivo') WHEN reporter.role='trabajador' THEN 'Profesional → ' || COALESCE(target.role,'objetivo') ELSE COALESCE(reporter.role,'No identificado') || ' → ' || COALESCE(target.role,'objetivo') END AS direction FROM reports r JOIN users reporter ON reporter.id=r.reporter_id LEFT JOIN users target ON target.id = CASE WHEN r.target_type='usuario' THEN r.target_id WHEN r.target_type='resena' THEN (SELECT reviewee_id FROM reviews WHERE id=r.target_id) WHEN r.target_type='trabajo' THEN (SELECT CASE WHEN j.client_id=r.reporter_id THEN wp.user_id ELSE j.client_id END FROM jobs j JOIN worker_profiles wp ON wp.id=j.worker_id WHERE j.id=r.target_id) END ORDER BY r.created_at DESC").all();
   const reports = rows.map(r => {
