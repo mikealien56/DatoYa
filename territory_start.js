@@ -34,7 +34,8 @@ require('./request_target_bootstrap');
 require('./demo_runtime_seed');
 // Compatibilidad de los datos DEMO con el flujo E2E, sin alterar las reglas reales.
 require('./demo_compat_fix');
-// GPS: primero crea tablas/configuración y luego inyecta las rutas de viaje en el servidor.
+// GPS: primero crea tablas/configuración; el fix evita que una comilla SQL anidada del inyector rompa el arranque.
+require('./gps_syntax_fix');
 require('./gps_schema');
 require('./gps_bootstrap');
 // Impide saltos de estado inválidos antes de registrar cambios en el servidor legacy.
