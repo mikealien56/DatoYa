@@ -23,10 +23,12 @@
       : `<p class="small muted">Este profesional aún no ha definido sus servicios.</p>`;
 
     const portfolioHtml = portfolio.length
-      ? `<div class="portfolio-grid">${portfolio.map(p => p.data_url
-          ? `<div class="portfolio-item card"><img src="${escHtml(p.data_url)}" alt="${escHtml(p.caption || 'Trabajo realizado')}" loading="lazy" style="width:100%;height:210px;object-fit:cover;border-radius:12px"><b style="display:block;margin-top:9px">${escHtml(p.caption || 'Trabajo realizado')}</b></div>`
-          : `<div class="portfolio-item card"><div style="height:160px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:64px;background:rgba(0,0,0,.04)">${escHtml(p.emoji || '🛠️')}</div><b style="display:block;margin-top:9px">${escHtml(p.caption || 'Trabajo realizado')}</b></div>`
-        ).join('')}</div>`
+      ? `<div class="portfolio-grid">${portfolio.map(p => {
+          const image = p.data || p.data_url || '';
+          return image
+            ? `<div class="portfolio-item card"><img src="${escHtml(image)}" alt="${escHtml(p.caption || 'Trabajo realizado')}" loading="lazy" style="width:100%;height:210px;object-fit:cover;border-radius:12px"><b style="display:block;margin-top:9px">${escHtml(p.caption || 'Trabajo realizado')}</b></div>`
+            : `<div class="portfolio-item card"><div style="height:160px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:64px;background:rgba(0,0,0,.04)">${escHtml(p.emoji || '🛠️')}</div><b style="display:block;margin-top:9px">${escHtml(p.caption || 'Trabajo realizado')}</b></div>`;
+        }).join('')}</div>`
       : `<div class="card" style="text-align:center;padding:24px"><div style="font-size:48px">📸</div><h4 style="margin:8px 0">Portafolio de trabajos</h4><p class="small muted">Este profesional todavía no ha publicado fotos de sus trabajos.</p></div>`;
 
     const reviewsHtml = reviews.length
