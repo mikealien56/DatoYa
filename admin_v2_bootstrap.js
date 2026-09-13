@@ -112,6 +112,8 @@ fs.readFileSync = function(file, options) {
   if (path.resolve(String(file)) !== path.resolve(serverFile) || typeof value !== 'string') return value;
   if (value.includes('// ============ DATOYA 2.0 ADMIN / PRO ============')) return value;
   const marker = '// ============ START ============';
-  if (!value.includes(marker)) throw new Error('No se encontró el punto de montaje del admin V2');
+  // Otros bootstraps también transforman server.js y pueden consumir/reemplazar marcadores.
+  // Si START ya no existe, no rompemos la cadena: devolvemos el contenido recibido intacto.
+  if (!value.includes(marker)) return value;
   return value.replace(marker, injection + '\n' + marker);
 };
