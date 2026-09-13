@@ -2,7 +2,6 @@
 const fs = require('fs');
 const path = require('path');
 const serverFile = path.join(__dirname, 'server.js');
-const originalReadFileSync = fs.readFileSync;
 
 function injectReviewStatus(source) {
   if (source.includes('DATOYA REVIEW STATUS V1')) return source;
@@ -27,10 +26,8 @@ app.get('/api/jobs/:id/review-status', auth, (req, res) => {
   return source.replace(marker, block + '\n' + marker);
 }
 
-fs.readFileSync = function(file, options) {
-  const value = originalReadFileSync.call(fs, file, options);
-  if (path.resolve(String(file)) === path.resolve(serverFile) && typeof value === 'string') return injectReviewStatus(value);
-  return value;
-};
+const source = fs.readFileSync(serverFile, 'utf8');
+const patched = injectReviewStatus(source);
+if (patched !== source) fs.writeFileSync(serverFile, patched);
 
 module.exports = { injectReviewStatus };
