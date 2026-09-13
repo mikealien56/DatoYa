@@ -186,7 +186,7 @@ app.post('/api/admin/jobs/:id/protection/resolve', auth, requireRole('admin'), (
 
 fs.readFileSync = function(file, options) {
   const value = originalReadFileSync.call(fs, file, options);
-  if (path.resolve(String(file)) === path.resolve(serverFile) && typeof value === 'string') return injectProtection(value);
+  if (path.resolve(String(file)) === path.resolve(serverFile) && typeof value === 'string') { let patched=injectProtection(value); patched=patched.replace("db.prepare('UPDATE payment_protections SET status=?,resolution=?,resolved_by=?,updated_at=datetime('now') WHERE job_id=?').run(status,resolution,req.user.id,job.id);", "db.prepare(\"UPDATE payment_protections SET status=?,resolution=?,resolved_by=?,updated_at=datetime('now') WHERE job_id=?\").run(status,resolution,req.user.id,job.id);"); return patched; }
   return value;
 };
 
