@@ -24,6 +24,7 @@ if(fs.existsSync(indexTarget)){
   fs.writeFileSync(indexTarget,html);
 }
 require('./demo_admin_seed');
+require('./job_events_schema');
 require('./evidence_schema');
 require('./reports_bootstrap');
 require('./request_target_bootstrap');
