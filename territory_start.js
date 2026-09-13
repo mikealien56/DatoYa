@@ -19,6 +19,8 @@ if(fs.existsSync(indexTarget)){
   else html=html.replace(/\/worker_profile_fix\.js(?:\?v=\d+)?/g,'/worker_profile_fix.js?v=4');
   if(!html.includes('/worker_portfolio_ui.js')) html=html.replace('</body>','<script src="/worker_portfolio_ui.js?v=1"></script>\n</body>');
   else html=html.replace(/\/worker_portfolio_ui\.js(?:\?v=\d+)?/g,'/worker_portfolio_ui.js?v=1');
+  if(!html.includes('/protection_ui.js')) html=html.replace('</body>','<script src="/protection_ui.js?v=3"></script>\n</body>');
+  else html=html.replace(/\/protection_ui\.js(?:\?v=\d+)?/g,'/protection_ui.js?v=3');
   if(!html.includes('/gps_ui.js')) html=html.replace('</body>','<script src="/gps_ui.js?v=3"></script>\n</body>');
   else html=html.replace(/\/gps_ui\.js(?:\?v=\d+)?/g,'/gps_ui.js?v=3');
   if(!html.includes('/gps_map_ui_v2.js')) html=html.replace('</body>','<script src="/gps_map_ui_v2.js?v=1"></script>\n</body>');
