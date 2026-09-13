@@ -78,7 +78,8 @@ app.get('/uploads/job-evidence/:jobId/:file',auth,(req,res)=>{
   res.setHeader('Content-Type',row.mime_type||'application/octet-stream');
   res.setHeader('Content-Length',String(buffer.length));
   res.setHeader('Cache-Control','private, max-age=3600');
-  res.setHeader('Content-Disposition','inline; filename="'+String(row.original_name||'evidencia').replace(/["\\]/g,'')+'"');
+  const safeName=String(row.original_name||'evidencia').replace(/[^A-Za-z0-9._ -]/g,'').slice(0,120)||'evidencia';
+  res.setHeader('Content-Disposition','inline; filename="'+safeName+'"');
   res.send(buffer);
 });
 // =======================================================
