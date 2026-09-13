@@ -12,15 +12,19 @@ function ensureClient(email, name, comunaId){
   return u.id;
 }
 
-// Usuario externo utilizado por las pruebas de aislamiento del chat.
 ensureClient('cliente1@demo.cl','Cliente 1 DEMO',4);
 
-// El trabajador DEMO debe ser compatible con las solicitudes E2E de Ñuñoa (4)
-// y seguir apareciendo en su zona original de Rancagua.
+// El trabajador DEMO debe ser compatible con la comuna utilizada por el flujo E2E
+// y conservar además sus zonas nominales de Ñuñoa/Rancagua.
 const wu = db.prepare("SELECT id FROM users WHERE email='trabajador@demo.cl'").get();
 if(wu){
   const wp = db.prepare('SELECT id FROM worker_profiles WHERE user_id=?').get(wu.id);
   if(wp){
+    // La suite usa comuna_id=4 de forma estable; mantenerla como zona adicional evita
+    // depender del orden en que hayan sido sembradas las comunas.
+    if (db.prepare('SELECT id FROM comunas WHERE id=4').get()) {
+      db.prepare('INSERT OR IGNORE INTO worker_comunas(worker_id,comuna_id) VALUES(?,4)').run(wp.id);
+    }
     for(const name of ['Ñuñoa','Rancagua']){
       const c = db.prepare('SELECT id FROM comunas WHERE name=?').get(name);
       if(c) db.prepare('INSERT OR IGNORE INTO worker_comunas(worker_id,comuna_id) VALUES(?,?)').run(wp.id,c.id);
@@ -28,7 +32,6 @@ if(wu){
   }
 }
 
-// El expediente DEMO debe ser reconocible como incumplimiento para administración/E2E.
 db.prepare("UPDATE reports SET reason='incumplimiento de servicio DEMO' WHERE reason='Problema con profesional DEMO' OR reason='Incumplimiento de servicio DEMO'").run();
 
 console.log('[DatoYa] DEMO compatibility fixes applied');
