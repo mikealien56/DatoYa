@@ -9,7 +9,6 @@ if (!source.includes('GET /api/admin/reports/:id/case')) {
 // ============ EXPEDIENTES ADMINISTRATIVOS DATOYA ============
 function adminRelatedJob(report) {
   if (!report) return null;
-  if (report.job_id) return db.prepare('SELECT j.*,sr.title AS request_title,sr.description AS request_description,c.name AS comuna FROM jobs j LEFT JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE j.id=?').get(report.job_id);
   const targetUser = report.target_id ? Number(report.target_id) : null;
   if (!targetUser) return null;
   return db.prepare('SELECT j.*,sr.title AS request_title,sr.description AS request_description,c.name AS comuna FROM jobs j JOIN worker_profiles wp ON wp.id=j.worker_id JOIN service_requests sr ON sr.id=j.request_id LEFT JOIN comunas c ON c.id=sr.comuna_id WHERE (j.client_id=? OR wp.user_id=?) ORDER BY j.updated_at DESC LIMIT 1').get(report.reporter_id,targetUser);
