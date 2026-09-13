@@ -10,6 +10,17 @@ function ensureUser({ email, name, role, phone, comuna }) {
     VALUES(?,?,?,?,?,?,1)`).run(email, hashPassword('demo1234'), name, phone || null, role, comunaRow ? comunaRow.id : null).lastInsertRowid;
 }
 
+// Cuenta administrativa DEMO. Si ya existe, se normaliza la contraseña DEMO para
+// que el acceso de demostración no quede roto por una contraseña antigua.
+const admin = db.prepare('SELECT id FROM users WHERE email=?').get('admin@demo.cl');
+if (admin) {
+  db.prepare(`UPDATE users SET password_hash=?, role='admin', is_active=1, is_demo=1 WHERE id=?`)
+    .run(hashPassword('demo1234'), admin.id);
+} else {
+  db.prepare(`INSERT INTO users(email,password_hash,name,phone,role,is_active,is_demo)
+    VALUES(?,?,?,?,?,1,1)`).run('admin@demo.cl', hashPassword('demo1234'), 'Administrador DatoYa (DEMO)', '+56990000000', 'admin');
+}
+
 function ensureWorker(userId, data) {
   const exists = db.prepare('SELECT id FROM worker_profiles WHERE user_id=?').get(userId);
   if (exists) return exists.id;
@@ -47,4 +58,4 @@ for (const [email,name,oficio,description,years,price,status,comuna,categoria,ve
   ensureWorker(userId,{oficio,description,years,price,status,comuna,categoria,verified,phoneVerified:verified,recommended:rating>=4.8,pro,featured,jobs,rating,ratingCount,response,completion,memberSince});
 }
 
-console.log('[DatoYa] Demo admin: usuarios y profesionales adicionales disponibles.');
+console.log('[DatoYa] Demo admin: acceso admin@demo.cl / demo1234 y usuarios/profesionales adicionales disponibles.');
