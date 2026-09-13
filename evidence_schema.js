@@ -1,5 +1,5 @@
 // DatoYa — Evidencias de trabajos
-// Demo: almacenamiento local. Producción: reemplazar el adapter por S3/Cloudinary u otro storage seguro.
+// En beta real las evidencias quedan persistidas en la base de datos.
 const { db } = require('./db');
 
 db.exec(`
@@ -21,5 +21,9 @@ CREATE TABLE IF NOT EXISTS job_evidence (
 CREATE INDEX IF NOT EXISTS idx_job_evidence_job ON job_evidence(job_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_job_evidence_stage ON job_evidence(job_id, stage);
 `);
+
+// Debe montarse después de crear job_evidence: agrega la columna de datos y
+// reemplaza el almacenamiento efímero del servidor por persistencia en la BD.
+require('./evidence_persistent_bootstrap');
 
 module.exports = { db };
