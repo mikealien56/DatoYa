@@ -14,7 +14,9 @@ if (!source.includes(marker)) {
   if (!source.includes(notifyMarker)) throw new Error('No se encontró el bloque de notificaciones');
   source = source.replace(notifyMarker, notifyReplacement);
   const workersQuery = "WHERE wc.category_id=? AND (wp.comuna_id=? OR wp.id IN (SELECT worker_id FROM worker_comunas WHERE comuna_id=?))`).all(category_id, comuna_id || 0, comuna_id || 0);";
-  const workersReplacement = "WHERE wc.category_id=? AND (wp.comuna_id=? OR wp.id IN (SELECT worker_id FROM worker_comunas WHERE comuna_id=?)) AND (? IS NULL OR wp.id=?)`).all(category_id, comuna_id || 0, comuna_id || 0, targetWorkerId, targetWorkerId);";
+  // CAST explícito: PostgreSQL no puede inferir el tipo de un parámetro NULL usado solo en `? IS NULL`.
+  // SQLite ignora el CAST sin cambiar el comportamiento, y PostgreSQL lo interpreta como BIGINT (id de worker_profiles).
+  const workersReplacement = "WHERE wc.category_id=? AND (wp.comuna_id=? OR wp.id IN (SELECT worker_id FROM worker_comunas WHERE comuna_id=?)) AND (CAST(? AS BIGINT) IS NULL OR wp.id=?)`).all(category_id, comuna_id || 0, comuna_id || 0, targetWorkerId, targetWorkerId);";
   if (!source.includes(workersQuery)) throw new Error('No se encontró la consulta de trabajadores');
   source = source.replace(workersQuery, workersReplacement);
   fs.writeFileSync(serverPath, source);
