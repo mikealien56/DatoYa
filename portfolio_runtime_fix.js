@@ -1,6 +1,8 @@
 // DatoYa 2.0 - soporte de fotos reales en portafolio
 const express = require('express');
 const { db } = require('./db');
+// Asegura la tabla incluso cuando Render inicia una BD completamente nueva.
+db.exec("CREATE TABLE IF NOT EXISTS portfolio_images (id INTEGER PRIMARY KEY AUTOINCREMENT, worker_id INTEGER NOT NULL REFERENCES worker_profiles(id) ON DELETE CASCADE, emoji TEXT NOT NULL DEFAULT '🛠️', caption TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))");
 try { db.exec('ALTER TABLE portfolio_images ADD COLUMN data TEXT'); } catch (_) {}
 const originalPost = express.application.post;
 express.application.post = function(route, ...handlers) {
