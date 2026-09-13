@@ -170,7 +170,7 @@ app.post('/api/admin/jobs/:id/protection/resolve', auth, requireRole('admin'), (
     addProtectionEvent(protection.id,'admin_release',req.user.id,{ resolution });
   } else {
     const status = action === 'refund' ? 'REFUNDED' : 'PARTIAL_REFUND';
-    db.prepare('UPDATE payment_protections SET status=?,resolution=?,resolved_by=?,updated_at=datetime(\'now\') WHERE job_id=?').run(status,resolution,req.user.id,job.id);
+    db.prepare("UPDATE payment_protections SET status=?,resolution=?,resolved_by=?,updated_at=datetime('now') WHERE job_id=?").run(status,resolution,req.user.id,job.id);
     db.prepare('UPDATE jobs SET status=\'FINALIZADO\',updated_at=datetime(\'now\') WHERE id=?').run(job.id);
     db.prepare('INSERT INTO job_status_history(job_id,status,changed_by) VALUES(?,?,?)').run(job.id,'FINALIZADO',req.user.id);
     addProtectionEvent(protection.id,action === 'refund' ? 'refund' : 'partial_refund',req.user.id,{ resolution, demo:true });
