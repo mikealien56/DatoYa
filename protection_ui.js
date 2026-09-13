@@ -3,7 +3,8 @@
 (() => {
   const esc = s => String(s ?? '').replace(/[&<>\"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;' }[c]));
   const clp = n => '$' + Number(n || 0).toLocaleString('es-CL');
-  let lastHash = '';
+  let rendering = false;
+  let timer = null;
 
   async function json(url, opts = {}) {
     const r = await fetch('/api' + url, {
@@ -17,20 +18,24 @@
     return data;
   }
 
-  async function renderProtectionPanel() {
-    if (!location.hash.startsWith('#/trabajos')) return;
+  async function renderProtectionPanel(force = false) {
+    if (rendering || !location.hash.startsWith('#/trabajos')) return;
     const view = document.querySelector('#view');
-    if (!view || view.dataset.protectionRendered === '1') return;
+    if (!view) return;
+    const existing = document.getElementById('datoya-protection-panel');
+    if (existing && !force) return;
+
+    rendering = true;
     try {
       const me = (await json('/auth/me')).user;
       const { jobs } = await json('/jobs');
-      if (!jobs?.length) return;
+      if (!jobs?.length) { existing?.remove(); return; }
+
       const cards = [];
       for (const job of jobs.slice(0, 20)) {
         let protection = null;
         try { protection = (await json('/jobs/' + job.id + '/protection')).protection; } catch (_) {}
         if (!protection) continue;
-        const isClient = me.role === 'cliente';
         const awaiting = protection.status === 'AWAITING_CONFIRMATION';
         const disputed = ['DISPUTED','CORRECTION'].includes(protection.status);
         const released = protection.status === 'RELEASED';
@@ -49,45 +54,83 @@
             <div class="datoya-protection-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
           </article>`);
       }
-      if (!cards.length) return;
+
+      if (!location.hash.startsWith('#/trabajos')) return;
+      if (!cards.length) { existing?.remove(); return; }
+
       const panel = document.createElement('section');
       panel.id = 'datoya-protection-panel';
       panel.style.cssText = 'margin-bottom:14px';
       panel.innerHTML = `<div style="background:linear-gradient(135deg,#eff6ff,#f8fafc);border:1px solid #bfdbfe;border-radius:16px;padding:14px"><h3 style="margin:0 0 4px">🛡️ Protección DatoYa</h3><p style="margin:0;color:#475569;font-size:13px">Pago protegido, revisión del cliente y sistema de disputas. MODO DEMO: no se mueve dinero real.</p></div>${cards.join('')}`;
-      view.prepend(panel);
-      view.dataset.protectionRendered = '1';
+
+      if (existing?.isConnected) existing.replaceWith(panel);
+      else view.prepend(panel);
 
       for (const card of panel.querySelectorAll('[data-protection-job]')) {
         const id = card.dataset.protectionJob;
         const actions = card.querySelector('.datoya-protection-actions');
         const protection = (await json('/jobs/' + id + '/protection')).protection;
         const job = jobs.find(x => String(x.id) === String(id));
+        if (!job || !protection) continue;
+
         if (me.role === 'trabajador' && ['CONFIRMADO','EN_PROCESO'].includes(job.status) && !['RELEASED','DISPUTED','CORRECTION'].includes(protection.status)) {
-          const b = document.createElement('button'); b.textContent = '📸 Trabajo terminado'; b.className = 'btn btn-primary btn-sm';
-          b.onclick = async () => { try { await json('/jobs/' + id + '/complete-request', {method:'POST',body:{}}); alert('Trabajo marcado como terminado. El cliente debe revisarlo.'); location.reload(); } catch(e){ alert(e.message); } };
+          const b = document.createElement('button');
+          b.textContent = '📸 Trabajo terminado';
+          b.className = 'btn btn-primary btn-sm';
+          b.onclick = async () => {
+            try {
+              await json('/jobs/' + id + '/complete-request', {method:'POST',body:{}});
+              alert('Trabajo marcado como terminado. El cliente debe revisarlo.');
+              await renderProtectionPanel(true);
+            } catch(e) { alert(e.message); }
+          };
           actions.appendChild(b);
         }
-        // Solo se puede confirmar después de que el profesional haya declarado terminado.
+
         if (me.role === 'cliente' && protection.status === 'AWAITING_CONFIRMATION' && !['FINALIZADO','CANCELADO'].includes(job.status)) {
-          const ok = document.createElement('button'); ok.textContent = '✅ Confirmar trabajo'; ok.className = 'btn btn-primary btn-sm';
-          ok.onclick = async () => { try { await json('/jobs/' + id + '/status', {method:'POST',body:{status:'FINALIZADO'}}); alert('Trabajo confirmado. Pago DEMO liberado.'); location.reload(); } catch(e){ alert(e.message); } };
+          const ok = document.createElement('button');
+          ok.textContent = '✅ Confirmar trabajo';
+          ok.className = 'btn btn-primary btn-sm';
+          ok.onclick = async () => {
+            try {
+              await json('/jobs/' + id + '/status', {method:'POST',body:{status:'FINALIZADO'}});
+              alert('Trabajo confirmado. Pago DEMO liberado.');
+              route();
+            } catch(e) { alert(e.message); }
+          };
           actions.appendChild(ok);
-          const bad = document.createElement('button'); bad.textContent = '⚠️ Tengo un problema'; bad.className = 'btn btn-outline btn-sm';
-          bad.onclick = async () => { const reason = prompt('Describe el problema con el trabajo:'); if (!reason?.trim()) return; try { await json('/jobs/' + id + '/status', {method:'POST',body:{status:'DISPUTA',reason}}); alert('Disputa abierta. El pago DEMO permanece protegido.'); location.reload(); } catch(e){ alert(e.message); } };
+
+          const bad = document.createElement('button');
+          bad.textContent = '⚠️ Tengo un problema';
+          bad.className = 'btn btn-outline btn-sm';
+          bad.onclick = async () => {
+            const reason = prompt('Describe el problema con el trabajo:');
+            if (!reason?.trim()) return;
+            try {
+              await json('/jobs/' + id + '/status', {method:'POST',body:{status:'DISPUTA',reason:reason.trim()}});
+              alert('Disputa abierta. El pago DEMO permanece protegido.');
+              route();
+            } catch(e) { alert(e.message); }
+          };
           actions.appendChild(bad);
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      // La protección complementa la vista principal; no debe bloquear Trabajos si falla.
+    } finally {
+      rendering = false;
+    }
   }
 
   function schedule() {
-    if (location.hash === lastHash) return;
-    lastHash = location.hash;
-    setTimeout(() => renderProtectionPanel(), 80);
-    setTimeout(() => renderProtectionPanel(), 500);
+    clearTimeout(timer);
+    timer = setTimeout(() => renderProtectionPanel(false), 120);
   }
+
   window.addEventListener('hashchange', schedule);
-  const obs = new MutationObserver(() => { if (location.hash.startsWith('#/trabajos')) renderProtectionPanel(); });
+  const obs = new MutationObserver(() => {
+    if (location.hash.startsWith('#/trabajos') && !document.getElementById('datoya-protection-panel')) schedule();
+  });
   obs.observe(document.body, { childList:true, subtree:true });
   schedule();
 })();
