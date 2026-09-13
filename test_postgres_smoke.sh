@@ -7,7 +7,7 @@ export DB_DRIVER=postgres
 export DATABASE_URL="${DATABASE_URL:-postgres://postgres:postgres@127.0.0.1:5432/datoya_test}"
 export PORT="${PORT:-3000}"
 
-npm start >/tmp/datoya-pg.log 2>&1 &
+node production_start.js >/tmp/datoya-pg.log 2>&1 &
 PID=$!
 cleanup(){ kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
