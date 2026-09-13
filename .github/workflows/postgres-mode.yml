@@ -27,4 +27,7 @@ jobs:
           sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='datoya_test'" | grep -q 1 || sudo -u postgres createdb datoya_test
           pg_isready -h 127.0.0.1 -U postgres -d datoya_test
       - run: npm install
-      - run: bash test_postgres_smoke.sh
+      - name: Smoke PostgreSQL
+        run: bash test_postgres_smoke.sh
+      - name: E2E real PostgreSQL
+        run: bash test_postgres_e2e.sh
