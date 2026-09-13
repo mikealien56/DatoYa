@@ -27,7 +27,7 @@ R=$(curl -s -X POST $B/auth/register -H "$J" -d '{"name":"Test User","email":"te
 ck "Registro nuevo usuario" "$R" '"ok":true'
 ck "Registro duplicado rechazado" "$(curl -s -X POST $B/auth/register -H "$J" -d '{"name":"X","email":"test@test.cl","password":"test1234"}')" "Ya existe"
 
-echo "=== 4. Flujo completo: solicitud → fotos → cotización → aceptar → finalizar → reseña ==="
+echo "=== 4. Flujo completo: solicitud → fotos → cotización → aceptar → finalizar protegido → reseña ==="
 R=$(curl -s -b /tmp/dy_cli -X POST $B/requests -H "$J" -d '{"category_id":1,"title":"Prueba E2E: cambio de llave","description":"Necesito cambiar la llave de la ducha","comuna_id":4,"urgency":"hoy","budget":35000}')
 ck "Cliente crea solicitud" "$R" '"ok":true'
 REQ=$(echo $R | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
@@ -50,14 +50,18 @@ R=$(curl -s -b /tmp/dy_tra -X POST $B/jobs/$JOB/status -H "$J" -d '{"status":"CO
 ck "Trabajador confirma" "$R" '"ok":true'
 curl -s -b /tmp/dy_tra -X POST $B/jobs/$JOB/status -H "$J" -d '{"status":"EN_PROCESO"}' >/dev/null
 ck "Cliente NO puede saltarse el flujo: trabajador no finaliza" "$(curl -s -b /tmp/dy_tra -X POST $B/jobs/$JOB/status -H "$J" -d '{"status":"FINALIZADO"}')" "Solo el cliente"
+ck "Cliente NO puede confirmar antes de declaración del trabajador" "$(curl -s -b /tmp/dy_cli -X POST $B/jobs/$JOB/status -H "$J" -d '{"status":"FINALIZADO"}')" "aún no ha declarado"
+R=$(curl -s -b /tmp/dy_tra -X POST $B/jobs/$JOB/complete-request -H "$J" -d '{}')
+ck "Trabajador declara trabajo terminado" "$R" '"status":"AWAITING_CONFIRMATION"'
+ck "Protección queda esperando confirmación" "$(curl -s -b /tmp/dy_cli $B/jobs/$JOB/protection)" "AWAITING_CONFIRMATION"
 R=$(curl -s -b /tmp/dy_cli -X POST $B/jobs/$JOB/status -H "$J" -d '{"status":"FINALIZADO"}')
-ck "Cliente marca terminado" "$R" '"ok":true'
+ck "Cliente confirma trabajo terminado" "$R" '"ok":true'
+ck "Pago protegido liberado DEMO" "$(curl -s -b /tmp/dy_cli $B/jobs/$JOB/protection)" "RELEASED"
 R=$(curl -s -b /tmp/dy_cli -X POST $B/jobs/$JOB/review -H "$J" -d '{"rating":5,"quality":5,"punctuality":5,"treatment":5,"price_rating":4,"comment":"Excelente, llegó rápido"}')
 ck "Cliente califica" "$R" '"ok":true'
 ck "No se puede calificar dos veces" "$(curl -s -b /tmp/dy_cli -X POST $B/jobs/$JOB/review -H "$J" -d '{"rating":4}')" "Ya calificaste"
 
 echo "=== 5. Seguridad de solicitudes y cotizaciones ==="
-# Segundo trabajador compatible: debe poder entrar a la solicitud, pero solo ver sus propias cotizaciones.
 R=$(curl -s -c /tmp/dy_tra2 -X POST $B/auth/register -H "$J" -d '{"name":"Segundo Trabajador","email":"trabajador2@test.cl","password":"test1234","role":"trabajador","phone":"56911112222","comuna_id":4}')
 ck "Registro segundo trabajador" "$R" '"ok":true'
 R=$(curl -s -b /tmp/dy_tra2 -X PUT $B/worker/profile -H "$J" -d '{"oficio":"Gasfíter","description":"Trabajador de prueba","status":"disponible","comuna_id":4,"categories":[1],"comunas":[4]}')
@@ -74,10 +78,8 @@ ck "Trabajador B envía su propia cotización" "$R" '"ok":true'
 DETAIL2=$(curl -s -b /tmp/dy_tra2 $B/requests/$REQ2)
 ck "Trabajador B solo ve su cotización" "$DETAIL2" 'Cotización trabajador B'
 if echo "$DETAIL2" | grep -q 'Cotización trabajador A'; then echo "❌ Trabajador B recibió la cotización de A"; F=$((F+1)); else echo "✅ Trabajador B no recibió la cotización de A"; P=$((P+1)); fi
-# Las fotos también deben respetar compatibilidad, no basta con tener rol trabajador.
 R=$(curl -s -b /tmp/dy_tra2 -X GET $B/requests/$REQ/photos)
 ck "Trabajador B compatible puede ver fotos" "$R" 'problema.png'
-# Trabajador incompatible por categoría no puede consultar la solicitud directamente ni sus fotos.
 R=$(curl -s -b /tmp/dy_tra2 -X PUT $B/worker/profile -H "$J" -d '{"categories":[2],"comunas":[4],"comuna_id":4,"status":"disponible"}')
 ck "Segundo trabajador cambia a categoría incompatible" "$R" '"ok":true'
 ck "Trabajador incompatible no puede consultar solicitud" "$(curl -s -b /tmp/dy_tra2 $B/requests/$REQ2)" "No eres compatible"
