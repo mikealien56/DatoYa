@@ -24,6 +24,9 @@ patched = applyChatWorkflowPatch(patched);
 // El parche debe quedar escrito antes de cargar cualquier bootstrap posterior.
 fs.writeFileSync(serverPath, patched);
 
+// Correcciones adicionales del panel: resolver denuncias y compatibilidad de verificaciones.
+require('./reports_admin_fix_bootstrap');
+
 // admin_v2_bootstrap vuelve a leer el server.js ya compuesto y carga sus rutas.
 require('./admin_v2_bootstrap');
 // verification_bootstrap agrega antecedentes, historial y permisos de revisión.
