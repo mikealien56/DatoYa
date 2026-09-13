@@ -1,5 +1,5 @@
 // DatoYa 2.0 — Fix incremental del panel administrativo
-// No reemplaza el panel existente: completa las pestañas que estaban cayendo al controlador antiguo.
+// Mantiene el panel existente y completa la navegación V2/V3.
 (function () {
   if (typeof routes === 'undefined' || !routes.admin) return;
 
@@ -7,22 +7,22 @@
 
   const menu = `
     <style>
-      .datoya-admin-menu{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 16px}
-      .datoya-admin-menu button{padding:9px 12px;border-radius:22px;border:1px solid var(--borde);background:#fff;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer}
+      .datoya-admin-menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:12px 0 16px}
+      .datoya-admin-menu button{padding:10px 9px;border-radius:10px;border:1px solid var(--borde);background:#fff;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer;width:100%}
       .datoya-admin-menu button:hover{filter:brightness(.97)}
-      @media(max-width:650px){.datoya-admin-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.datoya-admin-menu button{width:100%;font-size:12px;padding:9px 6px}}
+      @media(max-width:650px){.datoya-admin-menu{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.datoya-admin-menu button{font-size:12px;padding:9px 5px}}
     </style>
     <div class="datoya-admin-menu">
-      <button onclick="location.hash='#/admin'">📊 Resumen</button>
-      <button onclick="location.hash='#/admin/usuarios'">👥 Usuarios</button>
-      <button onclick="location.hash='#/admin/trabajadores'">🔧 Profesionales</button>
-      <button onclick="location.hash='#/admin/verificaciones'">🪪 Verificaciones</button>
-      <button onclick="location.hash='#/admin/reclamos'">⚑ Reclamos</button>
-      <button onclick="location.hash='#/admin/disputas'">⚖️ Disputas</button>
-      <button onclick="location.hash='#/admin/ganancias'">💰 Ganancias</button>
-      <button onclick="location.hash='#/admin/banco'">🏦 Banco</button>
-      <button onclick="location.hash='#/admin/mensajes'">💬 Mensajes</button>
-      <button onclick="location.hash='#/admin/suscripciones'">⭐ Suscripciones</button>
+      <button type="button" onclick="location.hash='#/admin'">📊 Resumen</button>
+      <button type="button" onclick="location.hash='#/admin/usuarios'">👥 Usuarios</button>
+      <button type="button" onclick="location.hash='#/admin/trabajadores'">🔧 Profesionales</button>
+      <button type="button" onclick="location.hash='#/admin/verificaciones'">🪪 Verificaciones</button>
+      <button type="button" onclick="location.hash='#/admin/reclamos'">⚑ Reclamos</button>
+      <button type="button" onclick="location.hash='#/admin/disputas'">⚖️ Disputas</button>
+      <button type="button" onclick="location.hash='#/admin/ganancias'">💰 Ganancias</button>
+      <button type="button" onclick="location.hash='#/admin/banco'">🏦 Banco</button>
+      <button type="button" onclick="location.hash='#/admin/mensajes'">💬 Mensajes</button>
+      <button type="button" onclick="location.hash='#/admin/suscripciones'">⭐ Suscripciones</button>
     </div>`;
 
   function esc2(v){ return typeof esc === 'function' ? esc(v ?? '') : String(v ?? '').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c])); }
@@ -69,6 +69,7 @@
         return;
       }
 
+      // Las demás pestañas conservan su implementación existente de admin_v2_ui.js.
       return previousAdmin(tab);
     }catch(e){
       if(typeof toast==='function') toast(e.message||'No se pudo cargar el panel administrativo','err');
