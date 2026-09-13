@@ -25,7 +25,7 @@ patched = applyChatWorkflowPatch(patched);
 fs.writeFileSync(serverPath, patched);
 
 // Correcciones adicionales del panel: resolver denuncias y compatibilidad de verificaciones.
-require('./reports_admin_fix_bootstrap');
+require('./reports_admin_fix');
 
 // admin_v2_bootstrap vuelve a leer el server.js ya compuesto y carga sus rutas.
 require('./admin_v2_bootstrap');
