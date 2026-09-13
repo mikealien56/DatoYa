@@ -9,7 +9,7 @@ if [ ! -d node_modules ]; then npm ci --silent; fi
 node app_runtime_fix.js
 node worker_demo_badge_runtime_fix.js
 
-for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js search_ui_fix.js favorites_ui.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js reports_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
+for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js search_ui_fix.js favorites_ui.js request_wizard_ui.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js reports_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
   if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
 done
 
@@ -37,6 +37,12 @@ if ! grep -q 'routes.buscar' search_ui_fix.js || ! grep -q 'min_rating' search_u
 fi
 if ! grep -q 'routes.favoritos' favorites_ui.js || ! grep -q 'toggleDatoYaFavorite' favorites_ui.js; then
   echo "La interfaz de favoritos no está completa"; exit 1
+fi
+for field in urgency preferred_date budget region_id comuna_id address_detail photos; do
+  if ! grep -q "$field" request_wizard_ui.js; then echo "El wizard general no contempla el campo $field"; exit 1; fi
+done
+if ! grep -q 'if(target)return previousSolicitar' request_wizard_ui.js; then
+  echo "El wizard general no preserva el flujo dirigido"; exit 1
 fi
 
 npm start >/tmp/datoya-ci.log 2>&1 &
@@ -103,46 +109,13 @@ if ! printf '%s' "$FILTERED_JSON" | grep -q '"workers"'; then
   echo "La API de búsqueda filtrada no respondió correctamente"; exit 1
 fi
 
-for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
+for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
   if ! curl -fsS "http://localhost:3000/$asset" >/dev/null; then echo "Archivo estático no publicado: $asset"; exit 1; fi
 done
 INDEX_HTML=$(curl -fsS http://localhost:3000/)
-if ! printf '%s' "$INDEX_HTML" | grep -q '/frontend_globals_bridge.js'; then
-  echo "El puente de estado frontend no está cargado en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/chat_ui_fix.js'; then
-  echo "La interfaz estable del chat no está cargada en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/notifications_ui_fix.js'; then
-  echo "La bandeja funcional de notificaciones no está cargada en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/search_ui_fix.js'; then
-  echo "La búsqueda avanzada no está cargada en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/favorites_ui.js'; then
-  echo "La interfaz de favoritos no está cargada en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/request_detail_ui_fix.js'; then
-  echo "El detalle real de solicitudes/cotizaciones no está cargado en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/worker_own_profile_ui.js'; then
-  echo "El editor del perfil profesional no está cargado en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/worker_finance_ui.js'; then
-  echo "La UI de ganancias/PRO del profesional no está cargada en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/review_ui.js'; then
-  echo "La UI de reseñas no está cargada en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/reports_ui.js'; then
-  echo "La UI de denuncias no está cargada en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/admin_core_ui_fix.js'; then
-  echo "La UI administrativa completa no está cargada en index.html"; exit 1
-fi
-if ! printf '%s' "$INDEX_HTML" | grep -q '/admin_operations_ui.js'; then
-  echo "Las operaciones administrativas no están cargadas en index.html"; exit 1
-fi
+for script in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js admin_core_ui_fix.js admin_operations_ui.js; do
+  if ! printf '%s' "$INDEX_HTML" | grep -q "/$script"; then echo "Script no cargado en index.html: $script"; exit 1; fi
+done
 if ! printf '%s' "$INDEX_HTML" | grep -q '/datoya-logo.svg'; then
   echo "El logo de DatoYa no está referenciado en la página"; exit 1
 fi
