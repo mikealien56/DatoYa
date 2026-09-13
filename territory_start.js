@@ -12,7 +12,7 @@ if(fs.existsSync(indexTarget)){
   let html=fs.readFileSync(indexTarget,'utf8');
   if(!html.includes('/verification_admin_ui.js')) html=html.replace('</body>','<script src="/verification_admin_ui.js?v=1"></script>\n</body>');
   if(!html.includes('/verification_worker_ui.js')) html=html.replace('</body>','<script src="/verification_worker_ui.js?v=1"></script>\n</body>');
-  if(!html.includes('/request_target_ui.js')) html=html.replace('</body>','<script src="/request_target_ui.js?v=1"></script>\n</body>');
+  if(!html.includes('/request_target_ui.js')) html=html.replace('</body>','<script src="/request_target_ui.js?v=2"></script>\n</body>');
   fs.writeFileSync(indexTarget,html);
 }
 // Datos DEMO adicionales para que el panel administrativo tenga usuarios y profesionales visibles.
