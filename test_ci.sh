@@ -8,7 +8,7 @@ if [ ! -d node_modules ]; then npm ci --silent; fi
 
 node app_runtime_fix.js
 
-for js in app.js frontend_globals_bridge.js worker_own_profile_ui.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
+for js in app.js frontend_globals_bridge.js chat_ui_fix.js worker_own_profile_ui.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
   if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
 done
 
@@ -64,12 +64,15 @@ if [ "$GPS_STATUS" != "401" ]; then echo "Ruta GPS no protegida/montada correcta
 VERIFY_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/worker/verification-requests)
 if [ "$VERIFY_STATUS" != "401" ]; then echo "Ruta avanzada de verificación no protegida/montada correctamente (HTTP $VERIFY_STATUS)"; cat /tmp/datoya-ci.log; exit 1; fi
 
-for asset in frontend_globals_bridge.js worker_own_profile_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
+for asset in frontend_globals_bridge.js chat_ui_fix.js worker_own_profile_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
   if ! curl -fsS "http://localhost:3000/$asset" >/dev/null; then echo "Archivo estático no publicado: $asset"; exit 1; fi
 done
 INDEX_HTML=$(curl -fsS http://localhost:3000/)
 if ! printf '%s' "$INDEX_HTML" | grep -q '/frontend_globals_bridge.js'; then
   echo "El puente de estado frontend no está cargado en index.html"; exit 1
+fi
+if ! printf '%s' "$INDEX_HTML" | grep -q '/chat_ui_fix.js'; then
+  echo "La interfaz estable del chat no está cargada en index.html"; exit 1
 fi
 if ! printf '%s' "$INDEX_HTML" | grep -q '/worker_own_profile_ui.js'; then
   echo "El editor del perfil profesional no está cargado en index.html"; exit 1
