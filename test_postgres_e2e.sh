@@ -9,20 +9,26 @@ export PORT="${PORT:-3000}"
 B="http://127.0.0.1:${PORT}/api"
 J="Content-Type: application/json"
 
-node production_start.js >/tmp/datoya-pg-e2e.log 2>&1 &
-PID=$!
-cleanup(){ kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; }
+start_app(){
+  node production_start.js >/tmp/datoya-pg-e2e.log 2>&1 &
+  PID=$!
+  local ready=0
+  for i in $(seq 1 90); do
+    if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then ready=1; break; fi
+    if ! kill -0 "$PID" >/dev/null 2>&1; then cat /tmp/datoya-pg-e2e.log; return 1; fi
+    sleep 1
+  done
+  [ "$ready" -eq 1 ] || { cat /tmp/datoya-pg-e2e.log; return 1; }
+}
+stop_app(){
+  if [ -n "${PID:-}" ]; then kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; PID=""; fi
+}
+cleanup(){ stop_app; }
 on_error(){ echo '=== LOG SERVIDOR POSTGRESQL E2E ==='; tail -160 /tmp/datoya-pg-e2e.log || true; }
 trap cleanup EXIT
 trap on_error ERR
 
-READY=0
-for i in $(seq 1 90); do
-  if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then READY=1; break; fi
-  if ! kill -0 "$PID" >/dev/null 2>&1; then cat /tmp/datoya-pg-e2e.log; exit 1; fi
-  sleep 1
-done
-[ "$READY" -eq 1 ] || { cat /tmp/datoya-pg-e2e.log; exit 1; }
+start_app
 
 echo "=== PostgreSQL E2E real ==="
 CAT=$(curl -fsS "$B/categories" | python3 -c 'import sys,json; d=json.load(sys.stdin)["categories"]; print(next(x["id"] for x in d if x["name"]=="Gasfíter"))')
@@ -85,6 +91,27 @@ echo "✅ Aceptación y comisión 10% persistidas"
 
 curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"CONFIRMADO"}' | grep -q '"ok":true'
 curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"EN_PROCESO"}' | grep -q '"ok":true'
+
+# Evidencia real persistida en BD (PNG 1x1). Debe sobrevivir un reinicio completo del servidor.
+EVID=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/evidence" -H "$J" \
+  -d '{"stage":"DESPUES","mime_type":"image/png","original_name":"evidencia-beta.png","note":"Persistencia PostgreSQL","data":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZpV8AAAAASUVORK5CYII="}')
+echo "$EVID" | grep -q '"storage":"database"'
+EVID_URL=$(echo "$EVID" | python3 -c 'import sys,json; print(json.load(sys.stdin)["url"])')
+LIST_BEFORE=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs/$JOB/evidence")
+echo "$LIST_BEFORE" | grep -q 'Persistencia PostgreSQL'
+
+stop_app
+start_app
+
+# La sesión y la evidencia deben seguir válidas después del reinicio/redeploy simulado.
+curl -fsS -b /tmp/pg_client.cookies "$B/auth/me" | grep -q 'cliente.beta@datoya.test'
+LIST_AFTER=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs/$JOB/evidence")
+echo "$LIST_AFTER" | grep -q 'Persistencia PostgreSQL'
+echo "$LIST_AFTER" | grep -q '"storage":"database"'
+curl -fsS -b /tmp/pg_client.cookies "http://127.0.0.1:${PORT}${EVID_URL}" -o /tmp/evidence-persisted.png
+[ -s /tmp/evidence-persisted.png ]
+
+echo "✅ Evidencia y sesión sobreviven reinicio con PostgreSQL"
 
 COMPLETE=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-request" -H "$J" -d '{}')
 echo "$COMPLETE" | grep -q 'AWAITING_CONFIRMATION'
