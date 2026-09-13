@@ -29,6 +29,6 @@ if(wu){
 }
 
 // El expediente DEMO debe ser reconocible como incumplimiento para administración/E2E.
-db.prepare("UPDATE reports SET reason='Incumplimiento de servicio DEMO' WHERE reason='Problema con profesional DEMO'").run();
+db.prepare("UPDATE reports SET reason='incumplimiento de servicio DEMO' WHERE reason='Problema con profesional DEMO' OR reason='Incumplimiento de servicio DEMO'").run();
 
 console.log('[DatoYa] DEMO compatibility fixes applied');
