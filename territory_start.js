@@ -9,8 +9,8 @@ if(fs.existsSync(indexTarget)){const html=fs.readFileSync(indexTarget,'utf8');if
 if(fs.existsSync(indexTarget)){
   let html=fs.readFileSync(indexTarget,'utf8');
   if(!html.includes('/nearby_ui.js')) html=html.replace('</body>','<script src="/nearby_ui.js?v=4"></script>\n</body>'); else html=html.replace(/\/nearby_ui\.js(?:\?v=\d+)?/g,'/nearby_ui.js?v=4');
-  if(!html.includes('/verification_admin_ui.js')) html=html.replace('</body>','<script src="/verification_admin_ui.js?v=1"></script>\n</body>');
-  if(!html.includes('/verification_worker_ui.js')) html=html.replace('</body>','<script src="/verification_worker_ui.js?v=1"></script>\n</body>');
+  if(!html.includes('/verification_admin_ui.js')) html=html.replace('</body>','<script src="/verification_admin_ui.js?v=2"></script>\n</body>'); else html=html.replace(/\/verification_admin_ui\.js(?:\?v=\d+)?/g,'/verification_admin_ui.js?v=2');
+  if(!html.includes('/verification_worker_ui.js')) html=html.replace('</body>','<script src="/verification_worker_ui.js?v=2"></script>\n</body>'); else html=html.replace(/\/verification_worker_ui\.js(?:\?v=\d+)?/g,'/verification_worker_ui.js?v=2');
   if(!html.includes('/request_target_ui.js')) html=html.replace('</body>','<script src="/request_target_ui.js?v=3"></script>\n</body>'); else html=html.replace(/\/request_target_ui\.js(?:\?v=\d+)?/g,'/request_target_ui.js?v=3');
   if(!html.includes('/direct_worker_category_fix.js')) html=html.replace('</body>','<script src="/direct_worker_category_fix.js?v=3"></script>\n</body>'); else html=html.replace(/\/direct_worker_category_fix\.js(?:\?v=\d+)?/g,'/direct_worker_category_fix.js?v=3');
   if(!html.includes('/admin_v2_ui.js')) html=html.replace('</body>','<script src="/admin_v2_ui.js?v=5"></script>\n</body>'); else html=html.replace(/\/admin_v2_ui\.js(?:\?v=\d+)?/g,'/admin_v2_ui.js?v=5');
@@ -45,6 +45,8 @@ require('./protection_schema');
 require('./protection_bootstrap');
 require('./protection_flow_guard');
 require('./protection_complete_fix');
+require('./verification_bootstrap');
+require('./verification_review_bootstrap');
 require('./chat_workflow_bootstrap');
 require('./workflow_guard_bootstrap');
 require('./portfolio_runtime_fix');
