@@ -24,7 +24,7 @@ for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js prot
 done
 
 # Validación rápida de sintaxis de TODOS los módulos Node que el arranque de producción carga.
-for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js reports_admin_fix.js request_photos_bootstrap.js evidence_bootstrap.js chat_workflow_bootstrap.js admin_v2_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_schema.js protection_bootstrap.js protection_flow_guard.js workflow_guard_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js gps_syntax_fix.js demo_admin_seed.js demo_runtime_seed.js demo_compat_fix.js portfolio_runtime_fix.js app_runtime_fix.js; do
+for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js reports_admin_fix.js request_photos_bootstrap.js evidence_bootstrap.js chat_workflow_bootstrap.js admin_v2_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_schema.js protection_bootstrap.js protection_flow_guard.js protection_complete_fix.js workflow_guard_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js gps_syntax_fix.js demo_admin_seed.js demo_runtime_seed.js demo_compat_fix.js portfolio_runtime_fix.js app_runtime_fix.js; do
   if [ -f "$js" ] && ! node --check "$js"; then
     echo "Error de sintaxis en $js"
     exit 1
