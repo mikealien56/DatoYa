@@ -67,7 +67,8 @@
           b.onclick = async () => { try { await json('/jobs/' + id + '/complete-request', {method:'POST',body:{}}); alert('Trabajo marcado como terminado. El cliente debe revisarlo.'); location.reload(); } catch(e){ alert(e.message); } };
           actions.appendChild(b);
         }
-        if (me.role === 'cliente' && ['AWAITING_CONFIRMATION','HELD'].includes(protection.status) && !['FINALIZADO','CANCELADO'].includes(job.status)) {
+        // Solo se puede confirmar después de que el profesional haya declarado terminado.
+        if (me.role === 'cliente' && protection.status === 'AWAITING_CONFIRMATION' && !['FINALIZADO','CANCELADO'].includes(job.status)) {
           const ok = document.createElement('button'); ok.textContent = '✅ Confirmar trabajo'; ok.className = 'btn btn-primary btn-sm';
           ok.onclick = async () => { try { await json('/jobs/' + id + '/status', {method:'POST',body:{status:'FINALIZADO'}}); alert('Trabajo confirmado. Pago DEMO liberado.'); location.reload(); } catch(e){ alert(e.message); } };
           actions.appendChild(ok);
