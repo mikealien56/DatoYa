@@ -51,6 +51,7 @@ require('./demo_compat_fix');
 require('./gps_syntax_fix');
 require('./gps_schema');
 require('./gps_bootstrap');
+require('./gps_distance_fix');
 // Protección DatoYa: esquema + rutas DEMO de retención, confirmación y disputa.
 require('./protection_schema');
 // Guard previo: evita que el cliente salte directamente a FINALIZADO antes de la confirmación del profesional.
