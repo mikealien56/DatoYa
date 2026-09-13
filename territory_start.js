@@ -44,6 +44,7 @@ require('./protection_schema');
 require('./protection_bootstrap');
 require('./protection_flow_guard');
 require('./protection_complete_fix');
+require('./chat_workflow_bootstrap');
 require('./workflow_guard_bootstrap');
 require('./portfolio_runtime_fix');
 // Composición administrativa V2: monta las rutas que alimentan todas las pestañas del panel.
