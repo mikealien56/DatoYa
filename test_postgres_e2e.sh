@@ -12,7 +12,9 @@ J="Content-Type: application/json"
 npm start >/tmp/datoya-pg-e2e.log 2>&1 &
 PID=$!
 cleanup(){ kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; }
+on_error(){ echo '=== LOG SERVIDOR POSTGRESQL E2E ==='; tail -160 /tmp/datoya-pg-e2e.log || true; }
 trap cleanup EXIT
+trap on_error ERR
 
 READY=0
 for i in $(seq 1 90); do
@@ -46,8 +48,10 @@ echo "$PROFILE" | grep -q '"ok":true'
 
 echo "✅ Registro y perfil profesional reales"
 
-REQ_JSON=$(curl -fsS -b /tmp/pg_client.cookies -X POST "$B/requests" -H "$J" \
+REQ_HTTP=$(curl -sS -o /tmp/pg_request.json -w '%{http_code}' -b /tmp/pg_client.cookies -X POST "$B/requests" -H "$J" \
   -d "{\"category_id\":$CAT,\"title\":\"Cambio de llave beta PostgreSQL\",\"description\":\"Necesito cambiar una llave de agua\",\"comuna_id\":$COMUNA,\"address_detail\":\"Dirección privada de prueba\",\"urgency\":\"hoy\",\"budget\":32000}")
+REQ_JSON=$(cat /tmp/pg_request.json)
+if [ "$REQ_HTTP" != "200" ]; then echo "Publicar solicitud falló HTTP $REQ_HTTP: $REQ_JSON"; false; fi
 echo "$REQ_JSON" | grep -q '"ok":true'
 REQ=$(echo "$REQ_JSON" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
 
