@@ -12,7 +12,7 @@ for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js prot
   if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
 done
 
-for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js reports_admin_fix.js request_photos_bootstrap.js evidence_bootstrap.js chat_workflow_bootstrap.js admin_v2_bootstrap.js admin_case_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_schema.js protection_bootstrap.js protection_flow_guard.js protection_complete_fix.js workflow_guard_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js gps_syntax_fix.js nearby_workers_bootstrap.js nearby_location_schema.js demo_admin_seed.js demo_bootstrap.js demo_runtime_seed.js demo_compat_fix.js portfolio_runtime_fix.js app_runtime_fix.js; do
+for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js reports_admin_fix.js request_photos_bootstrap.js evidence_schema.js evidence_bootstrap.js job_events_schema.js chat_workflow_bootstrap.js admin_v2_bootstrap.js admin_case_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_schema.js protection_bootstrap.js protection_flow_guard.js protection_complete_fix.js workflow_guard_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js gps_syntax_fix.js nearby_workers_bootstrap.js nearby_location_schema.js demo_admin_seed.js demo_bootstrap.js demo_runtime_seed.js demo_compat_fix.js portfolio_runtime_fix.js app_runtime_fix.js; do
   if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
 done
 
@@ -37,7 +37,7 @@ echo "Healthcheck DatoYa OK"
 
 node - <<'NODE'
 const {db}=require('./db');
-for (const t of ['job_travel_sessions','job_location_events','worker_locations','job_evidence']) {
+for (const t of ['job_travel_sessions','job_location_events','worker_locations','job_evidence','job_events']) {
   const ok=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(t);
   if(!ok) { console.error('Falta tabla: '+t); process.exit(1); }
 }
@@ -45,13 +45,15 @@ for (const k of ['gps_arrival_radius_m','gps_max_accuracy_m']) {
   const ok=db.prepare('SELECT value FROM settings WHERE key=?').get(k);
   if(!ok) { console.error('Falta configuración GPS: '+k); process.exit(1); }
 }
-console.log('GPS/evidencias schema OK');
+console.log('GPS/evidencias/eventos schema OK');
 NODE
 
 GPS_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/jobs/1/travel)
 if [ "$GPS_STATUS" != "401" ]; then echo "Ruta GPS no protegida/montada correctamente (HTTP $GPS_STATUS)"; cat /tmp/datoya-ci.log; exit 1; fi
-if ! curl -fsS http://localhost:3000/gps_ui.js >/dev/null; then echo "UI GPS no publicada"; exit 1; fi
-if ! curl -fsS http://localhost:3000/nearby_ui.js >/dev/null; then echo "UI Nearby no publicada"; exit 1; fi
-echo "GPS smoke test OK"
+for asset in gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js; do
+  if ! curl -fsS "http://localhost:3000/$asset" >/dev/null; then echo "Archivo estático no publicado: $asset"; exit 1; fi
+done
+echo "GPS/estáticos smoke test OK"
 
+bash test_admin_smoke.sh
 bash test_e2e.sh
