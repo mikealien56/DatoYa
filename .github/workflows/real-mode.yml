@@ -1,0 +1,16 @@
+name: DatoYa real mode
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  real-mode:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: bash test_real_mode_smoke.sh
