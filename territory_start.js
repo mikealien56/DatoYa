@@ -16,7 +16,7 @@ if(fs.existsSync(indexTarget)){
   if(!html.includes('/admin_v3_fix.js')) html=html.replace('</body>','<script src="/admin_v3_fix.js?v=2"></script>\n</body>');
   else html=html.replace(/\/admin_v3_fix\.js(?:\?v=\d+)?/g,'/admin_v3_fix.js?v=2');
   if(!html.includes('/worker_profile_fix.js')) html=html.replace('</body>','<script src="/worker_profile_fix.js?v=1"></script>\n</body>');
-  else html=html.replace(/\/worker_profile_fix\.js(?:\?v=\d+)?/g,'/worker_profile_fix.js?v=1');
+  else html=html.replace(/\/worker_profile_fix\.js(?:\?v=\d+)?/g,'/worker_profile_fix.js?v=4');
   fs.writeFileSync(indexTarget,html);
 }
 // Datos DEMO adicionales para que el panel administrativo tenga usuarios y profesionales visibles.
