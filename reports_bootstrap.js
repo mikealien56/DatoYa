@@ -5,6 +5,7 @@ const serverPath = path.join(__dirname, 'server.js');
 const routesPath = path.join(__dirname, 'reports_routes.js');
 const { applyRequestPhotosPatch } = require('./request_photos_bootstrap');
 const { injectEvidence } = require('./evidence_bootstrap');
+const { applyChatWorkflowPatch } = require('./chat_workflow_bootstrap');
 
 const originalReadFileSync = fs.readFileSync;
 const original = originalReadFileSync(serverPath, 'utf8');
@@ -18,6 +19,7 @@ let patched = original.includes('// ============ EXPEDIENTE DE DENUNCIAS DATOYA 
 
 patched = applyRequestPhotosPatch(patched);
 patched = injectEvidence(patched);
+patched = applyChatWorkflowPatch(patched);
 
 // El parche debe quedar escrito antes de cargar cualquier bootstrap posterior.
 fs.writeFileSync(serverPath, patched);
