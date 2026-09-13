@@ -9,7 +9,7 @@ if [ ! -d node_modules ]; then npm ci --silent; fi
 node app_runtime_fix.js
 node worker_demo_badge_runtime_fix.js
 
-for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js reports_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
+for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js search_ui_fix.js favorites_ui.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js reports_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
   if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
 done
 
@@ -31,6 +31,12 @@ if ! grep -q 'review-status' review_status_bootstrap.js || ! grep -q 'data-revie
 fi
 if ! grep -q "target_type:'trabajo'" reports_ui.js || ! grep -q 'data-report-form' reports_ui.js; then
   echo "El flujo visible de denuncias desde trabajos no está completo"; exit 1
+fi
+if ! grep -q 'routes.buscar' search_ui_fix.js || ! grep -q 'min_rating' search_ui_fix.js; then
+  echo "La búsqueda avanzada no contiene todos los filtros esperados"; exit 1
+fi
+if ! grep -q 'routes.favoritos' favorites_ui.js || ! grep -q 'toggleDatoYaFavorite' favorites_ui.js; then
+  echo "La interfaz de favoritos no está completa"; exit 1
 fi
 
 npm start >/tmp/datoya-ci.log 2>&1 &
@@ -92,8 +98,12 @@ WORKERS_JSON=$(curl -fsS http://localhost:3000/api/workers)
 if ! printf '%s' "$WORKERS_JSON" | grep -q '"is_demo"'; then
   echo "La API pública no informa qué perfiles son DEMO"; exit 1
 fi
+FILTERED_JSON=$(curl -fsS 'http://localhost:3000/api/workers?category_id=1&verified=1&status=disponible')
+if ! printf '%s' "$FILTERED_JSON" | grep -q '"workers"'; then
+  echo "La API de búsqueda filtrada no respondió correctamente"; exit 1
+fi
 
-for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
+for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
   if ! curl -fsS "http://localhost:3000/$asset" >/dev/null; then echo "Archivo estático no publicado: $asset"; exit 1; fi
 done
 INDEX_HTML=$(curl -fsS http://localhost:3000/)
@@ -105,6 +115,12 @@ if ! printf '%s' "$INDEX_HTML" | grep -q '/chat_ui_fix.js'; then
 fi
 if ! printf '%s' "$INDEX_HTML" | grep -q '/notifications_ui_fix.js'; then
   echo "La bandeja funcional de notificaciones no está cargada en index.html"; exit 1
+fi
+if ! printf '%s' "$INDEX_HTML" | grep -q '/search_ui_fix.js'; then
+  echo "La búsqueda avanzada no está cargada en index.html"; exit 1
+fi
+if ! printf '%s' "$INDEX_HTML" | grep -q '/favorites_ui.js'; then
+  echo "La interfaz de favoritos no está cargada en index.html"; exit 1
 fi
 if ! printf '%s' "$INDEX_HTML" | grep -q '/request_detail_ui_fix.js'; then
   echo "El detalle real de solicitudes/cotizaciones no está cargado en index.html"; exit 1
@@ -133,4 +149,5 @@ fi
 echo "Frontend/estáticos smoke test OK"
 
 bash test_admin_smoke.sh
+bash test_favorites_smoke.sh
 bash test_e2e.sh
