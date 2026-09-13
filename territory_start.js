@@ -1,6 +1,7 @@
 // DatoYa territory bootstrap / static server
 const fs=require('fs'); const path=require('path'); const ROOT=__dirname; const publicDir=path.join(ROOT,'public'); fs.mkdirSync(publicDir,{recursive:true});
 require('./app_runtime_fix');
+require('./worker_demo_badge_runtime_fix');
 require('./backend_runtime_fix');
 for(const file of ['index.html','datoya-logo.svg','app.js','frontend_globals_bridge.js','chat_ui_fix.js','home_request_fix.js','worker_own_profile_ui.js','nearby_ui.js','styles.css','role_ui_fix.js','admin_v2_ui.js','admin_core_ui_fix.js','admin_operations_ui.js','admin_v3_fix.js','worker_v2_ui.js','worker_profile_fix.js','worker_portfolio_ui.js','request_photos_ui.js','protection_ui.js','gps_ui.js','workflow_v2_ui.js','gps_map_ui.js','gps_map_ui_v2.js','evidence_ui.js','verification_admin_ui.js','verification_worker_ui.js','request_target_ui.js','direct_worker_category_fix.js','job_finish_guard_ui.js']){const source=path.join(ROOT,file),target=path.join(publicDir,file);if(fs.existsSync(source))fs.copyFileSync(source,target)}
 const indexTarget=path.join(publicDir,'index.html');
