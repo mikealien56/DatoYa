@@ -1,0 +1,86 @@
+// DatoYa 2.0 — flujo principal: especialidad -> GPS -> profesionales cercanos
+(function(){
+  'use strict';
+  const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
+  const stars=(r,c)=>`<span class="stars">★</span> <b>${Number(r||0).toFixed(1)}</b> <span class="muted small">(${Number(c||0)})</span>`;
+  const avatar=(name,color)=>`<div class="avatar" style="background:${color||'#1D4ED8'}">${esc((name||'?')[0].toUpperCase())}</div>`;
+  let cats=[];
+  let allComunas=[];
+  let active=false;
+
+  async function api2(url){
+    const r=await fetch('/api'+url,{headers:{Accept:'application/json'}});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||'No fue posible cargar los datos');
+    return d;
+  }
+  function getView(){return document.querySelector('#view');}
+  function isHome(){return location.hash==='#/'||location.hash===''||location.hash==='#';}
+  function renderShell(){
+    const view=getView(); if(!view) return;
+    view.innerHTML=`<div class="nearby-hero"><span class="nearby-kicker">DATOYA CERCA DE USTED</span><h1>¿Qué profesional necesita?</h1><p>Elija la especialidad y le mostraremos profesionales de esa área cerca de su ubicación.</p></div><div id="nearby-content"></div>`;
+  }
+  function categoryGrid(){
+    const box=document.querySelector('#nearby-content'); if(!box)return;
+    box.innerHTML=`<h2 class="section-title">Elija una especialidad</h2><div class="cat-grid nearby-cat-grid">${cats.map(c=>`<button class="cat-item" data-cat="${c.id}"><span>${c.icon||'🛠️'}</span>${esc(c.name)}</button>`).join('')}</div><div class="nearby-note">📍 Después le pediremos permiso para usar su ubicación. Si no quiere usar GPS, podrá elegir su comuna manualmente.</div>`;
+    box.querySelectorAll('[data-cat]').forEach(b=>b.addEventListener('click',()=>chooseCategory(Number(b.dataset.cat))));
+  }
+  async function loadCats(){
+    if(!cats.length) cats=(await api2('/categories')).categories||[];
+  }
+  async function chooseCategory(id){
+    active=true;
+    const cat=cats.find(c=>Number(c.id)===id);
+    const box=document.querySelector('#nearby-content'); if(!box)return;
+    box.innerHTML=`<div class="card nearby-location-card"><h2>${cat?.icon||'🛠️'} ${esc(cat?.name||'Profesionales')}</h2><p>Para mostrarle los profesionales más cercanos necesitamos su ubicación aproximada.</p><button id="nearby-gps" class="btn btn-primary btn-block">📍 Usar mi ubicación</button><button id="nearby-manual" class="btn btn-outline btn-block">Elegir comuna manualmente</button><button id="nearby-back" class="btn btn-ghost btn-block">← Cambiar especialidad</button></div>`;
+    document.querySelector('#nearby-gps').onclick=()=>locate(id);
+    document.querySelector('#nearby-manual').onclick=()=>manualLocation(id);
+    document.querySelector('#nearby-back').onclick=()=>{active=false;categoryGrid();};
+  }
+  function locate(categoryId){
+    if(!navigator.geolocation) return manualLocation(categoryId);
+    const box=document.querySelector('#nearby-content');
+    box.innerHTML='<div class="card"><h2>📍 Buscando profesionales cerca de usted…</h2><p>Su navegador le pedirá permiso para usar la ubicación. No mostramos su ubicación exacta a otros usuarios.</p></div>';
+    navigator.geolocation.getCurrentPosition(
+      p=>showNearby(categoryId,Number(p.coords.latitude),Number(p.coords.longitude),'GPS'),
+      ()=>manualLocation(categoryId,'No se pudo obtener el GPS. Puede elegir su comuna.'),
+      {enableHighAccuracy:false,timeout:10000,maximumAge:300000}
+    );
+  }
+  async function manualLocation(categoryId,message){
+    try{if(!allComunas.length)allComunas=(await api2('/comunas')).comunas||[];}catch(e){return showError(e.message);}
+    const box=document.querySelector('#nearby-content');
+    box.innerHTML=`<div class="card"><h2>📍 Elija su comuna</h2>${message?`<p class="muted">${esc(message)}</p>`:''}<div class="field"><select id="nearby-comuna"><option value="">Seleccione una comuna</option>${allComunas.map(c=>`<option value="${c.id}">${esc(c.name)} — ${esc(c.region||'')}</option>`).join('')}</select></div><button id="nearby-show" class="btn btn-primary btn-block">Ver profesionales cercanos</button><button id="nearby-back2" class="btn btn-ghost btn-block">← Volver</button></div>`;
+    document.querySelector('#nearby-show').onclick=()=>{const id=Number(document.querySelector('#nearby-comuna').value);const c=allComunas.find(x=>Number(x.id)===id);if(!c||c.lat==null||c.lng==null)return alert('Seleccione una comuna válida');showNearby(categoryId,Number(c.lat),Number(c.lng),'Comuna');};
+    document.querySelector('#nearby-back2').onclick=()=>chooseCategory(categoryId);
+  }
+  async function showNearby(categoryId,lat,lng,source){
+    const box=document.querySelector('#nearby-content');
+    box.innerHTML='<div class="card"><h2>🔎 Buscando…</h2><p>Buscando profesionales por distancia, especialidad y reputación.</p></div>';
+    let workers=[],used=10;
+    for(const radius of [10,25,40,60]){
+      try{const r=await api2(`/workers/nearby?category_id=${categoryId}&lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}&radius_km=${radius}`);workers=r.workers||[];used=radius;if(workers.length>=5||radius===60)break;}
+      catch(e){return showError(e.message);}
+    }
+    const cat=cats.find(c=>Number(c.id)===categoryId);
+    box.innerHTML=`<div class="nearby-results-head"><div><h2>${cat?.icon||'🛠️'} ${esc(cat?.name||'Profesionales')} cerca de usted</h2><p class="muted">📍 ${source==='GPS'?'Ubicación GPS aproximada':'Comuna seleccionada'} · radio de búsqueda hasta ${used} km</p></div><button id="nearby-change" class="btn btn-outline btn-sm">Cambiar</button></div><div class="cards">${workers.length?workers.map(workerCard).join(''):'<div class="empty">No encontramos profesionales de esta especialidad en el radio disponible. Puede intentar otra especialidad o ampliar la búsqueda más adelante.</div>'}</div><div class="nearby-note">ℹ️ La distancia es aproximada y se calcula usando la zona registrada por cada profesional. La dirección exacta del cliente se solicita recién al publicar el trabajo.</div>`;
+    document.querySelector('#nearby-change').onclick=()=>chooseCategory(categoryId);
+  }
+  function workerCard(w){
+    const verified=w.verified_identity?'<span class="badge-v">✓ Verificado</span>':'';
+    return `<div class="wcard"><div class="wcard-top">${avatar(w.name,w.avatar_color)}<div class="wcard-info"><h3>${esc(w.name)}</h3><div class="oficio">${esc(w.oficio||'Profesional')}</div><div class="badges">${verified}</div><div class="wmeta"><span>${stars(w.rating_avg,w.rating_count)}</span><span>🛠️ ${Number(w.jobs_completed||0)} trabajos</span><span>📍 ${esc(w.distance_label||'Cerca de usted')}</span></div></div></div><div class="wcard-actions"><a class="btn btn-outline btn-sm" href="#/trabajador/${w.id}">Ver perfil</a><button class="btn btn-primary btn-sm" onclick="solicitarDirecto(${w.id})">Solicitar</button></div></div>`;
+  }
+  function showError(msg){const box=document.querySelector('#nearby-content');if(box)box.innerHTML=`<div class="empty"><b>😕</b>${esc(msg)}<button class="btn btn-outline" onclick="location.hash='#/';setTimeout(window.__datoyaNearbyHome,100)">Volver</button></div>`;}
+  async function mount(){
+    if(!isHome())return;
+    const view=getView();if(!view)return;
+    try{await loadCats();renderShell();categoryGrid();}catch(e){showError(e.message);}
+  }
+  window.__datoyaNearbyHome=mount;
+  // app.js es el router existente; este módulo reemplaza visualmente solo la portada, sin tocar las demás rutas.
+  const observer=new MutationObserver(()=>{if(isHome()&&!active){const v=getView();if(v&&v.dataset.nearbyMounted!=='1'){v.dataset.nearbyMounted='1';setTimeout(mount,0);}}});
+  const start=()=>{const v=getView();if(v){v.dataset.nearbyMounted='';setTimeout(mount,150);observer.observe(v,{childList:true,subtree:false});}};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+  window.addEventListener('hashchange',()=>{active=false;const v=getView();if(v)v.dataset.nearbyMounted='';setTimeout(mount,150);});
+  const style=document.createElement('style');style.textContent=`.nearby-hero{padding:26px 4px 18px}.nearby-hero h1{margin:6px 0 8px}.nearby-hero p{color:#64748b;max-width:680px}.nearby-kicker{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--azul,#1d4ed8)}.nearby-location-card{max-width:620px;margin:0 auto}.nearby-cat-grid{margin-bottom:14px}.nearby-note{padding:12px 14px;border-radius:12px;background:#f1f5f9;color:#475569;font-size:13px;margin:14px 0}.nearby-results-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 16px}.nearby-results-head h2{margin:0}.nearby-results-head p{margin:5px 0 0}.nearby-results-head .btn{flex:none}.nearby-location-card .btn{margin-top:10px}@media(max-width:560px){.nearby-results-head{align-items:flex-start}.nearby-results-head h2{font-size:20px}}`;document.head.appendChild(style);
+})();
