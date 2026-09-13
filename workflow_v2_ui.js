@@ -19,10 +19,22 @@
   async function show(jobId,who){
     let e,p;
     try{[e,p]=await Promise.all([api(`/jobs/${jobId}/evidence`),api(`/jobs/${jobId}/protection`)])}catch(err){alert(err.message);return}
-    const prot=p.protection||{},review=['AWAITING_CONFIRMATION','DISPUTED','CORRECTION'].includes(prot.status);
-    modal(`<h3>📸 Evidencias del trabajo #${jobId}</h3><p class="v2small">Historial auditable · MODO DEMO</p>${evidenceHtml(e.evidence)}${who==='cliente'&&review?`<div class="v2box ${prot.status==='AWAITING_CONFIRMATION'?'v2ok':'v2warn'}"><b>${prot.status==='AWAITING_CONFIRMATION'?'El profesional indicó que terminó':'Trabajo en revisión'}</b><p class="small">Revise las evidencias antes de confirmar.</p><div class="v2actions"><button class="btn btn-green" id="v2confirm">✅ Confirmar trabajo terminado</button><button class="btn btn-danger" id="v2dispute">⚠️ Tengo un problema</button></div></div>`:''}<div class="v2box"><b>Agregar evidencia</b><div class="field"><label>Etapa</label><select id="v2stage"><option>ANTES</option><option>PROCESO</option><option>DESPUES</option></select></div><div class="field"><input id="v2file" type="file" accept="image/jpeg,image/png,image/webp"></div><div class="field"><textarea id="v2note" rows="2" placeholder="Nota opcional"></textarea></div><button class="btn btn-primary btn-block" id="v2upload">📤 Subir evidencia</button></div>`);
+    const prot=p.protection||{};
+    const awaiting=prot.status==='AWAITING_CONFIRMATION';
+    const blocked=['DISPUTED','CORRECTION'].includes(prot.status);
+    let clientReview='';
+    if(who==='cliente'&&awaiting){
+      clientReview=`<div class="v2box v2ok"><b>El profesional indicó que terminó</b><p class="small">Revise las evidencias antes de confirmar.</p><div class="v2actions"><button class="btn btn-green" id="v2confirm">✅ Confirmar trabajo terminado</button><button class="btn btn-danger" id="v2dispute">⚠️ Tengo un problema</button></div></div>`;
+    }else if(who==='cliente'&&blocked){
+      clientReview=`<div class="v2box v2warn"><b>${prot.status==='CORRECTION'?'Corrección solicitada':'Disputa en revisión'}</b><p class="small">El pago DEMO continúa retenido. No se puede confirmar ni liberar mientras esta etapa esté activa.</p></div>`;
+    }
+    modal(`<h3>📸 Evidencias del trabajo #${jobId}</h3><p class="v2small">Historial auditable · MODO DEMO</p>${evidenceHtml(e.evidence)}${clientReview}<div class="v2box"><b>Agregar evidencia</b><div class="field"><label>Etapa</label><select id="v2stage"><option>ANTES</option><option>PROCESO</option><option>DESPUES</option></select></div><div class="field"><input id="v2file" type="file" accept="image/jpeg,image/png,image/webp"></div><div class="field"><textarea id="v2note" rows="2" placeholder="Nota opcional"></textarea></div><button class="btn btn-primary btn-block" id="v2upload">📤 Subir evidencia</button></div>`);
     document.getElementById('v2confirm')?.addEventListener('click',async()=>{try{await api(`/jobs/${jobId}/status`,{method:'POST',body:{status:'FINALIZADO'}});close();alert('Trabajo confirmado. Pago DEMO liberado.');route()}catch(err){alert(err.message)}});
-    document.getElementById('v2dispute')?.addEventListener('click',async()=>{const reason=prompt('Indique el problema encontrado:');if(!reason?.trim())return;try{await api(`/jobs/${jobId}/status`,{method:'POST',body:{status:'DISPUTA',reason:reason.trim()}});close();alert('Disputa abierta. El pago DEMO permanece protegido.');route()}catch(err){alert(err.message)}});
+    document.getElementById('v2dispute')?.addEventListener('click',async()=>{
+      if(typeof window.DatoYaOpenDispute==='function'){close();await window.DatoYaOpenDispute(jobId);return;}
+      const reason=prompt('Indique el problema encontrado:');if(!reason?.trim())return;
+      try{await api(`/jobs/${jobId}/dispute/open`,{method:'POST',body:{reason:reason.trim()}});close();alert('Disputa abierta. El pago DEMO permanece protegido.');route()}catch(err){alert(err.message)}
+    });
     document.getElementById('v2upload')?.addEventListener('click',async()=>{const f=document.getElementById('v2file')?.files?.[0];if(!f)return alert('Seleccione una imagen.');if(f.size>1024*1024)return alert('Máximo 1 MB.');try{await upload(jobId,document.getElementById('v2stage').value,f,document.getElementById('v2note').value);show(jobId,who)}catch(err){alert(err.message)}})
   }
 
