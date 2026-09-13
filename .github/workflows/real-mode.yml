@@ -12,5 +12,5 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm install
       - run: bash test_real_mode_smoke.sh
