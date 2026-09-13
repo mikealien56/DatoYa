@@ -23,35 +23,45 @@ app.get('/api/admin/verification-requests/:id', auth, requireRole('admin'), (req
   const row = db.prepare("SELECT vr.*,wp.oficio,u.name,u.email,u.phone FROM verification_requests vr JOIN worker_profiles wp ON wp.id=vr.worker_id JOIN users u ON u.id=wp.user_id WHERE vr.id=?").get(req.params.id);
   if (!row) return res.status(404).json({error:'Solicitud no encontrada'});
   const history = db.prepare('SELECT * FROM verification_history WHERE verification_id=? ORDER BY id DESC').all(row.id);
+  row.needs_documents = !!history.length && history[0].action === 'antecedentes_solicitados';
   res.json({request:row, history});
 });
 
 app.post('/api/admin/verification-requests/:id/request-documents', auth, requireRole('admin'), (req,res) => {
   const row = db.prepare('SELECT * FROM verification_requests WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).json({error:'Solicitud no encontrada'});
+  if (row.status !== 'pendiente') return res.status(409).json({error:'Solo se pueden pedir antecedentes en solicitudes pendientes'});
   const note = String(req.body?.note || '').trim();
   let requested = req.body?.requested_documents;
   if (!Array.isArray(requested)) requested = String(requested || '').split('\\n').map(x=>x.trim()).filter(Boolean);
   if (!requested.length && !note) return res.status(400).json({error:'Indica qué antecedente necesitas solicitar'});
   const requestedText = requested.join('\\n');
-  db.prepare("UPDATE verification_requests SET status='pendiente_antecedentes' WHERE id=?").run(row.id);
+  // El esquema histórico solo admite pendiente/aprobada/rechazada. Mantenemos
+  // status=pendiente y registramos la sub-etapa en verification_history.
   db.prepare('INSERT INTO verification_history(verification_id,actor_user_id,actor_role,action,note,requested_documents) VALUES(?,?,?,?,?,?)').run(row.id,req.user.id,'admin','antecedentes_solicitados',note,requestedText);
   const w = db.prepare('SELECT user_id FROM worker_profiles WHERE id=?').get(row.worker_id);
   if (w) notify(w.user_id,'verificacion','DatoYa solicita antecedentes adicionales para tu verificación.','#/perfil');
-  res.json({ok:true,status:'pendiente_antecedentes',requested_documents:requested,note});
+  res.json({ok:true,status:'pendiente',needs_documents:true,requested_documents:requested,note});
 });
 
 app.get('/api/worker/verification-requests', auth, requireRole('trabajador'), (req,res) => {
   const wp = getWorkerByUser(req.user.id);
+  if (!wp) return res.status(404).json({error:'Perfil profesional no encontrado'});
   const requests = db.prepare('SELECT * FROM verification_requests WHERE worker_id=? ORDER BY id DESC').all(wp.id);
   const history = db.prepare('SELECT * FROM verification_history WHERE verification_id IN (SELECT id FROM verification_requests WHERE worker_id=?) ORDER BY id DESC').all(wp.id);
+  for (const request of requests) {
+    const latest = history.find(h => Number(h.verification_id) === Number(request.id));
+    request.needs_documents = request.status === 'pendiente' && latest?.action === 'antecedentes_solicitados';
+  }
   res.json({requests,history});
 });
 
 app.post('/api/worker/verification-requests/:id/add-document', auth, requireRole('trabajador'), (req,res) => {
   const wp = getWorkerByUser(req.user.id);
+  if (!wp) return res.status(404).json({error:'Perfil profesional no encontrado'});
   const row = db.prepare('SELECT * FROM verification_requests WHERE id=? AND worker_id=?').get(req.params.id,wp.id);
   if (!row) return res.status(404).json({error:'Solicitud no encontrada'});
+  if (row.status !== 'pendiente') return res.status(409).json({error:'Esta verificación ya fue resuelta'});
   const documentType = String(req.body?.document_type || '').trim();
   const reference = String(req.body?.document_reference || '').trim();
   if (!documentType || !reference) return res.status(400).json({error:'Tipo y referencia del antecedente son obligatorios'});
@@ -60,7 +70,7 @@ app.post('/api/worker/verification-requests/:id/add-document', auth, requireRole
   db.prepare('INSERT INTO verification_history(verification_id,actor_user_id,actor_role,action,note,requested_documents) VALUES(?,?,?,?,?,?)').run(row.id,req.user.id,'trabajador','antecedente_enviado','El profesional agregó un antecedente.',documentType + ': ' + reference);
   const admin=db.prepare("SELECT id FROM users WHERE role='admin' AND is_active=1 LIMIT 1").get();
   if(admin) notify(admin.id,'verificacion','El profesional agregó antecedentes a la verificación #'+row.id,'#/admin/verificaciones');
-  res.json({ok:true,status:'pendiente',message:'Antecedente enviado a revisión.'});
+  res.json({ok:true,status:'pendiente',needs_documents:false,message:'Antecedente enviado a revisión.'});
 });
 
 app.post('/api/admin/verification-requests/:id/resolve', auth, requireRole('admin'), (req,res) => {
