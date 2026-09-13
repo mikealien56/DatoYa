@@ -16,15 +16,15 @@ fi
 node app_runtime_fix.js
 
 # Validación rápida de sintaxis del frontend y módulos de UI añadidos en DatoYa 2.0.
-for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js; do
+for js in app.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js request_photos_ui.js role_ui_fix.js admin_v2_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js; do
   if [ -f "$js" ] && ! node --check "$js"; then
     echo "Error de sintaxis en $js"
     exit 1
   fi
 done
 
-# Validación rápida de sintaxis de los módulos Node que componen el servidor.
-for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js request_photos_bootstrap.js evidence_bootstrap.js admin_v2_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js app_runtime_fix.js; do
+# Validación rápida de sintaxis de TODOS los módulos Node que el arranque de producción carga.
+for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js reports_admin_fix.js request_photos_bootstrap.js evidence_bootstrap.js chat_workflow_bootstrap.js admin_v2_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_schema.js protection_bootstrap.js protection_flow_guard.js workflow_guard_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js gps_syntax_fix.js demo_admin_seed.js demo_runtime_seed.js demo_compat_fix.js portfolio_runtime_fix.js app_runtime_fix.js; do
   if [ -f "$js" ] && ! node --check "$js"; then
     echo "Error de sintaxis en $js"
     exit 1
@@ -63,7 +63,7 @@ if [ "$READY" -ne 1 ]; then
 fi
 
 # Healthcheck de producción: valida que el proceso web y SQLite estén operativos.
-if ! curl -fsS http://localhost:3000/health | grep -q '"status":"healthy"'; then
+if ! curl -fsS http://localhost:3000/health | grep -q '\"status\":\"healthy\"'; then
   echo "Healthcheck DatoYa no está saludable"
   cat /tmp/datoya-ci.log
   exit 1
