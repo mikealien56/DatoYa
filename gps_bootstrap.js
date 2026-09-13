@@ -22,7 +22,7 @@ function gpsAccess(job, userId, role) {
   return role === 'admin' || job.client_id === userId || (wp && wp.user_id === userId);
 }
 function gpsDistanceM(lat1,lon1,lat2,lon2) {
-  const R=6371000, p=Math.PI/180, a=Math.sin((lat2-lat1)*p/2)**2 + Math.cos(lat1*p)*Math.cos(lat2*p)*Math.sin((lon2-lon1)*p/2)**2;
+  const R=6371000, p=Math.PI/180, a=Math.sin((lat2-lat1)*p/2)**2 + Math.cos(lat1*p)*Math.cos(lat2*p)*Math.sin((lon2-lon2)*p/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 function gpsRecord(jobId, sessionId, userId, type, lat, lng, accuracy, metadata) {
@@ -52,7 +52,7 @@ app.post('/api/jobs/:id/travel/location', auth, requireRole('trabajador'), (req,
   if(!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return res.status(400).json({error:'Ubicación inválida'});
   const cfg=gpsConfig(); if(Number(accuracy)>cfg.maxAccuracyM) return res.status(400).json({error:'Precisión GPS insuficiente'});
   gpsRecord(job.id,s.id,req.user.id,'location_update',Number(lat),Number(lng),Number(accuracy)||null,{demo:true});
-  db.prepare('UPDATE job_travel_sessions SET updated_at=datetime(\'now\') WHERE id=?').run(s.id);
+  db.prepare("UPDATE job_travel_sessions SET updated_at=datetime('now') WHERE id=?").run(s.id);
   res.json({ok:true,tracking:true,demo:true});
 });
 
