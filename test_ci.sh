@@ -9,7 +9,7 @@ if [ ! -d node_modules ]; then npm ci --silent; fi
 node app_runtime_fix.js
 node worker_demo_badge_runtime_fix.js
 
-for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
+for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js reports_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
   if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
 done
 
@@ -28,6 +28,9 @@ if ! grep -q 'routes.ganancias' worker_finance_ui.js || ! grep -q 'activateDatoY
 fi
 if ! grep -q 'review-status' review_status_bootstrap.js || ! grep -q 'data-review-submit' review_ui.js; then
   echo "El flujo visible de reseñas no está completo"; exit 1
+fi
+if ! grep -q "target_type:'trabajo'" reports_ui.js || ! grep -q 'data-report-form' reports_ui.js; then
+  echo "El flujo visible de denuncias desde trabajos no está completo"; exit 1
 fi
 
 npm start >/tmp/datoya-ci.log 2>&1 &
@@ -90,7 +93,7 @@ if ! printf '%s' "$WORKERS_JSON" | grep -q '"is_demo"'; then
   echo "La API pública no informa qué perfiles son DEMO"; exit 1
 fi
 
-for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
+for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
   if ! curl -fsS "http://localhost:3000/$asset" >/dev/null; then echo "Archivo estático no publicado: $asset"; exit 1; fi
 done
 INDEX_HTML=$(curl -fsS http://localhost:3000/)
@@ -114,6 +117,9 @@ if ! printf '%s' "$INDEX_HTML" | grep -q '/worker_finance_ui.js'; then
 fi
 if ! printf '%s' "$INDEX_HTML" | grep -q '/review_ui.js'; then
   echo "La UI de reseñas no está cargada en index.html"; exit 1
+fi
+if ! printf '%s' "$INDEX_HTML" | grep -q '/reports_ui.js'; then
+  echo "La UI de denuncias no está cargada en index.html"; exit 1
 fi
 if ! printf '%s' "$INDEX_HTML" | grep -q '/admin_core_ui_fix.js'; then
   echo "La UI administrativa completa no está cargada en index.html"; exit 1
