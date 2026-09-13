@@ -37,10 +37,12 @@ require('./gps_bootstrap');
 require('./gps_distance_fix');
 require('./nearby_workers_bootstrap');
 require('./protection_schema');
-// Protección runtime: crea la protección al aceptar una cotización y monta declaración/confirmación/disputa.
 require('./protection_bootstrap');
 require('./protection_flow_guard');
 require('./protection_complete_fix');
 require('./workflow_guard_bootstrap');
 require('./portfolio_runtime_fix');
+// Composición administrativa V2: monta las rutas que alimentan todas las pestañas del panel.
+require('./admin_v2_bootstrap');
+require('./admin_case_bootstrap');
 require('./server');
