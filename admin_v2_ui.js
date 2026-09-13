@@ -4,7 +4,7 @@
   const originalPro = routes.pro;
 
   const adminMenu = `
-    <div class="tabs">
+    <div class="tabs admin-tabs" style="display:flex;flex-wrap:wrap;overflow:visible;gap:6px">
       <button onclick="location.hash='#/admin'">📊 Resumen</button>
       <button onclick="location.hash='#/admin/usuarios'">👥 Usuarios</button>
       <button onclick="location.hash='#/admin/trabajadores'">🔧 Profesionales</button>
@@ -19,6 +19,15 @@
 
   function shell(title, body) {
     view.innerHTML = `<h2 class="section-title" style="margin-top:0">🛡️ ${title}</h2>${adminMenu}${body}`;
+  }
+
+  async function legacyAdminWithMenu(tab) {
+    await originalAdmin(tab);
+    if (!view.querySelector('.admin-tabs')) {
+      const title = view.querySelector('.section-title');
+      if (title) title.insertAdjacentHTML('afterend', adminMenu);
+      else view.insertAdjacentHTML('afterbegin', adminMenu);
+    }
   }
 
   function reportRole(role) {
@@ -47,8 +56,16 @@
       view.innerHTML = '<div class="empty"><b>🛡️</b>Acceso solo para administradores.</div>';
       return;
     }
+
     const supported = ['reclamos', 'disputas', 'ganancias', 'banco', 'mensajes', 'suscripciones', 'verificaciones'];
-    if (!supported.includes(tab)) return originalAdmin(tab);
+    if (!supported.includes(tab)) {
+      try {
+        await legacyAdminWithMenu(tab);
+      } catch (e) {
+        toast(e.message || 'No se pudo cargar la vista administrativa', 'err');
+      }
+      return;
+    }
 
     try {
       if (tab === 'verificaciones') {
