@@ -6,13 +6,17 @@ const serverFile = path.join(ROOT, 'server.js');
 const originalReadFileSync = fs.readFileSync;
 const { db } = require('./db');
 
+function isDuplicateColumnError(e) {
+  return e?.code === '42701' || /duplicate column name|already exists/i.test(String(e?.message || e));
+}
+
 for (const sql of [
   "ALTER TABLE verification_requests ADD COLUMN document_type TEXT",
   "ALTER TABLE verification_requests ADD COLUMN document_reference TEXT",
   "ALTER TABLE verification_requests ADD COLUMN ticket TEXT",
   "ALTER TABLE subscriptions ADD COLUMN expires_at TEXT",
   "ALTER TABLE subscriptions ADD COLUMN amount INTEGER DEFAULT 0"
-]) { try { db.exec(sql); } catch (e) { if (!String(e).includes('duplicate column name')) throw e; } }
+]) { try { db.exec(sql); } catch (e) { if (!isDuplicateColumnError(e)) throw e; } }
 try { db.exec(`CREATE TABLE IF NOT EXISTS worker_bank_accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, worker_id INTEGER UNIQUE NOT NULL REFERENCES worker_profiles(id) ON DELETE CASCADE, bank_name TEXT, account_type TEXT, account_last4 TEXT, updated_at TEXT NOT NULL DEFAULT (datetime('now')))`) } catch (e) { throw e; }
 
 const injection = `
@@ -79,13 +83,35 @@ app.post('/api/worker/bank', auth, requireRole('trabajador'), (req,res) => {
   db.prepare("INSERT INTO worker_bank_accounts(worker_id,bank_name,account_type,account_last4,updated_at) VALUES(?,?,?,?,datetime('now')) ON CONFLICT(worker_id) DO UPDATE SET bank_name=excluded.bank_name,account_type=excluded.account_type,account_last4=excluded.account_last4,updated_at=datetime('now')").run(wp.id,bank_name,account_type,String(account_last4));
   res.json({ok:true,message:'Cuenta de retiro guardada en MODO DEMO.'});
 });
-// ================================================
+app.get('/api/worker/earnings', auth, requireRole('trabajador'), (req,res) => {
+  const wp=getWorkerByUser(req.user.id);
+  const total=db.prepare("SELECT COALESCE(SUM(worker_amount),0) n FROM payments WHERE job_id IN (SELECT id FROM jobs WHERE worker_id=?) AND status='demo_completado'").get(wp.id).n;
+  const paid=db.prepare("SELECT COALESCE(SUM(amount),0) n FROM payout_requests WHERE worker_id=? AND status IN ('pendiente','pagado')").get(wp.id).n;
+  res.json({total,retirado_o_pendiente:paid,disponible:Math.max(0,total-paid),mode:'DEMO'});
+});
+app.post('/api/worker/payout-request', auth, requireRole('trabajador'), (req,res) => {
+  const wp=getWorkerByUser(req.user.id), amount=Math.round(Number(req.body?.amount||0));
+  const total=db.prepare("SELECT COALESCE(SUM(worker_amount),0) n FROM payments WHERE job_id IN (SELECT id FROM jobs WHERE worker_id=?) AND status='demo_completado'").get(wp.id).n;
+  const paid=db.prepare("SELECT COALESCE(SUM(amount),0) n FROM payout_requests WHERE worker_id=? AND status IN ('pendiente','pagado')").get(wp.id).n;
+  const available=Math.max(0,total-paid);
+  if(!amount||amount<1000||amount>available) return res.status(400).json({error:'Monto inválido. Disponible: '+fmtCLP(available)});
+  const info=db.prepare('INSERT INTO payout_requests(worker_id,amount,status) VALUES(?,?,?)').run(wp.id,amount,'pendiente');
+  res.json({ok:true,id:info.lastInsertRowid,message:'Solicitud de retiro DEMO creada. No se transfirió dinero real.'});
+});
+app.get('/api/admin/payouts', auth, requireRole('admin'), (req,res) => {
+  res.json({payouts:db.prepare("SELECT p.*,u.name,u.email,ba.bank_name,ba.account_type,ba.account_last4 FROM payout_requests p JOIN worker_profiles wp ON wp.id=p.worker_id JOIN users u ON u.id=wp.user_id LEFT JOIN worker_bank_accounts ba ON ba.worker_id=wp.id ORDER BY p.created_at DESC").all()});
+});
+app.post('/api/admin/payouts/:id/resolve', auth, requireRole('admin'), (req,res) => {
+  const status=req.body?.status==='pagado'?'pagado':'rechazado'; const r=db.prepare("UPDATE payout_requests SET status=? WHERE id=? AND status='pendiente'").run(status,req.params.id);
+  if(!r.changes) return res.status(404).json({error:'Solicitud no encontrada o ya resuelta'}); res.json({ok:true,status});
+});
 `;
-const original=fs.readFileSync(serverFile,'utf8');
-const marker="app.listen(PORT, () => console.log(`[DatoYa] Servidor corriendo en http://localhost:${PORT}`));";
-const patched=original.includes('// ============ DATOYA 2.0 ADMIN / PRO ============')?original:original.replace(marker,injection+'\n'+marker);
-if(patched===original && !original.includes('// ============ DATOYA 2.0 ADMIN / PRO ============')) throw new Error('No se encontró el marcador de arranque de server.js');
-fs.readFileSync=function(file,enc){if(path.resolve(file)===serverFile)return enc?patched:Buffer.from(patched);return originalReadFileSync.apply(fs,arguments)};
-// Este bootstrap solo compone server.js; territory_start es quien lo arranca.
-fs.writeFileSync(serverFile, patched);
-fs.readFileSync=originalReadFileSync;
+
+fs.readFileSync = function(file, options) {
+  const value = originalReadFileSync.call(fs, file, options);
+  if (path.resolve(String(file)) !== path.resolve(serverFile) || typeof value !== 'string') return value;
+  if (value.includes('// ============ DATOYA 2.0 ADMIN / PRO ============')) return value;
+  const marker = '// ============ START ============';
+  if (!value.includes(marker)) throw new Error('No se encontró el punto de montaje del admin V2');
+  return value.replace(marker, injection + '\n' + marker);
+};
