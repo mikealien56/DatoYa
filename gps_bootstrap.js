@@ -28,6 +28,20 @@ function gpsDistanceM(lat1,lon1,lat2,lon2) {
 function gpsRecord(jobId, sessionId, userId, type, lat, lng, accuracy, metadata) {
   return db.prepare('INSERT INTO job_location_events(job_id,travel_session_id,user_id,event_type,lat,lng,accuracy,metadata) VALUES(?,?,?,?,?,?,?,?)').run(jobId,sessionId,userId,type,lat ?? null,lng ?? null,accuracy ?? null,metadata ? JSON.stringify(metadata) : null).lastInsertRowid;
 }
+function gpsApprox(v){const n=Number(v);return Number.isFinite(n)?Math.round(n*1000)/1000:null;}
+function gpsPublicSession(session, exact){
+  if(!session) return null;
+  if(exact) return session;
+  const out={...session};
+  out.start_lat=gpsApprox(out.start_lat); out.start_lng=gpsApprox(out.start_lng);
+  out.arrival_lat=gpsApprox(out.arrival_lat); out.arrival_lng=gpsApprox(out.arrival_lng);
+  return out;
+}
+function gpsPublicEvent(event, exact){
+  if(!event) return null;
+  if(exact) return event;
+  return {...event,lat:gpsApprox(event.lat),lng:gpsApprox(event.lng)};
+}
 
 app.post('/api/jobs/:id/travel/start', auth, requireRole('trabajador'), (req,res) => {
   const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id); if(!job) return res.status(404).json({error:'Trabajo no encontrado'});
@@ -68,7 +82,7 @@ app.post('/api/jobs/:id/travel/arrive', auth, requireRole('trabajador'), (req,re
   const method=distance===null?'manual_sin_coordenadas_cliente':'gps_validado';
   db.prepare("UPDATE job_travel_sessions SET status='LLEGADA_REGISTRADA',arrived_at=datetime('now'),arrival_lat=?,arrival_lng=?,arrival_accuracy=?,arrival_method=?,ended_at=datetime('now'),updated_at=datetime('now') WHERE id=?").run(Number(lat),Number(lng),acc,method,s.id);
   gpsRecord(job.id,s.id,req.user.id,'arrival_registered',Number(lat),Number(lng),acc,{distance_m:distance===null?null:Math.round(distance),radius_m:cfg.radiusM,method});
-  db.prepare('INSERT INTO job_events(job_id,event_type,user_id,metadata) VALUES(?,?,?,?)').run(job.id,'llegada',req.user.id,JSON.stringify({lat:Number(lat),lng:Number(lng),accuracy:acc,distance_m:distance===null?null:Math.round(distance),demo:true}));
+  db.prepare('INSERT INTO job_events(job_id,event_type,user_id,metadata) VALUES(?,?,?,?)').run(job.id,'llegada',req.user.id,JSON.stringify({distance_m:distance===null?null:Math.round(distance),demo:true}));
   notify(job.client_id,'llegada','El profesional ha llegado al lugar.','#/trabajos');
   res.json({ok:true,status:'LLEGADA_REGISTRADA',distance_m:distance===null?null:Math.round(distance),tracking:false,demo:true});
 });
@@ -87,9 +101,12 @@ app.post('/api/jobs/:id/travel/stop', auth, (req,res) => {
 app.get('/api/jobs/:id/travel', auth, (req,res) => {
   const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id); if(!job) return res.status(404).json({error:'Trabajo no encontrado'});
   if(!gpsAccess(job,req.user.id,req.user.role)) return res.status(403).json({error:'Sin acceso'});
-  const session=gpsSession(job.id); const events=session ? db.prepare('SELECT id,event_type,lat,lng,accuracy,metadata,created_at FROM job_location_events WHERE travel_session_id=? ORDER BY id DESC LIMIT 100').all(session.id) : [];
-  const latest=events.find(e=>e.event_type==='location_update'||e.event_type==='tracking_started')||null;
-  res.json({session,latest,events,tracking:!!session&&session.status==='EN_CAMINO',demo:true});
+  const session=gpsSession(job.id);
+  const events=session ? db.prepare('SELECT id,event_type,lat,lng,accuracy,metadata,created_at FROM job_location_events WHERE travel_session_id=? ORDER BY id DESC LIMIT 100').all(session.id) : [];
+  const exact=req.user.role==='admin'||(gpsWorkerForJob(job)&&gpsWorkerForJob(job).user_id===req.user.id);
+  const safeEvents=events.map(e=>gpsPublicEvent(e,exact));
+  const latest=safeEvents.find(e=>e.event_type==='location_update'||e.event_type==='tracking_started')||null;
+  res.json({session:gpsPublicSession(session,exact),latest,events:safeEvents,tracking:!!session&&session.status==='EN_CAMINO',location_precision:exact?'exact':'approx_3_decimals',demo:true});
 });
 `;
   return source.replace(marker, block+'\n'+marker);
