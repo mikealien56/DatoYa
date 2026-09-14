@@ -11,7 +11,7 @@ function injectMercadoPago(source) {
   if (!source.includes(marker)) throw new Error('No se encontró el punto de inyección de Mercado Pago');
   if (source.includes('DATOYA_MERCADOPAGO_RUNTIME')) return source;
 
-  const block = String.raw`
+  const block = `
 // ============ MERCADO PAGO + DATOYA PRO ============
 // DATOYA_MERCADOPAGO_RUNTIME
 const mpHttps = require('https');
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS mercadopago_webhook_events (
 );
 \`);
 
-function mpBaseUrl(){return String(process.env.PUBLIC_BASE_URL || 'https://datoya.onrender.com').replace(/\/$/,'');}
+function mpBaseUrl(){return String(process.env.PUBLIC_BASE_URL || 'https://datoya.onrender.com').replace(/\\\/$/,'');}
 function mpNumber(name, fallback){const n=Number(process.env[name]);return Number.isFinite(n)?n:fallback;}
 function mpConfig(){
   const monthly=Math.round(mpNumber('DATOYA_PRO_MONTHLY_CLP',5990));
@@ -114,17 +114,14 @@ function mpHttp(method, apiPath, token, body){return new Promise((resolve,reject
     let raw='';res.on('data',d=>raw+=d);res.on('end',()=>{let parsed={};try{parsed=raw?JSON.parse(raw):{};}catch(_){parsed={raw};}if(res.statusCode>=200&&res.statusCode<300)return resolve(parsed);const err=new Error(parsed.message||parsed.error||('Mercado Pago HTTP '+res.statusCode));err.status=res.statusCode;err.payload=parsed;reject(err);});
   });req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Mercado Pago timeout')));if(data)req.write(data);req.end();
 });}
+function mpOauthHttp(body){return new Promise((resolve,reject)=>{const data=JSON.stringify(body);const req=mpHttps.request({hostname:'api.mercadopago.com',path:'/oauth/token',method:'POST',headers:{Accept:'application/json','Content-Type':'application/json','Content-Length':Buffer.byteLength(data)}},res=>{let raw='';res.on('data',d=>raw+=d);res.on('end',()=>{let parsed={};try{parsed=raw?JSON.parse(raw):{};}catch(_){parsed={raw};}if(res.statusCode>=200&&res.statusCode<300)return resolve(parsed);const err=new Error(parsed.message||parsed.error||('Mercado Pago OAuth HTTP '+res.statusCode));err.status=res.statusCode;err.payload=parsed;reject(err);});});req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Mercado Pago OAuth timeout')));req.write(data);req.end();});}
 function mpEnc(value){if(!value)return null;const secret=process.env.MP_TOKEN_ENCRYPTION_KEY;if(!secret)throw new Error('MP_TOKEN_ENCRYPTION_KEY no configurada');const key=crypto.createHash('sha256').update(secret).digest(),iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',key,iv);const encrypted=Buffer.concat([cipher.update(String(value),'utf8'),cipher.final()]),tag=cipher.getAuthTag();return [iv,tag,encrypted].map(b=>b.toString('base64url')).join('.');}
 function mpDec(value){if(!value)return null;const secret=process.env.MP_TOKEN_ENCRYPTION_KEY;if(!secret)throw new Error('MP_TOKEN_ENCRYPTION_KEY no configurada');const [ivs,tags,datas]=String(value).split('.'),key=crypto.createHash('sha256').update(secret).digest(),decipher=crypto.createDecipheriv('aes-256-gcm',key,Buffer.from(ivs,'base64url'));decipher.setAuthTag(Buffer.from(tags,'base64url'));return Buffer.concat([decipher.update(Buffer.from(datas,'base64url')),decipher.final()]).toString('utf8');}
 async function mpSellerToken(connection){
-  if(!connection)return null;const expires=connection.expires_at?new Date(String(connection.expires_at).replace(' ','T')+'Z').getTime():0;
+  if(!connection)return null;const expires=connection.expires_at?new Date(String(connection.expires_at).replace(' ','T')).getTime():0;
   if(!expires||expires>Date.now()+5*60*1000)return mpDec(connection.access_token_enc);
   if(!connection.refresh_token_enc) return mpDec(connection.access_token_enc);
-  const refreshed=await mpHttp('POST','/oauth/token','',{
-    client_id:process.env.MP_CLIENT_ID,client_secret:process.env.MP_CLIENT_SECRET,grant_type:'refresh_token',refresh_token:mpDec(connection.refresh_token_enc)
-  }).catch(async e=>{ // oauth/token no usa Bearer; repetir con helper específico
-    return new Promise((resolve,reject)=>{const payload=JSON.stringify({client_id:process.env.MP_CLIENT_ID,client_secret:process.env.MP_CLIENT_SECRET,grant_type:'refresh_token',refresh_token:mpDec(connection.refresh_token_enc)});const r=mpHttps.request({hostname:'api.mercadopago.com',path:'/oauth/token',method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(payload)}},x=>{let raw='';x.on('data',d=>raw+=d);x.on('end',()=>{let p={};try{p=JSON.parse(raw);}catch(_){}if(x.statusCode>=200&&x.statusCode<300)resolve(p);else reject(e);});});r.on('error',reject);r.write(payload);r.end();});
-  });
+  const refreshed=await mpOauthHttp({client_id:process.env.MP_CLIENT_ID,client_secret:process.env.MP_CLIENT_SECRET,grant_type:'refresh_token',refresh_token:mpDec(connection.refresh_token_enc)});
   const exp=new Date(Date.now()+Number(refreshed.expires_in||15552000)*1000).toISOString();
   db.prepare("UPDATE mercadopago_connections SET access_token_enc=?,refresh_token_enc=?,public_key=?,scope=?,live_mode=?,expires_at=?,updated_at=datetime('now') WHERE id=?").run(mpEnc(refreshed.access_token),mpEnc(refreshed.refresh_token||mpDec(connection.refresh_token_enc)),refreshed.public_key||connection.public_key,refreshed.scope||connection.scope,refreshed.live_mode?1:0,exp,connection.id);
   return refreshed.access_token;
@@ -148,8 +145,7 @@ app.get('/api/mercadopago/connect',auth,async(req,res)=>{try{
 }catch(e){res.status(500).json({error:e.message});}});
 app.get('/api/mercadopago/oauth/callback',async(req,res)=>{try{
   const code=String(req.query.code||''),state=String(req.query.state||'');if(!code||!state)return res.status(400).send('Autorización incompleta');const row=db.prepare('SELECT * FROM mercadopago_oauth_states WHERE state=?').get(state);if(!row||row.used_at||new Date(String(row.expires_at).replace(' ','T')).getTime()<Date.now())return res.status(400).send('Autorización expirada o inválida');
-  const redirect=process.env.MP_REDIRECT_URI||mpBaseUrl()+'/api/mercadopago/oauth/callback';const payload=JSON.stringify({client_id:process.env.MP_CLIENT_ID,client_secret:process.env.MP_CLIENT_SECRET,grant_type:'authorization_code',code,redirect_uri:redirect,code_verifier:row.code_verifier});
-  const token=await new Promise((resolve,reject)=>{const r=mpHttps.request({hostname:'api.mercadopago.com',path:'/oauth/token',method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(payload)}},x=>{let raw='';x.on('data',d=>raw+=d);x.on('end',()=>{let p={};try{p=JSON.parse(raw);}catch(_){}if(x.statusCode>=200&&x.statusCode<300)resolve(p);else reject(new Error(p.message||p.error||'No se pudo conectar Mercado Pago'));});});r.on('error',reject);r.write(payload);r.end();});
+  const redirect=process.env.MP_REDIRECT_URI||mpBaseUrl()+'/api/mercadopago/oauth/callback';const token=await mpOauthHttp({client_id:process.env.MP_CLIENT_ID,client_secret:process.env.MP_CLIENT_SECRET,grant_type:'authorization_code',code,redirect_uri:redirect,code_verifier:row.code_verifier});
   const exp=new Date(Date.now()+Number(token.expires_in||15552000)*1000).toISOString();db.prepare("INSERT INTO mercadopago_connections(user_id,mp_user_id,access_token_enc,refresh_token_enc,public_key,scope,live_mode,expires_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET mp_user_id=excluded.mp_user_id,access_token_enc=excluded.access_token_enc,refresh_token_enc=excluded.refresh_token_enc,public_key=excluded.public_key,scope=excluded.scope,live_mode=excluded.live_mode,expires_at=excluded.expires_at,updated_at=datetime('now')").run(row.user_id,String(token.user_id||''),mpEnc(token.access_token),mpEnc(token.refresh_token||''),token.public_key||null,token.scope||null,token.live_mode?1:0,exp);db.prepare("UPDATE mercadopago_oauth_states SET used_at=datetime('now') WHERE state=?").run(state);
   res.redirect('/#/pro?mp=connected');
 }catch(e){console.error('[DatoYa][MP OAuth]',e);res.status(500).send('No se pudo conectar Mercado Pago');}});
