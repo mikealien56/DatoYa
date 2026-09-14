@@ -9,12 +9,16 @@
   if(!ME||!['cliente','trabajador'].includes(ME.role))return;
   const {jobs}=await api('/jobs'); const cards=[...document.querySelectorAll('#view .card')];
   for(let i=0;i<jobs.length&&i<cards.length;i++){
-   const j=jobs[i],card=cards[i]; if(card.dataset.trustDone)return; card.dataset.trustDone='1';
+   const j=jobs[i],card=cards[i]; if(card.dataset.trustDone)continue; card.dataset.trustDone='1';
    const tag=card.querySelector('.status-tag');if(tag)tag.textContent=statusName(j.status);
+   [...card.querySelectorAll('button')].forEach(b=>{const oc=b.getAttribute('onclick')||'';if(oc.includes("FINALIZADO")&&oc.includes('jobStatus'))b.remove();});
    let t;try{t=(await api('/jobs/'+j.id+'/trust')).trust;}catch(_){continue;}
-   const p=t.protection||{}, box=document.createElement('div');box.style.marginTop='12px';box.style.borderTop='1px solid #e5e7eb';box.style.paddingTop='12px';
-   box.innerHTML='<div class="lock-note"><b>🛡️ Protección DatoYa</b><div class="small" style="margin-top:6px">'+(p.quote_registered?'✓':'○')+' Cotización registrada · '+(p.meeting_verified?'✓':'○')+' Encuentro verificado · '+(p.history_recorded?'✓':'○')+' Bitácora activa · '+(p.evidence_count?'✓':'○')+' Evidencias ('+(p.evidence_count||0)+') · '+(p.completion_confirmed?'✓':'○')+' Cierre mutuo</div></div>'+
-    '<div class="row" style="gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn btn-outline btn-sm" onclick="openTrust('+j.id+')">📋 Bitácora</button>'+(!['FINALIZADO','CANCELADO'].includes(j.status)?'<button class="btn btn-outline btn-sm" onclick="openEvidence('+j.id+')">📷 Fotos</button><button class="btn btn-green btn-sm" onclick="confirmComplete('+j.id+')">✓ Confirmar término</button>':'')+(!['FINALIZADO','CANCELADO','DISPUTA'].includes(j.status)?'<button class="btn btn-ghost btn-sm" onclick="openDispute('+j.id+')">⚠️ Problema</button>':'')+'</div>';
+   const p=t.protection||{},myConfirmed=(t.confirmations||[]).some(x=>x.role===ME.role),box=document.createElement('div');box.style.marginTop='12px';box.style.borderTop='1px solid #e5e7eb';box.style.paddingTop='12px';
+   const finalBadge=j.status==='FINALIZADO'?'<div class="lock-note" style="margin-bottom:8px">✅ <b>Servicio realizado mediante DatoYa</b><br><span class="small muted">El cierre quedó respaldado por ambas partes.</span></div>':'';
+   const canConfirm=!['FINALIZADO','CANCELADO','DISPUTA'].includes(j.status);
+   const confirmBtn=canConfirm?(myConfirmed?'<button class="btn btn-outline btn-sm" disabled>✓ Término confirmado</button>':'<button class="btn btn-green btn-sm" onclick="confirmComplete('+j.id+')">✓ Confirmar término</button>'):'';
+   box.innerHTML=finalBadge+'<div class="lock-note"><b>🛡️ Protección DatoYa</b><div class="small" style="margin-top:6px">'+(p.quote_registered?'✓':'○')+' Cotización registrada · '+(p.meeting_verified?'✓':'○')+' Encuentro verificado · '+(p.history_recorded?'✓':'○')+' Bitácora activa · '+(p.evidence_count?'✓':'○')+' Evidencias ('+(p.evidence_count||0)+') · '+(p.completion_confirmed?'✓':'○')+' Cierre mutuo</div></div>'+
+    '<div class="row" style="gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn btn-outline btn-sm" onclick="openTrust('+j.id+')">📋 Bitácora</button>'+(!['FINALIZADO','CANCELADO'].includes(j.status)?'<button class="btn btn-outline btn-sm" onclick="openEvidence('+j.id+')">📷 Fotos</button>':'')+confirmBtn+(!['FINALIZADO','CANCELADO','DISPUTA'].includes(j.status)?'<button class="btn btn-ghost btn-sm" onclick="openDispute('+j.id+')">⚠️ Problema</button>':'')+'</div>';
    card.appendChild(box);
   }
  }
