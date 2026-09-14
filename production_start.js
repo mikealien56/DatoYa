@@ -43,6 +43,7 @@ try {
   require('./admin_pro_gift_bootstrap');
   require('./meeting_verification_bootstrap');
   require('./job_trust_center_bootstrap');
+  require('./job_mutual_completion_guard');
   require('./territory_start');
   require('./mercadopago_assets');
   require('./account_security_assets');
