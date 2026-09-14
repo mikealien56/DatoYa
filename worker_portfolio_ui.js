@@ -1,83 +1,11 @@
-// DatoYa 2.0 — Portafolio real del profesional
-(() => {
-  const previousPerfil = routes.perfil;
-  const escHtml = s => String(s ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
-
-  routes.perfil = async function() {
-    await previousPerfil();
-    if (!ME || ME.role !== 'trabajador') return;
-
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <h3>📸 Portafolio de trabajos</h3>
-      <p class="small muted">Muestra trabajos reales realizados por ti para que los clientes puedan conocer tu experiencia.</p>
-      <form id="portfolioUploadForm">
-        <div class="field"><label>Foto del trabajo</label><input id="portfolioPhoto" type="file" accept="image/jpeg,image/png,image/webp" required></div>
-        <div class="field"><label>Descripción</label><input id="portfolioCaption" maxlength="180" placeholder="Ej: Instalación de calefont en cocina" required></div>
-        <button class="btn btn-primary btn-block" type="submit">📸 Agregar al portafolio</button>
-      </form>
-      <div class="small muted" id="portfolioLimit" style="margin-top:10px"></div>
-      <div id="portfolioOwnGrid" class="cards" style="margin-top:14px"></div>
-    `;
-    view.appendChild(card);
-
-    async function loadPortfolio() {
-      const grid = card.querySelector('#portfolioOwnGrid');
-      const limitText = card.querySelector('#portfolioLimit');
-      try {
-        const r = await api('/worker/portfolio');
-        const items = r.portfolio || [];
-        if (limitText) limitText.textContent = `${items.length}/${Number(r.limit || 4)} publicaciones usadas`;
-        grid.innerHTML = items.length ? items.map(p => `
-          <div class="card" data-portfolio-id="${Number(p.id)}">
-            ${p.data ? `<img src="${escHtml(p.data)}" alt="${escHtml(p.caption || 'Trabajo realizado')}" loading="lazy" style="width:100%;height:180px;object-fit:cover;border-radius:10px">` : `<div style="font-size:42px">${escHtml(p.emoji || '🛠️')}</div>`}
-            <div style="margin-top:8px"><b>${escHtml(p.caption || 'Trabajo realizado')}</b></div>
-            <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px" data-delete-portfolio="${Number(p.id)}">Eliminar</button>
-          </div>`).join('') : '<div class="empty">Todavía no tienes trabajos en tu portafolio.</div>';
-        grid.querySelectorAll('[data-delete-portfolio]').forEach(button => {
-          button.onclick = async () => {
-            if (!confirm('¿Eliminar esta foto del portafolio?')) return;
-            button.disabled = true;
-            try {
-              await api('/worker/portfolio/' + button.dataset.deletePortfolio, {method:'DELETE'});
-              toast('Foto eliminada del portafolio.', 'ok');
-              await loadPortfolio();
-            } catch (e) {
-              toast(e.message, 'err');
-              button.disabled = false;
-            }
-          };
-        });
-      } catch (e) {
-        grid.innerHTML = '<div class="empty">No se pudo cargar el portafolio.</div>';
-        if (limitText) limitText.textContent = '';
-      }
-    }
-
-    card.querySelector('#portfolioUploadForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const button=e.target.querySelector('button[type="submit"]');
-      const file = card.querySelector('#portfolioPhoto').files[0];
-      const caption = card.querySelector('#portfolioCaption').value.trim();
-      if (!file || !caption || button.disabled) return;
-      if (file.size > 1200 * 1024) return toast('La foto debe pesar menos de 1,2 MB.', 'err');
-      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return toast('Formato no compatible.', 'err');
-      button.disabled=true;
-      const reader = new FileReader();
-      reader.onerror=()=>{button.disabled=false;toast('No se pudo leer la imagen.','err');};
-      reader.onload = async () => {
-        try {
-          await api('/worker/portfolio', {method:'POST', body:{data:reader.result, caption}});
-          toast('Trabajo agregado al portafolio.', 'ok');
-          e.target.reset();
-          await loadPortfolio();
-        } catch (x) { toast(x.message, 'err'); }
-        finally { button.disabled=false; }
-      };
-      reader.readAsDataURL(file);
-    });
-
-    loadPortfolio();
-  };
+// DatoYa 2.0 — portafolio fotográfico real del profesional.
+(function(){if(typeof routes==='undefined'||!routes.perfil)return;const previous=routes.perfil;const safe=v=>typeof esc==='function'?esc(v):String(v??'');
+async function portfolioData(){return api('/worker/portfolio');}
+function portfolioCard(data){const items=data.items||[],limit=Number(data.limit||4);return '<div class="card" data-worker-portfolio style="margin-top:12px"><div class="row between"><div><h3 style="margin:0">📸 Portafolio de trabajos</h3><div class="small muted">'+items.length+' de '+limit+' fotos publicadas</div></div></div>'+(items.length?'<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px">'+items.map(p=>'<div style="position:relative"><img src="'+safe(p.data||'')+'" alt="'+safe(p.caption||'Trabajo realizado')+'" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px"><div class="small" style="margin-top:5px">'+safe(p.caption||'')+'</div><button class="btn btn-ghost" style="padding:5px 8px;margin-top:4px" onclick="deleteDatoYaPortfolio('+Number(p.id)+')">Eliminar</button></div>').join('')+'</div>':'<div class="lock-note" style="margin-top:12px">Todavía no has subido fotos de tus trabajos.</div>')+(items.length<limit?'<button class="btn btn-primary btn-block" style="margin-top:12px" onclick="openDatoYaPortfolioUploader()">➕ Agregar trabajo</button>':'<div class="small muted" style="margin-top:10px">Llegaste al límite de tu plan.</div>')+'</div>';}
+routes.perfil=async function(){const r=await previous.apply(this,arguments);if(!ME||ME.role!=='trabajador')return r;try{const d=await portfolioData();if(!view.querySelector('[data-worker-portfolio]'))view.insertAdjacentHTML('beforeend',portfolioCard(d));}catch(_){}return r;};
+window.openDatoYaPortfolioUploader=function(){openModal('<h3 style="margin-top:0">📸 Agregar trabajo</h3><p class="small muted">Elige una foto real de un trabajo que hayas realizado. DatoYa la optimiza antes de subirla para ahorrar datos y espacio.</p><div class="field"><label>Foto</label><input id="dy-port-file" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></div><div id="dy-port-preview"></div><div class="field"><label>Descripción</label><input id="dy-port-caption" maxlength="120" placeholder="Ej: Pintura completa de living"></div><button class="btn btn-primary btn-block" onclick="uploadDatoYaPortfolio()">Subir al portafolio</button>');const f=document.getElementById('dy-port-file');if(f)f.onchange=()=>previewDatoYaPortfolio(f.files?.[0]);};
+window.previewDatoYaPortfolio=function(file){const p=document.getElementById('dy-port-preview');if(!p||!file)return;const u=URL.createObjectURL(file);p.innerHTML='<img src="'+u+'" style="width:100%;max-height:260px;object-fit:cover;border-radius:12px;margin-bottom:10px">';};
+async function compressImage(file){if(!file||!file.type.startsWith('image/'))throw new Error('Selecciona una imagen válida');if(file.size>12*1024*1024)throw new Error('La foto es demasiado pesada');const url=URL.createObjectURL(file);try{const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error('No se pudo leer la imagen'));i.src=url;});const max=1200,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);let q=.82,data=c.toDataURL('image/jpeg',q);while(data.length>850000&&q>.5){q-=.08;data=c.toDataURL('image/jpeg',q);}if(data.length>950000)throw new Error('No pudimos reducir suficientemente esta foto. Prueba con otra.');return data;}finally{URL.revokeObjectURL(url);}}
+window.uploadDatoYaPortfolio=async function(){const file=document.getElementById('dy-port-file')?.files?.[0],caption=document.getElementById('dy-port-caption')?.value?.trim();if(!file)return toast('Selecciona una foto','err');if(!caption)return toast('Agrega una descripción','err');try{const btn=document.querySelector('.modal .btn-primary');if(btn){btn.disabled=true;btn.textContent='Optimizando y subiendo…';}const data=await compressImage(file);await api('/worker/portfolio',{method:'POST',body:{caption,data}});toast('Foto agregada al portafolio','ok');closeModal();route();}catch(e){toast(e.message||'No se pudo subir la foto','err');const btn=document.querySelector('.modal .btn-primary');if(btn){btn.disabled=false;btn.textContent='Subir al portafolio';}}};
+window.deleteDatoYaPortfolio=async function(id){if(!confirm('¿Eliminar esta foto del portafolio?'))return;try{await api('/worker/portfolio/'+id,{method:'DELETE'});toast('Foto eliminada','ok');route();}catch(e){toast(e.message||'No se pudo eliminar','err')}};
 })();
