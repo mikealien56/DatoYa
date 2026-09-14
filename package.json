@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node production_start.js",
     "start:original": "node server.js",
+    "migrate:postgres": "node postgres_migrate.js",
     "test": "bash test_ci.sh",
     "test:e2e": "bash test_e2e.sh"
   },
