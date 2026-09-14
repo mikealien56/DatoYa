@@ -9,14 +9,16 @@ const injection=`
 app.get('/api/worker/portfolio',auth,requireRole('trabajador'),(req,res)=>{
   const wp=getWorkerByUser(req.user.id); if(!wp) return res.status(404).json({error:'Perfil profesional no encontrado'});
   const items=db.prepare('SELECT id,caption,emoji,data,created_at FROM portfolio_images WHERE worker_id=? ORDER BY id DESC').all(wp.id);
-  res.json({items,limit:wp.is_pro?12:4,is_pro:!!wp.is_pro});
+  res.json({portfolio:items,items,limit:wp.is_pro?12:4,is_pro:!!wp.is_pro});
 });
 app.post('/api/worker/portfolio',auth,requireRole('trabajador'),(req,res)=>{
   const wp=getWorkerByUser(req.user.id); if(!wp) return res.status(404).json({error:'Perfil profesional no encontrado'});
   const caption=String(req.body?.caption||'').trim().slice(0,120);
   const data=String(req.body?.data||'');
+  const lower=data.toLowerCase();
+  const validImage=['data:image/jpeg;base64,','data:image/jpg;base64,','data:image/png;base64,','data:image/webp;base64,'].some(prefix=>lower.startsWith(prefix));
   if(!caption) return res.status(400).json({error:'Agrega una descripción breve del trabajo'});
-  if(!/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(data)) return res.status(400).json({error:'Selecciona una imagen válida'});
+  if(!validImage) return res.status(400).json({error:'Selecciona una imagen válida'});
   if(Buffer.byteLength(data,'utf8')>950000) return res.status(413).json({error:'La foto es demasiado pesada. Intenta con otra imagen.'});
   const count=Number(db.prepare('SELECT COUNT(*) c FROM portfolio_images WHERE worker_id=?').get(wp.id).c||0);
   const limit=wp.is_pro?12:4;
