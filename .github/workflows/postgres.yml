@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - run: npm install
       - name: Create DatoYa PostgreSQL schema
         run: npm run migrate:postgres
       - name: Verify critical tables and constraints
