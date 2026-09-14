@@ -50,6 +50,7 @@ try {
   // Deben cargarse después: public/ ya existe y estos módulos agregan UI al final.
   require('./mercadopago_assets');
   require('./account_security_assets');
+  require('./admin_pro_gift_assets');
 } finally {
   if (!demoMode) Module._load = originalLoad;
 }
