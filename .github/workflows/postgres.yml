@@ -45,3 +45,5 @@ jobs:
           UPDATE users SET comuna_id=(SELECT id FROM comunas WHERE name='Test Comuna') WHERE email='pg-smoke@datoya.cl';
           SELECT id,email,role FROM users WHERE email='pg-smoke@datoya.cl';
           SQL
+      - name: Run PostgreSQL core marketplace flow
+        run: node postgres_core_smoke.js
