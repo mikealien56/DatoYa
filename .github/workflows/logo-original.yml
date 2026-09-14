@@ -1,0 +1,28 @@
+name: DatoYa original logo
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  verify-logo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify exact original logo bytes
+        run: |
+          node logo_asset_bootstrap.js
+          node - <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const b = fs.readFileSync('public/datoya-logo.jpg');
+          if (b.length !== 58111) throw new Error(`Logo size mismatch: ${b.length}`);
+          const h = crypto.createHash('sha256').update(b).digest('hex');
+          if (h !== '2d864a2b8f68ab6158e9fe0059fea05e935e86092e5711f3d9dbdc239e8e7449') throw new Error(`Logo hash mismatch: ${h}`);
+          console.log('DatoYa logo original exacto: OK');
+          NODE

@@ -39,6 +39,8 @@ try {
   } else {
     console.log('[DatoYa] Inicio beta real con SQLite temporal (solo pruebas locales).');
   }
+  // Publica exactamente los bytes del logo original enviado por el usuario antes de arrancar el servidor.
+  require('./logo_asset_bootstrap');
   // Deben cargarse antes de territory_start: modifican la fuente que será compilada.
   require('./mercadopago_source_bootstrap');
   require('./mercadopago_fee_policy_bootstrap');
