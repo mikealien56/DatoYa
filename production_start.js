@@ -53,6 +53,7 @@ try {
   require('./job_detail_assets');
   require('./admin_command_center_assets');
   require('./worker_profile_polish_assets');
+  require('./home_search_polish_assets');
 } finally {
   if (!demoMode) Module._load = originalLoad;
 }
