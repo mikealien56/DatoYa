@@ -50,6 +50,7 @@ try {
   require('./admin_pro_gift_assets');
   require('./meeting_verification_assets');
   require('./job_trust_center_assets');
+  require('./job_detail_assets');
 } finally {
   if (!demoMode) Module._load = originalLoad;
 }
