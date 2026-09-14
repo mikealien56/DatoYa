@@ -81,7 +81,7 @@ INDEX_HTML=$(curl -fsS http://localhost:3000/)
 for script in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js admin_core_ui_fix.js admin_operations_ui.js; do
   if ! printf '%s' "$INDEX_HTML" | grep -q "/$script"; then echo "Script no cargado en index.html: $script"; exit 1; fi
 done
-if ! printf '%s' "$INDEX_HTML" | grep -q '/datoya-logo.svg'; then echo "El logo de DatoYa no está referenciado en la página"; exit 1; fi
+if ! printf '%s' "$INDEX_HTML" | grep -Eq '/datoya-logo\.(jpg|svg)'; then echo "El logo de DatoYa no está referenciado en la página"; exit 1; fi
 echo "Frontend/estáticos smoke test OK"
 
 bash test_admin_smoke.sh
