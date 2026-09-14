@@ -45,8 +45,9 @@ try {
   require('./hybrid_payment_bootstrap');
   require('./account_security_bootstrap');
   require('./territory_start');
-  // Debe cargarse después: así la UI queda al final de todos los parches frontend existentes.
+  // Deben cargarse después: public/ ya existe y estos módulos agregan UI al final.
   require('./mercadopago_assets');
+  require('./account_security_assets');
 } finally {
   if (!demoMode) Module._load = originalLoad;
 }
