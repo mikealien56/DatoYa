@@ -32,14 +32,9 @@ if (!demoMode) {
 
 try {
   const { demoMode: configuredDemoMode } = require('./production_mode_bootstrap');
-  if (configuredDemoMode) {
-    console.log('[DatoYa] Inicio DEMO con SQLite.');
-  } else if (usePostgres) {
-    console.log('[DatoYa] Inicio beta real con PostgreSQL.');
-  } else {
-    console.log('[DatoYa] Inicio beta real con SQLite temporal (solo pruebas locales).');
-  }
-  // Deben cargarse antes de territory_start: modifican la fuente que será compilada.
+  if (configuredDemoMode) console.log('[DatoYa] Inicio DEMO con SQLite.');
+  else if (usePostgres) console.log('[DatoYa] Inicio beta real con PostgreSQL.');
+  else console.log('[DatoYa] Inicio beta real con SQLite temporal (solo pruebas locales).');
   require('./mercadopago_source_bootstrap');
   require('./mercadopago_fee_policy_bootstrap');
   require('./hybrid_payment_bootstrap');
@@ -47,12 +42,13 @@ try {
   require('./account_security_route_fix');
   require('./admin_pro_gift_bootstrap');
   require('./meeting_verification_bootstrap');
+  require('./job_trust_center_bootstrap');
   require('./territory_start');
-  // Deben cargarse después: public/ ya existe y estos módulos agregan UI al final.
   require('./mercadopago_assets');
   require('./account_security_assets');
   require('./admin_pro_gift_assets');
   require('./meeting_verification_assets');
+  require('./job_trust_center_assets');
 } finally {
   if (!demoMode) Module._load = originalLoad;
 }
