@@ -40,6 +40,34 @@ function normalizeRows(rows) {
   });
 }
 
+async function getGeneratedId(c, sql) {
+  const match = String(sql).match(/^\s*insert\s+into\s+("?[A-Za-z0-9_.]+"?)\s*(?:\(([^)]*)\))?/i);
+  if (!match) return null;
+
+  const table = match[1].replace(/"/g, '');
+  const columns = String(match[2] || '')
+    .split(',')
+    .map(x => x.trim().replace(/"/g, '').toLowerCase())
+    .filter(Boolean);
+
+  // Si el INSERT entrega id explícitamente, no debemos inferirlo desde una secuencia.
+  if (columns.includes('id')) return null;
+
+  // Algunas tablas (settings, relaciones N:N, sesiones, etc.) no tienen id serial.
+  // Consultamos primero si realmente existe una secuencia para la columna id y solo
+  // entonces usamos currval. Esto evita errores PostgreSQL "lastval is not yet defined".
+  const info = await c.query("SELECT pg_get_serial_sequence($1, 'id') AS seq", [table]);
+  const sequence = info.rows[0] && info.rows[0].seq;
+  if (!sequence) return null;
+
+  try {
+    const seq = await c.query('SELECT currval($1::regclass) AS id', [sequence]);
+    return seq.rows[0] && seq.rows[0].id != null ? Number(seq.rows[0].id) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function execute(message) {
   const c = await ensureClient();
   const { op, sql, params = [] } = message;
@@ -61,14 +89,15 @@ async function execute(message) {
   const normalized = normalizeRows(result.rows || []);
   let lastInsertRowid = null;
 
-  if (op === 'run' && /^\s*insert\b/i.test(sql)) {
+  if (op === 'run' && /^\s*insert\b/i.test(sql) && Number(result.rowCount || 0) > 0) {
     if (normalized[0] && normalized[0].id != null) {
       lastInsertRowid = normalized[0].id;
     } else {
       try {
-        const seq = await c.query('SELECT LASTVAL() AS id');
-        if (seq.rows[0] && seq.rows[0].id != null) lastInsertRowid = Number(seq.rows[0].id);
-      } catch (_) {}
+        lastInsertRowid = await getGeneratedId(c, sql);
+      } catch (_) {
+        lastInsertRowid = null;
+      }
     }
   }
 
