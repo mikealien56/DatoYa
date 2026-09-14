@@ -10,7 +10,7 @@ if(fs.existsSync(src)){
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){
   let html=fs.readFileSync(idx,'utf8');
-  if(!html.includes('/onboarding_flow_ui.js')) html=html.replace('</body>','<script src="/onboarding_flow_ui.js?v=1"></script>\n</body>');
-  else html=html.replace(/\/onboarding_flow_ui\.js(?:\?v=\d+)?/g,'/onboarding_flow_ui.js?v=1');
+  if(!html.includes('/onboarding_flow_ui.js')) html=html.replace('</body>','<script src="/onboarding_flow_ui.js?v=2"></script>\n</body>');
+  else html=html.replace(/\/onboarding_flow_ui\.js(?:\?v=\d+)?/g,'/onboarding_flow_ui.js?v=2');
   fs.writeFileSync(idx,html);
 }
