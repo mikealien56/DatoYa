@@ -76,6 +76,13 @@ function translateCommon(sql) {
   s = s.replace(/TEXT\s+DEFAULT\s+CURRENT_TIMESTAMP/gi, 'TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP');
   s = s.replace(/TEXT\s+NOT\s+NULL\s+DEFAULT\s+CURRENT_DATE/gi, 'DATE NOT NULL DEFAULT CURRENT_DATE');
   s = s.replace(/TEXT\s+DEFAULT\s+CURRENT_DATE/gi, 'DATE DEFAULT CURRENT_DATE');
+  // Los bootstraps legacy de SQLite suelen hacer ALTER TABLE ADD COLUMN dentro de
+  // try/catch. En PostgreSQL repetimos el arranque muchas veces, por lo que hacemos
+  // esas migraciones idempotentes y evitamos errores por columnas ya existentes.
+  s = s.replace(
+    /^(\s*ALTER\s+TABLE\s+(?:"[^"]+"|[A-Za-z0-9_.]+)\s+ADD\s+COLUMN\s+)(?!IF\s+NOT\s+EXISTS\b)/i,
+    '$1IF NOT EXISTS '
+  );
   return s;
 }
 
