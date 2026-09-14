@@ -23,3 +23,14 @@ jobs:
           node --check production_start.js
       - name: Existing regression suite
         run: npm test
+      - name: Security routes runtime smoke
+        run: |
+          rm -f datoya.db datoya.db-shm datoya.db-wal
+          PORT=3100 DEMO_MODE=true AUTH_TEST_MODE=true node production_start.js >/tmp/datoya-security.log 2>&1 &
+          PID=$!
+          trap 'kill $PID >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 60); do curl -fsS http://localhost:3100/api/auth/security-config >/tmp/security-config.json 2>/dev/null && break; sleep 1; done
+          grep -q '"password_min_length":8' /tmp/security-config.json
+          curl -fsS http://localhost:3100/api/legal/versions | grep -q '"beta_draft":true'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3100/api/auth/security-status)" = "401"
+          curl -fsS http://localhost:3100/account_security_ui.js >/dev/null
