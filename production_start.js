@@ -43,6 +43,7 @@ try {
   require('./mercadopago_source_bootstrap');
   require('./mercadopago_fee_policy_bootstrap');
   require('./hybrid_payment_bootstrap');
+  require('./account_security_bootstrap');
   require('./territory_start');
   // Debe cargarse después: así la UI queda al final de todos los parches frontend existentes.
   require('./mercadopago_assets');
