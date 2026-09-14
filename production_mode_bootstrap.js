@@ -25,26 +25,30 @@ if (!demoMode) {
   for (const [name, icon] of categories) if (!find.get(name)) insert.run(name, icon);
 
   // Bootstrap opcional y seguro del primer administrador real.
-  // Las credenciales viven únicamente en variables privadas del entorno; nunca en GitHub.
+  // ADMIN_EMAIL por sí solo puede promover una cuenta ya registrada sin conocer su contraseña.
+  // ADMIN_PASSWORD solo es necesario si se desea crear el administrador desde cero.
   const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
   const adminPassword = String(process.env.ADMIN_PASSWORD || '');
-  if (adminEmail || adminPassword) {
-    if (!adminEmail || adminPassword.length < 10) {
-      throw new Error('Para crear el administrador real, ADMIN_EMAIL y ADMIN_PASSWORD (mínimo 10 caracteres) deben estar configurados juntos.');
-    }
+  if (adminEmail) {
     const existing = db.prepare('SELECT id,role FROM users WHERE lower(email)=lower(?) LIMIT 1').get(adminEmail);
-    if (!existing) {
+    if (existing) {
+      if (existing.role !== 'admin') {
+        db.prepare("UPDATE users SET role='admin',is_active=1,is_demo=0 WHERE id=?").run(existing.id);
+        console.log('[DatoYa] Usuario configurado como administrador real.');
+      } else {
+        console.log('[DatoYa] Administrador real ya existe.');
+      }
+    } else if (adminPassword.length >= 10) {
       db.prepare('INSERT INTO users(email,password_hash,name,role,is_active,is_demo) VALUES(?,?,?,?,1,0)')
         .run(adminEmail, hashPassword(adminPassword), 'Administrador DatoYa', 'admin');
       console.log('[DatoYa] Administrador real inicial creado desde variables privadas.');
-    } else if (existing.role !== 'admin') {
-      db.prepare("UPDATE users SET role='admin',is_active=1,is_demo=0 WHERE id=?").run(existing.id);
-      console.log('[DatoYa] Usuario configurado como administrador real.');
     } else {
-      console.log('[DatoYa] Administrador real ya existe.');
+      console.log('[DatoYa] ADMIN_EMAIL configurado, pero esa cuenta todavía no existe. Regístrala y reinicia para promoverla a admin.');
     }
+  } else if (adminPassword) {
+    throw new Error('ADMIN_PASSWORD no puede configurarse sin ADMIN_EMAIL.');
   } else {
-    console.log('[DatoYa] ADMIN_EMAIL/ADMIN_PASSWORD no configurados; no se crea administrador automáticamente.');
+    console.log('[DatoYa] ADMIN_EMAIL no configurado; no se crea administrador automáticamente.');
   }
 
   console.log('[DatoYa] Modo beta real preparado: catálogo/configuración cargados sin cuentas DEMO.');
