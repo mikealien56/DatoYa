@@ -53,9 +53,21 @@ async function getGeneratedId(c, sql) {
   // Si el INSERT entrega id explícitamente, no debemos inferirlo desde una secuencia.
   if (columns.includes('id')) return null;
 
-  // Algunas tablas (settings, relaciones N:N, sesiones, etc.) no tienen id serial.
-  // Consultamos primero si realmente existe una secuencia para la columna id y solo
-  // entonces usamos currval. Esto evita errores PostgreSQL "lastval is not yet defined".
+  // Algunas tablas (settings, relaciones N:N, sesiones, etc.) no tienen columna id.
+  // pg_get_serial_sequence() lanza error si la columna no existe, así que comprobamos
+  // primero el catálogo de PostgreSQL y solo buscamos secuencia cuando corresponde.
+  const hasId = await c.query(
+    `SELECT 1
+       FROM pg_attribute
+      WHERE attrelid = to_regclass($1)
+        AND attname = 'id'
+        AND attnum > 0
+        AND NOT attisdropped
+      LIMIT 1`,
+    [table]
+  );
+  if (!hasId.rows.length) return null;
+
   const info = await c.query("SELECT pg_get_serial_sequence($1, 'id') AS seq", [table]);
   const sequence = info.rows[0] && info.rows[0].seq;
   if (!sequence) return null;
