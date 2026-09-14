@@ -1,0 +1,53 @@
+name: DatoYa hybrid payments
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sqlite-hybrid:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Syntax hybrid payment
+        run: |
+          node --check hybrid_payment_bootstrap.js
+          node --check hybrid_payment_ui.js
+      - name: Hybrid payment E2E SQLite
+        run: bash test_hybrid_payment.sh
+
+  postgres-hybrid:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: datoya_hybrid
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d datoya_hybrid"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/datoya_hybrid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Hybrid payment E2E PostgreSQL real mode
+        run: HYBRID_DEMO_MODE=false HYBRID_DB_DRIVER=postgres HYBRID_PORT=3102 bash test_hybrid_payment.sh
