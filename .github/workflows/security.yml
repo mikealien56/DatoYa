@@ -1,0 +1,25 @@
+name: DatoYa account security
+on:
+  push:
+    branches: ["feat/beta-readiness-security"]
+  pull_request:
+    branches: ["main"]
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Syntax checks
+        run: |
+          node --check account_security_bootstrap.js
+          node --check account_security_route_fix.js
+          node --check account_security_assets.js
+          node --check account_security_ui.js
+          node --check production_start.js
+      - name: Existing regression suite
+        run: npm test
