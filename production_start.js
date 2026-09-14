@@ -44,6 +44,7 @@ try {
   require('./mercadopago_fee_policy_bootstrap');
   require('./hybrid_payment_bootstrap');
   require('./account_security_bootstrap');
+  require('./account_security_route_fix');
   require('./territory_start');
   // Deben cargarse después: public/ ya existe y estos módulos agregan UI al final.
   require('./mercadopago_assets');
