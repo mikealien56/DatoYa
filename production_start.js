@@ -39,7 +39,11 @@ try {
   } else {
     console.log('[DatoYa] Inicio beta real con SQLite temporal (solo pruebas locales).');
   }
+  // Debe cargarse antes de territory_start: varios bootstraps leen/compilan server.js en runtime.
+  require('./mercadopago_source_bootstrap');
   require('./territory_start');
+  // Debe cargarse después: así la UI queda al final de todos los parches frontend existentes.
+  require('./mercadopago_assets');
 } finally {
   if (!demoMode) Module._load = originalLoad;
 }
