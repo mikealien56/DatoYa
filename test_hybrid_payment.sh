@@ -1,24 +1,35 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")"
-rm -f datoya.db datoya.db-shm datoya.db-wal
 
-PORT=3101 DEMO_MODE=true MP_HYBRID_ENFORCE=0 npm start >/tmp/datoya-hybrid.log 2>&1 &
+HYBRID_DEMO_MODE=${HYBRID_DEMO_MODE:-true}
+HYBRID_PORT=${HYBRID_PORT:-3101}
+HYBRID_DB_DRIVER=${HYBRID_DB_DRIVER:-}
+if [ "$HYBRID_DEMO_MODE" = "true" ]; then rm -f datoya.db datoya.db-shm datoya.db-wal; fi
+
+PORT="$HYBRID_PORT" DEMO_MODE="$HYBRID_DEMO_MODE" DB_DRIVER="$HYBRID_DB_DRIVER" MP_HYBRID_ENFORCE=0 npm start >/tmp/datoya-hybrid.log 2>&1 &
 PID=$!
 cleanup(){ kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-B=http://localhost:3101/api
+B="http://localhost:$HYBRID_PORT/api"
 J='Content-Type: application/json'
-for i in $(seq 1 90); do
+for i in $(seq 1 120); do
   if curl -fsS "$B/categories" >/dev/null 2>&1; then break; fi
   if ! kill -0 "$PID" >/dev/null 2>&1; then cat /tmp/datoya-hybrid.log; exit 1; fi
   sleep 1
-  if [ "$i" = 90 ]; then cat /tmp/datoya-hybrid.log; exit 1; fi
+  if [ "$i" = 120 ]; then cat /tmp/datoya-hybrid.log; exit 1; fi
 done
 
-curl -fsS -c /tmp/dy_h_cli -X POST "$B/auth/login" -H "$J" -d '{"email":"cliente@demo.cl","password":"demo1234"}' >/dev/null
-curl -fsS -c /tmp/dy_h_worker -X POST "$B/auth/login" -H "$J" -d '{"email":"trabajador@demo.cl","password":"demo1234"}' >/dev/null
+if [ "$HYBRID_DEMO_MODE" = "true" ]; then
+  curl -fsS -c /tmp/dy_h_cli -X POST "$B/auth/login" -H "$J" -d '{"email":"cliente@demo.cl","password":"demo1234"}' >/dev/null
+  curl -fsS -c /tmp/dy_h_worker -X POST "$B/auth/login" -H "$J" -d '{"email":"trabajador@demo.cl","password":"demo1234"}' >/dev/null
+else
+  TS=$(date +%s%N)
+  curl -fsS -c /tmp/dy_h_cli -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Cliente Híbrido\",\"email\":\"hybrid-client-$TS@test.cl\",\"password\":\"test1234\",\"role\":\"cliente\",\"comuna_id\":4}" >/dev/null
+  curl -fsS -c /tmp/dy_h_worker -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Profesional Híbrido\",\"email\":\"hybrid-worker-$TS@test.cl\",\"password\":\"test1234\",\"role\":\"trabajador\",\"phone\":\"56911112222\",\"comuna_id\":4}" >/dev/null
+  curl -fsS -b /tmp/dy_h_worker -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"Gasfíter","description":"Profesional de prueba híbrida","status":"disponible","comuna_id":4,"categories":[1],"comunas":[4]}' >/dev/null
+fi
 
 create_job(){
   local title="$1" duration="$2" price="$3"
@@ -44,7 +55,6 @@ FLOW=$(curl -fsS -b /tmp/dy_h_cli "$B/jobs/$SHORT/payment-flow")
 printf '%s' "$FLOW" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert d["flow"]["state"]=="AWAITING_CLIENT_APPROVAL";assert d["flow"]["work_marked_done_at"]'
 PAID=$(curl -fsS -b /tmp/dy_h_cli -X POST "$B/jobs/$SHORT/payment-flow/approve-test" -H "$J" -d '{}')
 printf '%s' "$PAID" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert d["status"]=="FINALIZADO";assert d["flow"]["state"]=="PAID_TEST";assert d["breakdown"]["worker_amount"]==36000;assert d["real_money"] is False'
-
 echo '✅ Trabajo corto: garantía TEST → revisión → captura TEST'
 
 LONG=$(create_job 'Híbrido largo' '2 semanas' 60000)
@@ -57,7 +67,6 @@ FLOW=$(curl -fsS -b /tmp/dy_h_cli "$B/jobs/$LONG/payment-flow")
 printf '%s' "$FLOW" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert d["flow"]["state"]=="AWAITING_PAYMENT"'
 PAID=$(curl -fsS -b /tmp/dy_h_cli -X POST "$B/jobs/$LONG/payment-flow/approve-test" -H "$J" -d '{}')
 printf '%s' "$PAID" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert d["flow"]["state"]=="PAID_TEST";assert d["breakdown"]["worker_amount"]==54000'
-
 echo '✅ Trabajo largo: terminar → revisar → pagar TEST'
 
 echo 'DatoYa pago híbrido TEST: OK'
