@@ -14,12 +14,18 @@ function syncExpiredProGifts(){
   }
 }
 
+function parseSqlDate(value){
+  if(!value) return null;
+  const d=new Date(String(value).replace(' ','T')+'Z');
+  return Number.isNaN(d.getTime())?null:d;
+}
+
 async function sendProGiftEmail(to,name,expires){
   const apiKey=process.env.RESEND_API_KEY;
   if(!apiKey) return {sent:false,reason:'RESEND_API_KEY no configurada'};
   const from=process.env.DATOYA_EMAIL_FROM||'DatoYa <onboarding@resend.dev>';
-  const expiry=new Date(String(expires).replace(' ','T')+'Z');
-  const expiryText=Number.isNaN(expiry.getTime())?expires:expiry.toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric',timeZone:'America/Santiago'});
+  const expiry=parseSqlDate(expires);
+  const expiryText=!expiry?expires:expiry.toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric',timeZone:'America/Santiago'});
   try{
     const response=await fetch('https://api.resend.com/emails',{
       method:'POST',
@@ -27,8 +33,8 @@ async function sendProGiftEmail(to,name,expires){
       body:JSON.stringify({
         from,
         to:[to],
-        subject:'🎁 Tienes 30 días de DatoYa PRO gratis',
-        html:'<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2 style="color:#1463ff">🎁 ¡Hola, '+String(name||'profesional').replace(/[<>&]/g,'')+'!</h2><p>DatoYa te regaló <b>30 días de DatoYa PRO</b> sin costo.</p><p>Tu cortesía está activa desde ahora y vence automáticamente el <b>'+expiryText+'</b>.</p><p>Durante este período tendrás las ventajas PRO disponibles en tu perfil.</p><p style="margin-top:24px">Equipo DatoYa</p></div>'
+        subject:'🎁 Tienes 30 días extra de DatoYa PRO',
+        html:'<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2 style="color:#1463ff">🎁 ¡Hola, '+String(name||'profesional').replace(/[<>&]/g,'')+'!</h2><p>DatoYa agregó <b>30 días de DatoYa PRO</b> gratis a tu cuenta.</p><p>Tu acceso PRO queda vigente hasta el <b>'+expiryText+'</b>.</p><p>No se realizó ningún cobro por esta cortesía.</p><p style="margin-top:24px">Equipo DatoYa</p></div>'
       })
     });
     if(!response.ok){const text=await response.text();console.error('[DatoYa] Error Resend PRO gift',response.status,text);return {sent:false,reason:'Proveedor de correo rechazó el envío'};}
@@ -51,13 +57,21 @@ app.post('/api/admin/pro-gifts/:workerId',auth,requireRole('admin'),async(req,re
   const workerId=Number(req.params.workerId);
   const w=db.prepare('SELECT wp.id,u.id user_id,u.name,u.email FROM worker_profiles wp JOIN users u ON u.id=wp.user_id WHERE wp.id=? AND u.is_active=1').get(workerId);
   if(!w) return res.status(404).json({error:'Profesional no encontrado'});
-  const expires=new Date(Date.now()+30*86400000).toISOString().slice(0,19).replace('T',' ');
+
+  // Si ya tiene PRO activo, la cortesía suma 30 días desde su vencimiento actual.
+  // Así nunca se pierde tiempo de una suscripción pagada o de una cortesía anterior.
+  const current=db.prepare("SELECT * FROM subscriptions WHERE worker_id=? AND status='activa' ORDER BY id DESC LIMIT 1").get(workerId);
+  const now=new Date();
+  const currentExpiry=parseSqlDate(current?.expires_at);
+  const base=currentExpiry&&currentExpiry>now?currentExpiry:now;
+  const expires=new Date(base.getTime()+30*86400000).toISOString().slice(0,19).replace('T',' ');
+
   db.prepare("UPDATE subscriptions SET status='cancelada' WHERE worker_id=? AND status='activa'").run(workerId);
   db.prepare("INSERT INTO subscriptions(worker_id,plan,status,expires_at,amount) VALUES(?,?,'activa',?,0)").run(workerId,'CORTESIA_30_DIAS',expires);
   db.prepare('UPDATE worker_profiles SET is_pro=1 WHERE id=?').run(workerId);
-  notify(w.user_id,'pro','🎁 DatoYa te regaló 30 días de PRO. Tu cortesía vence el '+expires+'.','#/pro');
+  notify(w.user_id,'pro','🎁 DatoYa agregó 30 días gratis a tu PRO. Tu acceso vence el '+expires+'.','#/pro');
   const email=await sendProGiftEmail(w.email,w.name,expires);
-  res.json({ok:true,expires_at:expires,email_sent:email.sent,email_reason:email.reason||null,message:'30 días de DatoYa PRO regalados a '+w.name+'.'});
+  res.json({ok:true,expires_at:expires,email_sent:email.sent,email_reason:email.reason||null,extended_from:current?.expires_at||null,message:'30 días de DatoYa PRO regalados a '+w.name+'.'});
 });
 `;
 fs.readFileSync=function(file,options){
