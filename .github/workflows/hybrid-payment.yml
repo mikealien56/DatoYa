@@ -21,8 +21,8 @@ jobs:
         run: |
           node --check hybrid_payment_bootstrap.js
           node --check hybrid_payment_ui.js
-      - name: Hybrid payment E2E SQLite
-        run: bash test_hybrid_payment.sh
+      - name: Hybrid payment E2E SQLite real mode
+        run: HYBRID_DEMO_MODE=false HYBRID_PORT=3101 bash test_hybrid_payment.sh
 
   postgres-hybrid:
     runs-on: ubuntu-latest
