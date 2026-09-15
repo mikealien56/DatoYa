@@ -10,7 +10,7 @@ if(fs.existsSync(src)){
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){
   let h=fs.readFileSync(idx,'utf8');
-  if(!h.includes('/job_detail_ui.js')) h=h.replace('</body>','<script src="/job_detail_ui.js?v=3"></script>\n</body>');
-  else h=h.replace(/\/job_detail_ui\.js(?:\?v=\d+)?/g,'/job_detail_ui.js?v=3');
+  if(!h.includes('/job_detail_ui.js')) h=h.replace('</body>','<script src="/job_detail_ui.js?v=4"></script>\n</body>');
+  else h=h.replace(/\/job_detail_ui\.js(?:\?v=\d+)?/g,'/job_detail_ui.js?v=4');
   fs.writeFileSync(idx,h);
 }
