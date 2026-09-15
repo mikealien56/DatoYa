@@ -62,9 +62,14 @@ verify_email /tmp/pg_worker.cookies
 
 WORKER_ID=$(curl -fsS -b /tmp/pg_worker.cookies "$B/auth/me" | python3 -c 'import sys,json; print(json.load(sys.stdin)["user"]["worker"]["id"])')
 PROFILE=$(curl -fsS -b /tmp/pg_worker.cookies -X PUT "$B/worker/profile" -H "$J" \
-  -d "{\"oficio\":\"Gasfíter\",\"description\":\"Profesional beta real\",\"years_experience\":5,\"price_from\":20000,\"status\":\"disponible\",\"comuna_id\":$COMUNA,\"categories\":[$CAT],\"comunas\":[$COMUNA]}")
+  -d "{\"oficio\":\"Gasfíter\",\"description\":\"Profesional beta real\",\"years_experience\":5,\"price_from\":20000,\"status\":\"disponible\",\"comuna_id\":$COMUNA,\"comunas\":[$COMUNA]}")
 echo "$PROFILE" | grep -q '"ok":true'
-echo "✅ Registro, verificación de correo y perfil profesional reales"
+# Configura la especialidad mediante la misma API usada por el onboarding real.
+SPEC=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/worker/specialties" -H "$J" -d "{\"category_ids\":[$CAT],\"primary_category_id\":$CAT}")
+echo "$SPEC" | grep -q '"ok":true'
+SPEC_STATE=$(curl -fsS -b /tmp/pg_worker.cookies "$B/worker/specialties")
+echo "$SPEC_STATE" | python3 -c "import sys,json; d=json.load(sys.stdin); assert $CAT in [int(x) for x in d['selected']], d; assert int(d['primary_category_id'])==$CAT, d"
+echo "✅ Registro, verificación, perfil y especialidad profesional reales"
 
 REQ_HTTP=$(curl -sS -o /tmp/pg_request.json -w '%{http_code}' -b /tmp/pg_client.cookies -X POST "$B/requests" -H "$J" \
   -d "{\"category_id\":$CAT,\"title\":\"Cambio de llave beta PostgreSQL\",\"description\":\"Necesito cambiar una llave de agua\",\"comuna_id\":$COMUNA,\"address_detail\":\"Dirección privada de prueba\",\"urgency\":\"hoy\",\"budget\":32000}")
@@ -72,7 +77,9 @@ REQ_JSON=$(cat /tmp/pg_request.json)
 if [ "$REQ_HTTP" != "200" ]; then echo "Publicar solicitud falló HTTP $REQ_HTTP: $REQ_JSON"; echo "Estado seguridad cliente:"; curl -sS -b /tmp/pg_client.cookies "$B/security/status" || true; false; fi
 echo "$REQ_JSON" | grep -q '"ok":true'
 REQ=$(echo "$REQ_JSON" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
-FEED=$(curl -fsS -b /tmp/pg_worker.cookies "$B/requests/feed")
+FEED_HTTP=$(curl -sS -o /tmp/pg_feed.json -w '%{http_code}' -b /tmp/pg_worker.cookies "$B/requests/feed")
+FEED=$(cat /tmp/pg_feed.json)
+if [ "$FEED_HTTP" != "200" ]; then echo "Feed profesional falló HTTP $FEED_HTTP: $FEED"; false; fi
 echo "$FEED" | grep -q 'Cambio de llave beta PostgreSQL'
 echo "✅ Solicitud real visible al profesional compatible"
 
@@ -112,15 +119,16 @@ curl -fsS -b /tmp/pg_client.cookies "http://127.0.0.1:${PORT}${EVID_URL}" -o /tm
 [ -s /tmp/evidence-persisted.png ]
 echo "✅ Evidencia y sesión sobreviven reinicio con PostgreSQL"
 
-COMPLETE=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-request" -H "$J" -d '{}')
-echo "$COMPLETE" | grep -q 'AWAITING_CONFIRMATION'
-PROT=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs/$JOB/protection")
-echo "$PROT" | grep -q 'AWAITING_CONFIRMATION'
-FINAL=$(curl -fsS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"FINALIZADO"}')
-echo "$FINAL" | grep -q '"ok":true'
-RELEASED=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs/$JOB/protection")
-echo "$RELEASED" | grep -q 'RELEASED'
-echo "✅ Trabajo y Pago Protegido completados sobre PostgreSQL"
+# Finalización oficial: ambas partes confirman. El endpoint legado no puede saltarse esta protección.
+FIRST=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
+echo "$FIRST" | grep -q '"finalized":false'
+LEGACY=$(curl -sS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"FINALIZADO"}')
+echo "$LEGACY" | grep -q 'Protección DatoYa'
+FINAL=$(curl -fsS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
+echo "$FINAL" | grep -q '"finalized":true'
+STATUS=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs" | python3 -c "import sys,json; d=json.load(sys.stdin)['jobs']; print(next(x for x in d if int(x['id'])==$JOB)['status'])")
+[ "$STATUS" = "FINALIZADO" ]
+echo "✅ Trabajo finalizado con confirmación mutua sobre PostgreSQL"
 
 REVIEW=$(curl -fsS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/review" -H "$J" -d '{"rating":5,"quality":5,"punctuality":5,"treatment":5,"price_rating":5,"comment":"Excelente trabajo beta real"}')
 echo "$REVIEW" | grep -q '"ok":true'
