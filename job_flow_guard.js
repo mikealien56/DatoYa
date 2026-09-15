@@ -10,6 +10,7 @@ fs.readFileSync=function(file,options){
  const guard=`// DATOYA_CANONICAL_JOB_FLOW_V1
 app.use('/api/jobs/:id/status',(req,res,next)=>{
  if(req.method!=='POST') return next();
+ if(req.user?.role==='admin') return next();
  const requested=String(req.body?.status||'').toUpperCase();
  const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(Number(req.params.id));
  if(!job) return next();
