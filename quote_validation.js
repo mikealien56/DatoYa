@@ -2,7 +2,7 @@
 const fs=require('fs'),path=require('path');const serverFile=path.join(__dirname,'server.js'),previous=fs.readFileSync;
 fs.readFileSync=function(file,options){const v=previous.call(fs,file,options);if(path.resolve(String(file))!==path.resolve(serverFile)||typeof v!=='string')return v;if(v.includes('DATOYA_QUOTE_VALIDATION'))return v;const marker="app.post('/api/quotes', auth, requireRole('trabajador'), (req, res) => {";const guard=`// DATOYA_QUOTE_VALIDATION
 app.use('/api/quotes',auth,requireRole('trabajador'),(req,res,next)=>{
- if(req.method!=='POST')return next();const b=req.body||{},price=Number(b.price),description=String(b.description||'').trim(),duration=String(b.duration_estimate||'').trim(),comment=String(b.comment||'').trim();
+ if(req.method!=='POST'||String(req.originalUrl||'').split('?')[0]!=='/api/quotes')return next();const b=req.body||{},price=Number(b.price),description=String(b.description||'').trim(),duration=String(b.duration_estimate||'').trim(),comment=String(b.comment||'').trim();
  if(!Number.isFinite(price)||price<1000||price>100000000)return res.status(400).json({error:'Ingresa un precio válido'});
  if(description.length<5||description.length>800)return res.status(400).json({error:'Describe claramente qué incluye la cotización'});
  if(duration.length>80||comment.length>500)return res.status(400).json({error:'La información de la cotización es demasiado larga'});
