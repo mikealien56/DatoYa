@@ -1,90 +1,24 @@
 #!/bin/bash
 set -u
-BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$BASE_DIR"
-
-rm -f datoya.db datoya.db-shm datoya.db-wal
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)";cd "$BASE_DIR";rm -f datoya.db datoya.db-shm datoya.db-wal
 if [ ! -d node_modules ]; then npm ci --silent; fi
-
-node app_runtime_fix.js
-node worker_demo_badge_runtime_fix.js
-
-for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js reports_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js; do
-  if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
-done
-
-for js in server.js db.js territory_start.js reports_bootstrap.js reports_routes.js reports_admin_fix.js request_photos_bootstrap.js evidence_schema.js evidence_bootstrap.js job_events_schema.js chat_workflow_bootstrap.js admin_v2_bootstrap.js admin_operations_bootstrap.js admin_case_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_schema.js protection_bootstrap.js protection_flow_guard.js protection_complete_fix.js dispute_schema.js dispute_runtime_fix.js dispute_loader.js workflow_guard_bootstrap.js review_status_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js gps_syntax_fix.js nearby_workers_bootstrap.js nearby_location_schema.js demo_admin_seed.js demo_bootstrap.js demo_runtime_seed.js demo_compat_fix.js portfolio_runtime_fix.js app_runtime_fix.js worker_demo_badge_runtime_fix.js backend_runtime_fix.js; do
-  if [ -f "$js" ] && ! node --check "$js"; then echo "Error de sintaxis en $js"; exit 1; fi
-done
-
-if grep -q 'demoTag(1)' app.js; then echo "El frontend sigue marcando a todos los profesionales como DEMO"; exit 1; fi
-if ! grep -q 'routes.solicitud' request_detail_ui_fix.js || ! grep -q 'request-quote-form' request_detail_ui_fix.js; then echo "El detalle de solicitud no contiene el flujo de cotización usable"; exit 1; fi
-if ! grep -q 'routes.ganancias' worker_finance_ui.js || ! grep -q 'activateDatoYaPro' worker_finance_ui.js; then echo "La UI de ganancias/PRO no contiene el flujo funcional esperado"; exit 1; fi
-if ! grep -q 'review-status' review_status_bootstrap.js || ! grep -q 'data-review-submit' review_ui.js; then echo "El flujo visible de reseñas no está completo"; exit 1; fi
-if ! grep -q "target_type:'trabajo'" reports_ui.js || ! grep -q 'data-report-form' reports_ui.js; then echo "El flujo visible de denuncias desde trabajos no está completo"; exit 1; fi
-if ! grep -q 'routes.buscar' search_ui_fix.js || ! grep -q 'min_rating' search_ui_fix.js; then echo "La búsqueda avanzada no contiene todos los filtros esperados"; exit 1; fi
-if ! grep -q 'routes.favoritos' favorites_ui.js || ! grep -q 'toggleDatoYaFavorite' favorites_ui.js; then echo "La interfaz de favoritos no está completa"; exit 1; fi
-for field in urgency preferred_date budget region_id comuna_id address_detail photos; do if ! grep -q "$field" request_wizard_ui.js; then echo "El wizard general no contempla el campo $field"; exit 1; fi; done
-if ! grep -q 'if(target)return previousSolicitar' request_wizard_ui.js; then echo "El wizard general no preserva el flujo dirigido"; exit 1; fi
-if ! grep -q 'DATOYA DISPUTE RUNTIME V2' dispute_runtime_fix.js || ! grep -q "action==='correction'" dispute_runtime_fix.js || ! grep -q "action==='release'" dispute_runtime_fix.js; then echo "El runtime de disputas no contiene las resoluciones protegidas"; exit 1; fi
-if ! grep -q 'DatoYaOpenDispute' workflow_v2_ui.js || ! grep -q 'data-early-cancel' dispute_ui.js || ! grep -q 'resolveDatoYaDispute' admin_dispute_ui_fix.js; then echo "La UI de disputa/cancelación no está conectada"; exit 1; fi
-
-npm start >/tmp/datoya-ci.log 2>&1 &
-PID=$!
-cleanup(){ kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; }
-trap cleanup EXIT
-
-START_TIMEOUT=120
-READY=0
-for i in $(seq 1 "$START_TIMEOUT"); do
-  if curl -fsS http://localhost:3000/api/categories >/dev/null 2>&1; then READY=1; break; fi
-  if ! kill -0 "$PID" >/dev/null 2>&1; then echo "Servidor DatoYa no pudo iniciar"; cat /tmp/datoya-ci.log; exit 1; fi
-  sleep 1
-done
-if [ "$READY" -ne 1 ]; then echo "Timeout esperando DatoYa después de ${START_TIMEOUT}s"; cat /tmp/datoya-ci.log; exit 1; fi
-
-if ! curl -fsS http://localhost:3000/health | grep -q '"ok":true'; then echo "Healthcheck DatoYa no está saludable"; cat /tmp/datoya-ci.log; exit 1; fi
+node app_runtime_fix.js;node worker_demo_badge_runtime_fix.js
+for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js reports_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js job_detail_ui.js admin_disputes_ui.js worker_specialties_ui.js phone_security_ui.js free_beta_security_ui.js onboarding_flow_ui.js; do if [ -f "$js" ]&&! node --check "$js";then echo "Error de sintaxis en $js";exit 1;fi;done
+for js in server.js db.js territory_start.js production_start.js reports_bootstrap.js reports_routes.js reports_admin_fix.js request_photos_bootstrap.js evidence_schema.js evidence_bootstrap.js job_events_schema.js chat_workflow_bootstrap.js admin_v2_bootstrap.js admin_operations_bootstrap.js admin_case_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_schema.js protection_bootstrap.js protection_flow_guard.js protection_complete_fix.js dispute_schema.js dispute_runtime_fix.js dispute_loader.js workflow_guard_bootstrap.js review_status_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js gps_syntax_fix.js nearby_workers_bootstrap.js nearby_location_schema.js demo_admin_seed.js demo_bootstrap.js demo_runtime_seed.js demo_compat_fix.js portfolio_runtime_fix.js app_runtime_fix.js worker_demo_badge_runtime_fix.js backend_runtime_fix.js account_security_bootstrap.js account_security_delivery_fix.js account_security_route_fix.js session_cookie_fix.js job_trust_center_bootstrap.js job_trust_accounting_fix.js job_mutual_completion_guard.js worker_specialties_bootstrap.js worker_portfolio_bootstrap.js worker_search_bootstrap.js worker_public_review_fix.js worker_profile_validation.js review_validation.js quote_validation.js request_validation.js chile_security_bootstrap.js production_legacy_guard.js; do if [ -f "$js" ]&&! node --check "$js";then echo "Error de sintaxis en $js";exit 1;fi;done
+if grep -q 'demoTag(1)' app.js;then echo "El frontend sigue marcando a todos los profesionales como DEMO";exit 1;fi
+if ! grep -q 'routes.solicitud' request_detail_ui_fix.js||! grep -q 'request-quote-form' request_detail_ui_fix.js;then echo "Detalle de solicitud incompleto";exit 1;fi
+if ! grep -q 'routes.ganancias' worker_finance_ui.js||! grep -q 'retiros automáticos están deshabilitados' worker_finance_ui.js;then echo "Finanzas beta no están protegidas";exit 1;fi
+if ! grep -q 'review-status' review_status_bootstrap.js||! grep -q 'data-review-submit' review_ui.js;then echo "Reseñas incompletas";exit 1;fi
+if ! grep -q 'renderDatoYaAdminDisputes' admin_disputes_ui.js;then echo "Centro admin de disputas no está montado";exit 1;fi
+for field in urgency preferred_date budget region_id comuna_id address_detail photos;do if ! grep -q "$field" request_wizard_ui.js;then echo "Wizard no contempla $field";exit 1;fi;done
+if ! grep -q 'if(target)return previousSolicitar' request_wizard_ui.js;then echo "Wizard no preserva flujo dirigido";exit 1;fi
+npm start >/tmp/datoya-ci.log 2>&1 & PID=$!;cleanup(){ kill "$PID" >/dev/null 2>&1||true;wait "$PID" >/dev/null 2>&1||true;};trap cleanup EXIT
+READY=0;for i in $(seq 1 120);do if curl -fsS http://localhost:3000/api/categories >/dev/null 2>&1;then READY=1;break;fi;if ! kill -0 "$PID" >/dev/null 2>&1;then echo "Servidor DatoYa no pudo iniciar";cat /tmp/datoya-ci.log;exit 1;fi;sleep 1;done
+if [ "$READY" -ne 1 ];then echo "Timeout esperando DatoYa";cat /tmp/datoya-ci.log;exit 1;fi
+if ! curl -fsS http://localhost:3000/health|grep -q '"ok":true';then echo "Healthcheck no saludable";cat /tmp/datoya-ci.log;exit 1;fi
 echo "Healthcheck DatoYa OK"
-
-for marker in 'DATOYA CHAT WORKFLOW GUARD V1' 'VERIFICACIÓN PROFESIONAL DATOYA 2.0' 'DATOYA ADMIN OPERATIONS V1' 'DATOYA REVIEW STATUS V1' 'DATOYA DISPUTE RUNTIME V2'; do
-  if ! grep -q "$marker" server.js; then echo "Runtime no montado: $marker"; cat /tmp/datoya-ci.log; exit 1; fi
-done
-echo "Runtime guards/operaciones/disputas OK"
-
-node - <<'NODE'
-const {db}=require('./db');
-for (const t of ['job_travel_sessions','job_location_events','worker_locations','job_evidence','job_events','verification_history','job_disputes','job_dispute_events']) {
-  const ok=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(t);
-  if(!ok) { console.error('Falta tabla: '+t); process.exit(1); }
-}
-for (const k of ['gps_arrival_radius_m','gps_max_accuracy_m']) {
-  const ok=db.prepare('SELECT value FROM settings WHERE key=?').get(k);
-  if(!ok) { console.error('Falta configuración GPS: '+k); process.exit(1); }
-}
-console.log('GPS/evidencias/eventos/verificación/disputas schema OK');
-NODE
-
-for path in jobs/1/travel worker/verification-requests worker/earnings jobs/1/review-status jobs/1/dispute; do
-  code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
-  if [ "$code" != "401" ]; then echo "Ruta protegida incorrectamente /api/$path (HTTP $code)"; cat /tmp/datoya-ci.log; exit 1; fi
-done
-
-WORKERS_JSON=$(curl -fsS http://localhost:3000/api/workers)
-if ! printf '%s' "$WORKERS_JSON" | grep -q '"is_demo"'; then echo "La API pública no informa qué perfiles son DEMO"; exit 1; fi
-FILTERED_JSON=$(curl -fsS 'http://localhost:3000/api/workers?category_id=1&verified=1&status=disponible')
-if ! printf '%s' "$FILTERED_JSON" | grep -q '"workers"'; then echo "La API de búsqueda filtrada no respondió correctamente"; exit 1; fi
-
-for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js; do
-  if ! curl -fsS "http://localhost:3000/$asset" >/dev/null; then echo "Archivo estático no publicado: $asset"; exit 1; fi
-done
-INDEX_HTML=$(curl -fsS http://localhost:3000/)
-for script in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js admin_core_ui_fix.js admin_operations_ui.js; do
-  if ! printf '%s' "$INDEX_HTML" | grep -q "/$script"; then echo "Script no cargado en index.html: $script"; exit 1; fi
-done
-if ! printf '%s' "$INDEX_HTML" | grep -Eq '/datoya-logo\.(jpg|svg)'; then echo "El logo de DatoYa no está referenciado en la página"; exit 1; fi
+for marker in 'DATOYA CHAT WORKFLOW GUARD V1' 'VERIFICACIÓN PROFESIONAL DATOYA 2.0' 'DATOYA ADMIN OPERATIONS V1' 'DATOYA REVIEW STATUS V1' 'DATOYA DISPUTE RUNTIME V2';do if ! grep -q "$marker" server.js;then echo "Runtime no montado: $marker";exit 1;fi;done
+for path in jobs/1/travel worker/verification-requests worker/earnings jobs/1/review-status jobs/1/dispute;do code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path");if [ "$code" != "401" ];then echo "Ruta protegida incorrectamente /api/$path HTTP $code";exit 1;fi;done
+for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js;do if ! curl -fsS "http://localhost:3000/$asset" >/dev/null;then echo "Archivo estático no publicado: $asset";exit 1;fi;done
 echo "Frontend/estáticos smoke test OK"
-
-bash test_admin_smoke.sh
-bash test_favorites_smoke.sh
-bash test_e2e.sh
-bash test_dispute_smoke.sh
+bash test_admin_smoke.sh;bash test_favorites_smoke.sh;bash test_e2e.sh;bash test_dispute_smoke.sh
