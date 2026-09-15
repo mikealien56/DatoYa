@@ -3,7 +3,7 @@ const fs=require('fs'),path=require('path');
 const serverFile=path.join(__dirname,'server.js'),previous=fs.readFileSync;
 const demoMode=!['0','false','off','no'].includes(String(process.env.DEMO_MODE||'true').toLowerCase());
 if(!demoMode){fs.readFileSync=function(file,options){let v=previous.call(fs,file,options);if(path.resolve(String(file))!==path.resolve(serverFile)||typeof v!=='string')return v;if(v.includes('DATOYA_REAL_BETA_LEGACY_GUARD'))return v;
- const marker='// ============ PERFIL TRABAJADOR (propio) ============';
+ const marker="app.post('/api/worker/verification', auth, requireRole('trabajador'), (req, res) => {";
  const guard=`// DATOYA_REAL_BETA_LEGACY_GUARD
 app.use('/api/worker/verification',(req,res,next)=>{
  if(req.method==='POST' && req.body?.type==='telefono') return res.status(409).json({error:'En la beta gratuita el celular chileno se registra desde Seguridad de la cuenta; no se marca como verificado por SMS.'});
