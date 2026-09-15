@@ -17,7 +17,6 @@ if(fs.existsSync(indexTarget)){
   if(!html.includes('/verification_worker_ui.js')) html=html.replace('</body>','<script src="/verification_worker_ui.js?v=2"></script>\n</body>'); else html=html.replace(/\/verification_worker_ui\.js(?:\?v=\d+)?/g,'/verification_worker_ui.js?v=2');
   if(!html.includes('/request_target_ui.js')) html=html.replace('</body>','<script src="/request_target_ui.js?v=3"></script>\n</body>'); else html=html.replace(/\/request_target_ui\.js(?:\?v=\d+)?/g,'/request_target_ui.js?v=3');
   if(!html.includes('/direct_worker_category_fix.js')) html=html.replace('</body>','<script src="/direct_worker_category_fix.js?v=3"></script>\n</body>'); else html=html.replace(/\/direct_worker_category_fix\.js(?:\?v=\d+)?/g,'/direct_worker_category_fix.js?v=3');
-  // Debe cargarse después del flujo dirigido: solo reemplaza la solicitud general cuando no existe profesional objetivo.
   if(!html.includes('/request_wizard_ui.js')) html=html.replace('</body>','<script src="/request_wizard_ui.js?v=1"></script>\n</body>'); else html=html.replace(/\/request_wizard_ui\.js(?:\?v=\d+)?/g,'/request_wizard_ui.js?v=1');
   if(!html.includes('/admin_v2_ui.js')) html=html.replace('</body>','<script src="/admin_v2_ui.js?v=5"></script>\n</body>'); else html=html.replace(/\/admin_v2_ui\.js(?:\?v=\d+)?/g,'/admin_v2_ui.js?v=5');
   if(!html.includes('/admin_core_ui_fix.js')) html=html.replace('</body>','<script src="/admin_core_ui_fix.js?v=1"></script>\n</body>'); else html=html.replace(/\/admin_core_ui_fix\.js(?:\?v=\d+)?/g,'/admin_core_ui_fix.js?v=1');
@@ -33,9 +32,8 @@ if(fs.existsSync(indexTarget)){
   if(!html.includes('/gps_map_ui_v2.js')) html=html.replace('</body>','<script src="/gps_map_ui_v2.js?v=1"></script>\n</body>');
   if(!html.includes('/job_finish_guard_ui.js')) html=html.replace('</body>','<script src="/job_finish_guard_ui.js?v=1"></script>\n</body>'); else html=html.replace(/\/job_finish_guard_ui\.js(?:\?v=\d+)?/g,'/job_finish_guard_ui.js?v=1');
   if(!html.includes('/workflow_v2_ui.js')) html=html.replace('</body>','<script src="/workflow_v2_ui.js?v=3"></script>\n</body>'); else html=html.replace(/\/workflow_v2_ui\.js(?:\?v=\d+)?/g,'/workflow_v2_ui.js?v=3');
-  if(!html.includes('/review_ui.js')) html=html.replace('</body>','<script src="/review_ui.js?v=1"></script>\n</body>'); else html=html.replace(/\/review_ui\.js(?:\?v=\d+)?/g,'/review_ui.js?v=1');
+  if(!html.includes('/review_ui.js')) html=html.replace('</body>','<script src="/review_ui.js?v=2"></script>\n</body>'); else html=html.replace(/\/review_ui\.js(?:\?v=\d+)?/g,'/review_ui.js?v=2');
   if(!html.includes('/reports_ui.js')) html=html.replace('</body>','<script src="/reports_ui.js?v=1"></script>\n</body>'); else html=html.replace(/\/reports_ui\.js(?:\?v=\d+)?/g,'/reports_ui.js?v=1');
-  // Debe quedar al final: reemplaza routes.solicitud después de los wrappers legacy de fotos/target.
   if(!html.includes('/request_detail_ui_fix.js')) html=html.replace('</body>','<script src="/request_detail_ui_fix.js?v=1"></script>\n</body>'); else html=html.replace(/\/request_detail_ui_fix\.js(?:\?v=\d+)?/g,'/request_detail_ui_fix.js?v=1');
   fs.writeFileSync(indexTarget,html);
 }
@@ -64,7 +62,6 @@ require('./verification_review_bootstrap');
 require('./chat_workflow_bootstrap');
 require('./workflow_guard_bootstrap');
 require('./portfolio_runtime_fix');
-// Composición administrativa V2: monta las rutas que alimentan todas las pestañas del panel.
 require('./admin_v2_bootstrap');
 require('./admin_operations_bootstrap');
 require('./admin_case_bootstrap');
