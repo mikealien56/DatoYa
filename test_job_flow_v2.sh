@@ -11,8 +11,12 @@ CLIENT_EMAIL="ci-client-${STAMP}@test.datoya.local"
 WORKER_EMAIL="ci-worker-${STAMP}@test.datoya.local"
 PASS='DatoYaTest2026!'
 register(){ local cookie="$1" name="$2" email="$3" role="$4"; curl -fsS -c "$cookie" -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"$name\",\"email\":\"$email\",\"password\":\"$PASS\",\"role\":\"$role\",\"comuna_id\":4}" >/dev/null; }
+verify_email(){ local cookie="$1" r token; r=$(curl -fsS -b "$cookie" -X POST "$B/auth/email-verification/request" -H "$J" -d '{}'); token=$(echo "$r"|python3 -c 'import sys,json;d=json.load(sys.stdin);assert d.get("test_token"),d;print(d["test_token"])'); curl -fsS -X POST "$B/auth/email-verification/confirm" -H "$J" -d "{\"token\":\"$token\"}"|grep -q '"ok":true'; }
 register "$C" 'Cliente CI' "$CLIENT_EMAIL" cliente
 register "$W" 'Profesional CI' "$WORKER_EMAIL" trabajador
+# Las acciones sensibles requieren correo verificado. AUTH_TEST_MODE expone el token solo en CI.
+verify_email "$C"
+verify_email "$W"
 # El profesional recién registrado debe quedar asociado a la categoría usada por la solicitud.
 # Se usa la API propia del perfil; no se inyectan cuentas ni trabajos DEMO.
 curl -fsS -b "$W" -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"Gasfíter CI","description":"Profesional temporal para pruebas automáticas","categories":[1],"comuna_id":4}' >/dev/null
