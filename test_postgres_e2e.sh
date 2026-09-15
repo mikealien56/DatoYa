@@ -31,10 +31,12 @@ trap on_error ERR
 
 verify_email(){
   local cookie="$1"
-  local response token
+  local response token status
   response=$(curl -fsS -b "$cookie" -X POST "$B/auth/email-verification/request" -H "$J" -d '{}')
-  token=$(echo "$response" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d.get("ok") is True; print(d["test_token"])')
+  token=$(echo "$response" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d.get("ok") is True; assert d.get("test_token"), d; print(d["test_token"])')
   curl -fsS -X POST "$B/auth/email-verification/confirm" -H "$J" -d "{\"token\":\"$token\"}" | grep -q '"ok":true'
+  status=$(curl -fsS -b "$cookie" "$B/security/status")
+  echo "$status" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d.get("email_verified") is True, d'
 }
 
 start_app
@@ -67,7 +69,7 @@ echo "✅ Registro, verificación de correo y perfil profesional reales"
 REQ_HTTP=$(curl -sS -o /tmp/pg_request.json -w '%{http_code}' -b /tmp/pg_client.cookies -X POST "$B/requests" -H "$J" \
   -d "{\"category_id\":$CAT,\"title\":\"Cambio de llave beta PostgreSQL\",\"description\":\"Necesito cambiar una llave de agua\",\"comuna_id\":$COMUNA,\"address_detail\":\"Dirección privada de prueba\",\"urgency\":\"hoy\",\"budget\":32000}")
 REQ_JSON=$(cat /tmp/pg_request.json)
-if [ "$REQ_HTTP" != "200" ]; then echo "Publicar solicitud falló HTTP $REQ_HTTP: $REQ_JSON"; false; fi
+if [ "$REQ_HTTP" != "200" ]; then echo "Publicar solicitud falló HTTP $REQ_HTTP: $REQ_JSON"; echo "Estado seguridad cliente:"; curl -sS -b /tmp/pg_client.cookies "$B/security/status" || true; false; fi
 echo "$REQ_JSON" | grep -q '"ok":true'
 REQ=$(echo "$REQ_JSON" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
 FEED=$(curl -fsS -b /tmp/pg_worker.cookies "$B/requests/feed")
@@ -94,7 +96,6 @@ echo "✅ Aceptación y comisión 10% persistidas"
 curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"CONFIRMADO"}' | grep -q '"ok":true'
 curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"EN_PROCESO"}' | grep -q '"ok":true'
 
-# Evidencia real persistida en BD. Debe sobrevivir un reinicio completo del servidor.
 EVID=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/evidence" -H "$J" \
   -d '{"stage":"DESPUES","mime_type":"image/png","original_name":"evidencia-beta.png","note":"Persistencia PostgreSQL","data":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZpV8AAAAASUVORK5CYII="}')
 echo "$EVID" | grep -q '"storage":"database"'
