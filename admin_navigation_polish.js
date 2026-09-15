@@ -11,7 +11,8 @@
  function nav(active){return '<div class="card" style="padding:10px;margin-bottom:14px"><div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none">'+groups.map((g,i)=>'<button class="btn btn-outline btn-sm" style="white-space:nowrap" onclick="openAdminMenu('+i+',\''+active+'\')">'+g[0]+'</button>').join('')+'</div></div>';}
  window.openAdminMenu=function(i,active){const g=groups[i];openModal('<h3 style="margin-top:0">'+g[0]+'</h3><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px">'+g[1].map(x=>'<a class="card" style="margin:0;padding:14px;text-decoration:none;text-align:center;'+(x[0].endsWith('/'+active)?'border:2px solid var(--azul);':'')+'" href="'+x[0]+'" onclick="closeModal()"><div style="font-size:24px">'+x[1]+'</div><b class="small">'+x[2]+'</b></a>').join('')+'</div>');};
  routes.admin=async function(tab='dashboard'){
-  const r=await previous.apply(this,arguments);
+  let r;
+  if(tab==='disputas'&&typeof window.renderDatoYaAdminDisputes==='function')r=await window.renderDatoYaAdminDisputes();else r=await previous.apply(this,arguments);
   if(!ME||ME.role!=='admin')return r;
   const old=view.querySelector('.admin-tabs');if(old)old.style.display='none';
   if(tab==='dashboard'||tab==='resumen')return r;
