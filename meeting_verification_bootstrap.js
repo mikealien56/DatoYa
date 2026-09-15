@@ -42,6 +42,7 @@ function meetingState(jobId){
   const active=db.prepare("SELECT id,created_by,expires_at FROM job_meeting_codes WHERE job_id=? AND used_at IS NULL AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1").get(jobId);
   return {verified:false,code_active:Boolean(active),expires_at:active?.expires_at||null};
 }
+function meetingJobReady(job){return ['CONFIRMADO','EN_PROCESO'].includes(String(job?.status||''));}
 
 app.get('/api/jobs/:id/meeting',auth,(req,res)=>{
   const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id);
@@ -56,7 +57,7 @@ app.post('/api/jobs/:id/meeting/start',auth,(req,res)=>{
   if(!job) return res.status(404).json({error:'Trabajo no encontrado'});
   const access=meetingAccess(job,req.user);
   if(!access.ok||access.role==='admin') return res.status(403).json({error:'Solo cliente y profesional pueden iniciar la verificación'});
-  if(['FINALIZADO','CANCELADO'].includes(job.status)) return res.status(400).json({error:'Este trabajo ya está cerrado'});
+  if(!meetingJobReady(job)) return res.status(409).json({error:'El encuentro solo puede verificarse cuando el profesional ya confirmó el trabajo y antes de su cierre.'});
   const existing=db.prepare('SELECT id FROM job_meeting_proofs WHERE job_id=?').get(job.id);
   if(existing) return res.json({ok:true,already_verified:true,meeting:meetingState(job.id)});
   db.prepare('DELETE FROM job_meeting_codes WHERE job_id=? AND used_at IS NULL').run(job.id);
@@ -73,6 +74,7 @@ app.post('/api/jobs/:id/meeting/confirm',auth,(req,res)=>{
   if(!job) return res.status(404).json({error:'Trabajo no encontrado'});
   const access=meetingAccess(job,req.user);
   if(!access.ok||access.role==='admin') return res.status(403).json({error:'Solo cliente y profesional pueden confirmar el encuentro'});
+  if(!meetingJobReady(job)) return res.status(409).json({error:'El encuentro ya no puede confirmarse en el estado actual del trabajo.'});
   const code=String(req.body?.code||'').trim();
   if(!/^\\d{6}$/.test(code)) return res.status(400).json({error:'Ingresa el código de 6 dígitos'});
   const row=db.prepare("SELECT * FROM job_meeting_codes WHERE job_id=? AND used_at IS NULL AND expires_at > datetime('now') ORDER BY id DESC LIMIT 1").get(job.id);
