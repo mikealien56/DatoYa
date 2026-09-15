@@ -6,7 +6,7 @@ if(fs.existsSync(src)){fs.mkdirSync(pub,{recursive:true});fs.copyFileSync(src,ds
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){
  let h=fs.readFileSync(idx,'utf8');
- if(!h.includes('/worker_specialties_ui.js')) h=h.replace('</body>','<script src="/worker_specialties_ui.js?v=2"></script>\n</body>');
- else h=h.replace(/\/worker_specialties_ui\.js(?:\?v=\d+)?/g,'/worker_specialties_ui.js?v=2');
+ if(!h.includes('/worker_specialties_ui.js')) h=h.replace('</body>','<script src="/worker_specialties_ui.js?v=3"></script>\n</body>');
+ else h=h.replace(/\/worker_specialties_ui\.js(?:\?v=\d+)?/g,'/worker_specialties_ui.js?v=3');
  fs.writeFileSync(idx,h);
 }
