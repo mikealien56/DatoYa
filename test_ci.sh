@@ -13,6 +13,8 @@ if ! grep -q 'renderDatoYaAdminDisputes' admin_disputes_ui.js;then echo "Centro 
 if ! grep -q 'DATOYA_CANONICAL_JOB_FLOW_V1' job_flow_guard.js;then echo "Guard del ciclo oficial no está presente";exit 1;fi
 for field in urgency preferred_date budget region_id comuna_id address_detail photos;do if ! grep -q "$field" request_wizard_ui.js;then echo "Wizard no contempla $field";exit 1;fi;done
 if ! grep -q 'if(target)return previousSolicitar' request_wizard_ui.js;then echo "Wizard no preserva flujo dirigido";exit 1;fi
+# El flujo canónico verifica correos temporales. El token de prueba solo se expone dentro de esta ejecución CI.
+export AUTH_TEST_MODE=true
 npm start >/tmp/datoya-ci.log 2>&1 & PID=$!;cleanup(){ kill "$PID" >/dev/null 2>&1||true;wait "$PID" >/dev/null 2>&1||true;};trap cleanup EXIT
 READY=0;for i in $(seq 1 120);do if curl -fsS http://localhost:3000/api/categories >/dev/null 2>&1;then READY=1;break;fi;if ! kill -0 "$PID" >/dev/null 2>&1;then echo "Servidor DatoYa no pudo iniciar";cat /tmp/datoya-ci.log;exit 1;fi;sleep 1;done
 if [ "$READY" -ne 1 ];then echo "Timeout esperando DatoYa";cat /tmp/datoya-ci.log;exit 1;fi
@@ -21,7 +23,7 @@ for marker in 'DATOYA CHAT WORKFLOW GUARD V1' 'VERIFICACIÓN PROFESIONAL DATOYA 
 for path in jobs/1/travel worker/verification-requests worker/earnings jobs/1/review-status jobs/1/dispute;do code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path");[ "$code" = "401" ]||{ echo "Ruta protegida incorrectamente /api/$path HTTP $code";exit 1;};done
 for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js request_detail_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js job_flow_ui_bridge.js;do curl -fsS "http://localhost:3000/$asset" >/dev/null||{ echo "Archivo estático no publicado: $asset";exit 1;};done
 echo "Frontend/estáticos smoke test OK"
-# Solo suites compatibles con beta real. Las suites antiguas dependían de cuentas/fixtures DEMO retirados.
+# Solo suites compatibles con modo real. Las suites antiguas dependían de cuentas/fixtures DEMO retirados.
 bash test_security_regression.sh
 bash test_job_flow_v2.sh
 echo 'DatoYa real-mode CI OK'
