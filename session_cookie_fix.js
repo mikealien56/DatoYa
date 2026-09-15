@@ -1,0 +1,4 @@
+// DatoYa 2.0 — elimina correctamente la cookie de sesión usando los mismos atributos de creación.
+const fs=require('fs'),path=require('path');
+const serverFile=path.join(__dirname,'server.js'),previous=fs.readFileSync;
+fs.readFileSync=function(file,options){const v=previous.call(fs,file,options);if(path.resolve(String(file))!==path.resolve(serverFile)||typeof v!=='string')return v;if(v.includes('DATOYA_SECURE_COOKIE_CLEAR'))return v;const old="res.clearCookie('datoya_token');";const next="// DATOYA_SECURE_COOKIE_CLEAR\n  res.clearCookie('datoya_token',{httpOnly:true,secure:String(process.env.PUBLIC_BASE_URL||'').startsWith('https://'),sameSite:'lax',path:'/'});";return v.includes(old)?v.replace(old,next):v;};
