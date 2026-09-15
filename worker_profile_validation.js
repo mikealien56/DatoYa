@@ -2,7 +2,7 @@
 const fs=require('fs'),path=require('path');
 const serverFile=path.join(__dirname,'server.js'),previous=fs.readFileSync;
 fs.readFileSync=function(file,options){const v=previous.call(fs,file,options);if(path.resolve(String(file))!==path.resolve(serverFile)||typeof v!=='string')return v;if(v.includes('DATOYA_WORKER_PROFILE_VALIDATION'))return v;const marker="app.put('/api/worker/profile', auth, requireRole('trabajador'), (req, res) => {";const guard=`// DATOYA_WORKER_PROFILE_VALIDATION
-app.use('/api/worker/profile',(req,res,next)=>{
+app.use('/api/worker/profile',auth,requireRole('trabajador'),(req,res,next)=>{
  if(req.method!=='PUT')return next();
  const b=req.body||{},description=String(b.description??'').trim();
  if(description.length>1200)return res.status(400).json({error:'La descripción es demasiado larga'});
