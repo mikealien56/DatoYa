@@ -78,19 +78,21 @@ app.post('/api/jobs/:id/complete-confirm',auth,(req,res)=>{
  const rows=db.prepare('SELECT role FROM job_completion_confirmations WHERE job_id=?').all(job.id); const both=rows.some(x=>x.role==='cliente')&&rows.some(x=>x.role==='trabajador');
  const target=a.role==='cliente'?a.wp.user_id:job.client_id;
  if(!both){notify(target,'trabajo','✅ La otra persona indicó que el trabajo terminó. Confirma el cierre desde Mis trabajos.','#/trabajos');return res.json({ok:true,finalized:false});}
- const latest=db.prepare('SELECT status FROM jobs WHERE id=?').get(job.id);
- if(latest?.status!=='FINALIZADO'){
-  db.prepare("UPDATE jobs SET status='FINALIZADO',updated_at=datetime('now') WHERE id=? AND status='EN_PROCESO'").run(job.id);
-  const nowFinal=db.prepare('SELECT status FROM jobs WHERE id=?').get(job.id);
-  if(nowFinal?.status==='FINALIZADO'){
-   db.prepare('INSERT INTO job_status_history(job_id,status,changed_by) VALUES(?,?,?)').run(job.id,'FINALIZADO',req.user.id);
-   db.prepare('UPDATE worker_profiles SET jobs_completed=jobs_completed+1 WHERE id=?').run(job.worker_id);
-   try{const pay=db.prepare('SELECT id FROM payments WHERE job_id=? LIMIT 1').get(job.id);if(!pay)db.prepare("INSERT INTO payments(job_id,amount,commission,worker_amount,method,provider,status) VALUES(?,?,?,?,'tarjeta','DATOYA','pendiente_confirmacion_pago')").run(job.id,job.price,job.commission_amount,job.worker_amount);}catch(_){}
-   try{const com=db.prepare('SELECT id FROM commissions WHERE job_id=? LIMIT 1').get(job.id);if(!com)db.prepare('INSERT INTO commissions(job_id,pct,amount) VALUES(?,?,?)').run(job.id,job.commission_pct,job.commission_amount);}catch(_){}
-  }
- }
- notify(job.client_id,'trabajo','🎉 Trabajo finalizado con confirmación de ambas partes. Ya puedes calificar.','#/trabajos'); notify(a.wp.user_id,'trabajo','🎉 Trabajo finalizado con confirmación de ambas partes.','#/trabajos');
- res.json({ok:true,finalized:true});
+ let wonFinalization=false;
+ const finalize=db.transaction(()=>{
+  const changed=db.prepare("UPDATE jobs SET status='FINALIZADO',updated_at=datetime('now') WHERE id=? AND status='EN_PROCESO'").run(job.id);
+  if(Number(changed?.changes||0)!==1)return false;
+  db.prepare('INSERT INTO job_status_history(job_id,status,changed_by) VALUES(?,?,?)').run(job.id,'FINALIZADO',req.user.id);
+  db.prepare('UPDATE worker_profiles SET jobs_completed=jobs_completed+1 WHERE id=?').run(job.worker_id);
+  try{db.prepare("INSERT INTO payments(job_id,amount,commission,worker_amount,method,provider,status) SELECT ?,?,?,?,'tarjeta','DATOYA','pendiente_confirmacion_pago' WHERE NOT EXISTS (SELECT 1 FROM payments WHERE job_id=?)").run(job.id,job.price,job.commission_amount,job.worker_amount,job.id);}catch(_){}
+  try{db.prepare('INSERT INTO commissions(job_id,pct,amount) SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM commissions WHERE job_id=?)').run(job.id,job.commission_pct,job.commission_amount,job.id);}catch(_){}
+  return true;
+ });
+ wonFinalization=finalize();
+ const finalState=db.prepare('SELECT status FROM jobs WHERE id=?').get(job.id);
+ if(finalState?.status!=='FINALIZADO')return res.status(409).json({error:'El trabajo cambió de estado mientras se confirmaba el cierre. Actualiza e inténtalo nuevamente.'});
+ if(wonFinalization){notify(job.client_id,'trabajo','🎉 Trabajo finalizado con confirmación de ambas partes. Ya puedes calificar.','#/trabajos');notify(a.wp.user_id,'trabajo','🎉 Trabajo finalizado con confirmación de ambas partes.','#/trabajos');}
+ res.json({ok:true,finalized:true,already_finalized:!wonFinalization});
 });
 app.post('/api/jobs/:id/dispute',auth,(req,res)=>{
  const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id); if(!job)return res.status(404).json({error:'Trabajo no encontrado'});
