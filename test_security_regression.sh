@@ -6,9 +6,12 @@ rm -f "$COOKIE"
 fail(){ echo "SECURITY REGRESSION FAIL: $1"; exit 1; }
 code(){ curl -sS -o /tmp/datoya-sec-body -w '%{http_code}' "$@"; }
 # Rutas sensibles nunca deben quedar públicas.
-for p in /api/auth/session-status /api/requests/1 /api/conversations/1/messages /api/admin/job-disputes/1/resolve; do
+for p in /api/auth/session-status /api/requests/1 /api/conversations/1/messages; do
  c=$(code "$BASE$p"); [ "$c" = "401" ] || [ "$c" = "403" ] || fail "$p quedó accesible sin sesión (HTTP $c)"
 done
+# Resolver disputas es POST; probar el método real evita confundir el fallback SPA con la API.
+c=$(code -X POST -H 'Content-Type: application/json' -d '{"resolution":"favor_cliente"}' "$BASE/api/admin/job-disputes/1/resolve")
+[ "$c" = "401" ] || [ "$c" = "403" ] || fail "/api/admin/job-disputes/1/resolve quedó accesible sin sesión (HTTP $c)"
 # Los guards nuevos deben estar realmente montados en el runtime generado.
 for marker in DATOYA_REQUEST_ACCESS_GUARD_V1 DATOYA_REQUEST_PHOTO_VALIDATION_V1 DATOYA_CHAT_SECURITY_GUARD_V1 DATOYA_SESSION_ACCOUNT_GUARD_V1 DATOYA_DISPUTE_RESOLUTION_ATOMIC_V1; do
  grep -q "$marker" server.js || fail "No se montó $marker"
