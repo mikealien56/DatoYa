@@ -1,0 +1,4 @@
+// DatoYa 2.0 — permite distinguir reseñas asociadas a trabajos reales de DatoYa.
+const fs=require('fs'),path=require('path');
+const serverFile=path.join(__dirname,'server.js'),previous=fs.readFileSync;
+fs.readFileSync=function(file,options){const v=previous.call(fs,file,options);if(path.resolve(String(file))!==path.resolve(serverFile)||typeof v!=='string')return v;if(v.includes('DATOYA_PUBLIC_REVIEW_JOB_ID'))return v;const old='SELECT r.rating,r.quality,r.punctuality,r.treatment,r.price_rating,r.comment,r.created_at,r.is_demo,u.name AS reviewer';const next='SELECT r.job_id,r.rating,r.quality,r.punctuality,r.treatment,r.price_rating,r.comment,r.created_at,r.is_demo,u.name AS reviewer /* DATOYA_PUBLIC_REVIEW_JOB_ID */';return v.includes(old)?v.replace(old,next):v;};
