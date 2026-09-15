@@ -16,10 +16,13 @@ app.post('/api/worker/portfolio',auth,requireRole('trabajador'),(req,res)=>{
   const caption=String(req.body?.caption||'').trim().slice(0,120);
   const data=String(req.body?.data||'');
   const lower=data.toLowerCase();
-  const validImage=['data:image/jpeg;base64,','data:image/jpg;base64,','data:image/png;base64,','data:image/webp;base64,'].some(prefix=>lower.startsWith(prefix));
+  const prefix=['data:image/jpeg;base64,','data:image/jpg;base64,','data:image/png;base64,','data:image/webp;base64,'].find(p=>lower.startsWith(p));
   if(!caption) return res.status(400).json({error:'Agrega una descripción breve del trabajo'});
-  if(!validImage) return res.status(400).json({error:'Selecciona una imagen válida'});
+  if(!prefix) return res.status(400).json({error:'Selecciona una imagen válida'});
   if(Buffer.byteLength(data,'utf8')>950000) return res.status(413).json({error:'La foto es demasiado pesada. Intenta con otra imagen.'});
+  const raw=data.slice(data.indexOf(',')+1); let bytes; try{bytes=Buffer.from(raw,'base64');}catch(_){return res.status(400).json({error:'La imagen no se pudo leer'});} if(!bytes||bytes.length<100)return res.status(400).json({error:'La imagen está vacía o dañada'});
+  const jpeg=bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff,png=bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4e&&bytes[3]===0x47,webp=bytes.slice(0,4).toString('ascii')==='RIFF'&&bytes.slice(8,12).toString('ascii')==='WEBP';
+  if(!(jpeg||png||webp))return res.status(400).json({error:'El archivo no corresponde a una foto JPEG, PNG o WebP válida'});
   const count=Number(db.prepare('SELECT COUNT(*) c FROM portfolio_images WHERE worker_id=?').get(wp.id).c||0);
   const limit=wp.is_pro?12:4;
   if(count>=limit) return res.status(400).json({error:'Llegaste al límite de '+limit+' fotos'+(wp.is_pro?'.':' en el plan gratuito. DatoYa PRO permite hasta 12.')});
