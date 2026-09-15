@@ -15,6 +15,6 @@ if(fs.existsSync(index)){
   html=html.replace(/<script src="\/mercadopago_ui\.js(?:\?v=\d+)?"><\/script>\s*/g,'');
   html=html.replace(/<script src="\/mercadopago_fee_policy_ui\.js(?:\?v=\d+)?"><\/script>\s*/g,'');
   html=html.replace(/<script src="\/hybrid_payment_ui\.js(?:\?v=\d+)?"><\/script>\s*/g,'');
-  html=html.replace('</body>','<script src="/mercadopago_ui.js?v=2"></script>\n<script src="/mercadopago_fee_policy_ui.js?v=1"></script>\n<script src="/hybrid_payment_ui.js?v=1"></script>\n</body>');
+  html=html.replace('</body>','<script src="/mercadopago_ui.js?v=3"></script>\n<script src="/mercadopago_fee_policy_ui.js?v=1"></script>\n<script src="/hybrid_payment_ui.js?v=1"></script>\n</body>');
   fs.writeFileSync(index,html);
 }
