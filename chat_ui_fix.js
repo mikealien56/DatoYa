@@ -21,9 +21,13 @@
     const box=document.getElementById('msgs');
     if (!box) return;
     const nearBottom=box.scrollHeight-box.scrollTop-box.clientHeight < 90;
-    box.innerHTML=(payload.messages||[]).map(m=>messageHtml(m,payload.me)).join('') || '<div class="small muted" style="padding:12px">Todavía no hay mensajes. Escribe el primero.</div>';
+    box.innerHTML=(payload.messages||[]).map(m=>messageHtml(m,payload.me)).join('') || '<div class="small muted" style="padding:12px">Todavía no hay mensajes.</div>';
     const lock=document.getElementById('chat-security-note');
-    if (lock) lock.classList.toggle('hidden',!payload.locked);
+    if (lock) lock.classList.toggle('hidden',!payload.locked||payload.closed);
+    const closed=document.getElementById('chat-closed-note');
+    if (closed) closed.classList.toggle('hidden',!payload.closed);
+    const form=document.getElementById('stable-chat-form');
+    if(form)form.classList.toggle('hidden',!!payload.closed);
     if (!preservePosition || nearBottom) box.scrollTop=box.scrollHeight;
   }
 
@@ -35,11 +39,8 @@
       if (String(activeConversation)!==String(id) || location.hash!==`#/chat/${id}`) return;
       applyMessages(payload,true);
     } catch (e) {
-      // Si la sesión cambió o la conversación dejó de ser accesible, detener polling.
       if ([401,403,404,409].includes(Number(e.status))) stopChatTimer();
-    } finally {
-      refreshing=false;
-    }
+    } finally { refreshing=false; }
   }
 
   async function renderChatsStable() {
@@ -53,19 +54,16 @@
     stopChatTimer();
     if (!ME) { location.hash='#/login'; return; }
     id=Number(id);
-    if (!Number.isInteger(id) || id<=0) {
-      view.innerHTML='<div class="empty">Conversación inválida.</div>';
-      return;
-    }
-
+    if (!Number.isInteger(id) || id<=0) { view.innerHTML='<div class="empty">Conversación inválida.</div>'; return; }
     const payload=await api(`/conversations/${id}/messages`);
     activeConversation=id;
     view.innerHTML=`
       <a href="#/mensajes" class="small">← Mensajes</a>
-      <div id="chat-security-note" class="lock-note ${payload.locked?'':'hidden'}" style="margin-top:10px">🔒 <b>Protección anti-estafas:</b> hasta que se acepte un trabajo, no puedes compartir teléfonos, correos ni redes sociales por el chat.</div>
+      <div id="chat-security-note" class="lock-note ${payload.locked&&!payload.closed?'':'hidden'}" style="margin-top:10px">🔒 <b>Protección anti-estafas:</b> hasta que se acepte un trabajo, no puedes compartir teléfonos, correos ni redes sociales por el chat.</div>
+      <div id="chat-closed-note" class="lock-note ${payload.closed?'':'hidden'}" style="margin-top:10px">🔒 <b>Conversación cerrada</b><br><span class="small">Se seleccionó a otro profesional para esta solicitud. El historial queda disponible, pero ya no se pueden enviar mensajes aquí.</span></div>
       <div class="chat-window" style="margin-top:8px">
         <div class="chat-msgs" id="msgs" aria-live="polite"></div>
-        <form class="chat-input" id="stable-chat-form">
+        <form class="chat-input ${payload.closed?'hidden':''}" id="stable-chat-form">
           <input name="body" maxlength="1500" placeholder="Escribe un mensaje..." autocomplete="off" required>
           <button class="btn btn-primary" type="submit" aria-label="Enviar mensaje">➤</button>
         </form>
@@ -75,37 +73,21 @@
     const form=document.getElementById('stable-chat-form');
     form?.addEventListener('submit', async event => {
       event.preventDefault();
-      const input=form.elements.body;
-      const button=form.querySelector('button[type="submit"]');
-      const body=String(input.value||'').trim();
+      const input=form.elements.body,button=form.querySelector('button[type="submit"]'),body=String(input.value||'').trim();
       if (!body || button.disabled) return;
       if (body.length>1500) return toast('El mensaje es demasiado largo.','err');
-
-      button.disabled=true;
-      input.disabled=true;
+      button.disabled=true; input.disabled=true;
       try {
         const result=await api(`/conversations/${id}/messages`,{method:'POST',body:{body}});
-        input.value='';
-        if (result.warning) toast(result.warning,'err');
-        const updated=await api(`/conversations/${id}/messages`);
-        if (location.hash===`#/chat/${id}`) applyMessages(updated,false);
-      } catch (e) {
-        toast(e.message || 'No se pudo enviar el mensaje.','err');
-      } finally {
-        input.disabled=false;
-        button.disabled=false;
-        input.focus();
-      }
+        input.value=''; if (result.warning) toast(result.warning,'err');
+        const updated=await api(`/conversations/${id}/messages`); if (location.hash===`#/chat/${id}`) applyMessages(updated,false);
+      } catch (e) { toast(e.message || 'No se pudo enviar el mensaje.','err'); }
+      finally { input.disabled=false; button.disabled=false; if(!form.classList.contains('hidden'))input.focus(); }
     });
-
     chatTimer=setInterval(()=>refreshConversation(id),5000);
   }
 
-  routes.mensajes=renderChatsStable;
-  routes.chat=renderChatStable;
-
-  window.addEventListener('hashchange',()=>{
-    if (!location.hash.startsWith('#/chat/')) stopChatTimer();
-  });
+  routes.mensajes=renderChatsStable; routes.chat=renderChatStable;
+  window.addEventListener('hashchange',()=>{ if (!location.hash.startsWith('#/chat/')) stopChatTimer(); });
   window.addEventListener('beforeunload',stopChatTimer);
 })();
