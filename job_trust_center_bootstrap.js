@@ -55,7 +55,16 @@ app.post('/api/jobs/:id/evidence',auth,(req,res)=>{
  const a=trustAccess(job,req.user); if(!a.ok||a.role==='admin')return res.status(403).json({error:'Sin acceso'});
  if(['FINALIZADO','CANCELADO'].includes(job.status))return res.status(400).json({error:'El trabajo ya está cerrado'});
  const phase=req.body?.phase==='despues'?'despues':'antes'; const image=String(req.body?.image_data||''); const note=String(req.body?.note||'').trim().slice(0,500);
- if(!image.startsWith('data:image/')||image.length>1500000)return res.status(400).json({error:'Adjunta una imagen válida de máximo 1 MB aprox.'});
+ const lower=image.toLowerCase();
+ const prefix=['data:image/jpeg;base64,','data:image/jpg;base64,','data:image/png;base64,','data:image/webp;base64,'].find(p=>lower.startsWith(p));
+ if(!prefix)return res.status(400).json({error:'Adjunta una foto JPEG, PNG o WebP válida.'});
+ if(Buffer.byteLength(image,'utf8')>1500000)return res.status(413).json({error:'La foto es demasiado pesada. Usa una imagen de máximo 1 MB aprox.'});
+ const raw=image.slice(image.indexOf(',')+1); let bytes; try{bytes=Buffer.from(raw,'base64');}catch(_){return res.status(400).json({error:'La imagen no se pudo leer'});} if(!bytes||bytes.length<100)return res.status(400).json({error:'La imagen está vacía o dañada'});
+ const jpeg=bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff,png=bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4e&&bytes[3]===0x47,webp=bytes.slice(0,4).toString('ascii')==='RIFF'&&bytes.slice(8,12).toString('ascii')==='WEBP';
+ if(!(jpeg||png||webp))return res.status(400).json({error:'El archivo no corresponde a una foto JPEG, PNG o WebP válida.'});
+ if((prefix.includes('jpeg')||prefix.includes('jpg'))&&!jpeg)return res.status(400).json({error:'El contenido de la foto no coincide con su formato.'});
+ if(prefix.includes('png')&&!png)return res.status(400).json({error:'El contenido de la foto no coincide con su formato.'});
+ if(prefix.includes('webp')&&!webp)return res.status(400).json({error:'El contenido de la foto no coincide con su formato.'});
  db.prepare('INSERT INTO job_evidence(job_id,user_id,phase,image_data,note) VALUES(?,?,?,?,?)').run(job.id,req.user.id,phase,image,note);
  const target=a.role==='cliente'?a.wp.user_id:job.client_id; notify(target,'evidencia','📷 Se agregó una foto de respaldo al trabajo.','#/trabajos');
  res.json({ok:true});
