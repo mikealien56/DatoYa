@@ -1,9 +1,9 @@
 // DatoYa 2.0 — perfil editable del profesional.
-// role_ui_fix.js llama a renderWorkerOwnProfile(); esta implementación evita
-// que la sección Perfil del trabajador dependa de una función inexistente.
+// El editor se mantiene abierto: guardar no navega ni colapsa otras secciones.
 (() => {
   let zoneState = [];
   let allComunas = [];
+  let savingProfile = false;
 
   const escOwn = value => String(value ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 
@@ -55,8 +55,9 @@
         <div class="badges" style="margin-top:10px">${w.verified_identity ? '<span class="badge-v">✓ Identidad verificada</span>' : ''}${w.is_pro ? '<span class="badge-v">⭐ DatoYa PRO</span>' : ''}</div>
       </div>
 
-      <div class="card">
+      <div class="card" id="worker-profile-editor">
         <h3>✏️ Editar perfil profesional</h3>
+        <p class="small muted">Completa todas las secciones. Los cambios se guardan juntos con el botón que está al final.</p>
         <form id="worker-profile-form" onsubmit="saveWorkerOwnProfile(event)">
           <div class="field"><label>Oficio / título profesional</label><input name="oficio" maxlength="100" value="${escOwn(w.oficio || '')}" placeholder="Ej: Electricista domiciliario" required></div>
           <div class="field"><label>Descripción</label><textarea name="description" rows="5" maxlength="1200" placeholder="Cuenta tu experiencia y el tipo de trabajos que realizas">${escOwn(w.description || '')}</textarea></div>
@@ -78,7 +79,8 @@
             <div class="row" style="gap:8px"><select id="worker-zone-picker" style="flex:1"><option value="">Agregar otra comuna…</option>${allComunas.map(c => `<option value="${Number(c.id)}">${escOwn(c.name)}${c.region ? ' — '+escOwn(c.region) : ''}</option>`).join('')}</select><button type="button" class="btn btn-outline btn-sm" onclick="addWorkerZone()">Agregar</button></div>
           </div>
 
-          <button class="btn btn-primary btn-block">Guardar perfil</button>
+          <div id="worker-profile-save-status" class="small" aria-live="polite" style="min-height:20px;margin:6px 0 10px"></div>
+          <button id="worker-profile-save" type="submit" class="btn btn-primary btn-block">Guardar perfil</button>
         </form>
       </div>`;
 
@@ -87,12 +89,18 @@
 
   window.saveWorkerOwnProfile = async function(e) {
     e.preventDefault();
+    if (savingProfile) return;
     const f=e.target;
     const categories=[...f.querySelectorAll('input[name="worker_category"]:checked')].map(x=>Number(x.value));
     if (!categories.length) return toast('Selecciona al menos una especialidad.', 'err');
     if (categories.length > 4) return toast('Puedes seleccionar hasta 4 especialidades.', 'err');
     if (zoneState.length > 12) return toast('Puedes seleccionar hasta 12 comunas.', 'err');
 
+    const btn=document.getElementById('worker-profile-save');
+    const status=document.getElementById('worker-profile-save-status');
+    savingProfile=true;
+    if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+    if(status)status.textContent='Guardando cambios…';
     try {
       await api('/worker/profile', {method:'PUT', body:{
         oficio:f.oficio.value.trim(),
@@ -105,8 +113,15 @@
         comunas:zoneState.map(z=>Number(z.id))
       }});
       await refreshMe();
+      if(status){status.textContent='✓ Perfil actualizado correctamente.';status.style.color='#087f5b';}
       toast('Perfil profesional actualizado.', 'ok');
-      route();
-    } catch (x) { toast(x.message, 'err'); }
+      // No llamamos route(): el editor y las demás secciones permanecen abiertos.
+    } catch (x) {
+      if(status){status.textContent=x.message||'No se pudo guardar el perfil.';status.style.color='#b42318';}
+      toast(x.message, 'err');
+    } finally {
+      savingProfile=false;
+      if(btn){btn.disabled=false;btn.textContent='Guardar perfil';}
+    }
   };
 })();
