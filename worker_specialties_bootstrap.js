@@ -6,10 +6,16 @@ const originalReadFileSync=fs.readFileSync;
 const injection=`
 // ============ ESPECIALIDADES PROFESIONALES ============
 try{db.prepare('ALTER TABLE worker_profiles ADD COLUMN primary_category_id INTEGER').run();}catch(_){}
+function dySpecialtyWorker(user){
+  let wp=getWorkerByUser(user.id);
+  if(wp)return wp;
+  try{db.prepare('INSERT INTO worker_profiles(user_id,oficio,description,comuna_id) VALUES(?,?,?,?)').run(user.id,'Oficio por definir','',user.comuna_id||null);}catch(e){console.error('[DatoYa] reparar perfil profesional',e.message)}
+  return getWorkerByUser(user.id);
+}
 
 app.get('/api/worker/specialties',auth,requireRole('trabajador'),(req,res)=>{
-  const wp=getWorkerByUser(req.user.id);
-  if(!wp) return res.status(404).json({error:'Perfil profesional no encontrado'});
+  const wp=dySpecialtyWorker(req.user);
+  if(!wp) return res.status(409).json({error:'No pudimos preparar tu perfil profesional. Intenta nuevamente.'});
   const profile=db.prepare('SELECT id,oficio,primary_category_id FROM worker_profiles WHERE id=?').get(wp.id);
   const selected=db.prepare('SELECT category_id FROM worker_categories WHERE worker_id=? ORDER BY category_id').all(wp.id).map(x=>Number(x.category_id));
   const categories=db.prepare('SELECT id,name,icon FROM categories WHERE active=1 ORDER BY id').all();
@@ -20,8 +26,8 @@ app.get('/api/worker/specialties',auth,requireRole('trabajador'),(req,res)=>{
 });
 
 app.post('/api/worker/specialties',auth,requireRole('trabajador'),(req,res)=>{
-  const wp=getWorkerByUser(req.user.id);
-  if(!wp) return res.status(404).json({error:'Perfil profesional no encontrado'});
+  const wp=dySpecialtyWorker(req.user);
+  if(!wp) return res.status(409).json({error:'No pudimos preparar tu perfil profesional. Intenta nuevamente.'});
   const ids=[...new Set((Array.isArray(req.body?.category_ids)?req.body.category_ids:[]).map(Number).filter(Number.isInteger))];
   const primary=Number(req.body?.primary_category_id);
   if(!ids.length) return res.status(400).json({error:'Elige al menos una especialidad'});
@@ -31,9 +37,8 @@ app.post('/api/worker/specialties',auth,requireRole('trabajador'),(req,res)=>{
   const valid=db.prepare('SELECT id,name FROM categories WHERE active=1 AND id IN ('+marks+')').all(...ids);
   if(valid.length!==ids.length) return res.status(400).json({error:'Hay una categoría no válida'});
   const main=valid.find(x=>Number(x.id)===primary);
-  db.prepare('DELETE FROM worker_categories WHERE worker_id=?').run(wp.id);
-  for(const id of ids) db.prepare('INSERT INTO worker_categories(worker_id,category_id) VALUES(?,?)').run(wp.id,id);
-  db.prepare('UPDATE worker_profiles SET primary_category_id=?,oficio=? WHERE id=?').run(primary,main?.name||wp.oficio,wp.id);
+  const save=db.transaction(()=>{db.prepare('DELETE FROM worker_categories WHERE worker_id=?').run(wp.id);for(const id of ids)db.prepare('INSERT INTO worker_categories(worker_id,category_id) VALUES(?,?)').run(wp.id,id);db.prepare('UPDATE worker_profiles SET primary_category_id=?,oficio=? WHERE id=?').run(primary,main?.name||wp.oficio,wp.id);});
+  save();
   res.json({ok:true,primary_category_id:primary,category_ids:ids,oficio:main?.name||wp.oficio});
 });
 `;
