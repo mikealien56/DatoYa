@@ -9,6 +9,6 @@ if(fs.existsSync(src)){
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){
   let h=fs.readFileSync(idx,'utf8');
-  h=h.replace(/\/worker_profile_fix\.js(?:\?v=\d+)?/g,'/worker_profile_fix.js?v=5');
+  h=h.replace(/\/worker_profile_fix\.js(?:\?v=\d+)?/g,'/worker_profile_fix.js?v=6');
   fs.writeFileSync(idx,h);
 }
