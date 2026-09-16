@@ -20,9 +20,11 @@ echo 'Canonical flow: verify emails'
 verify_email "$C"
 verify_email "$W"
 echo 'Canonical flow: configure worker'
-req 'worker profile' -b "$W" -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"Gasfíter CI","description":"Profesional temporal para pruebas automáticas","categories":[1],"comuna_id":4}' >/dev/null
+req 'worker profile' -b "$W" -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"Profesional CI","description":"Profesional temporal para pruebas automáticas","comuna_id":4}' >/dev/null
+CAT=$(req 'worker specialties catalog' -b "$W" "$B/worker/specialties" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert d.get("categories"),d;print(d["categories"][0]["id"])')
+req 'save worker specialty' -b "$W" -X POST "$B/worker/specialties" -H "$J" -d "{\"category_ids\":[$CAT],\"primary_category_id\":$CAT}" >/dev/null
 echo 'Canonical flow: create request and quote'
-R=$(req 'create request' -b "$C" -X POST "$B/requests" -H "$J" -d '{"category_id":1,"title":"Flujo protegido V2","description":"Prueba automática del ciclo oficial","comuna_id":4}')
+R=$(req 'create request' -b "$C" -X POST "$B/requests" -H "$J" -d "{\"category_id\":$CAT,\"title\":\"Flujo protegido V2\",\"description\":\"Prueba automática del ciclo oficial\",\"comuna_id\":4}")
 REQ=$(echo "$R"|python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
 req 'create quote' -b "$W" -X POST "$B/quotes" -H "$J" -d "{\"request_id\":$REQ,\"price\":25000,\"description\":\"Prueba flujo V2\"}" >/dev/null
 Q=$(req 'request detail' -b "$C" "$B/requests/$REQ"|python3 -c 'import sys,json;print(json.load(sys.stdin)["quotes"][-1]["id"])')
@@ -31,7 +33,7 @@ echo 'Canonical flow: run and complete job'
 req 'confirm job' -b "$W" -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"CONFIRMADO"}' >/dev/null
 req 'start job' -b "$W" -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"EN_PROCESO"}' >/dev/null
 LEGACY=$(curl -sS -b "$C" -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"FINALIZADO"}')
-echo "$LEGACY"|grep -q 'Protección DatoYa'
+echo "$LEGACY"|grep -Eq 'Respaldo DatoYa|Protección DatoYa|confirmación de ambas partes'
 A=$(req 'worker completion' -b "$W" -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
 echo "$A"|grep -q '"finalized":false'
 Z=$(req 'client completion' -b "$C" -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
