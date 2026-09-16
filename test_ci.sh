@@ -16,6 +16,8 @@ if ! grep -q "mpValidatedConnection" mercadopago_source_bootstrap.js||! grep -q 
 if ! grep -q 'Mercado Pago · No conectado' mercadopago_ui.js||! grep -q '✓ Mercado Pago conectado' mercadopago_ui.js;then echo "Estados de conexión Mercado Pago incompletos";exit 1;fi
 if ! grep -q "split('?')\[0\]" app_runtime_fix.js;then echo "El router todavía confunde los filtros con la ruta";exit 1;fi
 if ! grep -q '#/cerca?cat=' home_search_polish.js||! grep -q 'routes.cerca=mountCategory' nearby_ui.js;then echo "Las categorías de Inicio no abren la búsqueda cercana";exit 1;fi
+node --check admin_navigation_polish.js
+if ! grep -q 'data-admin-unified-nav' admin_navigation_polish.js||! grep -q "querySelectorAll('.admin-tabs,.admin-menu-organized,\[data-admin-compact-nav\]')" admin_navigation_polish.js;then echo "La navegación administrativa única no está instalada";exit 1;fi
 if grep -q "routes.buscar=search" home_search_polish.js;then echo "Una capa antigua todavía reemplaza la búsqueda nacional";exit 1;fi
 if ! grep -q 'DATOYA_CANONICAL_JOB_FLOW_V1' job_flow_guard.js;then echo "Guard del ciclo oficial no está presente";exit 1;fi
 for field in urgency preferred_date budget region_id comuna_id address_detail photos;do if ! grep -q "$field" request_wizard_ui.js;then echo "Wizard no contempla $field";exit 1;fi;done
