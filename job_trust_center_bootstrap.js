@@ -74,7 +74,8 @@ app.post('/api/jobs/:id/complete-confirm',auth,(req,res)=>{
  const a=trustAccess(job,req.user); if(!a.ok||a.role==='admin')return res.status(403).json({error:'Sin acceso'});
  if(job.status==='FINALIZADO')return res.json({ok:true,finalized:true,already_finalized:true});
  if(job.status!=='EN_PROCESO')return res.status(409).json({error:'El trabajo debe estar En proceso antes de confirmar su término'});
- try{db.prepare('INSERT INTO job_completion_confirmations(job_id,user_id,role) VALUES(?,?,?)').run(job.id,req.user.id,a.role);}catch(_){}
+ const priorConfirmation=db.prepare('SELECT id FROM job_completion_confirmations WHERE job_id=? AND user_id=?').get(job.id,req.user.id);
+ if(!priorConfirmation)db.prepare('INSERT INTO job_completion_confirmations(job_id,user_id,role) VALUES(?,?,?)').run(job.id,req.user.id,a.role);
  const rows=db.prepare('SELECT role FROM job_completion_confirmations WHERE job_id=?').all(job.id); const both=rows.some(x=>x.role==='cliente')&&rows.some(x=>x.role==='trabajador');
  const target=a.role==='cliente'?a.wp.user_id:job.client_id;
  if(!both){notify(target,'trabajo','✅ La otra persona indicó que el trabajo terminó. Confirma el cierre desde Mis trabajos.','#/trabajos');return res.json({ok:true,finalized:false});}
