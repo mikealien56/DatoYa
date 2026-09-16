@@ -3,6 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 export DEMO_MODE=false
+# Mantener AUTH_TEST_MODE aunque el workflow lo haya definido vacío/no definido.
 export AUTH_TEST_MODE=true
 export DB_DRIVER=postgres
 export DATABASE_URL="${DATABASE_URL:-postgres://postgres:postgres@127.0.0.1:5432/datoya_test}"
@@ -51,19 +52,16 @@ STAMP="$(date +%s)-$$"
 CLIENT_EMAIL="cliente.pg.${STAMP}@test.datoya.local"
 WORKER_EMAIL="profesional.pg.${STAMP}@test.datoya.local"
 
-curl -fsS -c /tmp/pg_client.cookies -X POST "$B/auth/register" -H "$J" \
-  -d "{\"name\":\"Cliente Beta Real\",\"email\":\"$CLIENT_EMAIL\",\"password\":\"$PASS\",\"phone\":\"+56911110000\",\"role\":\"cliente\",\"comuna_id\":$COMUNA}" >/tmp/pg_client.json
+curl -fsS -c /tmp/pg_client.cookies -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Cliente Beta Real\",\"email\":\"$CLIENT_EMAIL\",\"password\":\"$PASS\",\"phone\":\"+56911110000\",\"role\":\"cliente\",\"comuna_id\":$COMUNA}" >/tmp/pg_client.json
 grep -q '"ok":true' /tmp/pg_client.json
 verify_email /tmp/pg_client.cookies
 
-curl -fsS -c /tmp/pg_worker.cookies -X POST "$B/auth/register" -H "$J" \
-  -d "{\"name\":\"Profesional Beta Real\",\"email\":\"$WORKER_EMAIL\",\"password\":\"$PASS\",\"phone\":\"+56922220000\",\"role\":\"trabajador\",\"comuna_id\":$COMUNA}" >/tmp/pg_worker.json
+curl -fsS -c /tmp/pg_worker.cookies -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Profesional Beta Real\",\"email\":\"$WORKER_EMAIL\",\"password\":\"$PASS\",\"phone\":\"+56922220000\",\"role\":\"trabajador\",\"comuna_id\":$COMUNA}" >/tmp/pg_worker.json
 grep -q '"ok":true' /tmp/pg_worker.json
 verify_email /tmp/pg_worker.cookies
 
 WORKER_ID=$(curl -fsS -b /tmp/pg_worker.cookies "$B/auth/me" | python3 -c 'import sys,json; print(json.load(sys.stdin)["user"]["worker"]["id"])')
-PROFILE=$(curl -fsS -b /tmp/pg_worker.cookies -X PUT "$B/worker/profile" -H "$J" \
-  -d "{\"oficio\":\"Gasfíter\",\"description\":\"Profesional beta real\",\"years_experience\":5,\"price_from\":20000,\"status\":\"disponible\",\"comuna_id\":$COMUNA,\"comunas\":[$COMUNA]}")
+PROFILE=$(curl -fsS -b /tmp/pg_worker.cookies -X PUT "$B/worker/profile" -H "$J" -d "{\"oficio\":\"Gasfíter\",\"description\":\"Profesional beta real\",\"years_experience\":5,\"price_from\":20000,\"status\":\"disponible\",\"comuna_id\":$COMUNA,\"comunas\":[$COMUNA]}")
 echo "$PROFILE" | grep -q '"ok":true'
 SPEC=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/worker/specialties" -H "$J" -d "{\"category_ids\":[$CAT],\"primary_category_id\":$CAT}")
 echo "$SPEC" | grep -q '"ok":true'
@@ -71,8 +69,7 @@ SPEC_STATE=$(curl -fsS -b /tmp/pg_worker.cookies "$B/worker/specialties")
 echo "$SPEC_STATE" | python3 -c "import sys,json; d=json.load(sys.stdin); assert $CAT in [int(x) for x in d['selected']], d; assert int(d['primary_category_id'])==$CAT, d"
 echo "✅ Registro, verificación, perfil y especialidad profesional reales"
 
-REQ_HTTP=$(curl -sS -o /tmp/pg_request.json -w '%{http_code}' -b /tmp/pg_client.cookies -X POST "$B/requests" -H "$J" \
-  -d "{\"category_id\":$CAT,\"title\":\"Cambio de llave beta PostgreSQL\",\"description\":\"Necesito cambiar una llave de agua\",\"comuna_id\":$COMUNA,\"address_detail\":\"Dirección privada de prueba\",\"urgency\":\"hoy\",\"budget\":32000}")
+REQ_HTTP=$(curl -sS -o /tmp/pg_request.json -w '%{http_code}' -b /tmp/pg_client.cookies -X POST "$B/requests" -H "$J" -d "{\"category_id\":$CAT,\"title\":\"Cambio de llave beta PostgreSQL\",\"description\":\"Necesito cambiar una llave de agua\",\"comuna_id\":$COMUNA,\"address_detail\":\"Dirección privada de prueba\",\"urgency\":\"hoy\",\"budget\":32000}")
 REQ_JSON=$(cat /tmp/pg_request.json)
 if [ "$REQ_HTTP" != "200" ]; then echo "Publicar solicitud falló HTTP $REQ_HTTP: $REQ_JSON"; echo "Estado seguridad cliente:"; curl -sS -b /tmp/pg_client.cookies "$B/security/status" || true; false; fi
 echo "$REQ_JSON" | grep -q '"ok":true'
@@ -83,8 +80,7 @@ if [ "$FEED_HTTP" != "200" ]; then echo "Feed profesional falló HTTP $FEED_HTTP
 echo "$FEED" | grep -q 'Cambio de llave beta PostgreSQL'
 echo "✅ Solicitud real visible al profesional compatible"
 
-QUOTE=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/quotes" -H "$J" \
-  -d "{\"request_id\":$REQ,\"price\":32000,\"description\":\"Cambio completo de llave\",\"available_date\":\"2026-09-15\",\"duration_estimate\":\"1 hora\",\"materials_included\":true}")
+QUOTE=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/quotes" -H "$J" -d "{\"request_id\":$REQ,\"price\":32000,\"description\":\"Cambio completo de llave\",\"available_date\":\"2026-09-15\",\"duration_estimate\":\"1 hora\",\"materials_included\":true}")
 echo "$QUOTE" | grep -q '"ok":true'
 DETAIL=$(curl -fsS -b /tmp/pg_client.cookies "$B/requests/$REQ")
 QID=$(echo "$DETAIL" | python3 -c 'import sys,json; q=json.load(sys.stdin)["quotes"]; print(q[0]["id"])')
@@ -103,8 +99,7 @@ echo "✅ Aceptación y comisión 10% persistidas"
 curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"CONFIRMADO"}' | grep -q '"ok":true'
 curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"EN_PROCESO"}' | grep -q '"ok":true'
 
-EVID=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/evidence" -H "$J" \
-  -d '{"stage":"DESPUES","mime_type":"image/png","original_name":"evidencia-beta.png","note":"Persistencia PostgreSQL","data":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZpV8AAAAASUVORK5CYII="}')
+EVID=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/evidence" -H "$J" -d '{"stage":"DESPUES","mime_type":"image/png","original_name":"evidencia-beta.png","note":"Persistencia PostgreSQL","data":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZpV8AAAAASUVORK5CYII="}')
 echo "$EVID" | grep -q '"storage":"database"'
 EVID_URL=$(echo "$EVID" | python3 -c 'import sys,json; print(json.load(sys.stdin)["url"])')
 LIST_BEFORE=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs/$JOB/evidence")
