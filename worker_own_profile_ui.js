@@ -113,6 +113,9 @@
         comunas:zoneState.map(z=>Number(z.id))
       }});
       await refreshMe();
+      await renderWorkerOwnProfile();
+      const refreshedStatus=document.getElementById('worker-profile-save-status');
+      if(refreshedStatus){refreshedStatus.textContent='✓ Perfil actualizado correctamente.';refreshedStatus.style.color='#087f5b';}
       if(status){status.textContent='✓ Perfil actualizado correctamente.';status.style.color='#087f5b';}
       toast('Perfil profesional actualizado.', 'ok');
       // No llamamos route(): el editor y las demás secciones permanecen abiertos.
