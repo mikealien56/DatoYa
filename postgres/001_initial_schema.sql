@@ -501,4 +501,11 @@ INSERT INTO settings(key,value) VALUES
   ('max_job_photos','20')
 ON CONFLICT(key) DO NOTHING;
 
+-- Catálogo real: migración aditiva e idempotente para instalaciones nuevas y existentes.
+INSERT INTO categories(name,icon,active)
+SELECT 'Cámaras y Seguridad','📹',1
+WHERE NOT EXISTS (
+  SELECT 1 FROM categories WHERE LOWER(name)=LOWER('Cámaras y Seguridad')
+);
+
 COMMIT;

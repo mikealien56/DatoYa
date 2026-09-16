@@ -30,13 +30,15 @@ verify_email "$O"
 verify_email "$W2"
 echo 'Canonical flow: configure worker'
 req 'worker profile' -b "$W" -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"Profesional CI","description":"Profesional temporal para pruebas automáticas","comuna_id":4}' >/dev/null
-CAT=$(req 'worker specialties catalog' -b "$W" "$B/worker/specialties" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert d.get("categories"),d;print(d["categories"][0]["id"])')
+CAT=$(req 'worker specialties catalog' -b "$W" "$B/worker/specialties" | python3 -c 'import sys,json;d=json.load(sys.stdin);c=next((x for x in d.get("categories",[]) if x.get("name")=="Cámaras y Seguridad"),None);assert c,d;assert c.get("icon")=="📹",c;print(c["id"])')
 req 'save worker specialty' -b "$W" -X POST "$B/worker/specialties" -H "$J" -d "{\"category_ids\":[$CAT],\"primary_category_id\":$CAT}" >/dev/null
+req 'search camera professional' "$B/workers?category_id=$CAT" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert any(w.get("name")=="Profesional CI" for w in d.get("workers",[])),d'
 req 'other worker profile' -b "$W2" -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"Profesional Ajeno CI","description":"Profesional no seleccionado para prueba de autorización","comuna_id":4}' >/dev/null
 req 'other worker specialty' -b "$W2" -X POST "$B/worker/specialties" -H "$J" -d "{\"category_ids\":[$CAT],\"primary_category_id\":$CAT}" >/dev/null
 echo 'Canonical flow: create request and quote'
 R=$(req 'create request' -b "$C" -X POST "$B/requests" -H "$J" -d "{\"category_id\":$CAT,\"title\":\"Flujo protegido V2\",\"description\":\"Prueba automática del ciclo oficial\",\"comuna_id\":4}")
 REQ=$(echo "$R"|python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+req 'camera request in professional feed' -b "$W" "$B/requests/feed" | python3 -c "import sys,json;d=json.load(sys.stdin);assert any(int(r.get('id',0))==$REQ for r in d.get('requests',[])),d"
 req 'create quote' -b "$W" -X POST "$B/quotes" -H "$J" -d "{\"request_id\":$REQ,\"price\":25000,\"description\":\"Prueba flujo V2\",\"quote_type\":\"estimacion\",\"materials_treatment\":\"por_determinar\"}" >/dev/null
 Q=$(req 'request detail' -b "$C" "$B/requests/$REQ"|python3 -c 'import sys,json;print(json.load(sys.stdin)["quotes"][-1]["id"])')
 JOB=$(req 'accept quote' -b "$C" -X POST "$B/quotes/$Q/accept" -H "$J"|python3 -c 'import sys,json;print(json.load(sys.stdin)["job_id"])')

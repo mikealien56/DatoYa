@@ -309,7 +309,7 @@ function seed() {
   const categorias = [
     ['Gasfíter','🔧'], ['Electricista','⚡'], ['Pintura','🎨'], ['Construcción','🧱'],
     ['Limpieza','🧹'], ['Jardinería','🌳'], ['Tecnología','💻'], ['Mecánica','🚗'],
-    ['Cerrajería','🔑'], ['Otros servicios','➕']
+    ['Cerrajería','🔑'], ['Cámaras y Seguridad','📹'], ['Otros servicios','➕']
   ];
   const catIds = {};
   for (const [n, i] of categorias) catIds[n] = insCat.run(n, i).lastInsertRowid;
