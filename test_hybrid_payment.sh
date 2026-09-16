@@ -7,7 +7,7 @@ HYBRID_PORT=${HYBRID_PORT:-3101}
 HYBRID_DB_DRIVER=${HYBRID_DB_DRIVER:-}
 if [ "$HYBRID_DEMO_MODE" = "true" ]; then rm -f datoya.db datoya.db-shm datoya.db-wal; fi
 
-PORT="$HYBRID_PORT" DEMO_MODE="$HYBRID_DEMO_MODE" DB_DRIVER="$HYBRID_DB_DRIVER" MP_HYBRID_ENFORCE=0 npm start >/tmp/datoya-hybrid.log 2>&1 &
+PORT="$HYBRID_PORT" DEMO_MODE="$HYBRID_DEMO_MODE" DB_DRIVER="$HYBRID_DB_DRIVER" AUTH_TEST_MODE=true MP_HYBRID_ENFORCE=0 npm start >/tmp/datoya-hybrid.log 2>&1 &
 PID=$!
 cleanup(){ kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
@@ -26,8 +26,11 @@ if [ "$HYBRID_DEMO_MODE" = "true" ]; then
   curl -fsS -c /tmp/dy_h_worker -X POST "$B/auth/login" -H "$J" -d '{"email":"trabajador@demo.cl","password":"demo1234"}' >/dev/null
 else
   TS=$(date +%s%N)
-  curl -fsS -c /tmp/dy_h_cli -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Cliente Híbrido\",\"email\":\"hybrid-client-$TS@test.cl\",\"password\":\"test1234\",\"role\":\"cliente\",\"comuna_id\":4}" >/dev/null
-  curl -fsS -c /tmp/dy_h_worker -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Profesional Híbrido\",\"email\":\"hybrid-worker-$TS@test.cl\",\"password\":\"test1234\",\"role\":\"trabajador\",\"phone\":\"56911112222\",\"comuna_id\":4}" >/dev/null
+  curl -fsS -c /tmp/dy_h_cli -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Cliente Híbrido\",\"email\":\"hybrid-client-$TS@test.cl\",\"password\":\"test1234\",\"role\":\"cliente\",\"phone\":\"+56911112222\",\"comuna_id\":4}" >/dev/null
+  curl -fsS -c /tmp/dy_h_worker -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Profesional Híbrido\",\"email\":\"hybrid-worker-$TS@test.cl\",\"password\":\"test1234\",\"role\":\"trabajador\",\"phone\":\"+56933334444\",\"comuna_id\":4}" >/dev/null
+  verify_email(){ local c="$1" r token; r=$(curl -fsS -b "$c" -X POST "$B/auth/email-verification/request" -H "$J" -d '{}'); token=$(printf '%s' "$r" | python3 -c 'import sys,json;print(json.load(sys.stdin)["test_token"])'); curl -fsS -X POST "$B/auth/email-verification/confirm" -H "$J" -d "{\"token\":\"$token\"}" >/dev/null; }
+  verify_email /tmp/dy_h_cli
+  verify_email /tmp/dy_h_worker
   curl -fsS -b /tmp/dy_h_worker -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"Gasfíter","description":"Profesional de prueba híbrida","status":"disponible","comuna_id":4,"categories":[1],"comunas":[4]}' >/dev/null
 fi
 
