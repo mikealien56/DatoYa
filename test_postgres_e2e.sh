@@ -114,8 +114,10 @@ curl -fsS -b /tmp/pg_client.cookies "http://127.0.0.1:${PORT}${EVID_URL}" -o /tm
 [ -s /tmp/evidence-persisted.png ]
 echo "✅ Evidencia y sesión sobreviven reinicio con PostgreSQL"
 
-FIRST_HTTP=$(curl -sS -o /tmp/pg_first_complete.json -w '%{http_code}' -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
+FIRST_CURL=0
+FIRST_HTTP=$(curl -sS -o /tmp/pg_first_complete.json -w '%{http_code}' -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}') || FIRST_CURL=$?
 FIRST=$(cat /tmp/pg_first_complete.json)
+[ "$FIRST_CURL" = "0" ] || { echo "Primera confirmación falló en curl ($FIRST_CURL), HTTP $FIRST_HTTP: $FIRST"; exit 1; }
 [ "$FIRST_HTTP" = "200" ] || { echo "Primera confirmación falló HTTP $FIRST_HTTP: $FIRST"; exit 1; }
 echo "$FIRST" | grep -q '"finalized":false' || { echo "Primera confirmación inesperada: $FIRST"; exit 1; }
 LEGACY=$(curl -sS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"FINALIZADO"}')
