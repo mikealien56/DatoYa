@@ -8,12 +8,19 @@
   async function api2(url){const r=await fetch('/api'+url,{headers:{Accept:'application/json'}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'No fue posible cargar los datos');return d;}
   function getView(){return document.querySelector('#view');}
   function isHome(){return location.hash==='#/'||location.hash===''||location.hash==='#';}
+  function renderRealHome(){
+    const homeRoute=typeof routes!=='undefined'&&typeof routes['']==='function'?routes['']:null;
+    if(homeRoute){Promise.resolve(homeRoute()).catch(()=>{if(typeof route==='function')route();});return;}
+    if(typeof route==='function'){route();return;}
+    if(typeof window.__datoyaNearbyHome==='function')window.__datoyaNearbyHome();
+  }
   function goHome(){
     active=false;
     navigationEpoch++;
     if(isHome()){
-      if(typeof route==='function')route();
-      else if(typeof window.__datoyaNearbyHome==='function')window.__datoyaNearbyHome();
+      // La vista de cercanía puede seguir montada aunque el hash ya sea #/.
+      // En ese caso un enlace normal no dispara hashchange: forzamos la ruta real de Inicio.
+      renderRealHome();
       return;
     }
     location.hash='#/';
@@ -36,7 +43,12 @@
   window.__datoyaNearbyHome=mount;
   window.__datoyaGoHome=goHome;
   window.addEventListener('hashchange',()=>{active=false;navigationEpoch++;});
-  const logo=document.querySelector('.logo');
-  if(logo){logo.addEventListener('click',e=>{e.preventDefault();goHome();});}
+  // Delegación en captura: funciona aunque la cabecera sea reemplazada por otro módulo UI.
+  document.addEventListener('click',e=>{
+    const logo=e.target.closest?.('a.logo');
+    if(!logo)return;
+    e.preventDefault();
+    goHome();
+  },true);
   const style=document.createElement('style');style.textContent=`.nearby-hero{padding:26px 4px 18px}.nearby-hero h1{margin:6px 0 8px}.nearby-hero p{color:#64748b;max-width:680px}.nearby-kicker{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--azul,#1d4ed8)}.nearby-location-card{max-width:620px;margin:0 auto}.nearby-cat-grid{margin-bottom:14px}.nearby-note{padding:12px 14px;border-radius:12px;background:#f1f5f9;color:#475569;font-size:13px;margin:14px 0}.nearby-results-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 16px}.nearby-results-head h2{margin:0}.nearby-results-head p{margin:5px 0 0}.nearby-results-head .btn{flex:none}.nearby-location-card .btn{margin-top:10px}.nearby-empty-actions{display:flex;flex-direction:column;gap:9px;margin-top:18px}.nearby-empty-actions .btn{width:100%;justify-content:center}@media(max-width:560px){.nearby-results-head{align-items:flex-start}.nearby-results-head h2{font-size:20px}}`;document.head.appendChild(style);
 })();
