@@ -53,10 +53,25 @@ app.get('/api/worker/location', auth, requireRole('trabajador'), (req, res) => {
 
 app.get('/api/workers/nearby', (req, res) => {
   const categoryId = Number(req.query.category_id);
+  const comunaId = Number(req.query.comuna_id);
   const lat = Number(req.query.lat);
   const lng = Number(req.query.lng);
   const radius = Math.min(Math.max(Number(req.query.radius_km) || 25, 1), 100);
   if (!Number.isInteger(categoryId) || categoryId <= 0) return res.status(400).json({error:'Especialidad inválida'});
+  if (Number.isInteger(comunaId) && comunaId > 0) {
+    const rows = db.prepare(
+      WORKER_SELECT +
+      ' WHERE u.is_active=1 AND wp.id IN (SELECT worker_id FROM worker_categories WHERE category_id=?)' +
+      ' AND (wp.comuna_id=? OR wp.id IN (SELECT worker_id FROM worker_comunas WHERE comuna_id=?))' +
+      ' ORDER BY wp.is_featured DESC,wp.is_pro DESC,wp.rating_avg DESC LIMIT 60'
+    ).all(categoryId,comunaId,comunaId);
+    for (const w of rows) {
+      w.location_source='COMUNA';w.distance_km=null;w.distance_label='Atiende en esta comuna';
+      w.categories=db.prepare('SELECT c.name,c.icon FROM worker_categories wc JOIN categories c ON c.id=wc.category_id WHERE wc.worker_id=?').all(w.id);
+      delete w.user_id;delete w.lat;delete w.lng;
+    }
+    return res.json({workers:rows,comuna_id:comunaId,privacy:'Resultados vinculados a la comuna seleccionada y a las zonas de atención registradas por cada profesional.'});
+  }
   if (!Number.isFinite(lat) || lat < -56 || lat > -17 || !Number.isFinite(lng) || lng < -76 || lng > -66) {
     return res.status(400).json({error:'Ubicación GPS inválida'});
   }

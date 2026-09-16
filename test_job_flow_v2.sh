@@ -33,6 +33,7 @@ req 'worker profile' -b "$W" -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"P
 CAT=$(req 'worker specialties catalog' -b "$W" "$B/worker/specialties" | python3 -c 'import sys,json;d=json.load(sys.stdin);c=next((x for x in d.get("categories",[]) if x.get("name")=="Cámaras y Seguridad"),None);assert c,d;assert c.get("icon")=="📹",c;print(c["id"])')
 req 'save worker specialty' -b "$W" -X POST "$B/worker/specialties" -H "$J" -d "{\"category_ids\":[$CAT],\"primary_category_id\":$CAT}" >/dev/null
 req 'search camera professional' "$B/workers?category_id=$CAT" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert any(w.get("name")=="Profesional CI" for w in d.get("workers",[])),d'
+req 'camera professional by service commune' "$B/workers/nearby?category_id=$CAT&comuna_id=4" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert any(w.get("name")=="Profesional CI" for w in d.get("workers",[])),d'
 req 'other worker profile' -b "$W2" -X PUT "$B/worker/profile" -H "$J" -d '{"oficio":"Profesional Ajeno CI","description":"Profesional no seleccionado para prueba de autorización","comuna_id":4}' >/dev/null
 req 'other worker specialty' -b "$W2" -X POST "$B/worker/specialties" -H "$J" -d "{\"category_ids\":[$CAT],\"primary_category_id\":$CAT}" >/dev/null
 echo 'Canonical flow: create request and quote'
