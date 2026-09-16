@@ -7,16 +7,16 @@ const originalReadFileSync=fs.readFileSync;
 const injection=`
 // ============ DATOYA PROTECCION / BITACORA ============
 db.prepare(\`CREATE TABLE IF NOT EXISTS job_evidence (
- id INTEGER PRIMARY KEY, job_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+ id INTEGER PRIMARY KEY AUTOINCREMENT, job_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
  phase TEXT NOT NULL, image_data TEXT, note TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP
 )\`).run();
 db.prepare(\`CREATE TABLE IF NOT EXISTS job_completion_confirmations (
- id INTEGER PRIMARY KEY, job_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+ id INTEGER PRIMARY KEY AUTOINCREMENT, job_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
  role TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP
 )\`).run();
 try{db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_job_completion_user ON job_completion_confirmations(job_id,user_id)').run();}catch(_){}
 db.prepare(\`CREATE TABLE IF NOT EXISTS job_disputes (
- id INTEGER PRIMARY KEY, job_id INTEGER NOT NULL, opened_by INTEGER NOT NULL,
+ id INTEGER PRIMARY KEY AUTOINCREMENT, job_id INTEGER NOT NULL, opened_by INTEGER NOT NULL,
  reason TEXT NOT NULL, details TEXT, status TEXT DEFAULT 'abierta', resolution TEXT,
  created_at TEXT DEFAULT CURRENT_TIMESTAMP, resolved_at TEXT
 )\`).run();
