@@ -122,8 +122,10 @@ FIRST=$(cat /tmp/pg_first_complete.json)
 echo "$FIRST" | grep -q '"finalized":false' || { echo "Primera confirmación inesperada: $FIRST"; exit 1; }
 LEGACY=$(curl -sS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"FINALIZADO"}')
 echo "$LEGACY" | grep -Eq 'Respaldo DatoYa|Protección DatoYa|confirmación de ambas partes|aún no ha declarado terminado' || { echo "Respuesta de cierre directo inesperada: $LEGACY"; exit 1; }
-FINAL=$(curl -fsS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
-echo "$FINAL" | grep -q '"finalized":true'
+FINAL_HTTP=$(curl -sS -o /tmp/pg_final_complete.json -w '%{http_code}' -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
+FINAL=$(cat /tmp/pg_final_complete.json)
+[ "$FINAL_HTTP" = "200" ] || { echo "Confirmación final falló HTTP $FINAL_HTTP: $FINAL"; exit 1; }
+echo "$FINAL" | grep -q '"finalized":true' || { echo "Confirmación final inesperada: $FINAL"; exit 1; }
 STATUS=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs" | python3 -c "import sys,json; d=json.load(sys.stdin)['jobs']; print(next(x for x in d if int(x['id'])==$JOB)['status'])")
 [ "$STATUS" = "FINALIZADO" ]
 echo "✅ Trabajo finalizado con confirmación mutua sobre PostgreSQL"
