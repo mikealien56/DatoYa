@@ -24,8 +24,8 @@ db.prepare(\`CREATE TABLE IF NOT EXISTS job_disputes (
 function trustAccess(job,user){
  const wp=db.prepare('SELECT * FROM worker_profiles WHERE id=?').get(job.worker_id);
  if(!wp)return {ok:false};
- if(job.client_id===user.id)return {ok:true,role:'cliente',wp};
- if(wp.user_id===user.id)return {ok:true,role:'trabajador',wp};
+ if(Number(job.client_id)===Number(user.id))return {ok:true,role:'cliente',wp};
+ if(Number(wp.user_id)===Number(user.id))return {ok:true,role:'trabajador',wp};
  if(user.role==='admin')return {ok:true,role:'admin',wp};
  return {ok:false,wp};
 }
