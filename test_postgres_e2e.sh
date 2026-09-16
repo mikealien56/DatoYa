@@ -114,10 +114,12 @@ curl -fsS -b /tmp/pg_client.cookies "http://127.0.0.1:${PORT}${EVID_URL}" -o /tm
 [ -s /tmp/evidence-persisted.png ]
 echo "✅ Evidencia y sesión sobreviven reinicio con PostgreSQL"
 
-FIRST=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
-echo "$FIRST" | grep -q '"finalized":false'
+FIRST_HTTP=$(curl -sS -o /tmp/pg_first_complete.json -w '%{http_code}' -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
+FIRST=$(cat /tmp/pg_first_complete.json)
+[ "$FIRST_HTTP" = "200" ] || { echo "Primera confirmación falló HTTP $FIRST_HTTP: $FIRST"; exit 1; }
+echo "$FIRST" | grep -q '"finalized":false' || { echo "Primera confirmación inesperada: $FIRST"; exit 1; }
 LEGACY=$(curl -sS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"FINALIZADO"}')
-echo "$LEGACY" | grep -Eq 'Respaldo DatoYa|Protección DatoYa|confirmación de ambas partes|aún no ha declarado terminado'
+echo "$LEGACY" | grep -Eq 'Respaldo DatoYa|Protección DatoYa|confirmación de ambas partes|aún no ha declarado terminado' || { echo "Respuesta de cierre directo inesperada: $LEGACY"; exit 1; }
 FINAL=$(curl -fsS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
 echo "$FINAL" | grep -q '"finalized":true'
 STATUS=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs" | python3 -c "import sys,json; d=json.load(sys.stdin)['jobs']; print(next(x for x in d if int(x['id'])==$JOB)['status'])")
