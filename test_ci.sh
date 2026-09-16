@@ -16,6 +16,7 @@ if ! grep -q "mpValidatedConnection" mercadopago_source_bootstrap.js||! grep -q 
 if ! grep -q 'Mercado Pago · No conectado' mercadopago_ui.js||! grep -q '✓ Mercado Pago conectado' mercadopago_ui.js;then echo "Estados de conexión Mercado Pago incompletos";exit 1;fi
 if ! grep -q "split('?')\[0\]" app_runtime_fix.js;then echo "El router todavía confunde los filtros con la ruta";exit 1;fi
 if ! grep -q '#/cerca?cat=' home_search_polish.js||! grep -q 'routes.cerca=mountCategory' nearby_ui.js;then echo "Las categorías de Inicio no abren la búsqueda cercana";exit 1;fi
+if grep -q 'observer.observe(v' nearby_ui.js||! grep -q 'navigationEpoch' nearby_ui.js||! grep -q "if(isHome()).*route()" nearby_ui.js;then echo "La búsqueda cercana puede volver a reemplazar Inicio";exit 1;fi
 if ! grep -q "'Cámaras y Seguridad'" home_search_polish.js||! grep -q 'mainCategories.map' home_search_polish.js;then echo "Cámaras y Seguridad no está fijada entre las categorías principales de Inicio";exit 1;fi
 if ! grep -q 'home_search_polish.js?v=4' home_search_polish_assets.js;then echo "El Inicio actualizado no invalida la caché anterior";exit 1;fi
 node --check admin_navigation_polish.js
