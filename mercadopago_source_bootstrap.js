@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS mercadopago_connections (
   scope TEXT,
   live_mode INTEGER NOT NULL DEFAULT 0,
   expires_at TEXT,
+  connection_status TEXT NOT NULL DEFAULT 'pending',
+  last_validated_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -77,6 +79,8 @@ CREATE TABLE IF NOT EXISTS mercadopago_webhook_events (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 \`);
+try{db.prepare("ALTER TABLE mercadopago_connections ADD COLUMN connection_status TEXT NOT NULL DEFAULT 'pending'").run();}catch(_){}
+try{db.prepare('ALTER TABLE mercadopago_connections ADD COLUMN last_validated_at TEXT').run();}catch(_){}
 
 function mpBaseUrl(){return String(process.env.PUBLIC_BASE_URL || 'https://datoya.onrender.com').replace(/\\\/$/,'');}
 function mpNumber(name, fallback){const n=Number(process.env[name]);return Number.isFinite(n)?n:fallback;}
@@ -127,6 +131,18 @@ async function mpSellerToken(connection){
   return refreshed.access_token;
 }
 function mpConnectionForWorker(workerId){return db.prepare('SELECT mc.* FROM mercadopago_connections mc JOIN worker_profiles wp ON wp.user_id=mc.user_id WHERE wp.id=?').get(workerId);}
+async function mpValidatedConnection(connection){
+  if(!connection)return {connected:false,reason:'not_connected'};
+  const last=connection.last_validated_at?new Date(String(connection.last_validated_at).replace(' ','T')).getTime():0;
+  if(connection.connection_status==='valid'&&last>Date.now()-10*60*1000)return {connected:true,account:{id:String(connection.mp_user_id)},live_mode:!!connection.live_mode,validated_at:connection.last_validated_at};
+  try{
+    const token=await mpSellerToken(connection);if(!token)return {connected:false,reason:'authorization_missing'};
+    const account=await mpHttp('GET','/users/me',token);
+    if(!account||!account.id||String(account.id)!==String(connection.mp_user_id||'')){db.prepare("UPDATE mercadopago_connections SET connection_status='invalid',updated_at=datetime('now') WHERE id=?").run(connection.id);return {connected:false,reason:'account_mismatch'};}
+    const validatedAt=new Date().toISOString();db.prepare("UPDATE mercadopago_connections SET connection_status='valid',last_validated_at=?,updated_at=datetime('now') WHERE id=?").run(validatedAt,connection.id);
+    return {connected:true,account:{id:String(account.id),nickname:account.nickname||null,email:account.email||null},live_mode:!!connection.live_mode,validated_at:validatedAt};
+  }catch(e){db.prepare("UPDATE mercadopago_connections SET connection_status='invalid',updated_at=datetime('now') WHERE id=?").run(connection.id);return {connected:false,reason:'authorization_invalid'};}
+}
 function mpJobAccess(req,job){if(!job)return false;const wp=db.prepare('SELECT * FROM worker_profiles WHERE id=?').get(job.worker_id);return req.user.role==='admin'||job.client_id===req.user.id||(wp&&wp.user_id===req.user.id);}
 function mpSyncWorkerPro(userId,status){const wp=getWorkerByUser(userId);if(!wp)return;const active=['authorized','active'].includes(String(status||'').toLowerCase());db.prepare('UPDATE worker_profiles SET is_pro=? WHERE id=?').run(active?1:0,wp.id);}
 function mpVerifyWebhook(req){
@@ -135,7 +151,7 @@ function mpVerifyWebhook(req){
 }
 
 app.get('/api/mercadopago/config',(req,res)=>res.json(mpPublicConfig()));
-app.get('/api/mercadopago/connection',auth,(req,res)=>{const wp=getWorkerByUser(req.user.id);if(!wp)return res.json({connected:false,eligible:false});const c=db.prepare('SELECT mp_user_id,live_mode,expires_at,created_at,updated_at FROM mercadopago_connections WHERE user_id=?').get(req.user.id);res.json({eligible:true,connected:!!c,connection:c||null,integration:mpPublicConfig().integration});});
+app.get('/api/mercadopago/connection',auth,async(req,res)=>{const wp=getWorkerByUser(req.user.id);if(!wp)return res.json({connected:false,eligible:false});const c=db.prepare('SELECT * FROM mercadopago_connections WHERE user_id=?').get(req.user.id),status=await mpValidatedConnection(c);res.json({eligible:true,...status,integration:mpPublicConfig().integration});});
 app.get('/api/mercadopago/connect',auth,async(req,res)=>{try{
   if(req.user.role!=='trabajador')return res.status(403).json({error:'Solo los profesionales conectan una cuenta de Mercado Pago'});const cfg=mpConfig();if(!cfg.oauthConfigured)return res.status(503).json({error:'Mercado Pago OAuth aún no está configurado en Render'});
   const state=crypto.randomBytes(24).toString('hex'),verifier=crypto.randomBytes(48).toString('base64url'),challenge=crypto.createHash('sha256').update(verifier).digest('base64url'),expires=new Date(Date.now()+15*60*1000).toISOString();
@@ -146,8 +162,8 @@ app.get('/api/mercadopago/connect',auth,async(req,res)=>{try{
 app.get('/api/mercadopago/oauth/callback',async(req,res)=>{try{
   const code=String(req.query.code||''),state=String(req.query.state||'');if(!code||!state)return res.status(400).send('Autorización incompleta');const row=db.prepare('SELECT * FROM mercadopago_oauth_states WHERE state=?').get(state);if(!row||row.used_at||new Date(String(row.expires_at).replace(' ','T')).getTime()<Date.now())return res.status(400).send('Autorización expirada o inválida');
   const redirect=process.env.MP_REDIRECT_URI||mpBaseUrl()+'/api/mercadopago/oauth/callback';const token=await mpOauthHttp({client_id:process.env.MP_CLIENT_ID,client_secret:process.env.MP_CLIENT_SECRET,grant_type:'authorization_code',code,redirect_uri:redirect,code_verifier:row.code_verifier});
-  const exp=new Date(Date.now()+Number(token.expires_in||15552000)*1000).toISOString();db.prepare("INSERT INTO mercadopago_connections(user_id,mp_user_id,access_token_enc,refresh_token_enc,public_key,scope,live_mode,expires_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET mp_user_id=excluded.mp_user_id,access_token_enc=excluded.access_token_enc,refresh_token_enc=excluded.refresh_token_enc,public_key=excluded.public_key,scope=excluded.scope,live_mode=excluded.live_mode,expires_at=excluded.expires_at,updated_at=datetime('now')").run(row.user_id,String(token.user_id||''),mpEnc(token.access_token),mpEnc(token.refresh_token||''),token.public_key||null,token.scope||null,token.live_mode?1:0,exp);db.prepare("UPDATE mercadopago_oauth_states SET used_at=datetime('now') WHERE state=?").run(state);
-  res.redirect('/#/pro?mp=connected');
+  const exp=new Date(Date.now()+Number(token.expires_in||15552000)*1000).toISOString();db.prepare("INSERT INTO mercadopago_connections(user_id,mp_user_id,access_token_enc,refresh_token_enc,public_key,scope,live_mode,expires_at,connection_status,last_validated_at) VALUES(?,?,?,?,?,?,?,?,?,NULL) ON CONFLICT(user_id) DO UPDATE SET mp_user_id=excluded.mp_user_id,access_token_enc=excluded.access_token_enc,refresh_token_enc=excluded.refresh_token_enc,public_key=excluded.public_key,scope=excluded.scope,live_mode=excluded.live_mode,expires_at=excluded.expires_at,connection_status='pending',last_validated_at=NULL,updated_at=datetime('now')").run(row.user_id,String(token.user_id||''),mpEnc(token.access_token),mpEnc(token.refresh_token||''),token.public_key||null,token.scope||null,token.live_mode?1:0,exp,'pending');db.prepare("UPDATE mercadopago_oauth_states SET used_at=datetime('now') WHERE state=?").run(state);
+  const connection=db.prepare('SELECT * FROM mercadopago_connections WHERE user_id=?').get(row.user_id),validated=await mpValidatedConnection(connection);res.redirect(validated.connected?'/#/ganancias?mp=connected':'/#/ganancias?mp=invalid');
 }catch(e){console.error('[DatoYa][MP OAuth]',e);res.status(500).send('No se pudo conectar Mercado Pago');}});
 
 app.get('/api/pro/status',auth,(req,res)=>{const wp=getWorkerByUser(req.user.id),sub=db.prepare('SELECT * FROM mercadopago_subscriptions WHERE user_id=? ORDER BY id DESC LIMIT 1').get(req.user.id);res.json({eligible:!!wp,is_pro:!!(wp&&wp.is_pro),subscription:sub||null,config:mpPublicConfig()});});
@@ -160,7 +176,7 @@ app.post('/api/pro/subscribe',auth,async(req,res)=>{try{
 }catch(e){console.error('[DatoYa][MP PRO]',e.payload||e);res.status(e.status||500).json({error:e.message});}});
 app.post('/api/pro/cancel',auth,async(req,res)=>{try{const sub=db.prepare("SELECT * FROM mercadopago_subscriptions WHERE user_id=? ORDER BY id DESC LIMIT 1").get(req.user.id);if(!sub)return res.status(404).json({error:'No hay suscripción'});if(!process.env.MP_ACCESS_TOKEN)return res.status(503).json({error:'Mercado Pago no está configurado'});const mp=await mpHttp('PUT','/preapproval/'+encodeURIComponent(sub.provider_subscription_id),process.env.MP_ACCESS_TOKEN,{status:'cancelled'});db.prepare("UPDATE mercadopago_subscriptions SET status=?,updated_at=datetime('now') WHERE id=?").run(mp.status||'cancelled',sub.id);mpSyncWorkerPro(req.user.id,mp.status||'cancelled');res.json({ok:true,status:mp.status||'cancelled'});}catch(e){res.status(e.status||500).json({error:e.message});}});
 
-app.get('/api/jobs/:id/payment',auth,(req,res)=>{const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id);if(!job)return res.status(404).json({error:'Trabajo no encontrado'});if(!mpJobAccess(req,job))return res.status(403).json({error:'Sin acceso'});const connection=mpConnectionForWorker(job.worker_id),payment=db.prepare('SELECT * FROM mercadopago_marketplace_payments WHERE job_id=?').get(job.id),cfg=mpConfig(),fee=mpFeeBreakdown(job.price,cfg.feeInstantPct),marketplace=Math.round(job.price*job.commission_pct/100),sellerNet=Math.max(0,job.price-marketplace-fee.total);res.json({payment:payment||null,worker_connected:!!connection,breakdown:{amount:job.price,datoya_fee:marketplace,datoya_pct:job.commission_pct,mp_fee_estimate:fee,seller_net_estimate:sellerNet},hold_enabled:false});});
+app.get('/api/jobs/:id/payment',auth,async(req,res)=>{const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id);if(!job)return res.status(404).json({error:'Trabajo no encontrado'});if(!mpJobAccess(req,job))return res.status(403).json({error:'Sin acceso'});const connection=mpConnectionForWorker(job.worker_id),connectionStatus=await mpValidatedConnection(connection),payment=db.prepare('SELECT * FROM mercadopago_marketplace_payments WHERE job_id=?').get(job.id),cfg=mpConfig(),fee=mpFeeBreakdown(job.price,cfg.feeInstantPct),marketplace=Math.round(job.price*job.commission_pct/100),sellerNet=Math.max(0,job.price-marketplace-fee.total);res.json({payment:payment||null,worker_connected:connectionStatus.connected,breakdown:{amount:job.price,datoya_fee:marketplace,datoya_pct:job.commission_pct,mp_fee_estimate:fee,seller_net_estimate:sellerNet},hold_enabled:false});});
 app.post('/api/jobs/:id/payment/preference',auth,async(req,res)=>{try{
   const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id);if(!job)return res.status(404).json({error:'Trabajo no encontrado'});if(job.client_id!==req.user.id)return res.status(403).json({error:'Solo el cliente puede iniciar el pago'});if(['FINALIZADO','CANCELADO','DISPUTA'].includes(job.status))return res.status(409).json({error:'Este trabajo no admite un nuevo pago'});const connection=mpConnectionForWorker(job.worker_id);if(!connection)return res.status(409).json({error:'El profesional todavía no conectó Mercado Pago'});const token=await mpSellerToken(connection);if(!token)return res.status(409).json({error:'No se pudo obtener la autorización del profesional'});
   const cfg=mpConfig(),marketplace=Math.round(job.price*job.commission_pct/100),fee=mpFeeBreakdown(job.price,cfg.feeInstantPct),sellerNet=Math.max(0,job.price-marketplace-fee.total),external='datoya-job:'+job.id;const request=db.prepare('SELECT title FROM service_requests WHERE id=?').get(job.request_id);const body={items:[{id:'job-'+job.id,title:'DatoYa - '+String((request&&request.title)||'Servicio'),currency_id:'CLP',quantity:1,unit_price:Number(job.price)}],marketplace_fee:marketplace,external_reference:external,payer:{email:req.user.email},back_urls:{success:mpBaseUrl()+'/#/trabajos?payment=success',pending:mpBaseUrl()+'/#/trabajos?payment=pending',failure:mpBaseUrl()+'/#/trabajos?payment=failure'},auto_return:'approved',notification_url:mpBaseUrl()+'/api/mercadopago/webhook'};

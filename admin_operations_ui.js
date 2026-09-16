@@ -15,8 +15,7 @@
     ['#/admin/disputas','⚖️ Disputas'],
     ['#/admin/auditoria','🕘 Auditoría'],
     ['#/admin/ganancias','💰 Ganancias'],
-    ['#/admin/retiros','💸 Retiros'],
-    ['#/admin/banco','🏦 Banco'],
+    ['#/admin/retiros','💸 Retiros TEST'],
     ['#/admin/mensajes','💬 Mensajes'],
     ['#/admin/suscripciones','⭐ Suscripciones'],
     ['#/admin/configuracion','⚙️ Configuración']

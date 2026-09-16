@@ -12,7 +12,6 @@
       <button onclick="location.hash='#/admin/reclamos'">⚑ Reclamos</button>
       <button onclick="location.hash='#/admin/disputas'">⚖️ Disputas</button>
       <button onclick="location.hash='#/admin/ganancias'">💰 Ganancias</button>
-      <button onclick="location.hash='#/admin/banco'">🏦 Banco</button>
       <button onclick="location.hash='#/admin/mensajes'">💬 Mensajes</button>
       <button onclick="location.hash='#/admin/suscripciones'">⭐ Suscripciones</button>
     </div>`;
@@ -76,7 +75,7 @@
           const actions = v.status === 'pendiente' ? `<div class="row" style="margin-top:12px"><button class="btn btn-green btn-sm" onclick="resolveAdminVerification(${v.id},'aprobar')">✓ Aprobar verificación</button><button class="btn btn-danger btn-sm" onclick="resolveAdminVerification(${v.id},'rechazar')">Rechazar</button></div>` : '';
           return `<div class="card"><div class="row between"><div><b>🪪 ${esc(v.name)}</b><div class="small muted">${esc(v.oficio)} · ${esc(v.email)}</div></div><span class="status-tag ${statusClass}">${esc(v.status)}</span></div><div class="small" style="margin-top:10px"><b>Ticket:</b> ${esc(v.ticket || ('VER-' + v.id))}</div><div class="small"><b>Documento:</b> ${esc(v.document_type || v.type || 'No indicado')}</div><div class="small"><b>Referencia:</b> ${esc(v.document_reference || 'No indicada')}</div><div class="small muted" style="margin-top:6px">Solicitud #${v.id} · ${fmtHora(v.created_at)}</div>${actions}</div>`;
         }).join('') || '<div class="empty"><b>✓</b>No hay solicitudes de verificación.</div>';
-        shell('Verificaciones profesionales', `<div class="lock-note">🪪 En esta versión DEMO no se almacenan documentos de identidad reales.</div>${html}`);
+        shell('Verificaciones profesionales', `<div class="lock-note">🪪 La carga de archivos de identidad todavía no está disponible. Solo pueden revisarse referencias declaradas; no deben aprobarse como documento validado sin comprobación externa.</div>${html}`);
         return;
       }
 
@@ -102,10 +101,7 @@
       }
 
       if (tab === 'banco') {
-        const r = await api('/admin/bank');
-        const html = (r.accounts || []).map(a => `<div class="card row between"><div><b>${esc(a.name)}</b><div class="small muted">${esc(a.email)} · ${a.is_pro ? '⭐ PRO' : ''} · ${a.verified_identity ? '✓ Verificado' : 'Sin verificar'}${a.bank_name ? ` · ${esc(a.bank_name)} (${esc(a.account_type || '')}) •••• ${esc(a.account_last4 || '')}` : ' · Sin cuenta registrada'}</div></div><span class="pill">${a.bank_name ? 'Cuenta registrada' : 'Pendiente'}</span></div>`).join('') || '<div class="empty">No hay profesionales.</div>';
-        shell('Banco y retiros', `<div class="lock-note">🏦 MODO DEMO: DatoYa todavía no procesa dinero real.</div>${html}`);
-        return;
+        location.hash='#/admin/ganancias';return;
       }
 
       if (tab === 'mensajes') {

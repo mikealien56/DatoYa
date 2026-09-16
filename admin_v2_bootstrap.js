@@ -74,14 +74,10 @@ app.get('/api/worker/subscription', auth, requireRole('trabajador'), (req,res) =
   const wp=getWorkerByUser(req.user.id); const row=db.prepare("SELECT * FROM subscriptions WHERE worker_id=? AND status='activa' ORDER BY id DESC LIMIT 1").get(wp.id); res.json({subscription:row||null});
 });
 app.get('/api/worker/bank', auth, requireRole('trabajador'), (req,res) => {
-  const wp=getWorkerByUser(req.user.id); const account=db.prepare('SELECT bank_name,account_type,account_last4,updated_at FROM worker_bank_accounts WHERE worker_id=?').get(wp.id);
-  res.json({account:account||null,mode:'DEMO'});
+  res.json({account:null,retired:true,message:'La configuración bancaria manual fue retirada. Usa Mis ganancias para conectar Mercado Pago mediante OAuth.'});
 });
 app.post('/api/worker/bank', auth, requireRole('trabajador'), (req,res) => {
-  const wp=getWorkerByUser(req.user.id), {bank_name,account_type,account_last4}=req.body||{};
-  if(!bank_name||!account_type||!/^[0-9]{4}$/.test(String(account_last4||''))) return res.status(400).json({error:'Banco, tipo de cuenta y últimos 4 dígitos son obligatorios'});
-  db.prepare("INSERT INTO worker_bank_accounts(worker_id,bank_name,account_type,account_last4,updated_at) VALUES(?,?,?,?,datetime('now')) ON CONFLICT(worker_id) DO UPDATE SET bank_name=excluded.bank_name,account_type=excluded.account_type,account_last4=excluded.account_last4,updated_at=datetime('now')").run(wp.id,bank_name,account_type,String(account_last4));
-  res.json({ok:true,message:'Cuenta de retiro guardada en MODO DEMO.'});
+  res.status(410).json({error:'La configuración bancaria manual fue retirada. Conecta Mercado Pago desde Mis ganancias.'});
 });
 app.get('/api/worker/earnings', auth, requireRole('trabajador'), (req,res) => {
   const wp=getWorkerByUser(req.user.id);

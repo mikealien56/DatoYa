@@ -10,6 +10,10 @@ if ! grep -q 'routes.solicitud' request_detail_ui_fix.js||! grep -q 'request-quo
 if ! grep -q 'routes.ganancias' worker_finance_ui.js||! grep -q 'retiros automáticos están deshabilitados' worker_finance_ui.js;then echo "Finanzas beta no están protegidas";exit 1;fi
 if ! grep -q 'review-status' review_status_bootstrap.js||! grep -q 'data-review-submit' review_ui.js;then echo "Reseñas incompletas";exit 1;fi
 if ! grep -q 'renderDatoYaAdminDisputes' admin_disputes_ui.js;then echo "Centro admin de disputas no está montado";exit 1;fi
+if grep -q 'Datos bancarios\|saveBankAccount\|/worker/bank' worker_v2_ui.js;then echo "El perfil profesional todavía expone el formulario bancario obsoleto";exit 1;fi
+if grep -q "admin/banco\|🏦 Banco" admin_operations_ui.js;then echo "El panel todavía ofrece la sección bancaria obsoleta";exit 1;fi
+if ! grep -q "mpValidatedConnection" mercadopago_source_bootstrap.js||! grep -q "'/users/me'" mercadopago_source_bootstrap.js;then echo "La conexión de Mercado Pago no valida OAuth con el proveedor";exit 1;fi
+if ! grep -q 'Mercado Pago · No conectado' mercadopago_ui.js||! grep -q '✓ Mercado Pago conectado' mercadopago_ui.js;then echo "Estados de conexión Mercado Pago incompletos";exit 1;fi
 if ! grep -q 'DATOYA_CANONICAL_JOB_FLOW_V1' job_flow_guard.js;then echo "Guard del ciclo oficial no está presente";exit 1;fi
 for field in urgency preferred_date budget region_id comuna_id address_detail photos;do if ! grep -q "$field" request_wizard_ui.js;then echo "Wizard no contempla $field";exit 1;fi;done
 if ! grep -q 'if(target)return previousSolicitar' request_wizard_ui.js;then echo "Wizard no preserva flujo dirigido";exit 1;fi
