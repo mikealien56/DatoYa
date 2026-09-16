@@ -32,14 +32,15 @@
   function ownerQuoteCard(q) {
     const rating=Number(q.rating_avg || 0);
     const badges=[q.verified_identity ? '✓ Verificado' : '', q.is_pro ? '⭐ PRO' : ''].filter(Boolean).map(x=>`<span class="pill">${x}</span>`).join('');
-    const materials=Number(q.materials_included)===1 ? 'Materiales incluidos' : 'Materiales no incluidos';
+    const materials=({incluidos:'Materiales incluidos',no_incluidos:'Materiales no incluidos',por_determinar:'Materiales por determinar tras revisar'}[q.materials_treatment] || (Number(q.materials_included)===1 ? 'Materiales incluidos' : 'Materiales no incluidos'));
+    const quoteType=q.quote_type==='estimacion' ? 'Estimación' : 'Precio confirmado';
     return `<article class="quote-card" style="display:block">
       <div class="row between" style="align-items:flex-start;gap:12px">
         <div><a href="#/trabajador/${Number(q.worker_profile_id)}" style="font-weight:800;color:var(--txt)">${escReq(q.worker_name)}</a><div class="small muted">⭐ ${rating.toFixed(1)} · ${Number(q.rating_count || 0)} reseñas · ${Number(q.jobs_completed || 0)} trabajos${q.worker_comuna ? ' · 📍 '+escReq(q.worker_comuna) : ''}</div><div class="badges" style="margin-top:6px">${badges}</div></div>
         <div style="text-align:right"><div style="font-size:22px;font-weight:800">${moneyReq(q.price)}</div><span class="status-tag">${escReq(statusLabel(q.status))}</span></div>
       </div>
       ${q.description ? `<p style="white-space:pre-wrap;margin-bottom:7px">${escReq(q.description)}</p>` : ''}
-      <div class="small muted">${q.available_date ? '📅 '+escReq(q.available_date)+' · ' : ''}${q.duration_estimate ? '⏱️ '+escReq(q.duration_estimate)+' · ' : ''}${materials}</div>
+      <div class="small muted"><b>${quoteType}</b> · ${q.available_date ? '📅 '+escReq(q.available_date)+' · ' : ''}${q.duration_estimate ? '⏱️ '+escReq(q.duration_estimate)+' · ' : ''}${materials}</div>
       ${q.comment ? `<div class="small" style="margin-top:7px">💬 ${escReq(q.comment)}</div>` : ''}
       ${q.status==='pendiente' ? `<div class="row wrap" style="margin-top:12px"><button class="btn btn-green" onclick="acceptRequestQuote(${Number(q.id)})">✅ Elegir esta cotización</button><a class="btn btn-outline" href="#/trabajador/${Number(q.worker_profile_id)}">Ver perfil</a></div>` : ''}
     </article>`;
@@ -58,7 +59,8 @@
         <div class="field" style="flex:1;min-width:180px"><label>Fecha disponible</label><input name="available_date" type="date"></div>
         <div class="field" style="flex:1;min-width:180px"><label>Duración estimada</label><input name="duration_estimate" maxlength="80" placeholder="Ej: 2 horas"></div>
       </div>
-      <label class="row" style="gap:8px;align-items:center;margin:8px 0 14px"><input name="materials_included" type="checkbox" style="width:auto"> Materiales incluidos en el precio</label>
+      <div class="field"><label>Tipo de cotización</label><select name="quote_type" required><option value="precio_confirmado">Precio confirmado</option><option value="estimacion">Estimación</option></select><div class="small muted">Usa estimación si necesitas revisar en persona o aún existe incertidumbre.</div></div>
+      <div class="field"><label>Materiales</label><select name="materials_treatment" required><option value="incluidos">Incluidos en el precio</option><option value="no_incluidos">No incluidos</option><option value="por_determinar">Por determinar después de revisar</option></select></div>
       <div class="field"><label>Comentario adicional <span class="small muted">(opcional)</span></label><textarea name="comment" rows="2" maxlength="500" placeholder="Información útil para el cliente"></textarea></div>
       <button class="btn btn-primary btn-block" type="submit">Enviar cotización</button>
     </form></div>`;
@@ -122,7 +124,8 @@
           description:f.description.value.trim(),
           available_date:f.available_date.value || null,
           duration_estimate:f.duration_estimate.value.trim(),
-          materials_included:f.materials_included.checked,
+          quote_type:f.quote_type.value,
+          materials_treatment:f.materials_treatment.value,
           comment:f.comment.value.trim()
         }});
         toast('Cotización enviada al cliente ✓','ok');

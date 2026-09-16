@@ -109,6 +109,6 @@ fs.readFileSync=function(file,options){
   const value=originalReadFileSync.call(fs,file,options);
   if(path.resolve(String(file))!==path.resolve(serverFile)||typeof value!=='string') return value;
   if(value.includes('// ============ ENCUENTRO VERIFICADO ============')) return value;
-  const marker='// ============ START ============';
+ const marker="app.use((req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));";
   return value.includes(marker)?value.replace(marker,injection+'\n'+marker):value;
 };

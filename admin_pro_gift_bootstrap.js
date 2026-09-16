@@ -5,6 +5,8 @@ const serverFile=path.join(__dirname,'server.js');
 const originalReadFileSync=fs.readFileSync;
 const injection=`
 // ============ ADMIN PRO CORTESIA ============
+try{db.prepare('ALTER TABLE subscriptions ADD COLUMN expires_at TEXT').run();}catch(_){}
+try{db.prepare('ALTER TABLE subscriptions ADD COLUMN amount INTEGER DEFAULT 0').run();}catch(_){}
 function syncExpiredProGifts(){
   const expired=db.prepare("SELECT DISTINCT worker_id FROM subscriptions WHERE status='activa' AND expires_at IS NOT NULL AND expires_at <= datetime('now')").all();
   db.prepare("UPDATE subscriptions SET status='vencida' WHERE status='activa' AND expires_at IS NOT NULL AND expires_at <= datetime('now')").run();
@@ -78,6 +80,6 @@ fs.readFileSync=function(file,options){
   const value=originalReadFileSync.call(fs,file,options);
   if(path.resolve(String(file))!==path.resolve(serverFile)||typeof value!=='string') return value;
   if(value.includes('// ============ ADMIN PRO CORTESIA ============')) return value;
-  const marker='// ============ START ============';
+ const marker="app.use((req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));";
   return value.includes(marker)?value.replace(marker,injection+'\n'+marker):value;
 };
