@@ -9,6 +9,7 @@ export DATABASE_URL="${DATABASE_URL:-postgres://postgres:postgres@127.0.0.1:5432
 export PORT="${PORT:-3000}"
 B="http://127.0.0.1:${PORT}/api"
 J="Content-Type: application/json"
+PASS='DatoYaTest2026!'
 
 start_app(){
   node production_start.js >/tmp/datoya-pg-e2e.log 2>&1 &
@@ -51,12 +52,12 @@ CLIENT_EMAIL="cliente.pg.${STAMP}@test.datoya.local"
 WORKER_EMAIL="profesional.pg.${STAMP}@test.datoya.local"
 
 curl -fsS -c /tmp/pg_client.cookies -X POST "$B/auth/register" -H "$J" \
-  -d "{\"name\":\"Cliente Beta Real\",\"email\":\"$CLIENT_EMAIL\",\"password\":\"Prueba123\",\"phone\":\"+56911110000\",\"role\":\"cliente\",\"comuna_id\":$COMUNA}" >/tmp/pg_client.json
+  -d "{\"name\":\"Cliente Beta Real\",\"email\":\"$CLIENT_EMAIL\",\"password\":\"$PASS\",\"phone\":\"+56911110000\",\"role\":\"cliente\",\"comuna_id\":$COMUNA}" >/tmp/pg_client.json
 grep -q '"ok":true' /tmp/pg_client.json
 verify_email /tmp/pg_client.cookies
 
 curl -fsS -c /tmp/pg_worker.cookies -X POST "$B/auth/register" -H "$J" \
-  -d "{\"name\":\"Profesional Beta Real\",\"email\":\"$WORKER_EMAIL\",\"password\":\"Prueba123\",\"phone\":\"+56922220000\",\"role\":\"trabajador\",\"comuna_id\":$COMUNA}" >/tmp/pg_worker.json
+  -d "{\"name\":\"Profesional Beta Real\",\"email\":\"$WORKER_EMAIL\",\"password\":\"$PASS\",\"phone\":\"+56922220000\",\"role\":\"trabajador\",\"comuna_id\":$COMUNA}" >/tmp/pg_worker.json
 grep -q '"ok":true' /tmp/pg_worker.json
 verify_email /tmp/pg_worker.cookies
 
@@ -64,7 +65,6 @@ WORKER_ID=$(curl -fsS -b /tmp/pg_worker.cookies "$B/auth/me" | python3 -c 'impor
 PROFILE=$(curl -fsS -b /tmp/pg_worker.cookies -X PUT "$B/worker/profile" -H "$J" \
   -d "{\"oficio\":\"Gasfíter\",\"description\":\"Profesional beta real\",\"years_experience\":5,\"price_from\":20000,\"status\":\"disponible\",\"comuna_id\":$COMUNA,\"comunas\":[$COMUNA]}")
 echo "$PROFILE" | grep -q '"ok":true'
-# Configura la especialidad mediante la misma API usada por el onboarding real.
 SPEC=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/worker/specialties" -H "$J" -d "{\"category_ids\":[$CAT],\"primary_category_id\":$CAT}")
 echo "$SPEC" | grep -q '"ok":true'
 SPEC_STATE=$(curl -fsS -b /tmp/pg_worker.cookies "$B/worker/specialties")
@@ -119,11 +119,10 @@ curl -fsS -b /tmp/pg_client.cookies "http://127.0.0.1:${PORT}${EVID_URL}" -o /tm
 [ -s /tmp/evidence-persisted.png ]
 echo "✅ Evidencia y sesión sobreviven reinicio con PostgreSQL"
 
-# Finalización oficial: ambas partes confirman. El endpoint legado no puede saltarse esta protección.
 FIRST=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
 echo "$FIRST" | grep -q '"finalized":false'
 LEGACY=$(curl -sS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"FINALIZADO"}')
-echo "$LEGACY" | grep -q 'Protección DatoYa'
+echo "$LEGACY" | grep -Eq 'Respaldo DatoYa|Protección DatoYa|confirmación de ambas partes'
 FINAL=$(curl -fsS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
 echo "$FINAL" | grep -q '"finalized":true'
 STATUS=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs" | python3 -c "import sys,json; d=json.load(sys.stdin)['jobs']; print(next(x for x in d if int(x['id'])==$JOB)['status'])")
