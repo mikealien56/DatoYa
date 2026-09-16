@@ -25,8 +25,7 @@ fs.readFileSync=function(file,options){
  if(value.includes('DATOYA_REQUEST_PHOTO_VALIDATION_V1'))return value;
  const marker="app.post('/api/requests', auth, requireRole('cliente'), (req, res) => {";
  const guard=`// DATOYA_REQUEST_PHOTO_VALIDATION_V1
-app.use('/api/requests',auth,requireRole('cliente'),(req,res,next)=>{
- if(req.method!=='POST'||String(req.originalUrl||'').split('?')[0]!=='/api/requests')return next();
+app.post('/api/requests',auth,requireRole('cliente'),(req,res,next)=>{
  const photos=req.body?.photos;
  if(photos==null){req.body.photos=[];return next();}
  if(!Array.isArray(photos))return res.status(400).json({error:'Las fotos deben enviarse como una lista'});
