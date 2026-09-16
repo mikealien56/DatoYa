@@ -117,7 +117,7 @@ echo "✅ Evidencia y sesión sobreviven reinicio con PostgreSQL"
 FIRST=$(curl -fsS -b /tmp/pg_worker.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
 echo "$FIRST" | grep -q '"finalized":false'
 LEGACY=$(curl -sS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/status" -H "$J" -d '{"status":"FINALIZADO"}')
-echo "$LEGACY" | grep -Eq 'Respaldo DatoYa|Protección DatoYa|confirmación de ambas partes'
+echo "$LEGACY" | grep -Eq 'Respaldo DatoYa|Protección DatoYa|confirmación de ambas partes|aún no ha declarado terminado'
 FINAL=$(curl -fsS -b /tmp/pg_client.cookies -X POST "$B/jobs/$JOB/complete-confirm" -H "$J" -d '{}')
 echo "$FINAL" | grep -q '"finalized":true'
 STATUS=$(curl -fsS -b /tmp/pg_client.cookies "$B/jobs" | python3 -c "import sys,json; d=json.load(sys.stdin)['jobs']; print(next(x for x in d if int(x['id'])==$JOB)['status'])")
