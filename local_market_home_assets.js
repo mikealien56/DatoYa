@@ -11,10 +11,10 @@ if(fs.existsSync(idx)){
   html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>DatoYa — Lo que buscas, cerca de ti</title>');
   html=html.replace(/<meta name="description"[^>]*>/,'<meta name="description" content="DatoYa te ayuda a descubrir negocios, productos y promociones reales cerca de ti.">');
   html=html.replace(/src="\/datoya-logo\.jpg[^\"]*"/g,'src="/brand/datoya-logo-horizontal.png?v=20260917-3"');
-  html=html.replace(/\/app\.js(?:\?v=\d+)?/g,'/app.js?v=4');
+  html=html.replace(/\/app\.js(?:\?v=\d+)?/g,'/app.js?v=5');
 
   html=html.replace(/<style id="dy-market-boot-shield">[\s\S]*?<\/style>\s*/g,'');
-  const bootShield='<style id="dy-market-boot-shield">html:not(.dy-market-ready) #view{visibility:hidden}html:not(.dy-market-ready) body::after{content:"Cargando DatoYa…";position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F7F9FC;color:#0B3A82;font:600 15px Poppins,system-ui,sans-serif;z-index:9999}</style>\n';
+  const bootShield='<style id="dy-market-boot-shield">html:not(.dy-market-ready) #app{visibility:hidden}html:not(.dy-market-ready) body::after{content:"Cargando DatoYa…";position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F7F9FC;color:#0B3A82;font:600 15px Poppins,system-ui,sans-serif;z-index:9999}</style>\n';
 
   html=html.replace(/<link[^>]+href="\/local_market_home\.css[^\"]*"[^>]*>\s*/g,'');
   html=html.replace(/<link[^>]+href="\/hero_polish\.css[^\"]*"[^>]*>\s*/g,'');
