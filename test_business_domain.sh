@@ -27,6 +27,22 @@ curl -fsS -b "$MERCHANT_COOKIE" -X POST "$BASE_URL/api/businesses/$STORE_ID/subm
 
 curl -fsS -c "$ADMIN_COOKIE" -H 'Content-Type: application/json' -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" "$BASE_URL/api/auth/login" >/dev/null
 for id in "$HOME_ID" "$STORE_ID";do curl -fsS -b "$ADMIN_COOKIE" -H 'Content-Type: application/json' -d '{"status":"active"}' "$BASE_URL/api/admin/businesses/$id/status" >/dev/null;done
+curl -fsS -b "$ADMIN_COOKIE" -H 'Content-Type: application/json' -d '{"days":7,"reason":"trial QA"}' "$BASE_URL/api/admin/businesses/$HOME_ID/impulso-grant" >/dev/null
+
+NOW_MINUS="$(node -e 'process.stdout.write(new Date(Date.now()-3600000).toISOString())')"
+NOW_PLUS="$(node -e 'process.stdout.write(new Date(Date.now()+3600000).toISOString())')"
+TOMORROW_17="$(node -e 'const d=new Date(Date.now()+86400000);d.setUTCHours(17,0,0,0);process.stdout.write(d.toISOString())')"
+TOMORROW_22="$(node -e 'const d=new Date(Date.now()+86400000);d.setUTCHours(22,0,0,0);process.stdout.write(d.toISOString())')"
+SCHEDULED="$(curl -fsS -b "$MERCHANT_COOKIE" -H 'Content-Type: application/json' -d "{\"title\":\"Berlines recién hechos QA\",\"price\":1500,\"stock_initial\":50,\"starts_at\":\"$TOMORROW_17\",\"ends_at\":\"$TOMORROW_22\",\"until_sold_out\":true,\"pickup_enabled\":true}" "$BASE_URL/api/businesses/$HOME_ID/impulse-now")"
+node -e 'const x=JSON.parse(process.argv[1]).impulse;if(x.status!=="scheduled"||Number(x.stock_remaining)!==50)process.exit(1)' "$SCHEDULED"
+ACTIVE="$(curl -fsS -b "$MERCHANT_COOKIE" -H 'Content-Type: application/json' -d "{\"title\":\"Berlines disponibles ahora QA\",\"price\":1500,\"stock_initial\":50,\"starts_at\":\"$NOW_MINUS\",\"ends_at\":\"$NOW_PLUS\",\"until_sold_out\":true}" "$BASE_URL/api/businesses/$HOME_ID/impulse-now")"
+ACTIVE_ID="$(node -e 'process.stdout.write(String(JSON.parse(process.argv[1]).impulse.id))' "$ACTIVE")"
+LIVE="$(curl -fsS "$BASE_URL/api/impulse-now?lat=-34.220&lng=-70.960&radius=5")"
+node -e 'const x=JSON.parse(process.argv[1]);if(!x.impulses.some(i=>i.title==="Berlines disponibles ahora QA"&&i.status==="active"))process.exit(1)' "$LIVE"
+SOLD="$(curl -fsS -b "$MERCHANT_COOKIE" -X PUT -H 'Content-Type: application/json' -d '{"stock_remaining":0}' "$BASE_URL/api/businesses/$HOME_ID/impulse-now/$ACTIVE_ID")"
+node -e 'if(JSON.parse(process.argv[1]).impulse.status!=="sold_out")process.exit(1)' "$SOLD"
+LIVE_AFTER="$(curl -fsS "$BASE_URL/api/impulse-now?lat=-34.220&lng=-70.960&radius=5")"
+node -e 'const x=JSON.parse(process.argv[1]);if(x.impulses.some(i=>Number(i.id)===Number(process.argv[2])))process.exit(1)' "$LIVE_AFTER" "$ACTIVE_ID"
 
 PUBLIC="$(curl -fsS "$BASE_URL/api/businesses/$HOME_SLUG?lat=-34.220&lng=-70.960")"
 node -e 'const b=JSON.parse(process.argv[1]).business;if(!b.address_protected||b.address||b.latitude||b.longitude)process.exit(1);if(b.comuna_name!=="Doñihue")process.exit(1)' "$PUBLIC"
