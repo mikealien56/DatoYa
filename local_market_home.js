@@ -32,6 +32,7 @@
   routes['']=renderMarketShell;
   routes.inicio=renderMarketShell;
   window.__datoya_market_home=renderMarketShell;
+  window.__datoyaRenderMarketHome=renderMarketShell;
   adaptChrome();
   if(!location.hash||location.hash==='#/'||location.hash==='#')renderMarketShell();
 })();

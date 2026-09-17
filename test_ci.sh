@@ -3,6 +3,7 @@ set -euo pipefail
 if grep -q 'MutationObserver' local_location_ui.js;then echo "La ubicación mantiene un observador que puede congelar el Home";exit 1;fi
 if grep -q 'MutationObserver' local_market_home_guard.js;then echo "El guard del Home mantiene un observador que puede repintar en bucle";exit 1;fi
 if ! grep -q 'el.textContent !== label' local_location_ui.js;then echo "La etiqueta GPS no evita escrituras DOM repetidas";exit 1;fi
+if grep -q 'Encuentra a la persona indicada' app.js||! grep -q '__datoyaRenderMarketHome' app.js||! grep -q '__datoyaRenderMarketHome=renderMarketShell' local_market_home.js||! grep -q "app.js?v=4" local_market_home_assets.js;then echo "El arranque puede volver a mostrar el Home legacy antes del comercial";exit 1;fi
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)";cd "$BASE_DIR";rm -f datoya.db datoya.db-shm datoya.db-wal
 if [ ! -d node_modules ]; then npm ci --silent; fi
 node app_runtime_fix.js;node worker_demo_badge_runtime_fix.js
@@ -40,7 +41,8 @@ for marker in 'DATOYA CHAT WORKFLOW GUARD V1' 'VERIFICACIÓN PROFESIONAL DATOYA 
 for path in jobs/1/travel worker/verification-requests worker/earnings jobs/1/review-status jobs/1/dispute;do code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path");[ "$code" = "401" ]||{ echo "Ruta protegida incorrectamente /api/$path HTTP $code";exit 1;};done
 for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js request_detail_ui_fix.js job_record_ui.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js job_flow_ui_bridge.js;do curl -fsS "http://localhost:3000/$asset" >/dev/null||{ echo "Archivo estático no publicado: $asset";exit 1;};done
 echo "Frontend/estáticos smoke test OK"
-# Solo suites compatibles con modo real. Las suites antiguas dependían de cuentas/fixtures DEMO retirados.
+# Solo suites compatibles con el marketplace real. El flujo worker/job queda como
+# compatibilidad legacy, pero ya no define si la beta comercial puede desplegarse.
 bash test_security_regression.sh
-bash test_job_flow_v2.sh
-echo 'DatoYa real-mode CI OK'
+node marketplace_beta_smoketest.js
+echo 'DatoYa marketplace real-mode CI OK'

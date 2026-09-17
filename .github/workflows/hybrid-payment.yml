@@ -17,12 +17,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm install
-      - name: Syntax hybrid payment
+      - name: Syntax marketplace payment
         run: |
-          node --check hybrid_payment_bootstrap.js
-          node --check hybrid_payment_ui.js
-      - name: Hybrid payment E2E SQLite real mode
-        run: HYBRID_DEMO_MODE=false HYBRID_PORT=3101 bash test_hybrid_payment.sh
+          node --check marketplace_payments_bootstrap.js
+          node --check marketplace_payments_ui.js
+          bash -n test_marketplace_payment.sh
+      - name: Marketplace payment E2E SQLite real mode
+        run: MARKET_PORT=3101 bash test_marketplace_payment.sh
 
   postgres-hybrid:
     runs-on: ubuntu-latest
@@ -49,5 +50,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm install
-      - name: Hybrid payment E2E PostgreSQL real mode
-        run: HYBRID_DEMO_MODE=false HYBRID_DB_DRIVER=postgres HYBRID_PORT=3102 bash test_hybrid_payment.sh
+      - name: Marketplace payment E2E PostgreSQL real mode
+        run: MARKET_DB_DRIVER=postgres MARKET_PORT=3102 bash test_marketplace_payment.sh

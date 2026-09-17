@@ -7,7 +7,6 @@
   if (typeof window.__datoya_market_home !== 'function') window.__datoya_market_home = initialMarketHome;
 
   let repairing = false;
-  let observerQueued = false;
   const isHome = () => !location.hash || location.hash === '#' || location.hash === '#/';
   const currentMarketHome = () => typeof window.__datoya_market_home === 'function' ? window.__datoya_market_home : initialMarketHome;
 
@@ -27,20 +26,6 @@
         repairing = false;
       }
     }
-  }
-
-  const viewNode = document.getElementById('view');
-  if (viewNode) {
-    const observer = new MutationObserver(() => {
-      if (!isHome() || repairing || document.querySelector('#view .dy-home')) return;
-      if (observerQueued) return;
-      observerQueued = true;
-      queueMicrotask(() => {
-        observerQueued = false;
-        enforceMarketHome(false);
-      });
-    });
-    observer.observe(viewNode, { childList: true, subtree: false });
   }
 
   window.addEventListener('load', () => {
