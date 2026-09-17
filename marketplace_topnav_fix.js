@@ -14,6 +14,12 @@
   async function ensureMarketplaceHome(){
     if(document.querySelector('.dy-home')) return true;
     try{
+      const stable=window.__datoya_market_home;
+      if(typeof stable==='function'){
+        await stable();
+        window.dispatchEvent(new CustomEvent('datoya:market-home-rendered'));
+        return !!document.querySelector('.dy-home');
+      }
       if(typeof routes!=='undefined' && typeof routes['']==='function'){
         await routes['']();
         return !!document.querySelector('.dy-home');
@@ -34,11 +40,11 @@
   }
 
   async function go(key){
-    await ensureMarketplaceHome();
     if(location.hash!=='#/'){
       try{ history.replaceState(null,'',location.pathname+location.search+'#/'); }
       catch(_){ location.hash='#/'; }
     }
+    await ensureMarketplaceHome();
     requestAnimationFrame(()=>{
       const node=targetNode(key);
       if(key==='top') window.scrollTo({top:0,behavior:'smooth'});
@@ -71,5 +77,6 @@
 
   normalize();
   addEventListener('hashchange',()=>setTimeout(normalize,50));
+  addEventListener('datoya:market-home-rendered',()=>setTimeout(normalize,0));
   document.addEventListener('datoya:location-changed',normalize);
 })();
