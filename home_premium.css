@@ -1,0 +1,49 @@
+/* DatoYa — overlays del hero dentro de la imagen + sección Oferta de la semana */
+.dy-visual-card{isolation:isolate}
+.dy-visual-card>.dy-floating-card,.dy-visual-card>.dy-floating-stock{z-index:4}
+
+@media (min-width:901px){
+  .dy-visual-card>.dy-floating-card{top:12px;left:12px}
+  .dy-visual-card>.dy-floating-stock{top:12px;right:12px}
+}
+
+.dy-weekly-section{position:relative;overflow:hidden;background:linear-gradient(135deg,#FFF9ED 0%,#FFF4E6 48%,#F7FBFF 100%);border:1px solid rgba(255,138,31,.20);border-radius:28px;padding:24px;box-shadow:0 16px 45px rgba(7,43,99,.08)}
+.dy-weekly-section:before{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-90px;top:-110px;background:rgba(255,194,71,.16);pointer-events:none}
+.dy-weekly-head{position:relative;z-index:2}
+.dy-weekly-eyebrow{display:inline-flex;align-items:center;gap:6px;margin-bottom:6px;color:#B45C00;font-size:11px;font-weight:900;letter-spacing:.45px}
+.dy-weekly-card{position:relative;z-index:2;display:grid;grid-template-columns:minmax(280px,.9fr) minmax(0,1.1fr);overflow:hidden;background:#fff;border:1px solid rgba(255,138,31,.14);border-radius:24px;box-shadow:0 12px 34px rgba(7,43,99,.09)}
+.dy-weekly-photo{position:relative;min-height:250px;background-image:linear-gradient(180deg,rgba(7,43,99,.02),rgba(7,43,99,.30)),url('https://images.unsplash.com/photo-1579208575657-c595a05383b7?auto=format&fit=crop&w=1100&q=84');background-size:cover;background-position:center}
+.dy-weekly-badge,.dy-weekly-local{position:absolute;top:14px;display:inline-flex;align-items:center;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:900;box-shadow:0 7px 20px rgba(0,0,0,.10)}
+.dy-weekly-badge{left:14px;background:#fff;color:#B45C00}
+.dy-weekly-local{right:14px;background:rgba(7,43,99,.90);color:#fff}
+.dy-weekly-copy{padding:26px;display:flex;flex-direction:column;justify-content:center}
+.dy-weekly-category{font-size:10px;font-weight:900;letter-spacing:.45px;color:#B45C00}
+.dy-weekly-copy h3{margin:7px 0 7px;font-size:28px;line-height:1.08;letter-spacing:-.5px;color:var(--dy-blue-dark)}
+.dy-weekly-copy>p{margin:0;color:var(--dy-muted);font-size:13px;line-height:1.5;max-width:540px}
+.dy-weekly-meta{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-top:18px}
+.dy-weekly-price{display:flex;flex-direction:column;gap:1px}.dy-weekly-price small{color:#929BAB;text-decoration:line-through;font-size:11px}.dy-weekly-price strong{color:var(--dy-orange);font-size:26px;line-height:1}
+.dy-weekly-distance{font-size:12px;font-weight:800;color:var(--dy-blue);background:#EEF5FF;border-radius:999px;padding:7px 10px;white-space:nowrap}
+.dy-weekly-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}.dy-weekly-actions button{border:0;border-radius:12px;padding:10px 13px;font:inherit;font-size:11px;font-weight:850}
+.dy-weekly-primary{background:var(--dy-orange);color:#fff;box-shadow:0 7px 18px rgba(255,138,31,.20)}
+.dy-weekly-secondary{background:#FFF2E4;color:#A65300}
+
+@media (max-width:900px){
+  .dy-weekly-card{grid-template-columns:1fr}
+  .dy-weekly-photo{min-height:210px}
+  .dy-weekly-copy{padding:21px}
+  .dy-weekly-copy h3{font-size:24px}
+}
+
+@media (max-width:640px){
+  .dy-weekly-section{padding:17px 13px;border-radius:23px}
+  .dy-weekly-head .dy-see-all{display:none}
+  .dy-weekly-card{border-radius:20px}
+  .dy-weekly-photo{min-height:175px}
+  .dy-weekly-badge,.dy-weekly-local{top:10px;padding:6px 8px;font-size:9px}
+  .dy-weekly-badge{left:10px}.dy-weekly-local{right:10px}
+  .dy-weekly-copy{padding:17px}
+  .dy-weekly-copy h3{font-size:21px;margin-top:5px}
+  .dy-weekly-copy>p{font-size:12px}
+  .dy-weekly-price strong{font-size:22px}
+  .dy-weekly-actions{display:grid;grid-template-columns:1fr}.dy-weekly-actions button{width:100%}
+}
