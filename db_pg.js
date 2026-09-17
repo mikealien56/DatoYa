@@ -77,7 +77,7 @@ function translateCommon(sql) {
     /\bsubstr\s*\(\s*((?:[A-Za-z0-9_]+\.)?(?:created_at|updated_at|expires_at|read_at|started_at|resolved_at|reviewed_at|requested_at|completed_at|verified_at|decided_at|arrival_at|departed_at|ended_at|last_seen_at|location_updated_at))\s*,/gi,
     'substr(($1)::text,'
   );
-  s = s.replace(/\b(created_at|updated_at|expires_at|read_at|started_at|resolved_at|reviewed_at|requested_at|completed_at|verified_at|decided_at|arrival_at|departed_at|ended_at|last_seen_at|location_updated_at)\s+TEXT\b/gi, '$1 TIMESTAMPTZ');
+  s = s.replace(/\b(created_at|updated_at|expires_at|starts_at|ends_at|read_at|started_at|resolved_at|reviewed_at|requested_at|completed_at|verified_at|decided_at|arrival_at|departed_at|ended_at|last_seen_at|location_updated_at)\s+TEXT\b/gi, '$1 TIMESTAMPTZ');
   s = s.replace(/\b(member_since|preferred_date|available_date)\s+TEXT\b/gi, '$1 DATE');
   s = s.replace(/TEXT\s+NOT\s+NULL\s+DEFAULT\s+CURRENT_TIMESTAMP/gi, 'TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP');
   s = s.replace(/TEXT\s+DEFAULT\s+CURRENT_TIMESTAMP/gi, 'TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP');
