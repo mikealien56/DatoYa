@@ -1,5 +1,5 @@
-const CACHE='datoya-shell-v13';
-const SHELL=['/','/styles.css','/app.js','/local_market_home.css','/hero_polish.css','/home_premium.css','/marketplace_account.css','/local_market_home.js','/local_market_home_guard.js','/local_location_ui.js','/marketplace_navigation_fix.js','/marketplace_topnav_fix.js','/home_premium_ui.js','/marketplace_account_ui.js','/brand/datoya-logo-horizontal.png','/brand/pwa/icon-192.png','/brand/pwa/icon-512.png'];
+const CACHE='datoya-shell-v14';
+const SHELL=['/','/styles.css','/app.js','/local_market_home.css','/hero_polish.css','/home_premium.css','/marketplace_account.css','/marketplace_admin_market.css','/local_market_home.js','/local_market_home_guard.js','/local_location_ui.js','/marketplace_navigation_fix.js','/marketplace_topnav_fix.js','/home_premium_ui.js','/marketplace_account_ui.js','/marketplace_weekly_ui.js','/marketplace_admin_market_ui.js','/marketplace_weekly_home.js','/brand/datoya-logo-horizontal.png','/brand/pwa/icon-192.png','/brand/pwa/icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
