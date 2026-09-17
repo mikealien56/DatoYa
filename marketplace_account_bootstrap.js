@@ -115,8 +115,7 @@ app.post('/api/businesses',auth,(req,res)=>{
   const publicMode=businessType==='home_business'?'approximate':(['exact','approximate','hidden'].includes(body.public_address_mode)?body.public_address_mode:'approximate');
   const slug=__marketSlug(name)+'-'+crypto.randomBytes(3).toString('hex');
   const tx=db.transaction(()=>{
-    const result=db.prepare(`INSERT INTO businesses(owner_user_id,name,slug,description,business_type,comuna_id,latitude,longitude,location_accuracy,sector,address,public_address_mode,phone,whatsapp,opening_hours,pickup_enabled,delivery_enabled,status,updated_at)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_review',datetime('now'))`).run(
+    const result=db.prepare('INSERT INTO businesses(owner_user_id,name,slug,description,business_type,comuna_id,latitude,longitude,location_accuracy,sector,address,public_address_mode,phone,whatsapp,opening_hours,pickup_enabled,delivery_enabled,status,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,\'pending_review\',datetime(\'now\'))').run(
         req.user.id,name,slug,description,businessType,comunaId,hasCoords?lat:null,hasCoords?lng:null,Number.isFinite(accuracy)?accuracy:null,
         String(body.sector||'').trim().slice(0,120)||null,String(body.address||'').trim().slice(0,220)||null,publicMode,
         String(body.phone||'').trim().slice(0,40)||null,String(body.whatsapp||'').trim().slice(0,40)||null,String(body.opening_hours||'').trim().slice(0,800)||null,
