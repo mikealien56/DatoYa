@@ -1,23 +1,27 @@
 /* DatoYa — Identidad visual chilena, mobile-first */
 :root {
-  --azul: #1D4ED8;        /* principal: confiable */
-  --azul-osc: #1E3A8A;
-  --celeste: #EFF4FF;
+  --azul: #0B3A82;
+  --azul-osc: #072B63;
+  --celeste: #E9FBF8;
+  --teal: #19C6B4;
+  --teal-claro: #4EDCCE;
+  --naranja: #FF8A1F;
+  --naranja-claro: #FFC247;
   --verde: #16A34A;       /* disponible / éxito */
   --ambar: #D97706;       /* ocupado / alerta */
   --gris: #6B7280;        /* no disponible */
   --rojo: #DC2626;
-  --txt: #111827;
+  --txt: #1B2B48;
   --txt2: #4B5563;
   --borde: #E5E7EB;
-  --fondo: #F8FAFC;
-  --radio: 14px;
-  --sombra: 0 2px 10px rgba(17,24,39,.07);
+  --fondo: #F7F9FC;
+  --radio: 18px;
+  --sombra: 0 8px 28px rgba(7,43,99,.08);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: Poppins, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: var(--fondo); color: var(--txt);
   padding-bottom: 76px;
 }
@@ -30,6 +34,12 @@ button { font-family: inherit; cursor: pointer; }
   position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--borde);
+}
+.datoya-header-logo { width: 176px !important; height: 56px !important; object-fit: contain; }
+.logo { min-width: 176px !important; }
+@media (max-width: 420px) {
+  .datoya-header-logo { width: 154px !important; height: 50px !important; }
+  .logo { min-width: 154px !important; }
 }
 .logo { display: flex; align-items: center; gap: 8px; }
 .logo-mark {
@@ -91,7 +101,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .btn:active { transform: scale(.97); }
 .btn-primary { background: var(--azul); color: #fff; }
-.btn-accent { background: #F59E0B; color: #1F2937; }
+.btn-accent { background: var(--naranja); color: #fff; }
 .btn-white { background: #fff; color: var(--azul); }
 .btn-outline { background: #fff; color: var(--azul); border: 2px solid var(--azul); }
 .btn-green { background: var(--verde); color: #fff; }
