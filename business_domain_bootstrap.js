@@ -23,8 +23,8 @@ function businessSafe(row, viewerIsOwner=false) {
   const b={...row};
   b.distance_km=b.distance_km==null?null:Math.round(Number(b.distance_km)*10)/10;
   b.distance_label=b.distance_km==null?null:(b.distance_km<1?Math.max(1,Math.round(b.distance_km*1000))+' m':'A '+b.distance_km+' km');
-  const protectedHome=b.business_type==='home_business' && !Number(b.show_exact_address) && !viewerIsOwner;
-  if (protectedHome) { delete b.address; delete b.latitude; delete b.longitude; delete b.location_accuracy; b.address_protected=true; }
+  const protectedHome=b.business_type==='home_business' && b.public_location_mode!=='exact' && !Number(b.show_exact_address) && !viewerIsOwner;
+  if (protectedHome) { delete b.address; delete b.public_address; delete b.pickup_instructions; delete b.latitude; delete b.longitude; delete b.location_accuracy; b.address_protected=true; }
   return b;
 }
 function ownerBusiness(userId,id) { return db.prepare('SELECT * FROM businesses WHERE id=? AND owner_user_id=?').get(id,userId); }
@@ -56,7 +56,7 @@ app.get('/api/businesses',(req,res)=>{
   rows=rows.map(b=>{if(hasGps&&b.latitude!=null&&b.longitude!=null)b.distance_km=businessDistanceKm(lat,lng,Number(b.latitude),Number(b.longitude));return b;})
     .filter(b=>!hasGps||b.distance_km==null||b.distance_km<=radius)
     .filter(b=>!category||b.category_slug===category||categoryRows(b.id).some(c=>c.slug===category))
-    .filter(b=>!q||[b.name,b.description,b.category_name].some(v=>String(v||'').toLowerCase().includes(q))||db.prepare("SELECT id FROM products WHERE business_id=? AND active=1 AND available=1 AND LOWER(name) LIKE ? LIMIT 1").get(b.id,'%'+q+'%'))
+    .filter(b=>!q||[b.name,b.description,b.category_name].some(v=>String(v||'').toLowerCase().includes(q))||db.prepare("SELECT id FROM products WHERE business_id=? AND active=1 AND available=1 AND (stock_tracking=0 OR stock>0) AND LOWER(name) LIKE ? LIMIT 1").get(b.id,'%'+q+'%'))
     .sort((a,b)=>hasGps?((a.distance_km??99999)-(b.distance_km??99999)):0).slice(0,100)
     .map(b=>businessSafe(b));
   res.json({businesses:rows,radius_km:radius});
@@ -68,7 +68,7 @@ app.get('/api/search',(req,res)=>{
   const like='%'+q+'%';
   let products=db.prepare(\`SELECT p.id,p.name,p.slug,p.description,p.price,p.promo_price,p.stock,p.stock_tracking,p.image_url,b.id AS business_id,b.name AS business_name,b.slug AS business_slug,b.business_type,b.show_exact_address,b.sector,b.latitude,b.longitude,co.name AS comuna_name
     FROM products p JOIN businesses b ON b.id=p.business_id LEFT JOIN comunas co ON co.id=b.comuna_id
-    WHERE b.status='active' AND p.active=1 AND p.available=1 AND (LOWER(p.name) LIKE ? OR LOWER(COALESCE(p.description,'')) LIKE ?) LIMIT 100\`).all(like,like);
+    WHERE b.status='active' AND p.active=1 AND p.available=1 AND (p.stock_tracking=0 OR p.stock>0) AND (LOWER(p.name) LIKE ? OR LOWER(COALESCE(p.description,'')) LIKE ?) LIMIT 100\`).all(like,like);
   products=products.map(p=>{if(hasGps&&p.latitude!=null&&p.longitude!=null)p.distance_km=businessDistanceKm(lat,lng,Number(p.latitude),Number(p.longitude));delete p.latitude;delete p.longitude;return p;}).filter(p=>!hasGps||p.distance_km==null||p.distance_km<=radius).sort((a,b)=>(a.distance_km??99999)-(b.distance_km??99999));
   const businesses=db.prepare("SELECT id,name,slug,description,logo_url FROM businesses WHERE status='active' AND (LOWER(name) LIKE ? OR LOWER(COALESCE(description,'')) LIKE ?) LIMIT 30").all(like,like);
   const categories=db.prepare("SELECT id,name,slug,icon,color FROM categories WHERE active=1 AND domain='commercial' AND LOWER(name) LIKE ? LIMIT 20").all(like);
@@ -89,7 +89,7 @@ app.get('/api/businesses/:slug',(req,res)=>{
 app.post('/api/businesses',auth,(req,res)=>{
   const name=String(req.body?.name||'').trim(),type=req.body?.business_type;
   if(name.length<2)return res.status(400).json({error:'Ingresa el nombre del negocio'});
-  if(!['local','home_business'].includes(type))return res.status(400).json({error:'Tipo de negocio inválido'});
+  if(!['physical_store','home_business'].includes(type))return res.status(400).json({error:'Tipo de negocio inválido'});
   const slug=uniqueBusinessSlug(name),showExact=type==='home_business'?0:Number(Boolean(req.body?.show_exact_address));
   db.prepare(\`INSERT INTO businesses(owner_user_id,name,slug,business_type,show_exact_address,status) VALUES(?,?,?,?,?,'draft')\`).run(req.user.id,name,slug,type,showExact);
   const b=db.prepare('SELECT * FROM businesses WHERE slug=?').get(slug);
@@ -101,16 +101,17 @@ app.get('/api/my/businesses',auth,(req,res)=>res.json({businesses:db.prepare('SE
 
 app.put('/api/businesses/:id',auth,(req,res)=>{
   const b=ownerBusiness(req.user.id,Number(req.params.id));if(!b)return res.status(404).json({error:'Negocio no encontrado'});
-  const x=req.body||{},type=['local','home_business'].includes(x.business_type)?x.business_type:b.business_type;
+  const x=req.body||{},type=['physical_store','home_business'].includes(x.business_type)?x.business_type:b.business_type;
   const name=String(x.name??b.name).trim();if(name.length<2)return res.status(400).json({error:'Nombre inválido'});
   const lat=x.latitude==null?b.latitude:Number(x.latitude),lng=x.longitude==null?b.longitude:Number(x.longitude);
   if(lat!=null&&(!Number.isFinite(lat)||lat < -56||lat > -17))return res.status(400).json({error:'Latitud inválida'});
   if(lng!=null&&(!Number.isFinite(lng)||lng < -76||lng > -66))return res.status(400).json({error:'Longitud inválida'});
   const exact=type==='home_business'?Number(Boolean(x.show_exact_address)):Number(x.show_exact_address==null?b.show_exact_address:Boolean(x.show_exact_address));
-  db.prepare(\`UPDATE businesses SET name=?,description=?,business_type=?,main_category_id=?,phone=?,whatsapp=?,email_public=?,website=?,instagram=?,facebook=?,address=?,sector=?,comuna_id=?,region_id=?,latitude=?,longitude=?,location_accuracy=?,show_exact_address=?,pickup_enabled=?,delivery_enabled=?,delivery_radius_km=?,delivery_fee=?,opening_status=?,logo_url=?,cover_url=?,updated_at=datetime('now') WHERE id=?\`).run(
-    name,x.description??b.description,type,x.main_category_id??b.main_category_id,x.phone??b.phone,x.whatsapp??b.whatsapp,x.email_public??b.email_public,x.website??b.website,x.instagram??b.instagram,x.facebook??b.facebook,x.address??b.address,x.sector??b.sector,x.comuna_id??b.comuna_id,x.region_id??b.region_id,lat,lng,x.location_accuracy??b.location_accuracy,exact,Number(Boolean(x.pickup_enabled??b.pickup_enabled)),Number(Boolean(x.delivery_enabled??b.delivery_enabled)),Number(x.delivery_radius_km??b.delivery_radius_km)||0,Number(x.delivery_fee??b.delivery_fee)||0,x.opening_status??b.opening_status,x.logo_url??b.logo_url,x.cover_url??b.cover_url,b.id);
+  const publicMode=type==='home_business'?(x.public_location_mode==='exact'&&exact?'exact':x.public_location_mode==='comuna_only'?'comuna_only':'approximate'):'exact';
+  db.prepare(\`UPDATE businesses SET name=?,description=?,business_type=?,main_category_id=?,phone=?,whatsapp=?,email_public=?,website=?,instagram=?,facebook=?,address=?,public_address=?,public_location_mode=?,sector=?,pickup_instructions=?,province_id=?,comuna_id=?,region_id=?,latitude=?,longitude=?,location_accuracy=?,show_exact_address=?,pickup_enabled=?,delivery_enabled=?,delivery_radius_km=?,delivery_fee=?,opening_status=?,logo_url=?,cover_url=?,updated_at=datetime('now') WHERE id=?\`).run(
+    name,x.description??b.description,type,x.main_category_id??b.main_category_id,x.phone??b.phone,x.whatsapp??b.whatsapp,x.email_public??b.email_public,x.website??b.website,x.instagram??b.instagram,x.facebook??b.facebook,x.address??b.address,x.public_address??b.public_address,publicMode,x.sector??b.sector,x.pickup_instructions??b.pickup_instructions,x.province_id??b.province_id,x.comuna_id??b.comuna_id,x.region_id??b.region_id,lat,lng,x.location_accuracy??b.location_accuracy,exact,Number(Boolean(x.pickup_enabled??b.pickup_enabled)),Number(Boolean(x.delivery_enabled??b.delivery_enabled)),Number(x.delivery_radius_km??b.delivery_radius_km)||0,Number(x.delivery_fee??b.delivery_fee)||0,x.opening_status??b.opening_status,x.logo_url??b.logo_url,x.cover_url??b.cover_url,b.id);
   if(Array.isArray(x.category_ids)){
-    const ids=[...new Set(x.category_ids.map(Number).filter(Number.isInteger))].slice(0,4);const primary=Number(x.main_category_id||ids[0]);
+    const primary=Number(x.main_category_id||b.main_category_id);const ids=[...new Set([primary,...x.category_ids.map(Number)].filter(Number.isInteger))].slice(0,4);
     db.prepare('DELETE FROM business_categories WHERE business_id=?').run(b.id);for(const id of ids)db.prepare('INSERT INTO business_categories(business_id,category_id,is_primary) VALUES(?,?,?)').run(b.id,id,id===primary?1:0);
   }
   if(Array.isArray(x.hours))for(const h of x.hours){if(!Number.isInteger(Number(h.day_of_week))||Number(h.day_of_week)<0||Number(h.day_of_week)>6)continue;db.prepare("INSERT INTO business_hours(business_id,day_of_week,open_time,close_time,closed) VALUES(?,?,?,?,?) ON CONFLICT(business_id,day_of_week) DO UPDATE SET open_time=excluded.open_time,close_time=excluded.close_time,closed=excluded.closed").run(b.id,Number(h.day_of_week),h.open_time||null,h.close_time||null,Number(Boolean(h.closed)));}
@@ -131,6 +132,20 @@ app.post('/api/businesses/:id/products',auth,(req,res)=>{
   db.prepare('INSERT INTO products(business_id,name,slug,description,category_id,price,promo_price,stock,stock_tracking,available,image_url,active) VALUES(?,?,?,?,?,?,?,?,?,?,?,1)').run(b.id,name,slug,x.description||null,x.category_id||null,price,x.promo_price==null?null:Number(x.promo_price),Math.max(0,Number(x.stock)||0),Number(Boolean(x.stock_tracking)),Number(x.available!==false),x.image_url||null);
   res.status(201).json({product:db.prepare('SELECT * FROM products WHERE business_id=? AND slug=?').get(b.id,slug)});
 });
+app.get('/api/my/businesses/:id/products',auth,(req,res)=>{const b=ownerBusiness(req.user.id,Number(req.params.id));if(!b)return res.status(404).json({error:'Negocio no encontrado'});res.json({products:db.prepare('SELECT * FROM products WHERE business_id=? ORDER BY updated_at DESC').all(b.id)});});
+app.put('/api/businesses/:businessId/products/:productId',auth,(req,res)=>{
+  const b=ownerBusiness(req.user.id,Number(req.params.businessId));if(!b)return res.status(404).json({error:'Negocio no encontrado'});
+  const p=db.prepare('SELECT * FROM products WHERE id=? AND business_id=?').get(Number(req.params.productId),b.id);if(!p)return res.status(404).json({error:'Producto no encontrado'});
+  const x=req.body||{},name=String(x.name??p.name).trim(),price=Number(x.price??p.price),promo=x.promo_price==null?null:Number(x.promo_price);
+  if(name.length<2||!Number.isInteger(price)||price<0||promo!=null&&(!Number.isInteger(promo)||promo<0||promo>=price))return res.status(400).json({error:'Nombre, precio o precio promocional inválido'});
+  db.prepare("UPDATE products SET name=?,description=?,category_id=?,price=?,promo_price=?,stock=?,stock_tracking=?,available=?,image_url=?,active=?,updated_at=datetime('now') WHERE id=? AND business_id=?").run(name,x.description??p.description,x.category_id??p.category_id,price,promo,Math.max(0,Number(x.stock??p.stock)||0),Number(Boolean(x.stock_tracking??p.stock_tracking)),Number(Boolean(x.available??p.available)),x.image_url??p.image_url,Number(Boolean(x.active??p.active)),p.id,b.id);
+  res.json({product:db.prepare('SELECT * FROM products WHERE id=?').get(p.id)});
+});
+app.delete('/api/businesses/:businessId/products/:productId',auth,(req,res)=>{const b=ownerBusiness(req.user.id,Number(req.params.businessId));if(!b)return res.status(404).json({error:'Negocio no encontrado'});const result=db.prepare("UPDATE products SET active=0,available=0,updated_at=datetime('now') WHERE id=? AND business_id=?").run(Number(req.params.productId),b.id);if(!result.changes)return res.status(404).json({error:'Producto no encontrado'});res.json({ok:true,deleted:'soft'});});
+
+app.post('/api/businesses/:id/favorite',auth,(req,res)=>{const b=db.prepare("SELECT id FROM businesses WHERE id=? AND status='active'").get(Number(req.params.id));if(!b)return res.status(404).json({error:'Negocio no encontrado'});db.prepare('INSERT OR IGNORE INTO business_favorites(user_id,business_id) VALUES(?,?)').run(req.user.id,b.id);res.json({ok:true,favorite:true});});
+app.delete('/api/businesses/:id/favorite',auth,(req,res)=>{db.prepare('DELETE FROM business_favorites WHERE user_id=? AND business_id=?').run(req.user.id,Number(req.params.id));res.json({ok:true,favorite:false});});
+app.post('/api/businesses/:id/whatsapp-click',(req,res)=>{const b=db.prepare("SELECT id FROM businesses WHERE id=? AND status='active'").get(Number(req.params.id));if(!b)return res.status(404).json({error:'Negocio no encontrado'});db.prepare("INSERT INTO business_metrics(business_id,visits,whatsapp_clicks,updated_at) VALUES(?,0,1,datetime('now')) ON CONFLICT(business_id) DO UPDATE SET whatsapp_clicks=business_metrics.whatsapp_clicks+1,updated_at=datetime('now')").run(b.id);res.json({ok:true});});
 
 app.get('/api/my/businesses/:id/dashboard',auth,(req,res)=>{const b=ownerBusiness(req.user.id,Number(req.params.id));if(!b)return res.status(404).json({error:'Negocio no encontrado'});const m=db.prepare('SELECT * FROM business_metrics WHERE business_id=?').get(b.id)||{visits:0,whatsapp_clicks:0};res.json({business:businessSafe(b,true),metrics:{...m,favorites:db.prepare('SELECT COUNT(*) c FROM business_favorites WHERE business_id=?').get(b.id).c,products_active:db.prepare('SELECT COUNT(*) c FROM products WHERE business_id=? AND active=1').get(b.id).c}});});
 
