@@ -97,13 +97,12 @@ app.post('/api/businesses',auth,(req,res)=>{
   if(db.prepare('SELECT id FROM businesses WHERE owner_user_id=? AND lower(name)=lower(?) LIMIT 1').get(req.user.id,name))return res.status(409).json({error:'Ya tienes un negocio con ese nombre'});
   const lat=Number(body.latitude),lng=Number(body.longitude),accuracy=Number(body.location_accuracy);
   const hasCoords=Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
-  const comuna=db.prepare('SELECT id,province_id FROM comunas WHERE id=?').get(comunaId);
   const locationSource=hasCoords&&String(body.location_source)==='gps'?'gps':'manual';
   const publicMode=businessType==='home_business'?'approximate':(['exact','approximate','hidden'].includes(body.public_address_mode)?body.public_address_mode:'approximate');
   const slug=__marketSlug(name)+'-'+crypto.randomBytes(3).toString('hex');
   const tx=db.transaction(()=>{
     db.prepare("INSERT INTO businesses(owner_user_id,name,slug,description,business_type,comuna_id,province_id,latitude,longitude,location_accuracy,location_source,sector,address,public_address_mode,phone,whatsapp,opening_hours,pickup_enabled,delivery_enabled,status,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_review',datetime('now'))").run(
-      req.user.id,name,slug,description,businessType,comunaId,comuna?.province_id||null,hasCoords?lat:null,hasCoords?lng:null,Number.isFinite(accuracy)?accuracy:null,locationSource,
+      req.user.id,name,slug,description,businessType,comunaId,null,hasCoords?lat:null,hasCoords?lng:null,Number.isFinite(accuracy)?accuracy:null,locationSource,
       String(body.sector||'').trim().slice(0,120)||null,String(body.address||'').trim().slice(0,220)||null,publicMode,
       String(body.phone||'').trim().slice(0,40)||null,String(body.whatsapp||'').trim().slice(0,40)||null,String(body.opening_hours||'').trim().slice(0,800)||null,
       body.pickup_enabled===false?0:1,body.delivery_enabled?1:0
