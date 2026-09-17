@@ -159,6 +159,7 @@
   }
 
   // Reemplaza únicamente el Home. Los flujos legacy quedan intactos en esta rama para migrarlos de forma segura por fases.
+  window.__datoyaRenderMarketHome=renderLocalMarketplaceHome;
   if(typeof routes!=='undefined'){
     routes['']=renderLocalMarketplaceHome;
     if('inicio' in routes) routes.inicio=renderLocalMarketplaceHome;
