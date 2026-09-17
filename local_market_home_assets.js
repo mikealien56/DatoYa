@@ -11,6 +11,7 @@ if(fs.existsSync(idx)){
   html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>DatoYa — Lo que buscas, cerca de ti</title>');
   html=html.replace(/<meta name="description"[^>]*>/,'<meta name="description" content="DatoYa te ayuda a descubrir negocios, productos, promociones y ventas activas cerca de ti.">');
   html=html.replace(/src="\/datoya-logo\.jpg[^\"]*"/g,'src="/brand/datoya-logo-horizontal.png?v=20260917-3"');
+  html=html.replace(/\/app\.js(?:\?v=\d+)?/g,'/app.js?v=4');
 
   // Quitar cualquier inclusión previa para asegurar que estos assets queden realmente al final.
   html=html.replace(/<link[^>]+href="\/local_market_home\.css[^\"]*"[^>]*>\s*/g,'');
@@ -18,7 +19,7 @@ if(fs.existsSync(idx)){
   html=html.replace(/<script[^>]+src="\/local_market_home_guard\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/local_location_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
 
-  html=html.replace('</head>','<link rel="stylesheet" href="/local_market_home.css?v=20260917-3">\n</head>');
-  html=html.replace('</body>','<script src="/local_market_home.js?v=20260917-3"></script>\n<script src="/local_market_home_guard.js?v=20260917-4"></script>\n<script src="/local_location_ui.js?v=20260917-4"></script>\n</body>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/local_market_home.css?v=20260917-5">\n</head>');
+  html=html.replace('</body>','<script src="/local_market_home.js?v=20260917-5"></script>\n<script src="/local_market_home_guard.js?v=20260917-4"></script>\n<script src="/local_location_ui.js?v=20260917-4"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
