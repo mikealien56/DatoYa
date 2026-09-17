@@ -55,7 +55,7 @@ PAYMENT=$(curl -fsS -b /tmp/dy_market_client "$B/orders/$ORDER_ID/mercadopago/st
 printf '%s' "$PAYMENT" | python3 -c 'import sys,json; d=json.load(sys.stdin); b=d["breakdown"]; assert d["available"] is False; assert b["amount"]==3000; assert b["datoya_fee"]==round(b["amount"]*d["commission_pct"]/100); assert b["seller_net_estimate"]==b["amount"]-b["datoya_fee"]'
 
 CODE=$(curl -sS -o /tmp/dy_market_checkout.json -w '%{http_code}' -b /tmp/dy_market_client -X POST "$B/orders/$ORDER_ID/mercadopago/checkout" -H "$J" -d '{}')
-[ "$CODE" = "400" ] || { echo "Checkout sin cuenta Mercado Pago debió responder 400 y respondió $CODE"; cat /tmp/dy_market_checkout.json; exit 1; }
+[ "$CODE" = "409" ] || { echo "Checkout sin cuenta Mercado Pago debió responder 409 y respondió $CODE"; cat /tmp/dy_market_checkout.json; exit 1; }
 python3 -c 'import json; d=json.load(open("/tmp/dy_market_checkout.json")); assert "Mercado Pago" in d["error"]'
 
 curl -fsS -b /tmp/dy_market_client -X POST "$B/orders/$ORDER_ID/cancel" -H "$J" -d '{}' >/dev/null
