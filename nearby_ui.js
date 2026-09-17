@@ -17,12 +17,8 @@
   function goHome(){
     active=false;
     navigationEpoch++;
-    if(isHome()){
-      // La vista de cercanía puede seguir montada aunque el hash ya sea #/.
-      // En ese caso un enlace normal no dispara hashchange: forzamos la ruta real de Inicio.
-      renderRealHome();
-      return;
-    }
+    // Si el hash ya es Inicio, se debe ejecutar el router porque no habrá hashchange.
+    if(isHome()){if(typeof route==='function')route();return;}
     location.hash='#/';
   }
   function renderShell(){const view=getView();if(!view)return;view.innerHTML=`<div class="nearby-hero"><span class="nearby-kicker">DATOYA CERCA DE USTED</span><h1>¿Qué profesional necesita?</h1><p>Elija la especialidad y le mostraremos profesionales ordenados por cercanía usando su ubicación.</p></div><div id="nearby-content"></div>`;}
