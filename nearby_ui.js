@@ -18,7 +18,7 @@
     active=false;
     navigationEpoch++;
     // Si el hash ya es Inicio, se debe ejecutar el router porque no habrá hashchange.
-    if(isHome()&&typeof route==='function'){route();return;}
+    if(isHome()){if(typeof route==='function')route();return;}
     location.hash='#/';
   }
   function renderShell(){const view=getView();if(!view)return;view.innerHTML=`<div class="nearby-hero"><span class="nearby-kicker">DATOYA CERCA DE USTED</span><h1>¿Qué profesional necesita?</h1><p>Elija la especialidad y le mostraremos profesionales ordenados por cercanía usando su ubicación.</p></div><div id="nearby-content"></div>`;}
