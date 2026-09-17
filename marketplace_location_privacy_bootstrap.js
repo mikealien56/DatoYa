@@ -14,7 +14,7 @@ app.get('/api/location/reverse',async(req,res)=>{
   const key=String(req.ip||'unknown'),now=Date.now(),bucket=__locationRate.get(key)||[];
   const recent=bucket.filter(t=>now-t<60000);if(recent.length>=20)return res.status(429).json({error:'Espera un momento antes de volver a consultar tu ubicación'});
   recent.push(now);__locationRate.set(key,recent);
-  const comunas=db.prepare('SELECT c.id,c.name,c.region_id,c.province_id,c.lat,c.lng,r.name AS region FROM comunas c JOIN regions r ON r.id=c.region_id').all();
+  const comunas=db.prepare('SELECT c.id,c.name,c.region_id,NULL AS province_id,c.lat,c.lng,r.name AS region FROM comunas c JOIN regions r ON r.id=c.region_id').all();
   const providers=[
     {url:'https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=12&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng),headers:{'Accept':'application/json','User-Agent':'DatoYa/2.0 (territory resolver)'}},
     {url:'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+encodeURIComponent(lat)+'&longitude='+encodeURIComponent(lng)+'&localityLanguage=es',headers:{'Accept':'application/json'}}
