@@ -1,7 +1,7 @@
 const fs=require('fs'),path=require('path');
 const root=__dirname,pub=path.join(root,'public');
 fs.mkdirSync(pub,{recursive:true});
-for(const name of ['local_market_home.css','local_market_home.js','local_market_home_guard.js','local_location_ui.js']){
+for(const name of ['local_market_home.css','local_market_home.js','local_market_home_guard.js','local_location_ui.js','business_market_ui.js']){
   const src=path.join(root,name),dst=path.join(pub,name);
   if(fs.existsSync(src))fs.copyFileSync(src,dst);
 }
@@ -17,8 +17,9 @@ if(fs.existsSync(idx)){
   html=html.replace(/<script[^>]+src="\/local_market_home\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/local_market_home_guard\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/local_location_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
+  html=html.replace(/<script[^>]+src="\/business_market_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
 
   html=html.replace('</head>','<link rel="stylesheet" href="/local_market_home.css?v=20260917-3">\n</head>');
-  html=html.replace('</body>','<script src="/local_market_home.js?v=20260917-3"></script>\n<script src="/local_market_home_guard.js?v=20260917-3"></script>\n<script src="/local_location_ui.js?v=20260917-3"></script>\n</body>');
+  html=html.replace('</body>','<script src="/local_market_home.js?v=20260917-3"></script>\n<script src="/local_market_home_guard.js?v=20260917-3"></script>\n<script src="/local_location_ui.js?v=20260917-3"></script>\n<script src="/business_market_ui.js?v=20260917-1"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
