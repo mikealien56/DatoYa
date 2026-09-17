@@ -35,15 +35,5 @@
     if (isHome()) setTimeout(() => enforceMarketHome(false), 0);
   });
 
-  const view = document.getElementById('view');
-  if (view) {
-    const observer = new MutationObserver(() => {
-      if (isHome() && !view.querySelector('.dy-home')) {
-        setTimeout(() => enforceMarketHome(false), 0);
-      }
-    });
-    observer.observe(view, { childList: true });
-  }
-
   enforceMarketHome(false);
 })();
