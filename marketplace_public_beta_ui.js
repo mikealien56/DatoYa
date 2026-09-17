@@ -9,25 +9,19 @@
   const rad=d=>d*Math.PI/180;
   const distanceKm=(a,b,c,d)=>{const R=6371,dl=rad(c-a),dn=rad(d-b),x=Math.sin(dl/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
   const fmtDistance=d=>d==null?'':d<1?`${Math.max(50,Math.round(d*1000/50)*50)} m`:`${d.toFixed(d<10?1:0).replace('.',',')} km`;
-  const locationState=()=>({lat:num('datoya_lat'),lng:num('datoya_lng'),comunaId:Number(localStorage.getItem('datoya_comuna_id')||0),label:localStorage.getItem('datoya_location_label')||'Elegir ubicación'});
+  const locationState=()=>({lat:num('datoya_lat'),lng:num('datoya_lng'),comunaId:Number(localStorage.getItem('datoya_comuna_id')||0),radius:Math.min(30,Math.max(1,Number(localStorage.getItem('datoya_radius_km')||5))),label:localStorage.getItem('datoya_location_label')||'Elegir ubicación'});
   let cache={at:0,categories:[],businesses:[],products:[]};
 
   async function loadMarketplace(force=false){
     if(!force && Date.now()-cache.at<15000) return cache;
     const loc=locationState();
-    const qs=loc.lat==null||loc.lng==null ? (loc.comunaId?`?comuna_id=${loc.comunaId}`:'') : '';
+    const params=new URLSearchParams();
+    if(loc.lat!=null&&loc.lng!=null){params.set('lat',loc.lat);params.set('lng',loc.lng);params.set('radius',loc.radius);}else if(loc.comunaId)params.set('comuna_id',loc.comunaId);
+    const qs=params.toString()?`?${params}`:'';
     const [catRes,bizRes,prodRes]=await Promise.all([
       api('/market/categories'),api('/market/businesses'+qs),api('/market/products'+qs)
     ]);
-    let businesses=(bizRes.businesses||[]).map(b=>({...b,distance_km:null}));
-    if(loc.lat!=null&&loc.lng!=null){
-      businesses=businesses.map(b=>{
-        const lat=Number(b.latitude),lng=Number(b.longitude);
-        const ok=Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
-        return {...b,distance_km:ok?distanceKm(loc.lat,loc.lng,lat,lng):null};
-      }).filter(b=>b.distance_km==null ? (!loc.comunaId||Number(b.comuna_id)===loc.comunaId) : b.distance_km<=30)
-        .sort((a,b)=>(a.distance_km??9999)-(b.distance_km??9999));
-    }
+    const businesses=bizRes.businesses||[];
     const ids=new Set(businesses.map(b=>Number(b.id)));
     const products=(prodRes.products||[]).filter(p=>ids.has(Number(p.business_id))).map(p=>{
       const b=businesses.find(x=>Number(x.id)===Number(p.business_id));
@@ -78,7 +72,7 @@
         <section class="dy-section" id="local-categories"><div class="dy-section-head"><div><h2>¿Qué necesitas hoy?</h2><p>Categorías reales usadas por los negocios de DatoYa.</p></div><button class="dy-see-all" type="button" id="dy-beta-all">Ver todo →</button></div><div class="dy-category-strip">${categories.map(c=>`<button class="dy-category" type="button" data-dy-beta-category="${Number(c.id)}"><span class="dy-category-icon">${h(c.icon)}</span><b>${h(c.name)}</b></button>`).join('')}</div></section>
         <section class="dy-section dy-live-section" id="impulso-ahora"><div class="dy-section-head"><div><h2>⚡ Impulso Ahora</h2><p>Ventas por tiempo y stock aparecerán aquí cuando un negocio publique un Impulso Ahora.</p></div></div>${emptyBlock('⚡','Sin Impulsos Ahora activos en esta zona','No mostramos ofertas ficticias. Este espacio se llenará solo con publicaciones reales.')}</section>
         <section class="dy-section" id="promociones"><div class="dy-section-head"><div><h2>🔥 Promociones cerca de ti</h2><p>Precios promocionales creados por negocios aprobados.</p></div></div><div class="dy-live-grid" id="dy-beta-promos">${promos.length?promos.map(p=>productCard(p,businesses,'promo')).join(''):emptyBlock('🏷️','Aún no hay promociones reales','Cuando un negocio publique un precio oferta, aparecerá aquí.')}</div></section>
-        <section class="dy-section" id="negocios-cerca"><div class="dy-section-head"><div><h2>📍 Negocios cerca de ti</h2><p>${loc.comunaId||loc.lat!=null?'Resultados según tu zona guardada.':'Elige tu ubicación para ver resultados de tu zona.'}</p></div></div><div class="dy-card-grid" id="dy-beta-businesses">${visibleBusinesses.length?visibleBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Todavía no hay negocios aprobados en esta zona','Puedes registrar uno para comenzar la prueba.',`<a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>`)}</div></section>
+        <section class="dy-section" id="negocios-cerca"><div class="dy-section-head"><div><h2>📍 Negocios cerca de ti</h2><p>${loc.comunaId||loc.lat!=null?'Resultados según tu zona guardada.':'Elige tu ubicación para ver resultados de tu zona.'}</p></div><label class="dy-radius-control">Radio <select id="dy-radius-select" aria-label="Radio de búsqueda">${[1,3,5,10].map(km=>`<option value="${km}" ${loc.radius===km?'selected':''}>${km} km</option>`).join('')}</select></label></div><div class="dy-card-grid" id="dy-beta-businesses">${visibleBusinesses.length?visibleBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Todavía no hay negocios aprobados en esta zona','Puedes registrar uno para comenzar la prueba.',`<a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>`)}</div></section>
         <section class="dy-local-banner"><div><h2>❤️ Lo local también es grande</h2><p>¿Tienes un negocio? Regístralo, carga tus productos y después de la revisión aparecerá públicamente aquí.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio</a></section>
       </div>`;
       bindHome(categories,businesses,products);
@@ -89,6 +83,11 @@
   }
 
   function bindHome(categories,businesses,products){
+    document.getElementById('dy-radius-select')?.addEventListener('change',e=>{
+      localStorage.setItem('datoya_radius_km',String(Number(e.currentTarget.value)||5));
+      cache.at=0;
+      renderBetaHome();
+    });
     document.getElementById('dy-beta-search')?.addEventListener('submit',e=>{e.preventDefault();const q=String(new FormData(e.currentTarget).get('q')||'').trim();location.hash='#/buscar/'+encodeURIComponent(q||'_');});
     document.getElementById('dy-beta-all')?.addEventListener('click',()=>{document.querySelectorAll('[data-dy-beta-category]').forEach(x=>x.classList.remove('active'));document.querySelectorAll('#dy-beta-businesses .dy-business-card,#dy-beta-promos .dy-live-card').forEach(x=>x.style.display='');});
     document.querySelectorAll('[data-dy-beta-category]').forEach(btn=>btn.addEventListener('click',()=>{
