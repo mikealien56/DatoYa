@@ -1,4 +1,4 @@
-const CACHE='datoya-shell-v11';
+const CACHE='datoya-shell-v12';
 const SHELL=['/','/styles.css','/app.js','/local_market_home.css','/hero_polish.css','/home_premium.css','/local_market_home.js','/local_market_home_guard.js','/local_location_ui.js','/marketplace_navigation_fix.js','/marketplace_topnav_fix.js','/home_premium_ui.js','/brand/datoya-logo-horizontal.png','/brand/pwa/icon-192.png','/brand/pwa/icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
