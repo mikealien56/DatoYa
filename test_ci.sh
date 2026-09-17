@@ -4,6 +4,7 @@ if grep -q 'MutationObserver' local_location_ui.js;then echo "La ubicación mant
 if grep -q 'MutationObserver' local_market_home_guard.js;then echo "El guard del Home mantiene un observador que puede repintar en bucle";exit 1;fi
 if ! grep -q 'el.textContent !== label' local_location_ui.js;then echo "La etiqueta GPS no evita escrituras DOM repetidas";exit 1;fi
 if grep -q 'Encuentra a la persona indicada' app.js||! grep -q '__datoyaRenderMarketHome' app.js||! grep -q '__datoyaRenderMarketHome=renderMarketShell' local_market_home.js||! grep -q "app.js?v=4" local_market_home_assets.js;then echo "El arranque puede volver a mostrar el Home legacy antes del comercial";exit 1;fi
+for js in *.js;do node --check "$js" >/dev/null||{ echo "Error de sintaxis en $js";exit 1;};done
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)";cd "$BASE_DIR";rm -f datoya.db datoya.db-shm datoya.db-wal
 if [ ! -d node_modules ]; then npm ci --silent; fi
 node app_runtime_fix.js;node worker_demo_badge_runtime_fix.js
