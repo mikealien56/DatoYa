@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+node --check territory_resolver.js;node --check location_domain_schema.js;node --check location_domain_bootstrap.js;node --check commerce_growth_schema.js;node --check commerce_growth_bootstrap.js;node --check local_location_ui.js;node test_location_domain.js
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)";cd "$BASE_DIR";rm -f datoya.db datoya.db-shm datoya.db-wal
 if [ ! -d node_modules ]; then npm ci --silent; fi
 node app_runtime_fix.js;node worker_demo_badge_runtime_fix.js
@@ -18,7 +19,8 @@ if ! grep -q "split('?')\[0\]" app_runtime_fix.js;then echo "El router todavía 
 if ! grep -q '#/cerca?cat=' home_search_polish.js||! grep -q 'routes.cerca=mountCategory' nearby_ui.js;then echo "Las categorías de Inicio no abren la búsqueda cercana";exit 1;fi
 if grep -q 'observer.observe(v' nearby_ui.js||! grep -q 'navigationEpoch' nearby_ui.js||! grep -q "if(isHome()).*route()" nearby_ui.js;then echo "La búsqueda cercana puede volver a reemplazar Inicio";exit 1;fi
 if ! grep -q "'Cámaras y Seguridad'" home_search_polish.js||! grep -q 'mainCategories.map' home_search_polish.js;then echo "Cámaras y Seguridad no está fijada entre las categorías principales de Inicio";exit 1;fi
-if ! grep -q 'home_search_polish.js?v=4' home_search_polish_assets.js;then echo "El Inicio actualizado no invalida la caché anterior";exit 1;fi
+HOME_ASSET_VERSION="$(sed -nE 's/.*home_search_polish\.js\?v=([0-9]+).*/\1/p' home_search_polish_assets.js | head -1)"
+if [ -z "$HOME_ASSET_VERSION" ] || [ "$HOME_ASSET_VERSION" -lt 4 ];then echo "El Inicio actualizado no invalida la caché anterior";exit 1;fi
 node --check admin_navigation_polish.js
 if ! grep -q 'data-admin-unified-nav' admin_navigation_polish.js||! grep -q "querySelectorAll('.admin-tabs,.admin-menu-organized,\[data-admin-compact-nav\]')" admin_navigation_polish.js;then echo "La navegación administrativa única no está instalada";exit 1;fi
 if grep -q "routes.buscar=search" home_search_polish.js;then echo "Una capa antigua todavía reemplaza la búsqueda nacional";exit 1;fi
@@ -27,10 +29,13 @@ for field in urgency preferred_date budget region_id comuna_id address_detail ph
 if ! grep -q 'if(target)return previousSolicitar' request_wizard_ui.js;then echo "Wizard no preserva flujo dirigido";exit 1;fi
 # El flujo canónico verifica correos temporales. El token de prueba solo se expone dentro de esta ejecución CI.
 export AUTH_TEST_MODE=true
+export ADMIN_EMAIL='business-admin@datoya.test'
+export ADMIN_PASSWORD='AdminPruebaSegura123'
 npm start >/tmp/datoya-ci.log 2>&1 & PID=$!;cleanup(){ kill "$PID" >/dev/null 2>&1||true;wait "$PID" >/dev/null 2>&1||true;};trap cleanup EXIT
 READY=0;for i in $(seq 1 120);do if curl -fsS http://localhost:3000/api/categories >/dev/null 2>&1;then READY=1;break;fi;if ! kill -0 "$PID" >/dev/null 2>&1;then echo "Servidor DatoYa no pudo iniciar";cat /tmp/datoya-ci.log;exit 1;fi;sleep 1;done
 if [ "$READY" -ne 1 ];then echo "Timeout esperando DatoYa";cat /tmp/datoya-ci.log;exit 1;fi
 curl -fsS http://localhost:3000/health|grep -q '"ok":true';echo "Healthcheck DatoYa OK"
+bash test_business_domain.sh
 CATEGORIES_JSON="$(curl -fsS http://localhost:3000/api/categories)"
 node -e 'const data=JSON.parse(process.argv[1]);const category=(data.categories||[]).find(c=>c.name==="Cámaras y Seguridad");if(!category||category.icon!=="📹")process.exit(1)' "$CATEGORIES_JSON" || { echo "La categoría Cámaras y Seguridad no está integrada al catálogo real";exit 1; }
 for marker in 'DATOYA CHAT WORKFLOW GUARD V1' 'VERIFICACIÓN PROFESIONAL DATOYA 2.0' 'DATOYA ADMIN OPERATIONS V1' 'DATOYA REVIEW STATUS V1' 'DATOYA DISPUTE RUNTIME V2';do grep -q "$marker" server.js||{ echo "Runtime no montado: $marker";exit 1;};done

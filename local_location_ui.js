@@ -6,43 +6,42 @@
 
   const isHome = () => !location.hash || location.hash === '#' || location.hash === '#/';
   const updateLabels = label => document.querySelectorAll('[data-dy-location-label]').forEach(el => { el.textContent = label; });
-  const rad = d => d * Math.PI / 180;
-  const distanceKm = (aLat, aLng, bLat, bLng) => {
-    const R = 6371, dLat = rad(bLat-aLat), dLng = rad(bLng-aLng);
-    const x = Math.sin(dLat/2) ** 2 + Math.cos(rad(aLat)) * Math.cos(rad(bLat)) * Math.sin(dLng/2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
-  };
 
   async function loadComunas(){
     if (comunasCache) return comunasCache;
     const r = await fetch('/api/comunas', { credentials:'same-origin', headers:{'Accept':'application/json'} });
     if (!r.ok) throw new Error('No pudimos cargar las comunas.');
     const data = await r.json();
-    comunasCache = (data.comunas || []).filter(c => Number.isFinite(Number(c.lat)) && Number.isFinite(Number(c.lng)));
+    // La selección manual debe incluir las 346 comunas, aunque no tengan centroide.
+    comunasCache = data.comunas || [];
     return comunasCache;
   }
 
   async function resolveZone(lat,lng){
-    const comunas = await loadComunas();
-    let nearest = null;
-    for (const c of comunas){
-      const d = distanceKm(lat,lng,Number(c.lat),Number(c.lng));
-      if (!nearest || d < nearest.distance_km) nearest = {...c,distance_km:d};
-    }
-    return nearest;
+    const r=await fetch(`/api/location/reverse?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`,{credentials:'same-origin',headers:{Accept:'application/json'}});
+    if(!r.ok)throw new Error('No pudimos resolver la comuna de esta ubicación.');
+    const data=await r.json();
+    return {place:data.place||null,source:data.source||'reverse_geocode',confidence:data.confidence||'unknown'};
   }
 
-  function saveLocation(lat,lng,place,accuracy){
+  async function persistLocation(lat,lng,place,accuracy,source){
+    if(!place?.id)return;
+    try{await fetch('/api/location/me',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({latitude:Number.isFinite(lat)?lat:null,longitude:Number.isFinite(lng)?lng:null,accuracy,region_id:place.region_id,comuna_id:place.id,location_source:source})});}catch(_){}
+  }
+
+  function saveLocation(lat,lng,place,accuracy,source='manual'){
     const label = place ? `${place.name}, ${place.region}` : 'Ubicación detectada';
-    localStorage.setItem('datoya_lat', String(lat));
-    localStorage.setItem('datoya_lng', String(lng));
+    if(Number.isFinite(lat)&&Number.isFinite(lng)){localStorage.setItem('datoya_lat',String(lat));localStorage.setItem('datoya_lng',String(lng));}
+    else{localStorage.removeItem('datoya_lat');localStorage.removeItem('datoya_lng');}
     localStorage.setItem('datoya_location_label', label);
+    localStorage.setItem('datoya_location_source',source);
     if (accuracy != null) localStorage.setItem('datoya_location_accuracy', String(Math.round(accuracy)));
     if (place?.id != null) localStorage.setItem('datoya_comuna_id', String(place.id));
     if (place?.region_id != null) localStorage.setItem('datoya_region_id', String(place.region_id));
     localStorage.removeItem('datoya_location_denied');
     updateLabels(label);
-    window.dispatchEvent(new CustomEvent('datoya:location-changed',{detail:{lat,lng,label,place,accuracy}}));
+    persistLocation(lat,lng,place,accuracy,source);
+    window.dispatchEvent(new CustomEvent('datoya:location-changed',{detail:{lat,lng,label,place,accuracy,source}}));
     return label;
   }
 
@@ -70,7 +69,7 @@
         const id = Number(document.getElementById('dy-manual-comuna')?.value || 0);
         const c = comunas.find(x=>Number(x.id)===id);
         if (!c) return typeof toast==='function' && toast('Selecciona una comuna','err');
-        saveLocation(Number(c.lat),Number(c.lng),c,null);
+        saveLocation(null,null,c,null,'manual');
         if (typeof closeModal==='function') closeModal();
         if (typeof toast==='function') toast(`Zona: ${c.name}`,'ok');
       },{once:true});
@@ -83,8 +82,9 @@
     updateLabels('Buscando ubicación…');
     try{
       const p = await getCoords();
-      const place = await resolveZone(p.lat,p.lng).catch(()=>null);
-      const label = saveLocation(p.lat,p.lng,place,p.accuracy);
+      const resolved = await resolveZone(p.lat,p.lng);
+      if(!resolved.place)throw new Error('No pudimos identificar la comuna.');
+      const label = saveLocation(p.lat,p.lng,resolved.place,p.accuracy,resolved.source);
       if (typeof toast==='function') toast(`Ubicación detectada: ${label}`,'ok');
     }catch(e){
       const previous = localStorage.getItem('datoya_location_label') || 'Usar mi ubicación';
@@ -102,8 +102,9 @@
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
     if (!GENERIC.has(label)) { updateLabels(label); return true; }
     try{
-      const place = await resolveZone(lat,lng);
-      saveLocation(lat,lng,place,Number(localStorage.getItem('datoya_location_accuracy'))||null);
+      const resolved = await resolveZone(lat,lng);
+      if(!resolved.place)return false;
+      saveLocation(lat,lng,resolved.place,Number(localStorage.getItem('datoya_location_accuracy'))||null,resolved.source);
       return true;
     }catch(_){ return false; }
   }
