@@ -12,11 +12,9 @@ if(fs.existsSync(idx)){
   html=html.replace(/<meta name="description"[^>]*>/,'<meta name="description" content="DatoYa te ayuda a descubrir negocios, productos, promociones y ventas activas cerca de ti.">');
   html=html.replace(/src="\/datoya-logo\.jpg[^\"]*"/g,'src="/brand/datoya-logo-horizontal.png?v=20260917-3"');
 
-  // Evita que el Home legacy alcance a verse antes de que cargue el marketplace nuevo.
   html=html.replace(/<style id="dy-market-boot-shield">[\s\S]*?<\/style>\s*/g,'');
   const bootShield='<style id="dy-market-boot-shield">html:not(.dy-market-ready) #view{visibility:hidden}html:not(.dy-market-ready) body::after{content:"Cargando DatoYa…";position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F7F9FC;color:#0B3A82;font:600 15px Poppins,system-ui,sans-serif;z-index:9999}</style>\n';
 
-  // Quitar inclusiones previas para asegurar que los assets vigentes queden al final.
   html=html.replace(/<link[^>]+href="\/local_market_home\.css[^\"]*"[^>]*>\s*/g,'');
   html=html.replace(/<link[^>]+href="\/hero_polish\.css[^\"]*"[^>]*>\s*/g,'');
   html=html.replace(/<link[^>]+href="\/home_premium\.css[^\"]*"[^>]*>\s*/g,'');
@@ -30,6 +28,6 @@ if(fs.existsSync(idx)){
 
   html=html.replace('</head>',bootShield+'<link rel="stylesheet" href="/local_market_home.css?v=20260917-4">\n<link rel="stylesheet" href="/hero_polish.css?v=20260917-2">\n<link rel="stylesheet" href="/home_premium.css?v=20260917-1">\n</head>');
   const reveal=`<script id="dy-market-reveal">(()=>{const isHome=()=>!location.hash||location.hash==='#'||location.hash==='#/';const reveal=()=>{if(!isHome()||document.querySelector('.dy-home')){document.documentElement.classList.add('dy-market-ready');return;}requestAnimationFrame(reveal)};reveal();addEventListener('hashchange',()=>{document.documentElement.classList.add('dy-market-ready')})})();</script>`;
-  html=html.replace('</body>','<script src="/local_market_home.js?v=20260917-4"></script>\n<script src="/local_market_home_guard.js?v=20260917-4"></script>\n<script src="/local_location_ui.js?v=20260917-5"></script>\n<script src="/marketplace_navigation_fix.js?v=20260917-2"></script>\n<script src="/marketplace_topnav_fix.js?v=20260917-1"></script>\n<script src="/home_premium_ui.js?v=20260917-1"></script>\n'+reveal+'\n</body>');
+  html=html.replace('</body>','<script src="/local_market_home.js?v=20260917-4"></script>\n<script src="/local_market_home_guard.js?v=20260917-5"></script>\n<script src="/local_location_ui.js?v=20260917-5"></script>\n<script src="/marketplace_navigation_fix.js?v=20260917-2"></script>\n<script src="/marketplace_topnav_fix.js?v=20260917-2"></script>\n<script src="/home_premium_ui.js?v=20260917-2"></script>\n'+reveal+'\n</body>');
   fs.writeFileSync(idx,html);
 }
