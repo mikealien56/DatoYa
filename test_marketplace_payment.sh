@@ -38,14 +38,20 @@ verify_email /tmp/dy_market_merchant
 verify_email /tmp/dy_market_client
 curl -fsS -c /tmp/dy_market_admin -X POST "$B/auth/login" -H "$J" -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" >/dev/null
 
-CATEGORY_ID=$(curl -fsS "$B/market/categories" | json_value 'd["categories"][0]["id"]')
-BUSINESS=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses" -H "$J" -d "{\"name\":\"Negocio Pago TEST $TS\",\"description\":\"Negocio temporal para validar pedidos y pagos\",\"business_type\":\"home_business\",\"comuna_id\":4,\"category_ids\":[$CATEGORY_ID],\"sector\":\"Sector TEST\",\"address\":\"Dirección privada TEST\",\"public_address_mode\":\"exact\",\"pickup_enabled\":true,\"delivery_enabled\":false}")
+CATEGORY_ID=$(curl -fsS "$B/market/categories" | json_value 'next(x["id"] for x in d["categories"] if x["name"]=="Pastelerías")')
+COMUNA_ID=$(curl -fsS "$B/comunas" | json_value 'next(x["id"] for x in d["comunas"] if x["name"]=="Doñihue")')
+BUSINESS=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses" -H "$J" -d "{\"name\":\"Dulce Hogar TEST $TS\",\"description\":\"Emprendimiento temporal para validar privacidad, búsqueda, pedidos y pagos\",\"business_type\":\"home_business\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"latitude\":-34.233333,\"longitude\":-70.966667,\"location_accuracy\":12,\"location_source\":\"gps\",\"sector\":\"Sector TEST\",\"address\":\"Dirección residencial privada TEST 123\",\"public_address_mode\":\"exact\",\"pickup_enabled\":true,\"delivery_enabled\":false}")
 BUSINESS_ID=$(printf '%s' "$BUSINESS" | json_value 'd["business"]["id"]')
-printf '%s' "$BUSINESS" | python3 -c 'import sys,json; b=json.load(sys.stdin)["business"]; assert b["business_type"]=="home_business"; assert b["public_address_mode"]=="approximate"; assert b["status"]=="pending_review"'
+printf '%s' "$BUSINESS" | python3 -c 'import sys,json; b=json.load(sys.stdin)["business"]; assert b["business_type"]=="home_business"; assert b["public_address_mode"]=="approximate"; assert b["status"]=="pending_review"; assert b["location_source"]=="gps"; assert b["province_id"] is not None'
 curl -fsS -b /tmp/dy_market_admin -X PUT "$B/admin/marketplace/businesses/$BUSINESS_ID/status" -H "$J" -d '{"status":"active"}' >/dev/null
 
-PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Producto Pago TEST\",\"description\":\"Producto temporal\",\"category_id\":$CATEGORY_ID,\"price\":1500,\"stock\":5,\"stock_tracking\":true,\"active\":true}")
+PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Berlines caseros TEST\",\"description\":\"Producto temporal\",\"category_id\":$CATEGORY_ID,\"price\":1500,\"stock\":5,\"stock_tracking\":true,\"active\":true}")
 PRODUCT_ID=$(printf '%s' "$PRODUCT" | json_value 'd["product"]["id"]')
+
+PUBLIC_BUSINESS=$(curl -fsS "$B/market/businesses?lat=-34.233333&lng=-70.966667&radius=5")
+printf '%s' "$PUBLIC_BUSINESS" | python3 -c 'import sys,json; d=json.load(sys.stdin); b=next(x for x in d["businesses"] if int(x["id"])=='"$BUSINESS_ID"'); assert b["comuna"]=="Doñihue"; assert b["region"]=="Libertador General Bernardo O'"'"'Higgins"; assert b["distance_km"]<0.1; assert "address" not in b; assert "latitude" not in b; assert "longitude" not in b; assert "location_accuracy" not in b'
+PUBLIC_PRODUCT=$(curl -fsS "$B/market/products?q=berlines")
+printf '%s' "$PUBLIC_PRODUCT" | python3 -c 'import sys,json; d=json.load(sys.stdin); p=next(x for x in d["products"] if int(x["id"])=='"$PRODUCT_ID"'); assert p["name"]=="Berlines caseros TEST"; assert p["price"]==1500'
 
 ORDER=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente TEST\",\"customer_phone\":\"+56933334444\",\"items\":[{\"product_id\":$PRODUCT_ID,\"quantity\":2}]}")
 ORDER_ID=$(printf '%s' "$ORDER" | json_value 'd["order"]["id"]')
