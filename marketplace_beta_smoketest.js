@@ -12,9 +12,10 @@ const stats={
 };
 if(stats.categories<1)throw new Error('[DatoYa][Beta smoke] No hay categorías de marketplace activas');
 const source=fs.readFileSync(path.join(__dirname,'server.js'),'utf8');
-for(const route of ['/api/market/businesses','/api/market/products','/api/market/impulses','/api/orders','/api/businesses/:id/impulses']){
+for(const route of ['/api/location/reverse','/api/market/businesses','/api/market/products','/api/market/impulses','/api/orders','/api/businesses/:id/impulses']){
   if(!source.includes(route))throw new Error('[DatoYa][Beta smoke] Falta ruta crítica: '+route);
 }
+if(!source.includes("exposeExact=b.business_type!=='home_business'")||!source.includes('distance_km'))throw new Error('[DatoYa][Beta smoke] La ruta pública no protege ubicación residencial o no calcula distancia');
 for(const asset of ['marketplace_public_beta_ui.js','marketplace_commerce_ui.js','marketplace_payments_ui.js','marketplace_demo_showcase_ui.js','marketplace_about_ui.js','marketplace_about.css','legal_final_ui.js']){
   if(!fs.existsSync(path.join(__dirname,asset)))throw new Error('[DatoYa][Beta smoke] Falta asset crítico: '+asset);
 }

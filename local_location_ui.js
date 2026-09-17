@@ -41,22 +41,20 @@
 
   async function reverseGeocode(lat,lng){
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 7000);
+    const timer = setTimeout(() => controller.abort(), 12000);
     try{
-      const url = new URL('https://api.bigdatacloud.net/data/reverse-geocode-client');
-      url.searchParams.set('latitude', String(lat));
-      url.searchParams.set('longitude', String(lng));
-      url.searchParams.set('localityLanguage', 'es');
+      const url = new URL('/api/location/reverse', location.origin);
+      url.searchParams.set('lat', String(lat));
+      url.searchParams.set('lng', String(lng));
       const r = await fetch(url.toString(), { method:'GET', signal:controller.signal, headers:{'Accept':'application/json'} });
       if (!r.ok) throw new Error('Reverse geocoding no disponible');
-      const data = await r.json();
-      if (data.countryCode && data.countryCode !== 'CL') return null;
-      return data;
+      return r.json();
     } finally { clearTimeout(timer); }
   }
 
   async function matchReversePlace(data){
     if (!data) return null;
+    if (data.comuna?.id != null) return data.comuna;
     const comunas = await loadComunas();
     const administrative = Array.isArray(data.localityInfo?.administrative) ? data.localityInfo.administrative : [];
     const candidates = [
