@@ -5,7 +5,11 @@
   let locating = false;
 
   const isHome = () => !location.hash || location.hash === '#' || location.hash === '#/';
-  const updateLabels = label => document.querySelectorAll('[data-dy-location-label]').forEach(el => { el.textContent = label; });
+  // No escriba nuevamente el mismo texto: hacerlo dentro de un observador del DOM
+  // generaba una cadena infinita de mutaciones y congelaba Chrome.
+  const updateLabels = label => document.querySelectorAll('[data-dy-location-label]').forEach(el => {
+    if (el.textContent !== label) el.textContent = label;
+  });
   const rad = d => d * Math.PI / 180;
   const distanceKm = (aLat, aLng, bLat, bLng) => {
     const R = 6371, dLat = rad(bLat-aLat), dLng = rad(bLng-aLng);
@@ -130,9 +134,9 @@
   }
 
   addEventListener('hashchange',()=>setTimeout(boot,120));
-  new MutationObserver(()=>{
-    const label = localStorage.getItem('datoya_location_label');
-    if (label && !GENERIC.has(label)) updateLabels(label);
-  }).observe(document.body,{childList:true,subtree:true});
+  addEventListener('datoya:location-changed',event=>{
+    const label=event.detail?.label;
+    if(label&&!GENERIC.has(label))updateLabels(label);
+  });
   boot();
 })();
