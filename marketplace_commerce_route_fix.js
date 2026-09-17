@@ -1,0 +1,84 @@
+// Corrige de forma determinista la ruta de creación de pedidos generada por el bootstrap comercial.
+const fs=require('fs');
+const path=require('path');
+const file=path.join(__dirname,'server.js');
+if(fs.existsSync(file)){
+  let src=fs.readFileSync(file,'utf8');
+  const start=src.indexOf("app.post('/api/orders',auth,");
+  const end=src.indexOf("app.get('/api/orders/mine',auth,",start);
+  if(start>=0&&end>start){
+    const route=[
+      "app.post('/api/orders',auth,(req,res)=>{",
+      "  __ciRefreshImpulses();",
+      "  const x=req.body||{};",
+      "  const businessId=Number(x.business_id||0);",
+      "  const b=db.prepare(\"SELECT * FROM businesses WHERE id=? AND status='active'\").get(businessId);",
+      "  if(!b)return res.status(400).json({error:'Negocio no disponible'});",
+      "  const method=String(x.fulfillment_method||'pickup');",
+      "  if(method==='pickup'&&!b.pickup_enabled)return res.status(400).json({error:'Este negocio no ofrece retiro'});",
+      "  if(method==='delivery'&&!b.delivery_enabled)return res.status(400).json({error:'Este negocio no ofrece despacho'});",
+      "  if(!['pickup','delivery'].includes(method))return res.status(400).json({error:'Método de entrega inválido'});",
+      "  const raw=Array.isArray(x.items)?x.items.slice(0,20):[];",
+      "  if(!raw.length)return res.status(400).json({error:'Tu carrito está vacío'});",
+      "  const customerName=String(x.customer_name||req.user.name||'').trim().slice(0,100);",
+      "  const customerPhone=String(x.customer_phone||req.user.phone||'').trim().slice(0,40);",
+      "  const address=method==='delivery'?String(x.delivery_address||'').trim().slice(0,220):null;",
+      "  const notes=String(x.notes||'').trim().slice(0,500)||null;",
+      "  if(customerName.length<2)return res.status(400).json({error:'Ingresa tu nombre'});",
+      "  if(customerPhone.replace(/\\D/g,'').length<8)return res.status(400).json({error:'Ingresa un teléfono de contacto válido'});",
+      "  if(method==='delivery'&&(!address||address.length<5))return res.status(400).json({error:'Ingresa la dirección de despacho'});",
+      "  const items=[];let subtotal=0;",
+      "  for(const r of raw){",
+      "    const qty=Math.max(1,Math.min(99,Math.floor(Number(r.quantity||1))));",
+      "    const impulseId=Number(r.impulse_id||0),productId=Number(r.product_id||0);",
+      "    if(impulseId){",
+      "      const i=db.prepare(\"SELECT i.*,p.stock,p.stock_tracking,p.active AS product_active FROM impulse_now i LEFT JOIN products p ON p.id=i.product_id WHERE i.id=? AND i.business_id=? AND i.status IN ('active','low_stock')\").get(impulseId,b.id);",
+      "      if(!i)return res.status(400).json({error:'Un Impulso del carrito ya no está disponible'});",
+      "      if(Number(i.stock_remaining||0)<qty)return res.status(400).json({error:'No queda suficiente stock de '+i.title});",
+      "      if(i.stock_tracking&&Number(i.stock||0)<qty)return res.status(400).json({error:'El producto '+i.title+' no tiene stock suficiente'});",
+      "      items.push({product_id:i.product_id||null,impulse_id:i.id,name:i.title,unit_price:Number(i.price),quantity:qty,stock_tracking:!!i.stock_tracking});",
+      "      subtotal+=Number(i.price)*qty;",
+      "    }else{",
+      "      const p=db.prepare('SELECT * FROM products WHERE id=? AND business_id=? AND active=1').get(productId,b.id);",
+      "      if(!p)return res.status(400).json({error:'Un producto del carrito ya no está disponible'});",
+      "      if(p.stock_tracking&&Number(p.stock||0)<qty)return res.status(400).json({error:'No queda suficiente stock de '+p.name});",
+      "      const unit=Number(p.promo_price||p.price||0);",
+      "      items.push({product_id:p.id,impulse_id:null,name:p.name,unit_price:unit,quantity:qty,stock_tracking:!!p.stock_tracking});",
+      "      subtotal+=unit*qty;",
+      "    }",
+      "  }",
+      "  if(subtotal<1)return res.status(400).json({error:'El total del pedido no es válido'});",
+      "  const ref='DY-'+new Date().toISOString().slice(2,10).replace(/-/g,'')+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();",
+      "  const now=new Date().toISOString();",
+      "  const tx=db.transaction(()=>{",
+      "    db.prepare('INSERT INTO commerce_orders(reference,user_id,business_id,status,fulfillment_method,customer_name,customer_phone,delivery_address,notes,subtotal,delivery_fee,total,payment_method,payment_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(ref,req.user.id,b.id,'new',method,customerName,customerPhone,address,notes,subtotal,0,subtotal,'arrange','pending',now,now);",
+      "    const order=db.prepare('SELECT id FROM commerce_orders WHERE reference=?').get(ref);",
+      "    if(!order)throw new Error('No se pudo crear el pedido');",
+      "    for(const it of items){",
+      "      db.prepare('INSERT INTO commerce_order_items(order_id,product_id,impulse_id,name_snapshot,unit_price,quantity,created_at) VALUES(?,?,?,?,?,?,?)').run(order.id,it.product_id,it.impulse_id,it.name,it.unit_price,it.quantity,now);",
+      "      if(it.product_id&&it.stock_tracking){",
+      "        const r1=db.prepare('UPDATE products SET stock=stock-?,updated_at=? WHERE id=? AND stock>=?').run(it.quantity,now,it.product_id,it.quantity);",
+      "        if(Number(r1.changes||0)<1)throw new Error('El stock cambió mientras confirmabas el pedido. Intenta nuevamente.');",
+      "      }",
+      "      if(it.impulse_id){",
+      "        const r2=db.prepare('UPDATE impulse_now SET stock_remaining=stock_remaining-?,updated_at=? WHERE id=? AND stock_remaining>=?').run(it.quantity,now,it.impulse_id,it.quantity);",
+      "        if(Number(r2.changes||0)<1)throw new Error('El stock del Impulso cambió. Intenta nuevamente.');",
+      "      }",
+      "    }",
+      "    return Number(order.id);",
+      "  });",
+      "  let orderId;",
+      "  try{orderId=tx();}catch(e){return res.status(409).json({error:e.message});}",
+      "  __ciRefreshImpulses();",
+      "  notify(b.owner_user_id,'pedido','Nuevo pedido '+ref+' por '+fmtCLP(subtotal),'#/mi-negocio-pedidos/'+b.id);",
+      "  notify(req.user.id,'pedido','Pedido '+ref+' enviado a '+b.name,'#/pedidos');",
+      "  const order=__ciOrderRow(db.prepare('SELECT o.*,b.name AS business_name FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=?').get(orderId));",
+      "  res.json({ok:true,order});",
+      "});",
+      ""
+    ].join('\n');
+    src=src.slice(0,start)+route+src.slice(end);
+    fs.writeFileSync(file,src);
+    console.log('[DatoYa] Ruta comercial de pedidos validada.');
+  }
+}
