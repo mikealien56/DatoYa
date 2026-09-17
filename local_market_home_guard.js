@@ -1,21 +1,19 @@
-/* DatoYa — protege permanentemente el nuevo Home frente a renders legacy. */
+/* DatoYa — protege permanentemente el Home actual frente a renders legacy. */
 (() => {
   if (typeof routes === 'undefined') return;
 
-  const marketHome = routes[''];
-  if (typeof marketHome !== 'function') return;
-
-  // Exponer la función estable para que la navegación nueva nunca dependa
-  // de una ruta que un módulo legacy pueda volver a sobrescribir.
-  window.__datoya_market_home = marketHome;
+  const initialMarketHome = routes[''];
+  if (typeof initialMarketHome !== 'function') return;
+  if (typeof window.__datoya_market_home !== 'function') window.__datoya_market_home = initialMarketHome;
 
   let repairing = false;
   let observerQueued = false;
   const isHome = () => !location.hash || location.hash === '#' || location.hash === '#/';
+  const currentMarketHome = () => typeof window.__datoya_market_home === 'function' ? window.__datoya_market_home : initialMarketHome;
 
   async function enforceMarketHome(force = false) {
     if (!isHome()) return;
-
+    const marketHome=currentMarketHome();
     routes[''] = marketHome;
     routes.inicio = marketHome;
 
@@ -31,8 +29,6 @@
     }
   }
 
-  // Si cualquier script antiguo vuelve a pintar #view con la portada de servicios,
-  // restauramos el marketplace en el mismo ciclo de mutación.
   const viewNode = document.getElementById('view');
   if (viewNode) {
     const observer = new MutationObserver(() => {
@@ -58,10 +54,9 @@
     if (isHome()) setTimeout(() => enforceMarketHome(false), 0);
   });
 
-  // Algunos módulos legacy pueden reasignar routes después del load.
-  // Reafirmamos las dos entradas principales al volver a la pestaña y al hacer click.
   document.addEventListener('click', () => {
     if (isHome()) {
+      const marketHome=currentMarketHome();
       routes[''] = marketHome;
       routes.inicio = marketHome;
     }
