@@ -8,7 +8,7 @@ function inject(source) {
   const marker = '// ============ MISC ============';
   if (!source.includes(marker)) throw new Error('No se encontró punto de montaje para negocios');
   if (source.includes('DATOYA BUSINESS DOMAIN API V1')) return source;
-  const block = String.raw`
+  const block = `
 // ============ DATOYA BUSINESS DOMAIN API V1 ============
 function businessSlug(value) {
   return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,70);
