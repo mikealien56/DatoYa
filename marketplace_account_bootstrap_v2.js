@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS businesses (
   description TEXT,
   business_type TEXT NOT NULL DEFAULT 'physical_store' CHECK(business_type IN ('physical_store','home_business')),
   comuna_id INTEGER REFERENCES comunas(id),
-  province_id INTEGER REFERENCES provinces(id),
+  province_id INTEGER,
   latitude REAL,
   longitude REAL,
   location_accuracy REAL,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS business_category_links (
 );
 `);
 const businessColumns=db.prepare('PRAGMA table_info(businesses)').all().map(x=>x.name);
-if(!businessColumns.includes('province_id'))db.exec('ALTER TABLE businesses ADD COLUMN province_id INTEGER REFERENCES provinces(id)');
+if(!businessColumns.includes('province_id'))db.exec('ALTER TABLE businesses ADD COLUMN province_id INTEGER');
 if(!businessColumns.includes('location_source'))db.exec("ALTER TABLE businesses ADD COLUMN location_source TEXT NOT NULL DEFAULT 'manual'");
 
 const marketCategories=[
