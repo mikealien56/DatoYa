@@ -12,14 +12,20 @@ if(fs.existsSync(idx)){
   html=html.replace(/<meta name="description"[^>]*>/,'<meta name="description" content="DatoYa te ayuda a descubrir negocios, productos, promociones y ventas activas cerca de ti.">');
   html=html.replace(/src="\/datoya-logo\.jpg[^\"]*"/g,'src="/brand/datoya-logo-horizontal.png?v=20260917-3"');
 
+  // Evita que el Home legacy alcance a verse antes de que cargue el marketplace nuevo.
+  html=html.replace(/<style id="dy-market-boot-shield">[\s\S]*?<\/style>\s*/g,'');
+  const bootShield='<style id="dy-market-boot-shield">html:not(.dy-market-ready) #view{visibility:hidden}html:not(.dy-market-ready) body::after{content:"Cargando DatoYa…";position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F7F9FC;color:#0B3A82;font:600 15px Poppins,system-ui,sans-serif;z-index:9999}</style>\n';
+
   // Quitar cualquier inclusión previa para asegurar que estos assets queden realmente al final.
   html=html.replace(/<link[^>]+href="\/local_market_home\.css[^\"]*"[^>]*>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/local_market_home\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/local_market_home_guard\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/local_location_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_navigation_fix\.js[^\"]*"[^>]*><\/script>\s*/g,'');
+  html=html.replace(/<script id="dy-market-reveal">[\s\S]*?<\/script>\s*/g,'');
 
-  html=html.replace('</head>','<link rel="stylesheet" href="/local_market_home.css?v=20260917-3">\n</head>');
-  html=html.replace('</body>','<script src="/local_market_home.js?v=20260917-3"></script>\n<script src="/local_market_home_guard.js?v=20260917-4"></script>\n<script src="/local_location_ui.js?v=20260917-4"></script>\n<script src="/marketplace_navigation_fix.js?v=20260917-1"></script>\n</body>');
+  html=html.replace('</head>',bootShield+'<link rel="stylesheet" href="/local_market_home.css?v=20260917-4">\n</head>');
+  const reveal=`<script id="dy-market-reveal">(()=>{const isHome=()=>!location.hash||location.hash==='#'||location.hash==='#/';const reveal=()=>{if(!isHome()||document.querySelector('.dy-home')){document.documentElement.classList.add('dy-market-ready');return;}requestAnimationFrame(reveal)};reveal();addEventListener('hashchange',()=>{document.documentElement.classList.add('dy-market-ready')})})();</script>`;
+  html=html.replace('</body>','<script src="/local_market_home.js?v=20260917-4"></script>\n<script src="/local_market_home_guard.js?v=20260917-4"></script>\n<script src="/local_location_ui.js?v=20260917-4"></script>\n<script src="/marketplace_navigation_fix.js?v=20260917-2"></script>\n'+reveal+'\n</body>');
   fs.writeFileSync(idx,html);
 }
