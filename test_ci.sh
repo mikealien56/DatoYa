@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-node --check territory_resolver.js;node --check location_domain_schema.js;node --check location_domain_bootstrap.js;node --check local_location_ui.js;node test_location_domain.js
+node --check territory_resolver.js;node --check location_domain_schema.js;node --check location_domain_bootstrap.js;node --check commerce_growth_schema.js;node --check commerce_growth_bootstrap.js;node --check local_location_ui.js;node test_location_domain.js
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)";cd "$BASE_DIR";rm -f datoya.db datoya.db-shm datoya.db-wal
 if [ ! -d node_modules ]; then npm ci --silent; fi
 node app_runtime_fix.js;node worker_demo_badge_runtime_fix.js
