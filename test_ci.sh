@@ -29,10 +29,13 @@ for field in urgency preferred_date budget region_id comuna_id address_detail ph
 if ! grep -q 'if(target)return previousSolicitar' request_wizard_ui.js;then echo "Wizard no preserva flujo dirigido";exit 1;fi
 # El flujo canónico verifica correos temporales. El token de prueba solo se expone dentro de esta ejecución CI.
 export AUTH_TEST_MODE=true
+export ADMIN_EMAIL='business-admin@datoya.test'
+export ADMIN_PASSWORD='AdminPruebaSegura123'
 npm start >/tmp/datoya-ci.log 2>&1 & PID=$!;cleanup(){ kill "$PID" >/dev/null 2>&1||true;wait "$PID" >/dev/null 2>&1||true;};trap cleanup EXIT
 READY=0;for i in $(seq 1 120);do if curl -fsS http://localhost:3000/api/categories >/dev/null 2>&1;then READY=1;break;fi;if ! kill -0 "$PID" >/dev/null 2>&1;then echo "Servidor DatoYa no pudo iniciar";cat /tmp/datoya-ci.log;exit 1;fi;sleep 1;done
 if [ "$READY" -ne 1 ];then echo "Timeout esperando DatoYa";cat /tmp/datoya-ci.log;exit 1;fi
 curl -fsS http://localhost:3000/health|grep -q '"ok":true';echo "Healthcheck DatoYa OK"
+bash test_business_domain.sh
 CATEGORIES_JSON="$(curl -fsS http://localhost:3000/api/categories)"
 node -e 'const data=JSON.parse(process.argv[1]);const category=(data.categories||[]).find(c=>c.name==="Cámaras y Seguridad");if(!category||category.icon!=="📹")process.exit(1)' "$CATEGORIES_JSON" || { echo "La categoría Cámaras y Seguridad no está integrada al catálogo real";exit 1; }
 for marker in 'DATOYA CHAT WORKFLOW GUARD V1' 'VERIFICACIÓN PROFESIONAL DATOYA 2.0' 'DATOYA ADMIN OPERATIONS V1' 'DATOYA REVIEW STATUS V1' 'DATOYA DISPUTE RUNTIME V2';do grep -q "$marker" server.js||{ echo "Runtime no montado: $marker";exit 1;};done
