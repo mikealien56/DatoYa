@@ -1,32 +1,138 @@
-// DatoYa — textos legales públicos para Chile.
+// DatoYa — textos legales públicos para marketplace local en Chile.
 (() => {
- const legalCard=(title,body)=>`<div class="card" style="max-width:820px;margin:0 auto;line-height:1.62"><h2>${title}</h2><p class="small muted">Versión vigente: 15 de septiembre de 2026 · Chile</p>${body}</div>`;
- routes.terminos=async function(){view.innerHTML=legalCard('Términos y Condiciones de Uso de DatoYa',`
- <p>DatoYa es un marketplace de servicios que conecta a personas que necesitan un trabajo o servicio con maestros, técnicos y profesionales independientes que buscan nuevas oportunidades. Para el Profesional, DatoYa permite construir un perfil, portafolio e historial de trabajos. Para el Cliente, permite mantener registro de la contratación y utilizar herramientas de soporte y reclamo.</p>
- <h3>1. Naturaleza de la plataforma</h3><p>DatoYa facilita búsqueda, contacto, cotización, contratación y registro de trabajos entre Clientes y Profesionales independientes. DatoYa no ejecuta por sí mismo el servicio ofrecido por el Profesional ni constituye por ese solo hecho una relación laboral, sociedad, mandato o representación. Las responsabilidades que correspondan a DatoYa conforme a la legislación chilena no se excluyen por esta definición.</p>
- <h3>2. Información y derechos del consumidor</h3><p>DatoYa procura presentar de forma clara precios, cargos y condiciones relevantes antes de confirmar operaciones. Cuando corresponda la Ley N° 19.496 sobre Protección de los Derechos de los Consumidores, estos Términos respetan los derechos irrenunciables reconocidos por esa normativa. Ninguna cláusula pretende excluir derechos o responsabilidades que legalmente no puedan excluirse.</p>
- <h3>3. Perfiles, portafolio y reputación</h3><p>Los Profesionales pueden publicar especialidades, zonas de atención, experiencia, fotografías y antecedentes de trabajos. Deben proporcionar información verdadera y contar con derechos o autorización para publicar el contenido. Un trabajo o evaluación identificados como verificados significan que la contratación o etapa correspondiente quedó registrada mediante DatoYa; no significan una certificación técnica ni garantía de calidad emitida por DatoYa.</p>
- <h3>4. Solicitudes y cotizaciones</h3><p>El Cliente debe describir razonablemente el trabajo y aportar información relevante. El Profesional debe indicar alcance, precio o estimación, disponibilidad y condiciones conocidas. Una estimación basada en fotografías o información remota puede requerir confirmación presencial cuando existan circunstancias que no podían determinarse razonablemente a distancia.</p>
- <h3>5. Trabajos adicionales, cambios y materiales</h3><p>Si durante la ejecución aparecen trabajos adicionales, materiales no contemplados o circunstancias que alteren el alcance, el Profesional debe informar el cambio y proponer el nuevo importe o condición mediante las herramientas disponibles. El precio registrado no debe modificarse unilateralmente. Cuando la plataforma habilite aceptación de cambios, el nuevo importe será aplicable una vez aceptado por el Cliente. Los materiales deben identificarse como incluidos, no incluidos o por determinar cuando corresponda.</p>
- <h3>6. Ejecución del servicio</h3><p>El Profesional es responsable de ejecutar el trabajo conforme a lo acordado y a la normativa aplicable a su actividad, incluidas habilitaciones o certificaciones cuando correspondan. El Cliente debe facilitar condiciones razonables y seguras para la prestación.</p>
- <h3>7. Registro y Respaldo DatoYa</h3><p>DatoYa puede mantener registros de solicitudes, cotizaciones, acuerdos, modificaciones, mensajes, evidencias, estados, pagos y evaluaciones generados mediante la plataforma. Este respaldo ayuda a documentar lo ocurrido y puede utilizarse para soporte y gestión de reclamos. “Respaldo DatoYa” no constituye seguro, garantía de resultado, garantía financiera ni custodia de fondos.</p>
- <h3>8. DatoYa PRO, comisión de servicio y pagos</h3><p>DatoYa PRO es una suscripción opcional cuyas características, precio y periodicidad se informan antes de contratar. DatoYa podrá cobrar una comisión de servicio por trabajos contratados o pagados mediante la plataforma; el porcentaje, base de cálculo y cargos aplicables deberán mostrarse antes de la operación correspondiente. Los pagos electrónicos podrán ser procesados por proveedores externos, como Mercado Pago cuando esté habilitado, sujetos además a sus propias condiciones. DatoYa no se presenta como banco, aseguradora ni custodio de fondos.</p>
- <h3>9. Contrataciones y pagos fuera de DatoYa</h3><p>Las herramientas de respaldo, historial verificado, soporte de la operación y gestión de reclamos de DatoYa se aplican según la información y etapas efectivamente registradas dentro de la plataforma. DatoYa no puede verificar ni administrar como contratación realizada mediante la plataforma pagos, acuerdos o modificaciones efectuados exclusivamente por fuera. Se podrán aplicar medidas razonables contra el uso abusivo de DatoYa destinado sistemáticamente a eludir cargos o reglas de la plataforma, conforme a condiciones previamente informadas y respetando la legislación aplicable.</p>
- <h3>10. Finalización, problemas y reclamos</h3><p>Antes de finalizar un trabajo, las partes podrán registrar su conformidad o informar un problema. El Cliente podrá aportar una descripción y evidencias; el Profesional podrá responder, proponer una corrección u otra solución. Si no existe acuerdo, DatoYa podrá revisar los antecedentes registrados para facilitar o administrar el reclamo según las funciones disponibles. Este procedimiento no sustituye los derechos, acciones ni autoridades competentes establecidos por la legislación chilena.</p>
- <h3>11. Reseñas</h3><p>Las reseñas deben corresponder a experiencias reales y publicarse de buena fe. DatoYa podrá moderar contenido fraudulento, ofensivo, irrelevante o que revele indebidamente datos personales, procurando no alterar una opinión legítima.</p>
- <h3>12. Conductas prohibidas</h3><p>No se permite suplantar identidades, manipular reputaciones, crear operaciones ficticias, acosar o amenazar, intentar vulnerar sistemas, acceder sin autorización, introducir código malicioso, usar automatizaciones abusivas ni utilizar DatoYa para actividades ilícitas.</p>
- <h3>13. Privacidad y datos personales</h3><p>El tratamiento de datos se rige por la Política de Privacidad y la normativa chilena aplicable, incluida la Ley N° 19.628 y su modernización mediante la Ley N° 21.719 conforme a su vigencia legal. Las personas deben evitar publicar datos personales innecesarios de terceros.</p>
- <h3>14. Documentos y comunicaciones electrónicas</h3><p>DatoYa puede utilizar registros, consentimientos y comunicaciones electrónicas para operar sus funciones, respetando la Ley N° 19.799 cuando resulte aplicable. Los registros de plataforma no reemplazan solemnidades o documentos que la ley exija por otra vía.</p>
- <h3>15. Disponibilidad y responsabilidad</h3><p>DatoYa puede efectuar mantenciones y actualizaciones y no garantiza disponibilidad ininterrumpida ante fallas técnicas, proveedores externos o fuerza mayor. Cada Cliente y Profesional responde por sus propios actos y por el servicio contratado o prestado. DatoYa responderá cuando corresponda conforme a la legislación aplicable y estos Términos no limitan responsabilidades que legalmente no puedan limitarse.</p>
- <h3>16. Suspensión, cierre y conservación</h3><p>DatoYa podrá restringir funciones o suspender cuentas por incumplimientos, abuso, riesgos de seguridad o requerimientos legales. El cierre de una cuenta no impide conservar información necesaria para obligaciones legales, seguridad, prevención de fraude o gestión de controversias.</p>
- <h3>17. Ley aplicable, cambios y contacto</h3><p>Estos Términos se rigen por las leyes de la República de Chile. Los cambios relevantes se informarán por medios razonables y, cuando corresponda, requerirán nueva aceptación. Las consultas legales, de privacidad, seguridad o soporte podrán realizarse por los canales oficiales publicados dentro de DatoYa.</p>`);};
- routes.privacidad=async function(){view.innerHTML=legalCard('Política de Privacidad de DatoYa',`
- <p>Esta Política explica el tratamiento de datos personales necesario para operar DatoYa como marketplace de servicios y mantener los registros asociados a perfiles, contrataciones y soporte. Se aplicará la normativa chilena vigente, incluida la Ley N° 19.628 y, desde su entrada en vigencia, las modificaciones de la Ley N° 21.719.</p>
- <h3>1. Datos tratados</h3><p>Podemos tratar datos de cuenta y contacto; comuna y perfil; especialidades y portafolio; solicitudes, cotizaciones, trabajos y modificaciones; mensajes; fotografías y evidencias; reseñas, favoritos, reportes y reclamos; consentimientos; eventos de seguridad e información técnica necesaria para funcionamiento y seguridad.</p>
- <h3>2. Finalidades</h3><p>Los datos se utilizan para administrar cuentas, mostrar perfiles profesionales, conectar usuarios, gestionar contrataciones y trabajos, mantener historial y trazabilidad, habilitar comunicaciones, pagos cuando correspondan, soporte, reclamos, seguridad, prevención de fraude y cumplimiento legal.</p>
- <h3>3. Ubicación y dirección del servicio</h3><p>La ubicación se utiliza cuando una función la requiere y existe el permiso o fundamento correspondiente. DatoYa procura limitar la exposición pública de ubicaciones precisas y entregar la información necesaria únicamente a participantes y funciones autorizadas.</p>
- <h3>4. Fotografías, portafolio y evidencias</h3><p>Las fotografías pueden contener información personal. Quien las publique debe contar con autorización o fundamento suficiente y evitar datos de terceros que no sean necesarios. Las evidencias vinculadas a un trabajo podrán conservarse durante el período necesario para soporte, seguridad, trazabilidad y controversias.</p>
- <h3>5. Pagos y proveedores</h3><p>Cuando existan pagos electrónicos, proveedores especializados podrán tratar los datos necesarios para procesarlos y prevenir fraude. DatoYa procura no almacenar datos completos de tarjetas cuando el proveedor permita mantenerlos fuera de su infraestructura.</p>
- <h3>6. Comunicación, seguridad y conservación</h3><p>DatoYa podrá comunicar información necesaria a proveedores tecnológicos, participantes de una contratación cuando el servicio lo requiera y autoridades ante una obligación legal válida. DatoYa no vende datos personales. Se aplican controles de acceso, sesiones, validaciones y registros de seguridad. Los datos se conservan durante el tiempo necesario según su finalidad y obligaciones aplicables.</p>
- <h3>7. Derechos y cambios</h3><p>Las personas podrán ejercer los derechos reconocidos por la legislación chilena vigente mediante los canales oficiales de DatoYa. Esta política podrá actualizarse por cambios legales, técnicos u operativos y los cambios relevantes se informarán por medios razonables.</p><p><a href="#/terminos">← Ver Términos y Condiciones</a></p>`);};
+  const legalCard=(title,body)=>`<div class="dy-legal-page"><article class="dy-legal-card"><h1>${title}</h1><div class="dy-legal-meta"><span>Versión: 17 de septiembre de 2026</span><span>Chile</span><span>DatoYa Beta</span></div>${body}</article></div>`;
+
+  routes.terminos=async function(){
+    document.title='Términos y Condiciones — DatoYa';
+    view.innerHTML=legalCard('Términos y Condiciones de Uso de DatoYa',`
+      <p>Estos Términos regulan el uso de DatoYa, una plataforma digital que permite descubrir negocios y emprendimientos cercanos, consultar productos y promociones, realizar pedidos y utilizar herramientas comerciales como <b>Impulso Ahora</b> e <b>Impulso de la semana</b>.</p>
+      <div class="dy-legal-note"><b>Importante:</b> DatoYa se encuentra en etapa beta. Algunas funciones pueden cambiar durante las pruebas. Los contenidos identificados como <b>DEMO</b> son únicamente ilustrativos y no corresponden a comercios ni operaciones reales.</div>
+
+      <h2>1. Qué es DatoYa</h2>
+      <p>DatoYa opera una plataforma de comercio y descubrimiento local en la que negocios y emprendimientos de terceros pueden publicar información, productos, precios, promociones, disponibilidad y modalidades de entrega. Salvo que se indique expresamente lo contrario, DatoYa no fabrica ni es el vendedor de los productos publicados por los comercios, ni realiza por sí mismo el retiro o despacho ofrecido por cada negocio.</p>
+      <p>Esta definición no excluye las obligaciones que puedan corresponder a DatoYa como operador de una plataforma de comercio electrónico conforme a la legislación chilena aplicable.</p>
+
+      <h2>2. Cuentas y uso de la plataforma</h2>
+      <p>La información entregada al crear una cuenta debe ser verdadera, actualizada y suficiente para utilizar las funciones solicitadas. Cada persona es responsable de mantener la confidencialidad de sus credenciales y de informar oportunamente usos no autorizados de su cuenta.</p>
+      <p>DatoYa podrá solicitar verificaciones razonables de correo, teléfono, identidad o antecedentes del negocio cuando sean necesarias para seguridad, prevención de fraude, revisión comercial o cumplimiento normativo.</p>
+
+      <h2>3. Registro y revisión de negocios</h2>
+      <p>El propietario o administrador de un negocio debe proporcionar información verdadera sobre el comercio, categoría, ubicación, medios de contacto, horarios y modalidades de entrega. El registro puede quedar pendiente de revisión antes de hacerse público.</p>
+      <p>DatoYa puede aprobar, pedir correcciones, pausar, rechazar o suspender publicaciones cuando existan antecedentes incompletos, información engañosa, riesgos de seguridad, incumplimientos de estos Términos o requerimientos legales. La aprobación de un negocio significa que pasó por el flujo de revisión de la plataforma; no constituye certificación técnica, sanitaria, tributaria o de calidad.</p>
+
+      <h2>4. Productos, precios, promociones y stock</h2>
+      <p>El negocio es responsable de que las descripciones, fotografías, precios, descuentos, stock, disponibilidad, condiciones de entrega y demás información comercial que publique sean correctos y no induzcan a error. Cuando se informe un precio anterior u oferta, debe existir una base real que permita presentarlo de manera veraz.</p>
+      <p>DatoYa puede mostrar precio normal, precio promocional y stock informado por el negocio. La disponibilidad puede cambiar antes de que el pedido sea confirmado. DatoYa no altera automáticamente el precio definido por el comercio ni crea escasez ficticia.</p>
+
+      <h2>5. Contenido DEMO</h2>
+      <p>DatoYa puede incluir negocios, productos u ofertas de ejemplo para explicar el funcionamiento de la plataforma durante la etapa beta. Dicho contenido se identifica expresamente como <b>DEMO</b>, no representa una oferta comercial real y no debe utilizarse para generar pedidos o pagos reales.</p>
+
+      <h2>6. Pedidos</h2>
+      <p>Cuando un cliente realiza un pedido, DatoYa registra los productos seleccionados, cantidades, total, modalidad de entrega y estado de la operación. El negocio puede gestionar estados como nuevo, confirmado, preparando, listo, completado o cancelado.</p>
+      <p>El comercio es responsable de preparar y entregar el pedido conforme a la información ofrecida y a la normativa aplicable. El cliente debe entregar información de contacto y de entrega correcta y suficiente. Cuando exista un costo de despacho u otro cargo aplicable, deberá informarse antes de confirmar la operación.</p>
+
+      <h2>7. Retiro, despacho y dirección</h2>
+      <p>Cada negocio define si ofrece retiro, despacho propio o ambas modalidades. En emprendimientos desde casa, DatoYa protege por defecto la dirección residencial exacta y puede mostrar públicamente solo comuna, sector aproximado o distancia. La dirección exacta podrá revelarse únicamente cuando el negocio lo autorice o cuando sea necesaria para una operación confirmada.</p>
+
+      <h2>8. Pagos y Mercado Pago</h2>
+      <p>Cuando el pago electrónico esté habilitado, podrá ser procesado por proveedores externos como Mercado Pago. El comercio puede requerir la vinculación de su propia cuenta del proveedor para recibir pagos en un esquema de marketplace. Los datos financieros sensibles que gestione directamente el proveedor se rigen además por sus propios términos y políticas.</p>
+      <p>DatoYa puede cobrar comisiones, suscripciones o cargos por funciones comerciales. El porcentaje, monto o condición aplicable debe mostrarse antes de confirmar la operación correspondiente. DatoYa no se presenta como banco, aseguradora ni custodio de fondos.</p>
+
+      <h2>9. Cancelaciones, devoluciones y derechos del consumidor</h2>
+      <p>Las cancelaciones, devoluciones, garantías, retractos y demás derechos que correspondan se aplicarán conforme a la naturaleza del producto, las condiciones informadas y la legislación chilena vigente. Ninguna cláusula de estos Términos pretende eliminar derechos irrenunciables del consumidor.</p>
+      <p>DatoYa puede habilitar herramientas de soporte o registro de incidencias, pero dichas herramientas no reemplazan las acciones ni autoridades competentes que reconozca la ley.</p>
+
+      <h2>10. ⚡ Impulso Ahora</h2>
+      <p>Impulso Ahora permite que un negocio publique una oferta de disponibilidad limitada por horario y stock. El negocio define el producto, precio, cantidad, inicio, término y modalidad de entrega. Una publicación puede pasar a estados como programada, activa, poco stock, agotada, finalizada o cancelada.</p>
+      <p>Las etiquetas de “últimas unidades” o similares deben basarse en stock real informado o registrado. DatoYa puede finalizar automáticamente un Impulso cuando expire su horario o se agote el stock registrado.</p>
+
+      <h2>11. ⭐ Impulso de la semana y espacios destacados</h2>
+      <p>DatoYa puede ofrecer espacios destacados pagados, regalados o entregados como promoción de lanzamiento. Las solicitudes pueden estar sujetas a revisión antes de publicarse. El negocio puede enviar una fotografía original y DatoYa puede preparar una versión gráfica adaptada a la identidad visual de la plataforma, manteniendo separada la imagen original cuando la función lo permita.</p>
+      <p>Recibir un espacio destacado no garantiza una cantidad de vistas, pedidos, ventas o posición permanente en los resultados de búsqueda.</p>
+
+      <h2>12. Contenido del negocio y permiso de uso</h2>
+      <p>Quien publique fotografías, logotipos, textos u otros contenidos declara contar con derechos o autorización suficiente para utilizarlos. Para operar y promocionar el perfil dentro de DatoYa, el negocio concede a DatoYa una autorización no exclusiva para alojar, reproducir, adaptar al formato visual de la plataforma y mostrar ese contenido mientras corresponda a la finalidad de la publicación.</p>
+
+      <h2>13. Búsqueda, ubicación y orden de resultados</h2>
+      <p>DatoYa puede ordenar resultados utilizando proximidad, disponibilidad, categoría, relevancia, horario, stock y señales de uso de la plataforma. La plataforma puede incorporar productos promocionados o destacados, los que deberán distinguirse cuando corresponda. DatoYa no garantiza que un negocio aparezca siempre en una posición específica.</p>
+
+      <h2>14. Conductas y publicaciones prohibidas</h2>
+      <p>No se permite utilizar DatoYa para actividades ilícitas, fraude, suplantación, operaciones ficticias, manipulación de reputación, publicidad engañosa, vulneración de propiedad intelectual, acoso, amenazas, acceso no autorizado, código malicioso o automatizaciones abusivas. Tampoco pueden publicarse productos o servicios cuya comercialización esté prohibida por la ley o que infrinjan las reglas de seguridad y moderación de DatoYa.</p>
+
+      <h2>15. Seguridad, moderación y suspensión</h2>
+      <p>DatoYa puede aplicar controles automáticos o manuales, conservar registros de seguridad y restringir funciones ante indicios razonables de fraude, abuso, riesgos para usuarios o incumplimientos. Cuando sea razonable, se podrá solicitar información adicional para revisar una cuenta o publicación.</p>
+
+      <h2>16. Disponibilidad de la plataforma</h2>
+      <p>DatoYa puede realizar mantenciones, cambios o actualizaciones y no garantiza disponibilidad ininterrumpida frente a fallas técnicas, conectividad, proveedores externos o fuerza mayor. Durante la etapa beta pueden existir cambios de interfaz, funciones y procesos sin que ello implique pérdida deliberada de datos válidamente registrados.</p>
+
+      <h2>17. Propiedad intelectual de DatoYa</h2>
+      <p>La marca DatoYa, su identidad visual, software, interfaces y demás elementos propios de la plataforma pertenecen a sus respectivos titulares y no pueden copiarse o utilizarse fuera de las autorizaciones aplicables.</p>
+
+      <h2>18. Privacidad y datos personales</h2>
+      <p>El tratamiento de datos personales se rige por la <a href="#/privacidad">Política de Privacidad</a> y por la normativa chilena vigente. A la fecha de esta versión, la Ley N° 19.628 continúa siendo el marco general aplicable; la Ley N° 21.719 contempla una entrada en vigencia diferida para el 1 de diciembre de 2026.</p>
+
+      <h2>19. Legislación de consumo y comercio electrónico</h2>
+      <p>Cuando corresponda, DatoYa y los negocios deben respetar la Ley N° 19.496 sobre protección de los derechos de los consumidores y el Reglamento de Comercio Electrónico aplicable a vendedores y operadores de plataformas. La información esencial de la oferta y las condiciones de contratación deben presentarse de manera clara antes de que el consumidor confirme la operación.</p>
+
+      <h2>20. Cambios, ley aplicable y contacto</h2>
+      <p>Estos Términos se rigen por las leyes de la República de Chile. Los cambios relevantes podrán informarse dentro de la plataforma o por otros medios razonables y, cuando corresponda, requerir nueva aceptación. Las consultas sobre soporte, seguridad, privacidad o asuntos legales podrán dirigirse a los canales oficiales publicados por DatoYa.</p>
+
+      <div class="dy-legal-links"><a href="#/privacidad">Política de Privacidad →</a><a href="#/conoce">Conoce DatoYa →</a><a href="#/">Volver al inicio →</a></div>
+    `);
+  };
+
+  routes.privacidad=async function(){
+    document.title='Política de Privacidad — DatoYa';
+    view.innerHTML=legalCard('Política de Privacidad de DatoYa',`
+      <p>Esta Política explica cómo DatoYa trata datos personales para operar un marketplace local de negocios, productos, promociones, pedidos y pagos.</p>
+      <div class="dy-legal-note"><b>Marco legal:</b> a la fecha de esta versión se aplica la Ley N° 19.628. La Ley N° 21.719, que moderniza el régimen chileno de protección de datos personales, tiene entrada en vigencia diferida para el 1 de diciembre de 2026.</div>
+
+      <h2>1. Datos que podemos tratar</h2>
+      <p>Podemos tratar datos de cuenta y contacto; comuna y ubicación cuando la persona lo autorice; datos del negocio; categorías, horarios y medios de entrega; productos, precios, stock e imágenes; pedidos y sus estados; identificadores de pagos; mensajes o solicitudes de soporte; consentimientos; eventos de seguridad; información técnica del dispositivo, sesión y funcionamiento de la aplicación.</p>
+
+      <h2>2. Para qué usamos los datos</h2>
+      <p>Los datos se utilizan para crear y proteger cuentas, registrar y revisar negocios, mostrar resultados locales, administrar catálogos, ofertas e Impulsos, gestionar pedidos, habilitar pagos, enviar notificaciones, prestar soporte, prevenir fraude, mejorar el funcionamiento de DatoYa y cumplir obligaciones legales.</p>
+
+      <h2>3. Ubicación</h2>
+      <p>DatoYa puede utilizar GPS, comuna o una ubicación aproximada para mostrar negocios y productos cercanos. La ubicación precisa solo debe utilizarse cuando exista permiso o fundamento suficiente para la función solicitada. La persona puede denegar el permiso de ubicación y utilizar, cuando esté disponible, una selección manual de comuna o zona.</p>
+
+      <h2>4. Emprendimientos desde casa</h2>
+      <p>La dirección residencial exacta de un emprendimiento desde casa se mantiene oculta por defecto. Públicamente pueden mostrarse comuna, sector aproximado o distancia. La dirección exacta puede compartirse cuando el titular lo autorice o cuando sea necesaria para coordinar una operación confirmada.</p>
+
+      <h2>5. Información compartida entre cliente y negocio</h2>
+      <p>Para gestionar un pedido, DatoYa puede compartir con el negocio la información necesaria de la persona compradora, como nombre, teléfono, modalidad de entrega, dirección de despacho cuando corresponda, productos y observaciones del pedido. El cliente puede recibir información del negocio necesaria para retiro, seguimiento o contacto.</p>
+
+      <h2>6. Pagos</h2>
+      <p>Cuando se habiliten pagos electrónicos, proveedores externos como Mercado Pago podrán tratar los datos necesarios para autorizar, procesar, conciliar y prevenir fraude. DatoYa procura no almacenar datos completos de tarjetas cuando el proveedor puede procesarlos directamente fuera de la infraestructura de DatoYa.</p>
+
+      <h2>7. Fotografías y contenido comercial</h2>
+      <p>Los negocios pueden subir fotografías, logotipos y otros contenidos. Quien publica debe contar con autorización suficiente y evitar incluir datos personales de terceros que no sean necesarios. Cuando se prepare una pieza gráfica DatoYa para una promoción, la imagen original y la versión adaptada pueden conservarse mientras sean necesarias para esa publicación y su historial.</p>
+
+      <h2>8. Contenido DEMO</h2>
+      <p>Los negocios y productos marcados como DEMO son datos ilustrativos de la plataforma y no corresponden a personas o comercios reales. No deben mezclarse con pedidos, pagos o perfiles reales.</p>
+
+      <h2>9. Proveedores tecnológicos</h2>
+      <p>DatoYa puede utilizar proveedores de infraestructura, correo, mensajería, pagos, seguridad y otras funciones técnicas. Estos proveedores reciben solo la información necesaria para prestar su servicio y pueden operar infraestructura dentro o fuera de Chile conforme a los requisitos legales que resulten aplicables.</p>
+
+      <h2>10. Seguridad</h2>
+      <p>DatoYa aplica medidas como control de sesiones, restricciones de acceso, validaciones, registros de seguridad y protección de credenciales. Ningún sistema es infalible; ante un incidente se podrán aplicar medidas de contención, investigación y comunicación según corresponda.</p>
+
+      <h2>11. Conservación</h2>
+      <p>Los datos se conservan durante el tiempo necesario para operar la cuenta y las funciones solicitadas, mantener trazabilidad de pedidos y pagos, resolver controversias, prevenir fraude, cumplir obligaciones legales y proteger la seguridad de la plataforma. Los plazos pueden variar según el tipo de dato y la finalidad.</p>
+
+      <h2>12. Cookies, almacenamiento local y PWA</h2>
+      <p>DatoYa puede utilizar cookies de sesión y almacenamiento local del dispositivo para mantener el acceso, recordar ubicación seleccionada, conservar temporalmente un carrito y permitir funciones de aplicación web progresiva. Parte de esta información puede permanecer en el dispositivo hasta que se elimine o cambie la configuración correspondiente.</p>
+
+      <h2>13. Derechos de las personas</h2>
+      <p>Las personas pueden ejercer los derechos reconocidos por la legislación chilena vigente mediante los canales oficiales de DatoYa. La plataforma podrá solicitar antecedentes razonables para verificar identidad antes de entregar, corregir o eliminar información cuando sea necesario para proteger a la persona titular.</p>
+
+      <h2>14. Venta de datos y comunicaciones comerciales</h2>
+      <p>DatoYa no vende datos personales a anunciantes. Las comunicaciones operativas necesarias para la cuenta o un pedido pueden enviarse como parte del servicio. Las comunicaciones comerciales deberán respetar las preferencias y reglas aplicables.</p>
+
+      <h2>15. Cambios y contacto</h2>
+      <p>Esta Política puede actualizarse por cambios legales, técnicos u operativos. Los cambios relevantes se informarán por medios razonables. Las solicitudes de privacidad o seguridad podrán enviarse a los canales oficiales publicados dentro de DatoYa.</p>
+
+      <div class="dy-legal-links"><a href="#/terminos">Términos y Condiciones →</a><a href="#/conoce">Conoce DatoYa →</a><a href="#/">Volver al inicio →</a></div>
+    `);
+  };
 })();
