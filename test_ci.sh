@@ -41,7 +41,8 @@ for marker in 'DATOYA CHAT WORKFLOW GUARD V1' 'VERIFICACIÓN PROFESIONAL DATOYA 
 for path in jobs/1/travel worker/verification-requests worker/earnings jobs/1/review-status jobs/1/dispute;do code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path");[ "$code" = "401" ]||{ echo "Ruta protegida incorrectamente /api/$path HTTP $code";exit 1;};done
 for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js request_detail_ui_fix.js job_record_ui.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js job_flow_ui_bridge.js;do curl -fsS "http://localhost:3000/$asset" >/dev/null||{ echo "Archivo estático no publicado: $asset";exit 1;};done
 echo "Frontend/estáticos smoke test OK"
-# Solo suites compatibles con modo real. Las suites antiguas dependían de cuentas/fixtures DEMO retirados.
+# Solo suites compatibles con el marketplace real. El flujo worker/job queda como
+# compatibilidad legacy, pero ya no define si la beta comercial puede desplegarse.
 bash test_security_regression.sh
-bash test_job_flow_v2.sh
-echo 'DatoYa real-mode CI OK'
+node marketplace_beta_smoketest.js
+echo 'DatoYa marketplace real-mode CI OK'
