@@ -39,7 +39,7 @@ verify_email /tmp/dy_market_client
 curl -fsS -c /tmp/dy_market_admin -X POST "$B/auth/login" -H "$J" -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" >/dev/null
 
 INTEGRATIONS=$(curl -fsS -b /tmp/dy_market_admin "$B/admin/integration-status")
-printf '%s' "$INTEGRATIONS" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["email"]["provider"]=="resend"; assert "oauth" in d["mercadopago"]; assert "webhook" in d["mercadopago"]'
+printf '%s' "$INTEGRATIONS" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["email"]["provider"]=="resend"; assert "oauth" in d["mercadopago"]; assert "webhook" in d["mercadopago"]; assert d["mercadopago"]["live_payments_allowed"] is False'
 
 CATEGORY_ID=$(curl -fsS "$B/market/categories" | json_value 'next(x["id"] for x in d["categories"] if x["name"]=="Pastelerías")')
 COMUNA_ID=$(curl -fsS "$B/comunas" | json_value 'next(x["id"] for x in d["comunas"] if x["name"]=="Doñihue")')
@@ -107,7 +107,7 @@ ORDER_ID=$(printf '%s' "$ORDER" | json_value 'd["order"]["id"]')
 printf '%s' "$ORDER" | python3 -c 'import sys,json; o=json.load(sys.stdin)["order"]; assert o["subtotal"]==3000; assert o["total"]==3000; assert o["status"]=="new"; assert o["payment_status"]=="pending"'
 
 PAYMENT=$(curl -fsS -b /tmp/dy_market_client "$B/orders/$ORDER_ID/mercadopago/status")
-printf '%s' "$PAYMENT" | python3 -c 'import sys,json; d=json.load(sys.stdin); b=d["breakdown"]; assert d["available"] is False; assert b["amount"]==3000; assert b["datoya_fee"]==round(b["amount"]*d["commission_pct"]/100); assert b["seller_net_estimate"]==b["amount"]-b["datoya_fee"]'
+printf '%s' "$PAYMENT" | python3 -c 'import sys,json; d=json.load(sys.stdin); b=d["breakdown"]; assert d["available"] is False; assert d["payment_mode"]=="disconnected"; assert d["live_payments_allowed"] is False; assert b["amount"]==3000; assert b["datoya_fee"]==round(b["amount"]*d["commission_pct"]/100); assert b["seller_net_estimate"]==b["amount"]-b["datoya_fee"]'
 
 CODE=$(curl -sS -o /tmp/dy_market_checkout.json -w '%{http_code}' -b /tmp/dy_market_client -X POST "$B/orders/$ORDER_ID/mercadopago/checkout" -H "$J" -d '{}')
 [ "$CODE" = "409" ] || { echo "Checkout sin cuenta Mercado Pago debió responder 409 y respondió $CODE"; cat /tmp/dy_market_checkout.json; exit 1; }
