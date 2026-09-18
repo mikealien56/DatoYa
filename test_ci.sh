@@ -62,13 +62,13 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/admin/m
 echo "✅ Autorización base"
 
 # 6) Assets que definen la beta comercial.
-for asset in   local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css   brand/datoya-logo-horizontal.png; do
+for asset in   local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 echo "✅ Frontend comercial publicado"
 
 # 7) Marcadores críticos del backend nuevo.
-for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"; do
+for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
 echo "✅ Backend marketplace montado"
