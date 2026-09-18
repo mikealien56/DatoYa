@@ -142,3 +142,21 @@ if(action==='prepare_order'){
   }
   console.log('[DatoYa][MP TEST Order]',JSON.stringify({order_id:Number(order.id),reference:order.reference,total:Number(order.total),status:order.status,payment_status:order.payment_status,buyer_email:buyerEmail}));
 }
+
+
+if(action==='inspect_payment'){
+  if(!validEmail(buyerEmail))throw new Error('Falta email comprador TEST');
+  const buyer=db.prepare('SELECT id FROM users WHERE email=?').get(buyerEmail);
+  if(!buyer)throw new Error('Comprador TEST no encontrado');
+  const order=db.prepare("SELECT id,reference,business_id,status,total,payment_method,payment_status,updated_at FROM commerce_orders WHERE user_id=? ORDER BY id DESC LIMIT 1").get(buyer.id);
+  if(!order)throw new Error('Pedido TEST no encontrado');
+  const payment=db.prepare("SELECT order_id,preference_id,payment_id,status,transaction_amount,marketplace_fee,seller_net_estimate,live_mode,created_at,updated_at FROM commerce_mp_payments WHERE order_id=?").get(order.id)||null;
+  const items=db.prepare("SELECT oi.product_id,oi.name_snapshot,oi.quantity,p.stock,p.stock_tracking FROM commerce_order_items oi LEFT JOIN products p ON p.id=oi.product_id WHERE oi.order_id=? ORDER BY oi.id").all(order.id);
+  const webhookCount=db.prepare("SELECT COUNT(*) AS n FROM mercadopago_webhook_events WHERE payload LIKE ?").get('%'+String(order.id)+'%');
+  console.log('[DatoYa][MP TEST Inspect]',JSON.stringify({
+    order,
+    payment,
+    items,
+    webhook_events_matching_order:Number(webhookCount&&webhookCount.n||0)
+  }));
+}
