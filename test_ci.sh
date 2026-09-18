@@ -91,6 +91,7 @@ for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
 grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_payments_bootstrap.js || { echo "Falta candado de pagos reales Mercado Pago"; exit 1; }
+grep -q "ready_for_test:c.oauthConfigured&&c.webhookConfigured" mercadopago_source_bootstrap.js || { echo "La disponibilidad TEST de Mercado Pago depende incorrectamente de un token legacy"; exit 1; }
 echo "✅ Mercado Pago mantiene pagos reales bloqueados por defecto"
 echo "✅ Backend marketplace montado"
 
