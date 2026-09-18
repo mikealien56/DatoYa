@@ -95,7 +95,12 @@ if(action==='finalize'){
   const business=db.prepare("SELECT id,name,status FROM businesses WHERE owner_user_id=? AND name='DatoYa Mercado Pago TEST' LIMIT 1").get(merchant.id);
   if(!business)throw new Error('Negocio Mercado Pago TEST no encontrado');
   db.prepare("UPDATE businesses SET status='active',verified=1,updated_at=? WHERE id=?").run(new Date().toISOString(),business.id);
-  const connection=db.prepare("SELECT mp_user_id,live_mode,connection_status,test_account,test_account_mp_user_id,last_validated_at FROM mercadopago_connections WHERE user_id=?").get(merchant.id);
+  let connection=db.prepare("SELECT id,mp_user_id,live_mode,connection_status,test_account,test_account_mp_user_id,last_validated_at FROM mercadopago_connections WHERE user_id=?").get(merchant.id);
+  const listed=new Set(String(process.env.DATOYA_MP_TEST_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean));
+  if(connection&&listed.has(String(connection.mp_user_id||''))){
+    db.prepare('UPDATE mercadopago_connections SET test_account=1,test_account_mp_user_id=?,updated_at=? WHERE id=?').run(String(connection.mp_user_id),new Date().toISOString(),connection.id);
+    connection=db.prepare("SELECT id,mp_user_id,live_mode,connection_status,test_account,test_account_mp_user_id,last_validated_at FROM mercadopago_connections WHERE id=?").get(connection.id);
+  }
   console.log('[DatoYa][MP TEST Finalize]',JSON.stringify({
     business_id:Number(business.id),
     business_status:'active',
