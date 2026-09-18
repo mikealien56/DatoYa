@@ -17,7 +17,7 @@ function __dyNormalizeHours(raw){
   for(const k of __dyHoursKeys){
     const arr=Array.isArray(src[k])?src[k]:[];
     out[k]=arr.slice(0,2).map(x=>({open:String(x?.open||'').slice(0,5),close:String(x?.close||'').slice(0,5)}))
-      .filter(x=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(x.open)&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(x.close)&&x.open!==x.close);
+      .filter(x=>/^([01]\d|2[0-3]):[0-5]\d$/.test(x.open)&&/^([01]\d|2[0-3]):[0-5]\d$/.test(x.close)&&x.open!==x.close);
   }
   return out;
 }
@@ -57,7 +57,7 @@ app.put('/api/businesses/:id/hours',auth,(req,res)=>{
   res.json({ok:true,schedule,status:__dyHoursStatus(row),opening_hours:summary,accept_orders_when_closed:accept});
 });
 app.get('/api/market/business/:identifier/hours',(req,res)=>{
-  const raw=String(req.params.identifier||''),b=/^\\d+$/.test(raw)
+  const raw=String(req.params.identifier||''),b=/^\d+$/.test(raw)
     ?db.prepare("SELECT b.*,c.name AS comuna FROM businesses b LEFT JOIN comunas c ON c.id=b.comuna_id WHERE b.id=? AND b.status='active'").get(Number(raw))
     :db.prepare("SELECT b.*,c.name AS comuna FROM businesses b LEFT JOIN comunas c ON c.id=b.comuna_id WHERE b.slug=? AND b.status='active'").get(raw);
   if(!b)return res.status(404).json({error:'Negocio no disponible'});
