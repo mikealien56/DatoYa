@@ -33,7 +33,8 @@ button { font-family: inherit; cursor: pointer; }
 #topbar {
   position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--borde);
+  gap: 14px;
+  padding: 14px 18px; background: #fff; border-bottom: 1px solid var(--borde);
 }
 .datoya-header-logo { width: 176px !important; height: 56px !important; object-fit: contain; }
 .logo { min-width: 176px !important; }
@@ -49,10 +50,26 @@ button { font-family: inherit; cursor: pointer; }
 }
 .logo-text { font-size: 20px; font-weight: 800; color: var(--txt); }
 .logo-text em { font-style: normal; color: var(--azul); }
-#topnav { display: flex; gap: 14px; align-items: center; font-size: 14px; }
+#topnav { display: flex; gap: 14px; align-items: center; font-size: 14px; margin-left: auto; min-width: 0; }
 #topnav a { color: var(--txt2); font-weight: 600; }
 #topnav a:hover { color: var(--azul); }
-@media (max-width: 640px) { #topnav > a { display: none; } }
+#auth-area { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+#auth-area a { display: inline-flex; align-items: center; min-height: 34px; }
+@media (max-width: 640px) {
+  #topbar {
+    padding: calc(14px + env(safe-area-inset-top)) 18px 14px;
+    gap: 12px;
+  }
+  #topnav > a { display: none; }
+  #topnav { flex: 0 0 auto; font-size: 13px; }
+  #auth-area { gap: 10px; }
+  .logo { min-width: 0 !important; flex: 1 1 auto; }
+}
+@media (max-width: 380px) {
+  #topbar { padding-left: 14px; padding-right: 14px; }
+  .datoya-header-logo { width: 144px !important; height: 48px !important; }
+  #auth-area { gap: 8px; }
+}
 
 /* ===== Bottom nav (móvil) ===== */
 #bottomnav {
