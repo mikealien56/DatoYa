@@ -1,5 +1,17 @@
 # DatoYa — Puerta de beta comercial controlada
 
+## Estado verificado · 18 septiembre 2026
+- ✅ Render LIVE y autoDeploy activo.
+- ✅ Seis suites GitHub Actions en verde.
+- ✅ PostgreSQL marketplace operativo.
+- ✅ Resend configurado en Render; falta confirmar entrega real con el botón Admin → Integraciones.
+- ✅ Mercado Pago OAuth y webhook configurados; falta conectar un vendedor TEST y completar el pago sandbox punta a punta.
+- ✅ Despacho avanzado probado automáticamente: costo, mínimo, gratis desde monto y radio.
+- ✅ Métricas reales de ⚡ Impulso Ahora y ⭐ Impulso de la semana probadas con pedidos TEST atribuidos.
+- ⚠️ Web Service Render sigue en plan Free.
+- ⚠️ PostgreSQL sigue en plan Free y Render informa expiración el 13 de octubre de 2026.
+- ⚠️ Backup lógico preparado en `scripts/backup_postgres.sh`, pero aún falta ejecutar y comprobar una restauración en una base NO productiva.
+
 DatoYa puede mostrarse a comercios reales durante una beta cerrada, pero no debe ampliarse a público general hasta cumplir esta lista.
 
 ## Bloqueantes automáticos
@@ -23,7 +35,7 @@ DatoYa puede mostrarse a comercios reales durante una beta cerrada, pero no debe
 - Dominio definitivo configurado antes del lanzamiento público.
 - Remitente/dominio de correo verificado.
 - Recuperación de contraseña y verificación de correo probadas con correo real.
-- Copia de seguridad y restauración de PostgreSQL comprobadas.
+- Copia de seguridad y restauración de PostgreSQL comprobadas en una base NO productiva. El script de backup ya está preparado.
 - Mercado Pago probado de punta a punta con usuarios/credenciales TEST.
 - Revisión legal/tributaria final antes de escalar cobros y comisiones.
 
@@ -44,7 +56,9 @@ Probar idealmente con dos cuentas distintas: comerciante y comprador.
 12. Agregar al carrito, crear pedido y cambiar estados.
 13. Cancelar un pedido permitido y verificar restitución de stock.
 14. Revisar estadísticas reales: vistas, productos, WhatsApp, compartidos, pedidos y ventas completadas.
-15. Revisar estados vacíos, errores, navegación atrás y experiencia PWA.
+15. Revisar despacho: costo, mínimo, radio y despacho gratis.
+16. Revisar métricas de ⚡ Impulso Ahora y ⭐ Impulso de la semana.
+17. Revisar estados vacíos, errores, navegación atrás y experiencia PWA.
 
 ## Contenido DEMO
 - Los negocios DEMO pueden mantenerse para explicar la propuesta mientras haya pocos comercios reales.
