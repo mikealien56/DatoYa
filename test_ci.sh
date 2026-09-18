@@ -67,6 +67,23 @@ for asset in   local_market_home.js marketplace_account_ui.js marketplace_public
 done
 echo "✅ Frontend comercial publicado"
 
+# Legacy visual scripts must not ship in the final generated HTML.
+LEGACY_PUBLIC_SCRIPTS=(
+  chat_ui_fix.js home_request_fix.js worker_own_profile_ui.js nearby_ui.js
+  worker_v2_ui.js worker_profile_fix.js worker_portfolio_ui.js worker_finance_ui.js
+  request_photos_ui.js workflow_v2_ui.js evidence_ui.js review_ui.js reports_ui.js
+  verification_worker_ui.js request_wizard_ui.js request_detail_ui_fix.js
+  job_detail_ui.js job_flow_ui_bridge.js worker_onboarding_ui.js
+  professional_account_hub_ui.js
+)
+for legacy in "${LEGACY_PUBLIC_SCRIPTS[@]}"; do
+  if grep -q "/$legacy" public/index.html; then
+    echo "ERROR: el HTML final todavía publica un script legacy: $legacy"
+    exit 1
+  fi
+done
+echo "✅ HTML público sin interfaces legacy"
+
 # 7) Marcadores críticos del backend nuevo.
 for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
