@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS commerce_mp_payments (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `);
+try{db.prepare("ALTER TABLE mercadopago_connections ADD COLUMN test_account INTEGER NOT NULL DEFAULT 0").run();}catch(_){}
+try{db.prepare("ALTER TABLE mercadopago_connections ADD COLUMN test_account_mp_user_id TEXT").run();}catch(_){}
 
 const file=path.join(__dirname,'server.js');
 let source=fs.readFileSync(file,'utf8');
@@ -27,12 +29,33 @@ if(!source.includes('DATOYA COMMERCE MERCADOPAGO V1')){
 // ============ DATOYA COMMERCE MERCADOPAGO V1 ============
 function __cmpBusinessOwner(userId,businessId){return db.prepare('SELECT * FROM businesses WHERE id=? AND owner_user_id=?').get(Number(businessId),Number(userId));}
 function __cmpConnectionForBusiness(businessId){return db.prepare('SELECT mc.* FROM mercadopago_connections mc JOIN businesses b ON b.owner_user_id=mc.user_id WHERE b.id=?').get(Number(businessId));}
-function __cmpPaymentRow(row){if(!row)return null;row.transaction_amount=Number(row.transaction_amount||0);row.marketplace_fee=Number(row.marketplace_fee||0);row.seller_net_estimate=Number(row.seller_net_estimate||0);row.live_mode=!!row.live_mode;return row;}\nfunction __cmpLiveAllowed(){return String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true';}
+function __cmpPaymentRow(row){if(!row)return null;row.transaction_amount=Number(row.transaction_amount||0);row.marketplace_fee=Number(row.marketplace_fee||0);row.seller_net_estimate=Number(row.seller_net_estimate||0);row.live_mode=!!row.live_mode;return row;}
+function __cmpLiveAllowed(){return String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true';}
+function __cmpListedTestUserId(id){const set=new Set(String(process.env.DATOYA_MP_TEST_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean));return !!id&&set.has(String(id));}
+function __cmpLooksLikeTestAccount(account){
+  if(!account)return false;
+  const nickname=String(account.nickname||'').trim(),email=String(account.email||'').trim().toLowerCase(),id=String(account.id||'');
+  return __cmpListedTestUserId(id)||/^TEST[A-Z0-9_-]*/i.test(nickname)||/@testuser\.com$/i.test(email)||/testuser/i.test(email);
+}
+async function __cmpConnectionPaymentMode(connection,validated){
+  if(!connection||!validated||!validated.connected)return{mode:'disconnected',account:validated&&validated.account?validated.account:null};
+  if(!connection.live_mode)return{mode:'test',account:validated.account||null};
+  if(Number(connection.test_account||0)===1&&String(connection.test_account_mp_user_id||'')===String(connection.mp_user_id||''))return{mode:'test',account:validated.account||null};
+  let account=validated.account||null;
+  try{
+    const token=await mpSellerToken(connection);
+    if(token)account=await mpHttp('GET','/users/me',token);
+  }catch(_){}
+  const isTest=__cmpLooksLikeTestAccount(account);
+  try{db.prepare('UPDATE mercadopago_connections SET test_account=?,test_account_mp_user_id=?,updated_at=? WHERE id=?').run(isTest?1:0,isTest?String(connection.mp_user_id||account?.id||''):null,new Date().toISOString(),connection.id);}catch(_){}
+  if(isTest)return{mode:'test',account:account||validated.account||null};
+  return{mode:__cmpLiveAllowed()?'live':'live_blocked',account:account||validated.account||null};
+}
 
 app.get('/api/businesses/:id/mercadopago/status',auth,async(req,res)=>{try{
   const b=__cmpBusinessOwner(req.user.id,req.params.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
-  const config=mpPublicConfig(),connection=db.prepare('SELECT * FROM mercadopago_connections WHERE user_id=?').get(req.user.id),status=await mpValidatedConnection(connection);
-  res.json({eligible:true,...status,integration:config.integration,commission_pct:config.commission_pct,payment_mode:status.connected?(status.live_mode?(__cmpLiveAllowed()?'live':'live_blocked'):'test'):'disconnected',live_payments_allowed:__cmpLiveAllowed()});
+  const config=mpPublicConfig(),connection=db.prepare('SELECT * FROM mercadopago_connections WHERE user_id=?').get(req.user.id),status=await mpValidatedConnection(connection),modeInfo=await __cmpConnectionPaymentMode(connection,status);
+  res.json({eligible:true,...status,account:modeInfo.account||status.account||null,integration:config.integration,commission_pct:config.commission_pct,payment_mode:modeInfo.mode,provider_live_mode:!!status.live_mode,recognized_test_account:modeInfo.mode==='test'&&!!connection,live_payments_allowed:__cmpLiveAllowed()});
 }catch(e){res.status(e.status||500).json({error:e.message});}});
 
 app.get('/api/businesses/:id/mercadopago/connect',auth,async(req,res)=>{try{
@@ -56,8 +79,8 @@ app.delete('/api/businesses/:id/mercadopago/disconnect',auth,(req,res)=>{try{
 app.get('/api/orders/:id/mercadopago/status',auth,async(req,res)=>{try{
   const o=db.prepare('SELECT o.*,b.owner_user_id,b.name AS business_name FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=? AND o.user_id=?').get(Number(req.params.id),req.user.id);
   if(!o)return res.status(404).json({error:'Pedido no encontrado'});
-  const connection=__cmpConnectionForBusiness(o.business_id),connectionStatus=await mpValidatedConnection(connection),payment=__cmpPaymentRow(db.prepare('SELECT * FROM commerce_mp_payments WHERE order_id=?').get(o.id)),cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100));
-  res.json({available:connectionStatus.connected&&(!connectionStatus.live_mode||__cmpLiveAllowed()),connected:connectionStatus.connected,payment,commission_pct:cfg.commissionPct,breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:Math.max(0,Number(o.total||0)-fee)},integration:mpPublicConfig().integration,payment_mode:connectionStatus.connected?(connectionStatus.live_mode?(__cmpLiveAllowed()?'live':'live_blocked'):'test'):'disconnected',live_payments_allowed:__cmpLiveAllowed()});
+  const connection=__cmpConnectionForBusiness(o.business_id),connectionStatus=await mpValidatedConnection(connection),modeInfo=await __cmpConnectionPaymentMode(connection,connectionStatus),payment=__cmpPaymentRow(db.prepare('SELECT * FROM commerce_mp_payments WHERE order_id=?').get(o.id)),cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100));
+  res.json({available:connectionStatus.connected&&(modeInfo.mode==='test'||modeInfo.mode==='live'),connected:connectionStatus.connected,payment,commission_pct:cfg.commissionPct,breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:Math.max(0,Number(o.total||0)-fee)},integration:mpPublicConfig().integration,payment_mode:modeInfo.mode,provider_live_mode:!!connectionStatus.live_mode,recognized_test_account:modeInfo.mode==='test'&&!!connection,live_payments_allowed:__cmpLiveAllowed()});
 }catch(e){res.status(e.status||500).json({error:e.message});}});
 
 app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
@@ -65,18 +88,19 @@ app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
   if(!o)return res.status(404).json({error:'Pedido no encontrado'});
   if(['cancelled','completed'].includes(String(o.status)))return res.status(409).json({error:'Este pedido ya no admite un nuevo pago'});
   if(String(o.payment_status)==='paid')return res.status(409).json({error:'Este pedido ya está pagado'});
-  const connection=__cmpConnectionForBusiness(o.business_id);if(!connection)return res.status(409).json({error:'Este negocio todavía no conectó Mercado Pago'});if(connection.live_mode&&!__cmpLiveAllowed())return res.status(409).json({error:'Los pagos reales están bloqueados mientras terminamos la validación TEST de Mercado Pago',live_mode_blocked:true});
+  const connection=__cmpConnectionForBusiness(o.business_id);if(!connection)return res.status(409).json({error:'Este negocio todavía no conectó Mercado Pago'});
   const validated=await mpValidatedConnection(connection);if(!validated.connected)return res.status(409).json({error:'La cuenta Mercado Pago del negocio necesita reconectarse'});
+  const modeInfo=await __cmpConnectionPaymentMode(connection,validated);if(modeInfo.mode==='live_blocked')return res.status(409).json({error:'Los pagos reales están bloqueados mientras terminamos la validación TEST de Mercado Pago',live_mode_blocked:true});
   const token=await mpSellerToken(connection);if(!token)return res.status(409).json({error:'No se pudo obtener la autorización de Mercado Pago del negocio'});
   const items=db.prepare('SELECT * FROM commerce_order_items WHERE order_id=? ORDER BY id').all(o.id);if(!items.length)return res.status(400).json({error:'El pedido no tiene productos'});
   const cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100)),external='datoya-order:'+o.id;
   const body={items:items.map(i=>({id:'order-item-'+i.id,title:String(i.name_snapshot||'Producto DatoYa').slice(0,120),currency_id:'CLP',quantity:Number(i.quantity||1),unit_price:Number(i.unit_price||0)})),marketplace_fee:fee,external_reference:external,payer:{email:req.user.email},back_urls:{success:mpBaseUrl()+'/#/pedidos',pending:mpBaseUrl()+'/#/pedidos',failure:mpBaseUrl()+'/#/pedidos'},auto_return:'approved',notification_url:mpBaseUrl()+'/api/mercadopago/commerce-webhook'};
-  const mp=await mpHttp('POST','/checkout/preferences',token,body),checkout=connection.live_mode?(mp.init_point||mp.sandbox_init_point):(mp.sandbox_init_point||mp.init_point);
-  if(!mp.id||!checkout)return res.status(502).json({error:'Mercado Pago no devolvió una URL de pago'});
+  const mp=await mpHttp('POST','/checkout/preferences',token,body),checkout=modeInfo.mode==='test'?mp.sandbox_init_point:mp.init_point;
+  if(!mp.id||!checkout)return res.status(502).json({error:modeInfo.mode==='test'?'Mercado Pago no devolvió una URL sandbox; DatoYa bloqueó el fallback a pago real':'Mercado Pago no devolvió una URL de pago'});
   const sellerNet=Math.max(0,Number(o.total||0)-fee);
-  db.prepare("INSERT INTO commerce_mp_payments(order_id,preference_id,status,transaction_amount,marketplace_fee,seller_net_estimate,checkout_url,live_mode) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET preference_id=excluded.preference_id,status=excluded.status,transaction_amount=excluded.transaction_amount,marketplace_fee=excluded.marketplace_fee,seller_net_estimate=excluded.seller_net_estimate,checkout_url=excluded.checkout_url,live_mode=excluded.live_mode,updated_at=datetime('now')").run(o.id,String(mp.id),'preference_created',Number(o.total||0),fee,sellerNet,checkout,connection.live_mode?1:0);
+  db.prepare("INSERT INTO commerce_mp_payments(order_id,preference_id,status,transaction_amount,marketplace_fee,seller_net_estimate,checkout_url,live_mode) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET preference_id=excluded.preference_id,status=excluded.status,transaction_amount=excluded.transaction_amount,marketplace_fee=excluded.marketplace_fee,seller_net_estimate=excluded.seller_net_estimate,checkout_url=excluded.checkout_url,live_mode=excluded.live_mode,updated_at=datetime('now')").run(o.id,String(mp.id),'preference_created',Number(o.total||0),fee,sellerNet,checkout,modeInfo.mode==='live'?1:0);
   db.prepare("UPDATE commerce_orders SET payment_method='mercadopago',payment_status='pending',updated_at=datetime('now') WHERE id=?").run(o.id);
-  res.json({ok:true,checkout_url:checkout,preference_id:String(mp.id),mode:connection.live_mode?'live':'test',breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:sellerNet}});
+  res.json({ok:true,checkout_url:checkout,preference_id:String(mp.id),mode:modeInfo.mode,breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:sellerNet}});
 }catch(e){console.error('[DatoYa][Commerce MP]',e.payload||e);res.status(e.status||500).json({error:e.message});}});
 
 app.post('/api/mercadopago/commerce-webhook',async(req,res)=>{try{
