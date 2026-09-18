@@ -41,8 +41,16 @@ app.get('/api/businesses/:id/mercadopago/connect',auth,async(req,res)=>{try{
   const state=crypto.randomBytes(24).toString('hex'),verifier=crypto.randomBytes(48).toString('base64url'),challenge=crypto.createHash('sha256').update(verifier).digest('base64url'),expires=new Date(Date.now()+15*60*1000).toISOString();
   db.prepare('INSERT INTO mercadopago_oauth_states(state,user_id,code_verifier,expires_at) VALUES(?,?,?,?)').run(state,req.user.id,verifier,expires);
   const redirect=process.env.MP_REDIRECT_URI||mpBaseUrl()+'/api/mercadopago/oauth/callback';
-  const q=new URLSearchParams({response_type:'code',client_id:String(process.env.MP_CLIENT_ID),redirect_uri:redirect,state,code_challenge:challenge,code_challenge_method:'S256'});
+  const q=new URLSearchParams({response_type:'code',client_id:String(process.env.MP_CLIENT_ID),redirect_uri:redirect,state,platform_id:'mp',code_challenge:challenge,code_challenge_method:'S256'});
   res.json({url:'https://auth.mercadopago.com/authorization?'+q.toString()});
+}catch(e){res.status(e.status||500).json({error:e.message});}});
+
+app.delete('/api/businesses/:id/mercadopago/disconnect',auth,(req,res)=>{try{
+  const b=__cmpBusinessOwner(req.user.id,req.params.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
+  const connection=db.prepare('SELECT id,mp_user_id,live_mode FROM mercadopago_connections WHERE user_id=?').get(req.user.id);
+  db.prepare('DELETE FROM mercadopago_connections WHERE user_id=?').run(req.user.id);
+  db.prepare('DELETE FROM mercadopago_oauth_states WHERE user_id=?').run(req.user.id);
+  res.json({ok:true,disconnected:!!connection,was_live:!!connection?.live_mode});
 }catch(e){res.status(e.status||500).json({error:e.message});}});
 
 app.get('/api/orders/:id/mercadopago/status',auth,async(req,res)=>{try{
