@@ -11,7 +11,7 @@ if(fs.existsSync(idx)){
   html=html.replace(/<script[^>]+src="\/marketplace_impulse_home\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_commerce_admin_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_payments_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_commerce.css?v=20260918-3">\n</head>');
-  html=html.replace('</body>','<script src="/marketplace_commerce_ui.js?v=20260917-2"></script>\n<script src="/marketplace_impulse_home.js?v=20260917-2"></script>\n<script src="/marketplace_commerce_admin_ui.js?v=20260917-1"></script>\n<script src="/marketplace_payments_ui.js?v=20260918-3"></script>\n</body>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_commerce.css?v=20260918-6">\n</head>');
+  html=html.replace('</body>','<script src="/marketplace_commerce_ui.js?v=20260917-2"></script>\n<script src="/marketplace_impulse_home.js?v=20260917-2"></script>\n<script src="/marketplace_commerce_admin_ui.js?v=20260917-1"></script>\n<script src="/marketplace_payments_ui.js?v=20260918-6"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
