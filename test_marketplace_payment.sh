@@ -63,16 +63,16 @@ printf '%s' "$DELIVERY_CFG" | python3 -c 'import sys,json; d=json.load(sys.stdin
 DELIVERY_PUBLIC=$(curl -fsS "$B/market/business/$BUSINESS_SLUG/delivery")
 printf '%s' "$DELIVERY_PUBLIC" | python3 -c 'import sys,json; d=json.load(sys.stdin)["delivery"]; assert d["enabled"] is True; assert d["fee"]==1500; assert d["radius_km"]==5'
 
-DELIVERY_ORDER=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d "{"business_id":$BUSINESS_ID,"fulfillment_method":"delivery","customer_name":"Cliente TEST","customer_phone":"+56933334444","delivery_address":"Dirección cliente TEST 456","delivery_latitude":-34.233333,"delivery_longitude":-70.966667,"items":[{"product_id":$PRODUCT_ID,"quantity":2}]}")
+DELIVERY_ORDER=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"fulfillment_method":"delivery","customer_name":"Cliente TEST","customer_phone":"+56933334444","delivery_address":"Dirección cliente TEST 456","delivery_latitude":-34.233333,"delivery_longitude":-70.966667,"items":[{"product_id":'"$PRODUCT_ID"',"quantity":2}]}')
 DELIVERY_ORDER_ID=$(printf '%s' "$DELIVERY_ORDER" | json_value 'd["order"]["id"]')
 printf '%s' "$DELIVERY_ORDER" | python3 -c 'import sys,json; o=json.load(sys.stdin)["order"]; assert o["subtotal"]==3000; assert o["delivery_fee"]==1500; assert o["total"]==4500; assert float(o["delivery_distance_km"])<0.1'
 curl -fsS -b /tmp/dy_market_client -X POST "$B/orders/$DELIVERY_ORDER_ID/cancel" -H "$J" -d '{}' >/dev/null
 
-OUTSIDE_CODE=$(curl -sS -o /tmp/dy_outside_delivery.json -w '%{http_code}' -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d "{"business_id":$BUSINESS_ID,"fulfillment_method":"delivery","customer_name":"Cliente TEST","customer_phone":"+56933334444","delivery_address":"Fuera de radio TEST","delivery_latitude":-33.4489,"delivery_longitude":-70.6693,"items":[{"product_id":$PRODUCT_ID,"quantity":2}]}")
+OUTSIDE_CODE=$(curl -sS -o /tmp/dy_outside_delivery.json -w '%{http_code}' -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"fulfillment_method":"delivery","customer_name":"Cliente TEST","customer_phone":"+56933334444","delivery_address":"Fuera de radio TEST","delivery_latitude":-33.4489,"delivery_longitude":-70.6693,"items":[{"product_id":'"$PRODUCT_ID"',"quantity":2}]}')
 [ "$OUTSIDE_CODE" = "400" ] || { echo "Despacho fuera de radio debió responder 400 y respondió $OUTSIDE_CODE"; cat /tmp/dy_outside_delivery.json; exit 1; }
 python3 -c 'import json; d=json.load(open("/tmp/dy_outside_delivery.json")); assert d.get("delivery_outside_radius") is True'
 
-FREE_DELIVERY=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d "{"business_id":$BUSINESS_ID,"fulfillment_method":"delivery","customer_name":"Cliente TEST","customer_phone":"+56933334444","delivery_address":"Dirección cliente TEST 456","delivery_latitude":-34.233333,"delivery_longitude":-70.966667,"items":[{"product_id":$PRODUCT_ID,"quantity":4}]}")
+FREE_DELIVERY=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"fulfillment_method":"delivery","customer_name":"Cliente TEST","customer_phone":"+56933334444","delivery_address":"Dirección cliente TEST 456","delivery_latitude":-34.233333,"delivery_longitude":-70.966667,"items":[{"product_id":'"$PRODUCT_ID"',"quantity":4}]}')
 FREE_DELIVERY_ID=$(printf '%s' "$FREE_DELIVERY" | json_value 'd["order"]["id"]')
 printf '%s' "$FREE_DELIVERY" | python3 -c 'import sys,json; o=json.load(sys.stdin)["order"]; assert o["subtotal"]==6000; assert o["delivery_fee"]==0; assert o["total"]==6000'
 curl -fsS -b /tmp/dy_market_client -X POST "$B/orders/$FREE_DELIVERY_ID/cancel" -H "$J" -d '{}' >/dev/null
