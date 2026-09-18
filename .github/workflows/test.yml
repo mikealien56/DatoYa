@@ -21,5 +21,7 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install
-      - name: Run end-to-end tests
+      - name: Run core test suite
         run: npm test
+      - name: Run marketplace commercial E2E
+        run: npm run test:e2e
