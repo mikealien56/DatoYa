@@ -68,7 +68,7 @@ done
 echo "✅ Frontend comercial publicado"
 
 # 7) Marcadores críticos del backend nuevo.
-for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA MARKETPLACE PAYMENTS V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"; do
+for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
 echo "✅ Backend marketplace montado"
