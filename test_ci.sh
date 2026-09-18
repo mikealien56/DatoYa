@@ -88,6 +88,8 @@ echo "✅ HTML público sin interfaces legacy"
 for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
+grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_payments_bootstrap.js || { echo "Falta candado de pagos reales Mercado Pago"; exit 1; }
+echo "✅ Mercado Pago mantiene pagos reales bloqueados por defecto"
 echo "✅ Backend marketplace montado"
 
 # 8) Regresiones de seguridad que siguen siendo compartidas por la plataforma.
