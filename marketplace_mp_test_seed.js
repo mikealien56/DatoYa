@@ -86,3 +86,24 @@ if(action==='cleanup'){
   }
   console.log('[DatoYa][MP TEST Seed] escenario eliminado.');
 }
+
+
+if(action==='finalize'){
+  if(!validEmail(merchantEmail))throw new Error('Falta email del vendedor TEST para finalizar');
+  const merchant=db.prepare('SELECT id FROM users WHERE email=?').get(merchantEmail);
+  if(!merchant)throw new Error('Vendedor TEST no encontrado');
+  const business=db.prepare("SELECT id,name,status FROM businesses WHERE owner_user_id=? AND name='DatoYa Mercado Pago TEST' LIMIT 1").get(merchant.id);
+  if(!business)throw new Error('Negocio Mercado Pago TEST no encontrado');
+  db.prepare("UPDATE businesses SET status='active',verified=1,updated_at=? WHERE id=?").run(new Date().toISOString(),business.id);
+  const connection=db.prepare("SELECT mp_user_id,live_mode,connection_status,test_account,test_account_mp_user_id,last_validated_at FROM mercadopago_connections WHERE user_id=?").get(merchant.id);
+  console.log('[DatoYa][MP TEST Finalize]',JSON.stringify({
+    business_id:Number(business.id),
+    business_status:'active',
+    seller_connected:!!connection,
+    mp_user_id:connection?String(connection.mp_user_id||''):null,
+    provider_live_mode:connection?!!connection.live_mode:null,
+    recognized_test_account:connection?Number(connection.test_account||0)===1:false,
+    connection_status:connection?String(connection.connection_status||''):null,
+    last_validated_at:connection?connection.last_validated_at:null
+  }));
+}
