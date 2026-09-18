@@ -1,6 +1,6 @@
 // DatoYa 2.0 — arranque real. DEMO ya no es un modo de ejecución.
 const Module=require('module'),path=require('path');
-const usePostgres=String(process.env.DB_DRIVER||'').toLowerCase()==='postgres',originalLoad=Module._load,dbFile=path.resolve(__dirname,'db.js'),blocked=new Set([path.resolve(__dirname,'demo_admin_seed.js'),path.resolve(__dirname,'demo_runtime_seed.js'),path.resolve(__dirname,'demo_compat_fix.js')]);let pgModule=null;
+const usePostgres=String(process.env.DB_DRIVER||'').toLowerCase()==='postgres',originalLoad=Module._load,dbFile=path.resolve(__dirname,'db.js'),blocked=new Set([path.resolve(__dirname,'demo_admin_seed.js'),path.resolve(__dirname,'demo_runtime_seed.js'),path.resolve(__dirname,'demo_compat_fix.js'),path.resolve(__dirname,'worker_category_repair.js')]);let pgModule=null;
 Module._load=function(request,parent,isMain){try{const resolved=Module._resolveFilename(request,parent,isMain),absolute=path.resolve(resolved);if(blocked.has(absolute))return{};if(usePostgres&&absolute===dbFile){if(!pgModule)pgModule=originalLoad.call(this,path.resolve(__dirname,'db_pg.js'),parent,isMain);return pgModule;}}catch(_){}return originalLoad.apply(this,arguments);};
 try{require('./production_mode_bootstrap');console.log(usePostgres?'[DatoYa] Inicio con PostgreSQL.':'[DatoYa] Inicio con SQLite temporal (pruebas locales).');
  require('./job_record_bootstrap');
