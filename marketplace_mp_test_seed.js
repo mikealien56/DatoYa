@@ -112,3 +112,33 @@ if(action==='finalize'){
     last_validated_at:connection?connection.last_validated_at:null
   }));
 }
+
+
+if(action==='prepare_order'){
+  if(!validEmail(merchantEmail)||!validEmail(buyerEmail))throw new Error('Faltan emails TEST para preparar pedido');
+  const merchant=db.prepare('SELECT id FROM users WHERE email=?').get(merchantEmail);
+  const buyer=db.prepare('SELECT id FROM users WHERE email=?').get(buyerEmail);
+  if(!merchant||!buyer)throw new Error('Cuentas DatoYa TEST no encontradas');
+  const business=db.prepare("SELECT id,name FROM businesses WHERE owner_user_id=? AND name='DatoYa Mercado Pago TEST' AND status='active' LIMIT 1").get(merchant.id);
+  if(!business)throw new Error('Negocio TEST no activo');
+  const product=db.prepare("SELECT id,name,price,promo_price,stock,stock_tracking FROM products WHERE business_id=? AND active=1 ORDER BY id LIMIT 1").get(business.id);
+  if(!product)throw new Error('Producto TEST no disponible');
+  let order=db.prepare("SELECT id,reference,total,payment_status,status FROM commerce_orders WHERE user_id=? AND business_id=? AND payment_status='pending' AND status NOT IN ('cancelled','completed') ORDER BY id DESC LIMIT 1").get(buyer.id,business.id);
+  if(!order){
+    const qty=1,unit=Number(product.promo_price||product.price||0),subtotal=unit,total=subtotal,now=new Date().toISOString();
+    if(product.stock_tracking&&Number(product.stock||0)<qty)throw new Error('Sin stock TEST');
+    const ref='DY-TEST-MP-'+Date.now();
+    const tx=db.transaction(()=>{
+      db.prepare("INSERT INTO commerce_orders(reference,user_id,business_id,status,fulfillment_method,customer_name,customer_phone,delivery_address,notes,subtotal,delivery_fee,total,payment_method,payment_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        .run(ref,buyer.id,business.id,'new','pickup','Comprador Mercado Pago TEST','+56900000000',null,'Pedido sandbox Mercado Pago TEST',subtotal,0,total,'arrange','pending',now,now);
+      const o=db.prepare('SELECT id FROM commerce_orders WHERE reference=?').get(ref);
+      db.prepare("INSERT INTO commerce_order_items(order_id,product_id,impulse_id,name_snapshot,unit_price,quantity,created_at) VALUES(?,?,?,?,?,?,?)")
+        .run(o.id,product.id,null,product.name,unit,qty,now);
+      if(product.stock_tracking)db.prepare('UPDATE products SET stock=stock-?,updated_at=? WHERE id=?').run(qty,now,product.id);
+      return Number(o.id);
+    });
+    const id=tx();
+    order=db.prepare('SELECT id,reference,total,payment_status,status FROM commerce_orders WHERE id=?').get(id);
+  }
+  console.log('[DatoYa][MP TEST Order]',JSON.stringify({order_id:Number(order.id),reference:order.reference,total:Number(order.total),status:order.status,payment_status:order.payment_status,buyer_email:buyerEmail}));
+}
