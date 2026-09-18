@@ -19,7 +19,7 @@ function __dyCommerceEmail(to,subject,title,body,ctaLabel,ctaPath){
 app.get('/api/admin/integration-status',auth,requireRole('admin'),(req,res)=>{
   res.json({
     email:{provider:'resend',configured:!!process.env.RESEND_API_KEY,from_configured:!!(process.env.AUTH_EMAIL_FROM||process.env.DATOYA_EMAIL_FROM)},
-    mercadopago:{access_token:!!process.env.MP_ACCESS_TOKEN,oauth:!!(process.env.MP_CLIENT_ID&&process.env.MP_CLIENT_SECRET&&process.env.MP_TOKEN_ENCRYPTION_KEY),webhook:!!process.env.MP_WEBHOOK_SECRET,redirect_uri:!!process.env.MP_REDIRECT_URI},
+    mercadopago:{access_token:!!process.env.MP_ACCESS_TOKEN,oauth:!!(process.env.MP_CLIENT_ID&&process.env.MP_CLIENT_SECRET&&process.env.MP_TOKEN_ENCRYPTION_KEY),webhook:!!process.env.MP_WEBHOOK_SECRET,redirect_uri:!!process.env.MP_REDIRECT_URI,live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true'},
     runtime:{db_driver:String(process.env.DB_DRIVER||'sqlite'),public_base_url:!!process.env.PUBLIC_BASE_URL}
   });
 });
