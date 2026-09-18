@@ -110,7 +110,7 @@ function mpPublicConfig(){const c=mpConfig();return {
   currency:c.currency,commission_pct:c.commissionPct,hold_enabled:c.holdEnabled,
   pro:{monthly:c.monthly,annual:c.annual,annual_saving:Math.max(0,c.monthly*12-c.annual)},
   processing_fees:{iva_pct:c.ivaPct,instant_pct:c.feeInstantPct,ten_days_pct:c.fee10DaysPct,new_instant_pct:c.feeNewInstantPct,new_ten_days_pct:c.feeNew10DaysPct},
-  integration:{subscriptions:c.configured,marketplace_oauth:c.oauthConfigured,webhooks:c.webhookConfigured,ready_for_test:c.configured&&c.oauthConfigured&&c.webhookConfigured}
+  integration:{subscriptions:c.configured,platform_access_token:c.configured,marketplace_oauth:c.oauthConfigured,webhooks:c.webhookConfigured,ready_for_test:c.oauthConfigured&&c.webhookConfigured}
 };}
 function mpHttp(method, apiPath, token, body){return new Promise((resolve,reject)=>{
   const data=body===undefined?null:JSON.stringify(body);
