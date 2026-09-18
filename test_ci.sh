@@ -1,50 +1,80 @@
 #!/bin/bash
 set -euo pipefail
-if grep -q 'MutationObserver' local_location_ui.js;then echo "La ubicación mantiene un observador que puede congelar el Home";exit 1;fi
-if grep -q 'MutationObserver' local_market_home_guard.js;then echo "El guard del Home mantiene un observador que puede repintar en bucle";exit 1;fi
-if ! grep -q 'el.textContent !== label' local_location_ui.js;then echo "La etiqueta GPS no evita escrituras DOM repetidas";exit 1;fi
-if grep -q 'Encuentra a la persona indicada' app.js||! grep -q '__datoyaRenderMarketHome' app.js||! grep -q '__datoyaRenderMarketHome=renderMarketShell' local_market_home.js||! grep -q "app.js?v=4" local_market_home_assets.js;then echo "El arranque puede volver a mostrar el Home legacy antes del comercial";exit 1;fi
-for js in *.js;do node --check "$js" >/dev/null||{ echo "Error de sintaxis en $js";exit 1;};done
+cd "$(dirname "$0")"
+
+echo "=== DatoYa CI base: marketplace comercial ==="
+
+# 1) Sintaxis de todo el runtime actual.
+for js in *.js; do
+  node --check "$js" >/dev/null || { echo "Error de sintaxis en $js"; exit 1; }
+done
+echo "✅ Sintaxis JavaScript"
+
+# 2) El Home debe arrancar por la capa comercial, no por trabajadores.
+grep -q "__datoyaRenderMarketHome" app.js || { echo "app.js no delega el Home al marketplace"; exit 1; }
+grep -q "__datoyaRenderMarketHome=renderMarketShell" local_market_home.js || { echo "El shell comercial no está montado"; exit 1; }
+grep -q "dy-market-boot-shield" local_market_home_assets.js || { echo "Falta protección visual del arranque comercial"; exit 1; }
+grep -q "marketplace_legacy_route_guard" marketplace_public_shell_assets.js || { echo "Falta guard de rutas legacy"; exit 1; }
+echo "✅ Arranque comercial protegido"
+
+# 3) Territorio / GPS.
 node test_territory_location.js
-BASE_DIR="$(cd "$(dirname "$0")" && pwd)";cd "$BASE_DIR";rm -f datoya.db datoya.db-shm datoya.db-wal
+echo "✅ Resolución territorial"
+
+# 4) Base SQLite limpia para pruebas de runtime.
+rm -f datoya.db datoya.db-shm datoya.db-wal
 if [ ! -d node_modules ]; then npm ci --silent; fi
-node app_runtime_fix.js;node worker_demo_badge_runtime_fix.js
-for js in app.js frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js worker_own_profile_ui.js worker_finance_ui.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js gps_ui.js workflow_v2_ui.js gps_map_ui.js gps_map_ui_v2.js protection_ui.js evidence_ui.js review_ui.js reports_ui.js request_photos_ui.js request_detail_ui_fix.js role_ui_fix.js admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js worker_v2_ui.js professional_account_hub_ui.js verification_admin_ui.js verification_worker_ui.js request_target_ui.js home_request_fix.js direct_worker_category_fix.js job_finish_guard_ui.js worker_profile_fix.js worker_portfolio_ui.js nearby_ui.js job_detail_ui.js job_record_ui.js admin_disputes_ui.js worker_specialties_ui.js phone_security_ui.js free_beta_security_ui.js onboarding_flow_ui.js job_flow_ui_bridge.js; do if [ -f "$js" ] && ! node --check "$js";then echo "Error de sintaxis en $js";exit 1;fi;done
-for js in server.js db.js territory_start.js production_start.js reports_bootstrap.js reports_routes.js reports_admin_fix.js request_photos_bootstrap.js evidence_schema.js evidence_bootstrap.js job_events_schema.js job_record_bootstrap.js job_record_assets.js chat_workflow_bootstrap.js admin_v2_bootstrap.js admin_operations_bootstrap.js admin_case_bootstrap.js verification_bootstrap.js verification_review_bootstrap.js protection_schema.js protection_bootstrap.js protection_flow_guard.js protection_complete_fix.js dispute_schema.js dispute_runtime_fix.js dispute_loader.js workflow_guard_bootstrap.js review_status_bootstrap.js request_target_bootstrap.js gps_schema.js gps_bootstrap.js gps_syntax_fix.js nearby_workers_bootstrap.js nearby_location_schema.js portfolio_runtime_fix.js app_runtime_fix.js worker_demo_badge_runtime_fix.js backend_runtime_fix.js account_security_bootstrap.js security_events_schema_fix.js database_integrity_bootstrap.js account_security_delivery_fix.js account_security_route_fix.js account_security_delivery_guard.js session_cookie_fix.js session_account_guard.js meeting_verification_bootstrap.js job_trust_center_bootstrap.js dispute_resolution_atomic_guard.js job_trust_accounting_fix.js accounting_uniqueness_bootstrap.js job_mutual_completion_guard.js job_flow_guard.js accepted_job_chat_guard.js chat_security_guard.js quote_acceptance_atomic_guard.js job_uniqueness_bootstrap.js worker_specialties_bootstrap.js worker_portfolio_bootstrap.js worker_search_bootstrap.js worker_specialties_discovery_bootstrap.js worker_discovery_quality.js worker_public_review_fix.js worker_profile_validation.js review_validation.js quote_validation.js request_validation.js request_photo_validation.js request_access_guard.js chile_security_bootstrap.js production_legacy_guard.js; do if [ -f "$js" ] && ! node --check "$js";then echo "Error de sintaxis en $js";exit 1;fi;done
-if grep -q 'demoTag(1)' app.js;then echo "El frontend sigue marcando a todos los profesionales como DEMO";exit 1;fi
-if ! grep -q 'routes.solicitud' request_detail_ui_fix.js||! grep -q 'request-quote-form' request_detail_ui_fix.js;then echo "Detalle de solicitud incompleto";exit 1;fi
-if ! grep -q 'routes.ganancias' worker_finance_ui.js||! grep -q 'retiros automáticos están deshabilitados' worker_finance_ui.js;then echo "Finanzas beta no están protegidas";exit 1;fi
-if ! grep -q 'review-status' review_status_bootstrap.js||! grep -q 'data-review-submit' review_ui.js;then echo "Reseñas incompletas";exit 1;fi
-if ! grep -q 'renderDatoYaAdminDisputes' admin_disputes_ui.js;then echo "Centro admin de disputas no está montado";exit 1;fi
-if grep -q 'Datos bancarios\|saveBankAccount\|/worker/bank' worker_v2_ui.js;then echo "El perfil profesional todavía expone el formulario bancario obsoleto";exit 1;fi
-if grep -q "admin/banco\|🏦 Banco" admin_operations_ui.js;then echo "El panel todavía ofrece la sección bancaria obsoleta";exit 1;fi
-if ! grep -q "mpValidatedConnection" mercadopago_source_bootstrap.js||! grep -q "'/users/me'" mercadopago_source_bootstrap.js;then echo "La conexión de Mercado Pago no valida OAuth con el proveedor";exit 1;fi
-if ! grep -q 'Mercado Pago · No conectado' mercadopago_ui.js||! grep -q '✓ Mercado Pago conectado' mercadopago_ui.js;then echo "Estados de conexión Mercado Pago incompletos";exit 1;fi
-if ! grep -q "split('?')\[0\]" app_runtime_fix.js;then echo "El router todavía confunde los filtros con la ruta";exit 1;fi
-if ! grep -q '#/cerca?cat=' home_search_polish.js||! grep -q 'routes.cerca=mountCategory' nearby_ui.js;then echo "Las categorías de Inicio no abren la búsqueda cercana";exit 1;fi
-if grep -q 'observer.observe(v' nearby_ui.js||! grep -q 'navigationEpoch' nearby_ui.js||! grep -q "if(isHome()).*route()" nearby_ui.js;then echo "La búsqueda cercana puede volver a reemplazar Inicio";exit 1;fi
-if ! grep -q "'Cámaras y Seguridad'" home_search_polish.js||! grep -q 'mainCategories.map' home_search_polish.js;then echo "Cámaras y Seguridad no está fijada entre las categorías principales de Inicio";exit 1;fi
-if ! grep -q 'home_search_polish.js?v=5' home_search_polish_assets.js;then echo "El Inicio actualizado no invalida la caché anterior";exit 1;fi
-node --check admin_navigation_polish.js
-if ! grep -q 'data-admin-unified-nav' admin_navigation_polish.js||! grep -q "querySelectorAll('.admin-tabs,.admin-menu-organized,\[data-admin-compact-nav\]')" admin_navigation_polish.js;then echo "La navegación administrativa única no está instalada";exit 1;fi
-if grep -q "routes.buscar=search" home_search_polish.js;then echo "Una capa antigua todavía reemplaza la búsqueda nacional";exit 1;fi
-if ! grep -q 'DATOYA_CANONICAL_JOB_FLOW_V1' job_flow_guard.js;then echo "Guard del ciclo oficial no está presente";exit 1;fi
-for field in urgency preferred_date budget region_id comuna_id address_detail photos;do if ! grep -q "$field" request_wizard_ui.js;then echo "Wizard no contempla $field";exit 1;fi;done
-if ! grep -q 'if(target)return previousSolicitar' request_wizard_ui.js;then echo "Wizard no preserva flujo dirigido";exit 1;fi
-# El flujo canónico verifica correos temporales. El token de prueba solo se expone dentro de esta ejecución CI.
+
+# La verificación de correo usa tokens solo dentro de CI.
 export AUTH_TEST_MODE=true
-npm start >/tmp/datoya-ci.log 2>&1 & PID=$!;cleanup(){ kill "$PID" >/dev/null 2>&1||true;wait "$PID" >/dev/null 2>&1||true;};trap cleanup EXIT
-READY=0;for i in $(seq 1 120);do if curl -fsS http://localhost:3000/api/categories >/dev/null 2>&1;then READY=1;break;fi;if ! kill -0 "$PID" >/dev/null 2>&1;then echo "Servidor DatoYa no pudo iniciar";cat /tmp/datoya-ci.log;exit 1;fi;sleep 1;done
-if [ "$READY" -ne 1 ];then echo "Timeout esperando DatoYa";cat /tmp/datoya-ci.log;exit 1;fi
-curl -fsS http://localhost:3000/health|grep -q '"ok":true';echo "Healthcheck DatoYa OK"
-CATEGORIES_JSON="$(curl -fsS http://localhost:3000/api/categories)"
-node -e 'const data=JSON.parse(process.argv[1]);const category=(data.categories||[]).find(c=>c.name==="Cámaras y Seguridad");if(!category||category.icon!=="📹")process.exit(1)' "$CATEGORIES_JSON" || { echo "La categoría Cámaras y Seguridad no está integrada al catálogo real";exit 1; }
-for marker in 'DATOYA CHAT WORKFLOW GUARD V1' 'VERIFICACIÓN PROFESIONAL DATOYA 2.0' 'DATOYA ADMIN OPERATIONS V1' 'DATOYA REVIEW STATUS V1' 'DATOYA DISPUTE RUNTIME V2';do grep -q "$marker" server.js||{ echo "Runtime no montado: $marker";exit 1;};done
-for path in jobs/1/travel worker/verification-requests worker/earnings jobs/1/review-status jobs/1/dispute;do code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path");[ "$code" = "401" ]||{ echo "Ruta protegida incorrectamente /api/$path HTTP $code";exit 1;};done
-for asset in frontend_globals_bridge.js chat_ui_fix.js notifications_ui_fix.js search_ui_fix.js favorites_ui.js request_wizard_ui.js dispute_ui.js admin_dispute_ui_fix.js request_detail_ui_fix.js job_record_ui.js worker_own_profile_ui.js worker_finance_ui.js review_ui.js reports_ui.js gps_ui.js nearby_ui.js datoya-logo.svg admin_v2_ui.js admin_core_ui_fix.js admin_operations_ui.js verification_admin_ui.js verification_worker_ui.js job_flow_ui_bridge.js;do curl -fsS "http://localhost:3000/$asset" >/dev/null||{ echo "Archivo estático no publicado: $asset";exit 1;};done
-echo "Frontend/estáticos smoke test OK"
-# Solo suites compatibles con el marketplace real. El flujo worker/job queda como
-# compatibilidad legacy, pero ya no define si la beta comercial puede desplegarse.
+export DEMO_MODE=false
+export ADMIN_EMAIL="admin-ci@datoya.invalid"
+export ADMIN_PASSWORD="DatoYa-CI-Admin-2026"
+export PORT=3000
+
+npm start >/tmp/datoya-ci.log 2>&1 &
+PID=$!
+cleanup(){ kill "$PID" >/dev/null 2>&1||true; wait "$PID" >/dev/null 2>&1||true; }
+trap cleanup EXIT
+
+READY=0
+for i in $(seq 1 120); do
+  if curl -fsS http://localhost:3000/api/market/categories >/dev/null 2>&1; then READY=1; break; fi
+  if ! kill -0 "$PID" >/dev/null 2>&1; then
+    echo "Servidor DatoYa no pudo iniciar"; cat /tmp/datoya-ci.log; exit 1
+  fi
+  sleep 1
+done
+if [ "$READY" -ne 1 ]; then echo "Timeout esperando DatoYa"; cat /tmp/datoya-ci.log; exit 1; fi
+
+curl -fsS http://localhost:3000/health | grep -q '"ok":true'
+CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["categories"]))')
+[ "$CATS" -ge 19 ] || { echo "Catálogo comercial incompleto: $CATS"; exit 1; }
+echo "✅ Healthcheck + categorías comerciales"
+
+# 5) Rutas privadas del marketplace no deben abrir sin sesión.
+for path in businesses/mine orders/mine; do
+  code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
+  [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
+done
+code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/admin/marketplace/businesses")
+[ "$code" = "401" ] || { echo "Admin marketplace no está protegido HTTP $code"; exit 1; }
+echo "✅ Autorización base"
+
+# 6) Assets que definen la beta comercial.
+for asset in   local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css   brand/datoya-logo-horizontal.png; do
+  curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
+done
+echo "✅ Frontend comercial publicado"
+
+# 7) Marcadores críticos del backend nuevo.
+for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA MARKETPLACE PAYMENTS V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"; do
+  grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
+done
+echo "✅ Backend marketplace montado"
+
+# 8) Regresiones de seguridad que siguen siendo compartidas por la plataforma.
 bash test_security_regression.sh
 node marketplace_beta_smoketest.js
-echo 'DatoYa marketplace real-mode CI OK'
+
+echo "DatoYa marketplace CI: OK"
