@@ -74,9 +74,9 @@ printf '%s' "$ANALYTICS" | python3 -c 'import sys,json; d=json.load(sys.stdin); 
 
 
 IMP_END=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(hours=2)).isoformat())')
-IMPULSE=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/impulses" -H "$J" -d "{\"product_id\":$PRODUCT_ID,\"title\":\"Berlines Flash TEST\",\"price\":1200,\"old_price\":1500,\"stock\":2,\"starts_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ends_at\":\"$IMP_END\",\"sale_mode\":\"last_units\",\"pickup_enabled\":true,\"delivery_enabled\":false}")
+IMPULSE=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/impulses" -H "$J" -d "{\"product_id\":$PRODUCT_ID,\"title\":\"Berlines Impulso TEST\",\"price\":1200,\"old_price\":1500,\"stock\":2,\"starts_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ends_at\":\"$IMP_END\",\"sale_mode\":\"last_units\",\"pickup_enabled\":true,\"delivery_enabled\":false}")
 printf '%s' "$IMPULSE" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] is True; assert d["impulse"]["stock_remaining"]==2'
-curl -fsS "$B/market/impulses?business_id=$BUSINESS_ID" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert any(x["title"]=="Berlines Flash TEST" for x in d["impulses"])'
+curl -fsS "$B/market/impulses?business_id=$BUSINESS_ID" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert any(x["title"]=="Berlines Impulso TEST" for x in d["impulses"])'
 
 ORDER=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente TEST\",\"customer_phone\":\"+56933334444\",\"items\":[{\"product_id\":$PRODUCT_ID,\"quantity\":2}]}")
 ORDER_ID=$(printf '%s' "$ORDER" | json_value 'd["order"]["id"]')
