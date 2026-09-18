@@ -23,6 +23,12 @@ app.get('/api/admin/integration-status',auth,requireRole('admin'),(req,res)=>{
     runtime:{db_driver:String(process.env.DB_DRIVER||'sqlite'),public_base_url:!!process.env.PUBLIC_BASE_URL}
   });
 });
+app.post('/api/admin/integration-status/test-email',auth,requireRole('admin'),async(req,res)=>{
+  if(!process.env.RESEND_API_KEY)return res.status(503).json({error:'Resend no está configurado'});
+  const ok=await __dyCommerceEmail(req.user.email,'Prueba de correo DatoYa','Correo funcionando','<p>Este mensaje confirma que DatoYa puede enviar correos desde el entorno actual.</p><p>No necesitas responder este mensaje.</p>','Abrir DatoYa','/#/');
+  if(!ok)return res.status(502).json({error:'Resend rechazó el correo de prueba. Revisa el remitente o dominio configurado.'});
+  res.json({ok:true,message:'Correo de prueba enviado a tu cuenta de administrador.'});
+});
 // ============ FIN DATOYA INTEGRATIONS STATUS V1 ============
 `;
 source=source.replace('// ============ CATÁLOGOS ============',injection+'\n// ============ CATÁLOGOS ============');
