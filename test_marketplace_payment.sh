@@ -135,5 +135,37 @@ AFTER_HOURS=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d 
 AFTER_HOURS_ID=$(printf '%s' "$AFTER_HOURS" | json_value 'd["order"]["id"]')
 curl -fsS -b /tmp/dy_market_client -X POST "$B/orders/$AFTER_HOURS_ID/cancel" -H "$J" -d '{}' >/dev/null
 
+# Restaurar horario abierto para validar atribución de promociones de forma determinista.
+curl -fsS -b /tmp/dy_market_merchant -X PUT "$B/businesses/$BUSINESS_ID/hours" -H "$J" -d "{\"schedule\":$ALL_OPEN,\"accept_orders_when_closed\":false}" >/dev/null
+
+# Impulso Ahora: vistas, clics, carrito, pedido y venta completada.
+curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"impulse_id\":$(printf '%s' "$IMPULSE" | json_value 'd["impulse"]["id"]'),\"event_type\":\"impulse_view\",\"visitor_id\":\"promo-imp-view-$TS\"}" >/dev/null
+IMPULSE_ID=$(printf '%s' "$IMPULSE" | json_value 'd["impulse"]["id"]')
+curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"impulse_id\":$IMPULSE_ID,\"event_type\":\"impulse_click\",\"visitor_id\":\"promo-imp-click-$TS\"}" >/dev/null
+curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"impulse_id\":$IMPULSE_ID,\"event_type\":\"add_cart\",\"visitor_id\":\"promo-imp-cart-$TS\"}" >/dev/null
+IMP_ORDER=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente TEST\",\"customer_phone\":\"+56933334444\",\"items\":[{\"impulse_id\":$IMPULSE_ID,\"quantity\":1}]}")
+IMP_ORDER_ID=$(printf '%s' "$IMP_ORDER" | json_value 'd["order"]["id"]')
+for ST in confirmed preparing ready completed; do
+  curl -fsS -b /tmp/dy_market_merchant -X PUT "$B/businesses/$BUSINESS_ID/orders/$IMP_ORDER_ID/status" -H "$J" -d "{\"status\":\"$ST\"}" >/dev/null
+done
+
+# Impulso de la semana: publicación TEST aprobada y pedido atribuido.
+WEEKLY=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/weekly-impulses" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"title":"Caja semanal TEST","description":"Promoción semanal temporal","regular_price":1800,"offer_price":1500,"stock":5,"original_image_data":"data:image/png;base64,iVBORw0KGgo="}')
+WEEKLY_ID=$(printf '%s' "$WEEKLY" | json_value 'd["id"]')
+WEEK_END=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(days=7)).isoformat())')
+curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/weekly-impulses/$WEEKLY_ID/approve" -H "$J" -d "{\"placement_type\":\"launch\",\"use_original\":true,\"ends_at\":\"$WEEK_END\"}" >/dev/null
+curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"weekly_view\",\"visitor_id\":\"promo-week-view-$TS\"}" >/dev/null
+curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"weekly_click\",\"visitor_id\":\"promo-week-click-$TS\"}" >/dev/null
+curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"add_cart\",\"visitor_id\":\"promo-week-cart-$TS\"}" >/dev/null
+WEEK_ORDER=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"source_weekly_id\":$WEEKLY_ID,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente TEST\",\"customer_phone\":\"+56933334444\",\"items\":[{\"product_id\":$PRODUCT_ID,\"quantity\":1}]}")
+WEEK_ORDER_ID=$(printf '%s' "$WEEK_ORDER" | json_value 'd["order"]["id"]')
+for ST in confirmed preparing ready completed; do
+  curl -fsS -b /tmp/dy_market_merchant -X PUT "$B/businesses/$BUSINESS_ID/orders/$WEEK_ORDER_ID/status" -H "$J" -d "{\"status\":\"$ST\"}" >/dev/null
+done
+
+PROMO_ANALYTICS=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/promotion-analytics?days=30")
+printf '%s' "$PROMO_ANALYTICS" | python3 -c 'import sys,json; d=json.load(sys.stdin); a=d["impulse_now"]["summary"]; w=d["weekly"]["summary"]; assert a["impressions"]>=1 and a["clicks"]>=1 and a["add_cart"]>=1 and a["orders"]>=1 and a["completed_orders"]>=1 and a["revenue"]>=1200; assert w["impressions"]>=1 and w["clicks"]>=1 and w["add_cart"]>=1 and w["orders"]>=1 and w["completed_orders"]>=1 and w["revenue"]>=1500'
+
+
 
 echo 'DatoYa marketplace payment TEST: OK (sin dinero real)'
