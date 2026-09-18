@@ -38,6 +38,9 @@ verify_email /tmp/dy_market_merchant
 verify_email /tmp/dy_market_client
 curl -fsS -c /tmp/dy_market_admin -X POST "$B/auth/login" -H "$J" -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" >/dev/null
 
+INTEGRATIONS=$(curl -fsS -b /tmp/dy_market_admin "$B/admin/integration-status")
+printf '%s' "$INTEGRATIONS" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["email"]["provider"]=="resend"; assert "oauth" in d["mercadopago"]; assert "webhook" in d["mercadopago"]'
+
 CATEGORY_ID=$(curl -fsS "$B/market/categories" | json_value 'next(x["id"] for x in d["categories"] if x["name"]=="Pastelerías")')
 COMUNA_ID=$(curl -fsS "$B/comunas" | json_value 'next(x["id"] for x in d["comunas"] if x["name"]=="Doñihue")')
 BUSINESS=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses" -H "$J" -d "{\"name\":\"Dulce Hogar TEST $TS\",\"description\":\"Emprendimiento temporal para validar privacidad, búsqueda, pedidos y pagos\",\"business_type\":\"home_business\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"latitude\":-34.233333,\"longitude\":-70.966667,\"location_accuracy\":12,\"location_source\":\"gps\",\"sector\":\"Sector TEST\",\"address\":\"Dirección residencial privada TEST 123\",\"public_address_mode\":\"exact\",\"pickup_enabled\":true,\"delivery_enabled\":false}")
