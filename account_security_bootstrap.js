@@ -92,7 +92,7 @@ app.post('/api/auth/register',(req,res,next)=>{
 
 async function __sendAuthEmail(to,subject,html){
   const key=String(process.env.RESEND_API_KEY||'');
-  const from=String(process.env.AUTH_EMAIL_FROM||'');
+  const from=String(process.env.AUTH_EMAIL_FROM||process.env.DATOYA_EMAIL_FROM||'');
   if(!key || !from) return false;
   try{
     const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({from,to,subject,html})});
@@ -123,7 +123,7 @@ async function __sendAuthSms(to,text){
 app.get('/api/auth/security-config',(req,res)=>{
   res.json({
     password_min_length:8,
-    email_delivery_configured:!!(process.env.RESEND_API_KEY&&process.env.AUTH_EMAIL_FROM),
+    email_delivery_configured:!!(process.env.RESEND_API_KEY&&(process.env.AUTH_EMAIL_FROM||process.env.DATOYA_EMAIL_FROM)),
     sms_delivery_configured:!!(process.env.TWILIO_ACCOUNT_SID&&process.env.TWILIO_AUTH_TOKEN&&process.env.TWILIO_FROM_NUMBER),
     test_mode:__authTestMode,
     legal_enforcement:__legalEnforcement,
@@ -146,7 +146,7 @@ app.post('/api/auth/forgot-password',async(req,res)=>{
     await __sendAuthEmail(user.email,'Restablece tu contraseña de DatoYa','<p>Hola '+String(user.name||'')+'.</p><p>Usa este enlace para crear una nueva contraseña. Vence en 30 minutos:</p><p><a href="'+link+'">Restablecer contraseña</a></p><p>Si no pediste este cambio, ignora este correo.</p>');
     __securityEvent(user.id,'password_reset_requested','');
   }
-  const out={ok:true,message:'Si existe una cuenta con ese correo, enviaremos las instrucciones para recuperar el acceso.',delivery_configured:!!(process.env.RESEND_API_KEY&&process.env.AUTH_EMAIL_FROM)};
+  const out={ok:true,message:'Si existe una cuenta con ese correo, enviaremos las instrucciones para recuperar el acceso.',delivery_configured:!!(process.env.RESEND_API_KEY&&(process.env.AUTH_EMAIL_FROM||process.env.DATOYA_EMAIL_FROM))};
   if(__authTestMode && testToken) out.test_token=testToken;
   res.json(out);
 });
@@ -167,7 +167,7 @@ app.post('/api/auth/reset-password',(req,res)=>{
 app.post('/api/auth/email-verification/request',auth,async(req,res)=>{
   const existing=db.prepare('SELECT id FROM auth_email_verifications WHERE user_id=? AND verified_at IS NOT NULL ORDER BY id DESC LIMIT 1').get(req.user.id);
   if(existing) return res.json({ok:true,already_verified:true});
-  const configured=!!(process.env.RESEND_API_KEY&&process.env.AUTH_EMAIL_FROM);
+  const configured=!!(process.env.RESEND_API_KEY&&(process.env.AUTH_EMAIL_FROM||process.env.DATOYA_EMAIL_FROM));
   if(!configured && !__authTestMode) return res.status(503).json({error:'El envío de correos todavía no está configurado en esta beta'});
   const token=crypto.randomBytes(32).toString('hex');
   const expires=new Date(Date.now()+24*60*60*1000).toISOString();

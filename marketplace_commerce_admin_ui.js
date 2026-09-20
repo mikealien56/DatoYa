@@ -12,7 +12,15 @@
     if(tab==='impulso-ahora')return renderImpulses();
     if(tab==='pedidos')return renderOrders();
     await previous.apply(this,arguments);
-    if(['dashboard','resumen',''].includes(tab||'')){const root=document.querySelector('.dy-admin-market');if(root&&!document.getElementById('dy-commerce-admin-links'))root.insertAdjacentHTML('beforeend',`<section id="dy-commerce-admin-links" class="dy-admin-section"><h2>Comercio beta</h2><div class="dy-admin-grid"><a href="#/admin/impulso-ahora"><b>⚡ Impulso Ahora</b><span>Ventas activas, stock y horarios reales.</span></a><a href="#/admin/pedidos"><b>📦 Pedidos</b><span>Seguimiento del flujo de compras.</span></a></div></section>`);}
+    if(['dashboard','resumen',''].includes(tab||'')){
+      const root=document.querySelector('.dy-admin-market');
+      const upcoming=[...document.querySelectorAll('.dy-admin-section')].find(section=>section.querySelector('h2')?.textContent.trim()==='Próximos módulos');
+      if(upcoming){
+        upcoming.querySelector('h2').textContent='En preparación';
+        [...upcoming.querySelectorAll('a')].forEach(link=>{const label=link.querySelector('b')?.textContent||'';if(label.includes('Impulso Ahora')||label.includes('Pagos'))link.remove();});
+      }
+      if(root&&!document.getElementById('dy-commerce-admin-links'))root.insertAdjacentHTML('beforeend',`<section id="dy-commerce-admin-links" class="dy-admin-section"><h2>Comercio beta</h2><div class="dy-admin-grid"><a href="#/admin/impulso-ahora"><b>⚡ Impulso Ahora</b><span>Ventas activas, stock y horarios reales.</span></a><a href="#/admin/pedidos"><b>📦 Pedidos</b><span>Seguimiento del flujo de compras.</span></a></div></section>`);
+    }
   };
 
   async function renderImpulses(){const {impulses=[]}=await safe('/admin/marketplace/impulses');view.innerHTML=`<div class="dy-admin-market"><div class="dy-admin-title"><div><a href="#/admin">← Admin</a><h1>⚡ Impulso Ahora</h1><p>Publicaciones reales creadas por negocios aprobados.</p></div><span>${impulses.filter(i=>['active','low_stock'].includes(i.status)).length} activos</span></div><div class="dy-admin-list">${impulses.length?impulses.map(i=>`<article class="dy-admin-business"><div class="dy-admin-business-main"><div><small>${h(i.reference)} · ${h(i.comuna||'')}</small><h3>${h(i.title)}</h3><p>${h(i.business_name)} · ${money(i.price)} · Stock ${Number(i.stock_remaining)}/${Number(i.stock_initial)}</p><div class="dy-admin-tags"><span>${h(i.sale_mode)}</span><span>Inicio ${new Date(i.starts_at).toLocaleString('es-CL')}</span><span>Fin ${new Date(i.ends_at).toLocaleString('es-CL')}</span></div></div><span class="dy-admin-pill ${h(i.status)}">${h(i.status)}</span></div>${!['ended','cancelled','sold_out'].includes(i.status)?`<div class="dy-admin-actions"><button class="btn btn-outline btn-sm" onclick="dyAdminCancelImpulse(${i.id})">Finalizar publicación</button></div>`:''}</article>`).join(''):'<div class="empty">Aún no hay Impulsos.</div>'}</div></div>`;}
