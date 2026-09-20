@@ -95,6 +95,9 @@ grep -q "mercadopago/disconnect" marketplace_payments_bootstrap.js || { echo "Fa
 grep -q "ready_for_test:c.oauthConfigured&&c.webhookConfigured" mercadopago_source_bootstrap.js || { echo "La disponibilidad TEST de Mercado Pago depende incorrectamente de un token legacy"; exit 1; }
 grep -q "checkout=mp.init_point" marketplace_payments_bootstrap.js || { echo "Checkout Pro TEST no usa init_point actual"; exit 1; }
 grep -q "La cuenta no está verificada como vendedor TEST" marketplace_payments_bootstrap.js || { echo "Falta candado de vendedor TEST antes de checkout"; exit 1; }
+grep -q "receivedAmount===expectedAmount" marketplace_payments_bootstrap.js || { echo "Falta validar el monto del pago Mercado Pago"; exit 1; }
+grep -q "collectorId===String(conn.mp_user_id" marketplace_payments_bootstrap.js || { echo "Falta validar el vendedor receptor de Mercado Pago"; exit 1; }
+grep -q "payment_status<>'paid'" marketplace_payments_bootstrap.js || { echo "Falta transición idempotente a pago aprobado"; exit 1; }
 echo "✅ Mercado Pago mantiene pagos reales bloqueados por defecto"
 echo "✅ Backend marketplace montado"
 

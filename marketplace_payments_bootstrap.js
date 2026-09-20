@@ -119,12 +119,23 @@ app.post('/api/mercadopago/commerce-webhook',async(req,res)=>{try{
       if(external.startsWith('datoya-order:')){
         const orderId=Number(external.split(':')[1]),pay=db.prepare('SELECT * FROM commerce_mp_payments WHERE order_id=?').get(orderId),o=db.prepare('SELECT * FROM commerce_orders WHERE id=?').get(orderId);
         if(pay&&o){
+          const expectedAmount=Number(pay.transaction_amount||o.total||0),receivedAmount=Number(p.transaction_amount||0),collectorId=String(p.collector_id||p.user_id||'');
+          const amountMatches=Number.isFinite(receivedAmount)&&receivedAmount===expectedAmount;
+          const collectorMatches=!!collectorId&&collectorId===String(conn.mp_user_id||'');
+          const modeAllowed=!p.live_mode||__cmpLiveAllowed();
+          if(!amountMatches||!collectorMatches||!modeAllowed){
+            console.error('[DatoYa][Commerce MP Webhook] Pago no coincide con el pedido',{order_id:orderId,payment_id:String(p.id||''),amount_matches:amountMatches,collector_matches:collectorMatches,mode_allowed:modeAllowed});
+            db.prepare("UPDATE commerce_mp_payments SET payment_id=?,status='validation_failed',updated_at=datetime('now') WHERE order_id=?").run(String(p.id||''),orderId);
+            return res.status(200).json({ok:true,validated:false});
+          }
           db.prepare("UPDATE commerce_mp_payments SET payment_id=?,status=?,updated_at=datetime('now') WHERE order_id=?").run(String(p.id),String(p.status||'unknown'),orderId);
           if(String(p.status)==='approved'){
-            db.prepare("UPDATE commerce_orders SET payment_method='mercadopago',payment_status='paid',updated_at=datetime('now') WHERE id=?").run(orderId);
-            const b=db.prepare('SELECT * FROM businesses WHERE id=?').get(o.business_id);
-            notify(o.user_id,'pago','Pago aprobado para el pedido '+o.reference+'.','#/pedidos');
-            if(b)notify(b.owner_user_id,'pago','Pago Mercado Pago recibido para '+o.reference+'. Comisión DatoYa: '+fmtCLP(pay.marketplace_fee)+'.','#/mi-negocio-pedidos/'+b.id);
+            const changed=db.prepare("UPDATE commerce_orders SET payment_method='mercadopago',payment_status='paid',updated_at=datetime('now') WHERE id=? AND payment_status<>'paid'").run(orderId);
+            if(Number(changed.changes||0)>0){
+              const b=db.prepare('SELECT * FROM businesses WHERE id=?').get(o.business_id);
+              notify(o.user_id,'pago','Pago aprobado para el pedido '+o.reference+'.','#/pedidos');
+              if(b)notify(b.owner_user_id,'pago','Pago Mercado Pago recibido para '+o.reference+'. Comisión DatoYa: '+fmtCLP(pay.marketplace_fee)+'.','#/mi-negocio-pedidos/'+b.id);
+            }
           }else if(['rejected','cancelled','refunded','charged_back'].includes(String(p.status))){
             db.prepare('UPDATE commerce_orders SET payment_status=?,updated_at=? WHERE id=?').run(String(p.status),new Date().toISOString(),orderId);
             notify(o.user_id,'pago','El pago del pedido '+o.reference+' cambió a '+String(p.status)+'.','#/pedidos');
