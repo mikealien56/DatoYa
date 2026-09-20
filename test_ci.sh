@@ -8,7 +8,7 @@ echo "=== DatoYa CI base: marketplace comercial ==="
 for js in *.js; do
   node --check "$js" >/dev/null || { echo "Error de sintaxis en $js"; exit 1; }
 done
-echo "✅ Sintaxis JavaScript"
+echo "✅ Sintaxis JavaScript"\n\nbash -n scripts/backup_postgres.sh scripts/verify_postgres_restore.sh\necho "✅ Scripts de backup/restauración"
 
 # 2) El Home debe arrancar por la capa comercial, no por trabajadores.
 grep -q "__datoyaRenderMarketHome" app.js || { echo "app.js no delega el Home al marketplace"; exit 1; }
