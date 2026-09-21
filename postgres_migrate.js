@@ -32,6 +32,8 @@ async function main() {
     if (missing.length) throw new Error('Faltan tablas PostgreSQL: ' + missing.join(', '));
     if (!names.has('market_account_types')) throw new Error('Falta tabla PostgreSQL: market_account_types');
     if (!names.has('support_cases')) throw new Error('Falta tabla PostgreSQL: support_cases');
+    if (!names.has('business_impulse_memberships')) throw new Error('Falta tabla PostgreSQL: business_impulse_memberships');
+    if (!names.has('business_impulse_payments')) throw new Error('Falta tabla PostgreSQL: business_impulse_payments');
     const { rows: accountRows } = await client.query(`
       SELECT count(*)::int AS users,
              count(m.user_id)::int AS typed_accounts
