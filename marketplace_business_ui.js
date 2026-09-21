@@ -22,6 +22,7 @@
 
   routes['mi-negocio']=async function(id){
     if(!ME){location.hash='#/login';return;}
+    if(ME.account_type!=='business'){location.hash='#/perfil';toast?.('Tu cuenta cliente no administra negocios','err');return;}
     const businessId=Number(id||0);if(!businessId){location.hash='#/perfil';return;}
     const [{business,products=[]},{categories=[]}]=await Promise.all([api('/businesses/'+businessId+'/manage'),api('/market/categories')]);
     cache={business,products,categories};newImageData=null;
