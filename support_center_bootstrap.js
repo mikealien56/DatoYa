@@ -6,7 +6,7 @@ let src=fs.readFileSync(serverFile,'utf8');
 
 if(!src.includes('DATOYA_SUPPORT_CENTER_V1')){
   const marker='// ============ CATÁLOGOS ============';
-  const injection=`
+  const injection=String.raw`
 // ============ DATOYA_SUPPORT_CENTER_V1 ============
 const __dySupportBuckets=new Map();
 function __dySupportText(v,max){return String(v||'').replace(/[<>]/g,'').trim().slice(0,max);}
