@@ -111,7 +111,7 @@
       if(tab==='impulso'){
         const {businesses=[],history=[],config={}}=await api('/admin/marketplace-v2/impulso');
         shell('⚡ DatoYa Impulso','Membresía mensual/anual y cortesías para negocios.',`
-          <div class="card dy-admin-note"><b>Precios actuales:</b> Mensual ${money(config.monthly_price)} · Anual ${money(config.annual_price)}. Puedes cambiarlos en Configuración.</div>
+          <div class="card dy-admin-note"><b>Precios actuales:</b> Mensual ${money(config.monthly_price)} · 3 meses ${money(config.quarterly_price)} · Anual ${money(config.annual_price)}. Puedes cambiarlos en Configuración.</div>
           ${inputFilter('Buscar negocio, dueño o correo')}
           <div class="dy-admin-list">${businesses.map(b=>`<article class="card dy-admin-row" data-imp-row data-search="${h([b.name,b.owner_name,b.owner_email,b.comuna].join(' ').toLowerCase())}"><div><b>⚡ ${h(b.name)}</b><div class="small muted">${h(b.owner_name)} · ${h(b.owner_email)}</div><div class="dy-admin-tags">${b.expires_at?badge('Activo hasta '+String(b.expires_at).slice(0,10),'ok'):badge('Plan Gratis')} ${b.source?badge('Origen '+b.source):''}</div></div><div class="dy-admin-row-actions"><select id="gift-days-${Number(b.id)}"><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>30 días</option><option value="90">90 días</option></select><button class="btn btn-primary btn-sm" onclick="dyGiftImpulse(${Number(b.id)},'${h(String(b.name).replace(/'/g,'&#39;'))}')">🎁 Regalar</button></div></article>`).join('')}</div>
           <section class="card" style="margin-top:16px"><h3>Historial de membresías</h3><div class="dy-admin-history">${history.slice(0,80).map(x=>`<div><b>${h(x.business_name)}</b><span>${h(x.source)} · ${x.days_granted} días · vence ${String(x.expires_at||'').slice(0,10)}</span></div>`).join('')||'<p class="muted">Sin historial todavía.</p>'}</div></section>`);
@@ -150,13 +150,14 @@
           <form id="dy-admin-settings" class="card dy-admin-settings">
             <div class="field"><label>Comisión DatoYa (%)</label><input name="commission_pct" type="number" min="0" max="50" step="0.1" value="${h(s.commission_pct)}"></div>
             <div class="field"><label>DatoYa Impulso mensual (CLP)</label><input name="impulso_monthly_price" type="number" min="0" value="${h(s.impulso_monthly_price)}"></div>
+            <div class="field"><label>DatoYa Impulso 3 meses (CLP)</label><input name="impulso_quarterly_price" type="number" min="0" value="${h(s.impulso_quarterly_price)}"></div>
             <div class="field"><label>DatoYa Impulso anual (CLP)</label><input name="impulso_annual_price" type="number" min="0" value="${h(s.impulso_annual_price)}"></div>
             <div class="field"><label>Límite catálogo plan Gratis</label><input name="impulso_free_catalog_limit" type="number" min="1" value="${h(s.impulso_free_catalog_limit)}"></div>
             <div class="field"><label>Días por defecto Impulso semanal</label><input name="weekly_impulse_days" type="number" min="1" max="30" value="${h(s.weekly_impulse_days)}"></div>
             <button class="btn btn-primary" type="submit">Guardar configuración</button>
           </form>
           <div class="card dy-admin-note"><b>Pagos reales:</b> ${s.live_payments_allowed?'habilitados':'bloqueados'} · <b>Checkout Impulso:</b> ${s.impulso_checkout_enabled?'habilitado':'en validación'}. No se habilitan cobros reales desde esta pantalla.</div>`);
-        document.getElementById('dy-admin-settings')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/admin/marketplace-v2/settings',{method:'PUT',body:{commission_pct:Number(f.commission_pct.value),impulso_monthly_price:Number(f.impulso_monthly_price.value),impulso_annual_price:Number(f.impulso_annual_price.value),impulso_free_catalog_limit:Number(f.impulso_free_catalog_limit.value),weekly_impulse_days:Number(f.weekly_impulse_days.value)}});toast?.('Configuración guardada','ok');}catch(err){toast?.(err.message,'err');}});
+        document.getElementById('dy-admin-settings')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/admin/marketplace-v2/settings',{method:'PUT',body:{commission_pct:Number(f.commission_pct.value),impulso_monthly_price:Number(f.impulso_monthly_price.value),impulso_quarterly_price:Number(f.impulso_quarterly_price.value),impulso_annual_price:Number(f.impulso_annual_price.value),impulso_free_catalog_limit:Number(f.impulso_free_catalog_limit.value),weekly_impulse_days:Number(f.weekly_impulse_days.value)}});toast?.('Configuración guardada','ok');}catch(err){toast?.(err.message,'err');}});
         return;
       }
     }catch(e){toast?.(e.message||'No se pudo cargar el panel administrador','err');}
