@@ -102,7 +102,7 @@
       const notes=document.getElementById('dy-support-case-notes')?.value||'';
       await api('/admin/support-cases/'+id+'/status',{method:'POST',body:{status}});
       await api('/admin/support-cases/'+id+'/notes',{method:'POST',body:{notes}});
-      toast?.('Caso actualizado','ok');closeModal?.();routes.admin('soporte');
+      toast?.('Caso actualizado','ok');if(typeof closeModal==='function')closeModal();routes.admin('soporte');
     }catch(e){toast?.(e.message||'No se pudo actualizar el caso','err');}
   };
 })();
