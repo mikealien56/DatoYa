@@ -82,7 +82,22 @@ app.delete('/api/businesses/:id/mercadopago/disconnect',auth,(req,res)=>{try{
 app.get('/api/orders/:id/mercadopago/status',auth,async(req,res)=>{try{
   const o=db.prepare('SELECT o.*,b.owner_user_id,b.name AS business_name FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=? AND o.user_id=?').get(Number(req.params.id),req.user.id);
   if(!o)return res.status(404).json({error:'Pedido no encontrado'});
-  const connection=__cmpConnectionForBusiness(o.business_id),connectionStatus=await mpValidatedConnection(connection),modeInfo=await __cmpConnectionPaymentMode(connection,connectionStatus),payment=__cmpPaymentRow(db.prepare('SELECT * FROM commerce_mp_payments WHERE order_id=?').get(o.id)),cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100));
+  const connection=__cmpConnectionForBusiness(o.business_id),connectionStatus=await mpValidatedConnection(connection),modeInfo=await __cmpConnectionPaymentMode(connection,connectionStatus),cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100));
+  let payment=__cmpPaymentRow(db.prepare('SELECT * FROM commerce_mp_payments WHERE order_id=?').get(o.id));
+  if(modeInfo.mode==='test'&&connectionStatus.connected&&payment&&String(payment.provider_api||'')==='orders'&&payment.provider_order_id){
+    try{
+      const token=await mpSellerToken(connection),p=token?await mpHttp('GET','/v1/orders/'+encodeURIComponent(payment.provider_order_id),token):null;
+      if(p&&String(p.external_reference||'')==='datoya-order:'+o.id){
+        const amountMatches=Number(p.total_amount||0)===Number(payment.transaction_amount||o.total||0),feeMatches=Number(p.marketplace_fee||0)===Number(payment.marketplace_fee||0),providerUser=String(p.user_id||''),collectorMatches=!providerUser||providerUser===String(connection.mp_user_id||'');
+        if(amountMatches&&feeMatches&&collectorMatches){
+          const tx=((p.transactions||{}).payments||[])[0]||{},paid=String(p.status)==='processed'&&String(p.status_detail)==='accredited';
+          db.prepare("UPDATE commerce_mp_payments SET payment_id=?,status=?,updated_at=datetime('now') WHERE order_id=?").run(String(tx.id||'')||null,String(p.status_detail||p.status||'unknown'),o.id);
+          if(paid)db.prepare("UPDATE commerce_orders SET payment_method='mercadopago',payment_status='paid',updated_at=datetime('now') WHERE id=? AND payment_status<>'paid'").run(o.id);
+          payment=__cmpPaymentRow(db.prepare('SELECT * FROM commerce_mp_payments WHERE order_id=?').get(o.id));
+        }
+      }
+    }catch(e){console.warn('[DatoYa][Commerce MP Orders sync]',e.message||e);}
+  }
   res.json({available:connectionStatus.connected&&(modeInfo.mode==='test'||modeInfo.mode==='live'),connected:connectionStatus.connected,payment,commission_pct:cfg.commissionPct,breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:Math.max(0,Number(o.total||0)-fee)},integration:mpPublicConfig().integration,payment_mode:modeInfo.mode,provider_live_mode:!!connectionStatus.live_mode,recognized_test_account:modeInfo.mode==='test'&&!!connection,live_payments_allowed:__cmpLiveAllowed()});
 }catch(e){res.status(e.status||500).json({error:e.message});}});
 
