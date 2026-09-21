@@ -112,9 +112,9 @@ function mpPublicConfig(){const c=mpConfig();return {
   processing_fees:{iva_pct:c.ivaPct,instant_pct:c.feeInstantPct,ten_days_pct:c.fee10DaysPct,new_instant_pct:c.feeNewInstantPct,new_ten_days_pct:c.feeNew10DaysPct},
   integration:{subscriptions:c.configured,platform_access_token:c.configured,marketplace_oauth:c.oauthConfigured,webhooks:c.webhookConfigured,ready_for_test:c.oauthConfigured&&c.webhookConfigured}
 };}
-function mpHttp(method, apiPath, token, body){return new Promise((resolve,reject)=>{
+function mpHttp(method, apiPath, token, body, extraHeaders){return new Promise((resolve,reject)=>{
   const data=body===undefined?null:JSON.stringify(body);
-  const req=mpHttps.request({hostname:'api.mercadopago.com',path:apiPath,method,headers:{Accept:'application/json','Content-Type':'application/json',Authorization:'Bearer '+token,...(data?{'Content-Length':Buffer.byteLength(data)}:{})}},res=>{
+  const req=mpHttps.request({hostname:'api.mercadopago.com',path:apiPath,method,headers:{Accept:'application/json','Content-Type':'application/json',Authorization:'Bearer '+token,...(extraHeaders||{}),...(data?{'Content-Length':Buffer.byteLength(data)}:{})}},res=>{
     let raw='';res.on('data',d=>raw+=d);res.on('end',()=>{let parsed={};try{parsed=raw?JSON.parse(raw):{};}catch(_){parsed={raw};}if(res.statusCode>=200&&res.statusCode<300)return resolve(parsed);const err=new Error(parsed.message||parsed.error||('Mercado Pago HTTP '+res.statusCode));err.status=res.statusCode;err.payload=parsed;reject(err);});
   });req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Mercado Pago timeout')));if(data)req.write(data);req.end();
 });}
