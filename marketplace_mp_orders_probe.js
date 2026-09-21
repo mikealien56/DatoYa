@@ -41,6 +41,7 @@ function mpRequest(path,token,body,idempotencyKey){
         const err=new Error(parsed.message||parsed.error||('Mercado Pago HTTP '+res.statusCode));
         err.status=res.statusCode;
         err.code=parsed.code||parsed.cause?.[0]?.code||null;
+        err.provider={message:parsed.message||null,error:parsed.error||null,code:parsed.code||null,details:parsed.details||parsed.cause||null};
         reject(err);
       });
     });
@@ -109,7 +110,7 @@ async function run(){
 }
 
 if(String(process.env.DATOYA_MP_ORDERS_PROBE||'')==='1'){
-  setTimeout(()=>run().catch(e=>console.error('[DatoYa][MP Orders Probe] FAILED',JSON.stringify({message:String(e.message||e),status:e.status||null,code:e.code||null}))),5000);
+  setTimeout(()=>run().catch(e=>console.error('[DatoYa][MP Orders Probe] FAILED',JSON.stringify({message:String(e.message||e),status:e.status||null,code:e.code||null,provider:e.provider||null}))),5000);
 }
 
 module.exports={};
