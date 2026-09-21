@@ -26,7 +26,7 @@ async function main() {
       }
     }
     const { rows } = await client.query(`SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name`);
-    const required = ['users','worker_profiles','service_requests','quotes','jobs','messages','payment_protections','job_disputes','job_evidence','worker_locations'];
+    const required = ['users','worker_profiles','service_requests','quotes','jobs','messages','payment_protections','job_disputes','job_evidence','worker_locations','market_categories','businesses','business_category_links'];
     const names = new Set(rows.map(r => r.table_name));
     const missing = required.filter(t => !names.has(t));
     if (missing.length) throw new Error('Faltan tablas PostgreSQL: ' + missing.join(', '));
