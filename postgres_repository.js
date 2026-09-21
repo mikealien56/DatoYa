@@ -1,10 +1,10 @@
 const { Pool } = require('pg');
+const { postgresConnectionConfig } = require('./postgres_connection');
 
 function makePool() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL no configurado');
   return new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.PGSSLMODE === 'disable' ? false : { rejectUnauthorized: false },
+    ...postgresConnectionConfig(process.env.DATABASE_URL),
     max: Number(process.env.PG_POOL_MAX || 5)
   });
 }

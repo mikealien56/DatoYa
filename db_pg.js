@@ -5,9 +5,11 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { postgresConnectionConfig } = require('./postgres_connection');
 
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 if (!databaseUrl) throw new Error('DB_DRIVER=postgres requiere DATABASE_URL o POSTGRES_URL');
+const databaseConfig = postgresConnectionConfig(databaseUrl);
 
 let worker = null;
 let workerClosing = false;
@@ -16,7 +18,7 @@ let txDepth = 0;
 
 function spawnWorker() {
   const w = new Worker(path.join(__dirname, 'pg_sync_worker.js'), {
-    workerData: { databaseUrl }
+    workerData: { databaseConfig }
   });
   w.on('error', error => {
     console.error('[DatoYa][PostgreSQL worker] error recuperable:', String(error && error.message || error).slice(0, 180));

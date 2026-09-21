@@ -3,6 +3,7 @@
 // Target: DATOYA_MIGRATION_TARGET_URL (new Neon Postgres)
 // Refuses to overwrite a non-empty target and records a migration marker.
 const {Client}=require('pg');
+const {postgresConnectionConfig}=require('../postgres_connection');
 
 const sourceUrl=process.env.DATABASE_URL;
 const targetUrl=process.env.DATOYA_MIGRATION_TARGET_URL;
@@ -12,9 +13,8 @@ if(!sourceUrl) throw new Error('Missing DATABASE_URL source');
 if(!targetUrl) throw new Error('Missing DATOYA_MIGRATION_TARGET_URL');
 if(sourceUrl===targetUrl) throw new Error('Source and target database URLs are identical');
 
-const ssl={rejectUnauthorized:false};
-const src=new Client({connectionString:sourceUrl,ssl});
-const dst=new Client({connectionString:targetUrl,ssl});
+const src=new Client(postgresConnectionConfig(sourceUrl));
+const dst=new Client(postgresConnectionConfig(targetUrl));
 
 const qi=s=>'"'+String(s).replace(/"/g,'""')+'"';
 const qn=(schema,name)=>qi(schema)+'.'+qi(name);
