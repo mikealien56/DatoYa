@@ -13,15 +13,55 @@ types.setTypeParser(20, value => Number(value));
 let client = null;
 let connecting = null;
 
+function isConnectionError(error) {
+  const code = String(error && error.code || '');
+  const message = String(error && error.message || '').toLowerCase();
+  return ['57P01','57P02','57P03','08000','08003','08006','08001','08004','08007','08P01','ECONNRESET','EPIPE','ETIMEDOUT'].includes(code)
+    || message.includes('connection terminated')
+    || message.includes('connection closed')
+    || message.includes('socket hang up')
+    || message.includes('server closed the connection unexpectedly');
+}
+
+function invalidateClient(c, reason) {
+  if (client === c) client = null;
+  connecting = null;
+  if (reason) console.warn('[DatoYa][PostgreSQL] conexión reiniciable:', String(reason.message || reason).slice(0, 180));
+}
+
+function attachClientLifecycle(c) {
+  // Neon Free puede suspender el compute cuando queda inactivo. node-postgres
+  // emite "error" en clientes persistentes cuando eso ocurre; sin listener el
+  // Worker termina y puede botar todo el proceso. Lo tratamos como desconexión
+  // normal y reconectamos en la siguiente consulta.
+  c.on('error', error => invalidateClient(c, error));
+  c.on('end', () => invalidateClient(c));
+}
+
 async function ensureClient() {
   if (client) return client;
   if (!connecting) {
-    connecting = (async () => {
-      const c = new Client({ connectionString: workerData.databaseUrl });
-      await c.connect();
-      client = c;
-      return c;
+    const pending = (async () => {
+      const c = new Client({
+        connectionString: workerData.databaseUrl,
+        keepAlive: true,
+        connectionTimeoutMillis: Number(process.env.PG_CONNECT_TIMEOUT_MS || 10000)
+      });
+      attachClientLifecycle(c);
+      try {
+        await c.connect();
+        client = c;
+        return c;
+      } catch (error) {
+        invalidateClient(c, error);
+        try { await c.end(); } catch (_) {}
+        throw error;
+      }
     })();
+    connecting = pending;
+    pending.finally(() => {
+      if (connecting === pending) connecting = null;
+    }).catch(() => {});
   }
   return connecting;
 }
@@ -81,7 +121,7 @@ async function getGeneratedId(c, sql) {
 }
 
 async function execute(message) {
-  const c = await ensureClient();
+  let c = await ensureClient();
   const { op, sql, params = [] } = message;
 
   if (op === 'begin') {
@@ -97,7 +137,24 @@ async function execute(message) {
     return { rows: [], rowCount: 0 };
   }
 
-  const result = await c.query(sql, params);
+  let result;
+  try {
+    result = await c.query(sql, params);
+  } catch (error) {
+    if (isConnectionError(error)) {
+      invalidateClient(c, error);
+      // Solo reintentamos lecturas inequívocamente idempotentes. Nunca repetimos
+      // INSERT/UPDATE/DELETE: una desconexión después del commit podría duplicarlas.
+      if (op === 'query' && /^\s*(SELECT|SHOW)\b/i.test(String(sql))) {
+        c = await ensureClient();
+        result = await c.query(sql, params);
+      } else {
+        throw error;
+      }
+    } else {
+      throw error;
+    }
+  }
   const normalized = normalizeRows(result.rows || []);
   let lastInsertRowid = null;
 
