@@ -9,17 +9,36 @@ const path = require('path');
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 if (!databaseUrl) throw new Error('DB_DRIVER=postgres requiere DATABASE_URL o POSTGRES_URL');
 
-const worker = new Worker(path.join(__dirname, 'pg_sync_worker.js'), {
-  workerData: { databaseUrl }
-});
+let worker = null;
+let workerClosing = false;
 let seq = 0;
 let txDepth = 0;
+
+function spawnWorker() {
+  const w = new Worker(path.join(__dirname, 'pg_sync_worker.js'), {
+    workerData: { databaseUrl }
+  });
+  w.on('error', error => {
+    console.error('[DatoYa][PostgreSQL worker] error recuperable:', String(error && error.message || error).slice(0, 180));
+    if (worker === w) worker = null;
+  });
+  w.on('exit', code => {
+    if (!workerClosing && code !== 0) console.warn('[DatoYa][PostgreSQL worker] reinicio requerido, código', code);
+    if (worker === w) worker = null;
+  });
+  worker = w;
+  return w;
+}
+
+function activeWorker() {
+  return worker || spawnWorker();
+}
 
 function syncCall(op, sql = '', params = []) {
   const signal = new SharedArrayBuffer(4);
   const view = new Int32Array(signal);
   const resultPath = path.join(os.tmpdir(), `datoya-pg-${process.pid}-${Date.now()}-${++seq}.json`);
-  worker.postMessage({ op, sql, params, signal, resultPath });
+  activeWorker().postMessage({ op, sql, params, signal, resultPath });
   const wait = Atomics.wait(view, 0, 0, Number(process.env.PG_SYNC_TIMEOUT_MS || 30000));
   if (wait === 'timed-out') throw new Error(`Timeout PostgreSQL ejecutando: ${String(sql).slice(0, 160)}`);
   let payload;
@@ -186,7 +205,7 @@ const db = {
       }
     };
   },
-  close() { try { worker.terminate(); } catch (_) {} }
+  close() { workerClosing = true; try { if (worker) worker.terminate(); } catch (_) {} }
 };
 
 function hashPassword(password) {
