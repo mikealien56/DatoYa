@@ -42,6 +42,10 @@ function __dyRequireBusinessAccount(req,res,next){
   if(req.user && __dyMarketAccountType(req.user.id)==='business') return next();
   return res.status(403).json({error:'Esta acción requiere una cuenta de negocio. Las cuentas cliente no pueden registrar ni administrar negocios.',code:'BUSINESS_ACCOUNT_REQUIRED'});
 }
+function __dyRequireCustomerAccount(req,res,next){
+  if(req.user && __dyMarketAccountType(req.user.id)==='customer') return next();
+  return res.status(403).json({error:'Esta acción requiere una cuenta cliente. Las cuentas de negocio administran comercios y pedidos recibidos, pero no realizan compras.',code:'CUSTOMER_ACCOUNT_REQUIRED'});
+}
 `;
   if(!src.includes(authMarker))throw new Error('No se encontró marcador AUTH para separar cuentas');
   src=src.replace(authMarker,helpers+'\n'+authMarker);
@@ -61,6 +65,12 @@ function __dyRequireBusinessAccount(req,res,next){
   src=src.replace("app.post('/api/businesses',auth,__dyRequireVerifiedEmail,(req,res)=>","app.post('/api/businesses',auth,__dyRequireBusinessAccount,__dyRequireVerifiedEmail,(req,res)=>");
   // Fallback por si cambia el orden de bootstraps.
   src=src.replace("app.post('/api/businesses',auth,(req,res)=>","app.post('/api/businesses',auth,__dyRequireBusinessAccount,(req,res)=>");
+
+  // La cuenta de negocio tampoco se mezcla con el flujo comprador.
+  src=src.replace("app.post('/api/orders',auth,__dyRequireVerifiedEmail,(req,res)=>","app.post('/api/orders',auth,__dyRequireCustomerAccount,__dyRequireVerifiedEmail,(req,res)=>");
+  src=src.replace("app.post('/api/orders',auth,(req,res)=>","app.post('/api/orders',auth,__dyRequireCustomerAccount,(req,res)=>");
+  src=src.replace("app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireVerifiedEmail,async(req,res)=>","app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireCustomerAccount,__dyRequireVerifiedEmail,async(req,res)=>");
+  src=src.replace("app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>","app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireCustomerAccount,async(req,res)=>");
 
   fs.writeFileSync(serverFile,src);
 }
