@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS business_impulse_memberships (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   plan TEXT NOT NULL DEFAULT 'impulso' CHECK(plan IN ('impulso')),
-  billing_period TEXT NOT NULL DEFAULT 'gift' CHECK(billing_period IN ('gift','monthly','annual')),
+  billing_period TEXT NOT NULL DEFAULT 'gift' CHECK(billing_period IN ('gift','monthly','quarterly','annual')),
   source TEXT NOT NULL DEFAULT 'gift' CHECK(source IN ('gift','paid','manual')),
   status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('pending','active','expired','cancelled','superseded')),
   starts_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS business_impulse_payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   reference TEXT NOT NULL UNIQUE,
   business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-  billing_period TEXT NOT NULL CHECK(billing_period IN ('monthly','annual')),
+  billing_period TEXT NOT NULL CHECK(billing_period IN ('monthly','quarterly','annual')),
   amount INTEGER NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','cancelled','expired','failed')),
   preference_id TEXT,
@@ -41,7 +41,8 @@ CREATE INDEX IF NOT EXISTS idx_business_impulse_payments_status ON business_impu
 `);
 
 db.prepare("INSERT INTO settings(key,value) VALUES('impulso_monthly_price','9990') ON CONFLICT(key) DO NOTHING").run();
-db.prepare("INSERT INTO settings(key,value) VALUES('impulso_annual_price','99900') ON CONFLICT(key) DO NOTHING").run();
+db.prepare("INSERT INTO settings(key,value) VALUES('impulso_quarterly_price','26990') ON CONFLICT(key) DO NOTHING").run();
+db.prepare("INSERT INTO settings(key,value) VALUES('impulso_annual_price','89990') ON CONFLICT(key) DO NOTHING").run();
 db.prepare("INSERT INTO settings(key,value) VALUES('impulso_free_catalog_limit','20') ON CONFLICT(key) DO NOTHING").run();
 db.prepare("INSERT INTO settings(key,value) VALUES('weekly_impulse_days','7') ON CONFLICT(key) DO NOTHING").run();
 
@@ -157,7 +158,7 @@ app.get('/api/admin/marketplace-v2/impulso',auth,requireRole('admin'),(req,res)=
   const history=db.prepare(`SELECT im.*,b.name business_name,u.name granted_by
     FROM business_impulse_memberships im JOIN businesses b ON b.id=im.business_id LEFT JOIN users u ON u.id=im.created_by_user_id
     ORDER BY im.created_at DESC LIMIT 300`).all();
-  res.json({businesses,history,config:{monthly_price:__dyMoneySetting('impulso_monthly_price',9990),annual_price:__dyMoneySetting('impulso_annual_price',99900)}});
+  res.json({businesses,history,config:{monthly_price:__dyMoneySetting('impulso_monthly_price',9990),quarterly_price:__dyMoneySetting('impulso_quarterly_price',26990),annual_price:__dyMoneySetting('impulso_annual_price',89990)}});
 });
 
 app.post('/api/admin/marketplace-v2/impulso/gift',auth,requireRole('admin'),(req,res)=>{
@@ -174,7 +175,8 @@ app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)
   res.json({settings:{
     commission_pct:Number(getSetting('commission_pct','10')),
     impulso_monthly_price:__dyMoneySetting('impulso_monthly_price',9990),
-    impulso_annual_price:__dyMoneySetting('impulso_annual_price',99900),
+    impulso_quarterly_price:__dyMoneySetting('impulso_quarterly_price',26990),
+    impulso_annual_price:__dyMoneySetting('impulso_annual_price',89990),
     impulso_free_catalog_limit:Number(getSetting('impulso_free_catalog_limit','20')),
     weekly_impulse_days:Number(getSetting('weekly_impulse_days','7')),
     live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true',
@@ -183,7 +185,7 @@ app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)
 });
 app.put('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
   const body=req.body||{};
-  const ranges={commission_pct:[0,50],impulso_monthly_price:[0,1000000],impulso_annual_price:[0,10000000],impulso_free_catalog_limit:[1,1000],weekly_impulse_days:[1,30]};
+  const ranges={commission_pct:[0,50],impulso_monthly_price:[0,1000000],impulso_quarterly_price:[0,3000000],impulso_annual_price:[0,10000000],impulso_free_catalog_limit:[1,1000],weekly_impulse_days:[1,30]};
   for(const [key,[min,max]] of Object.entries(ranges)){
     if(body[key]===undefined)continue;
     const n=Number(body[key]);if(!Number.isFinite(n)||n<min||n>max)return res.status(400).json({error:'Valor inválido para '+key});
@@ -200,7 +202,8 @@ app.get('/api/businesses/:id/impulso-plan',auth,(req,res)=>{
   const mode=String(process.env.DATOYA_IMPULSO_CHECKOUT_MODE||'test').toLowerCase()==='live'?'live':'test';
   res.json({business:{id:b.id,name:b.name,status:b.status},membership,pending_payment:pending,config:{
     monthly_price:__dyMoneySetting('impulso_monthly_price',9990),
-    annual_price:__dyMoneySetting('impulso_annual_price',99900),
+    quarterly_price:__dyMoneySetting('impulso_quarterly_price',26990),
+    annual_price:__dyMoneySetting('impulso_annual_price',89990),
     checkout_enabled:String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()==='true',
     checkout_mode:mode,
     live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true'
@@ -211,18 +214,18 @@ app.post('/api/businesses/:id/impulso-plan/checkout',auth,async(req,res)=>{
   const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
   if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
   const period=String(req.body?.billing_period||'monthly');
-  if(!['monthly','annual'].includes(period))return res.status(400).json({error:'Período inválido'});
+  if(!['monthly','quarterly','annual'].includes(period))return res.status(400).json({error:'Período inválido'});
   if(String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()!=='true')return res.status(409).json({error:'El pago de DatoYa Impulso todavía está en validación. La sección ya está preparada y se habilitará al terminar las pruebas de Mercado Pago.',code:'IMPULSO_CHECKOUT_DISABLED'});
   const mode=String(process.env.DATOYA_IMPULSO_CHECKOUT_MODE||'test').toLowerCase()==='live'?'live':'test';
   if(mode==='live'&&String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()!=='true')return res.status(409).json({error:'Los pagos reales siguen bloqueados hasta completar la validación TEST.',code:'LIVE_PAYMENTS_BLOCKED'});
   const token=String(process.env.DATOYA_IMPULSO_MP_ACCESS_TOKEN||'');
   if(!token)return res.status(503).json({error:'Falta conectar la cuenta de cobro de DatoYa para la membresía Impulso'});
-  const amount=period==='annual'?__dyMoneySetting('impulso_annual_price',99900):__dyMoneySetting('impulso_monthly_price',9990);
+  const amount=period==='annual'?__dyMoneySetting('impulso_annual_price',89990):period==='quarterly'?__dyMoneySetting('impulso_quarterly_price',26990):__dyMoneySetting('impulso_monthly_price',9990);
   if(amount<=0)return res.status(409).json({error:'El precio de DatoYa Impulso no está configurado'});
   const reference='DY-IMP-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(2).toString('hex').toUpperCase();
   const base=String(process.env.PUBLIC_BASE_URL||((req.protocol||'https')+'://'+req.get('host'))).replace(/\/+$/,'');
   const payload={
-    items:[{id:'datoya-impulso-'+period,title:'DatoYa Impulso '+(period==='annual'?'Anual':'Mensual'),currency_id:'CLP',quantity:1,unit_price:amount}],
+    items:[{id:'datoya-impulso-'+period,title:'DatoYa Impulso '+(period==='annual'?'Anual':period==='quarterly'?'3 meses':'Mensual'),currency_id:'CLP',quantity:1,unit_price:amount}],
     external_reference:reference,
     back_urls:{success:base+'/#/mi-negocio-plan/'+id,pending:base+'/#/mi-negocio-plan/'+id,failure:base+'/#/mi-negocio-plan/'+id},
     auto_return:'approved',
@@ -251,7 +254,7 @@ app.post('/api/businesses/:id/impulso-plan/sync',auth,async(req,res)=>{
   const status=String(payment.status||'pending');
   if(status==='approved'&&amountMatches){
     db.prepare("UPDATE business_impulse_payments SET status='approved',payment_id=?,updated_at=? WHERE id=?").run(String(payment.id||''),__dyImpulseNow(),row.id);
-    const days=row.billing_period==='annual'?365:30;
+    const days=row.billing_period==='annual'?365:row.billing_period==='quarterly'?90:30;
     const membership=__dyAddImpulseDays(id,days,'paid',null,row.amount,row.billing_period,row.reference);
     notify(b.owner_user_id,'impulso','⚡ Tu plan DatoYa Impulso está activo hasta '+String(membership.expires_at).slice(0,10)+'.','#/mi-negocio-plan/'+id);
     return res.json({ok:true,updated:true,status:'approved',membership});
