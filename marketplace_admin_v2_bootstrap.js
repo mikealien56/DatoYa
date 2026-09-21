@@ -49,7 +49,7 @@ const serverFile=path.join(__dirname,'server.js');
 let src=fs.readFileSync(serverFile,'utf8');
 if(!src.includes('DATOYA_MARKETPLACE_ADMIN_V2')){
   const marker='// ============ MISC ============';
-  const injection=String.raw`
+  function __dyAdminV2Injected(){
 // ============ DATOYA_MARKETPLACE_ADMIN_V2 ============
 function __dyImpulseNow(){return new Date().toISOString();}
 function __dyImpulseSync(){
@@ -262,7 +262,8 @@ app.post('/api/businesses/:id/impulso-plan/sync',auth,async(req,res)=>{
   res.json({ok:true,updated:true,status,amount_matches:amountMatches,membership:__dyImpulseMembership(id)});
 });
 // ============ FIN DATOYA_MARKETPLACE_ADMIN_V2 ============
-`;
+}
+  const injection=__dyAdminV2Injected.toString().replace(/^function __dyAdminV2Injected\(\)\{\n?/,'').replace(/\n?\}$/,'');
   if(!src.includes(marker))throw new Error('No se encontró marcador MISC para Admin marketplace V2');
   src=src.replace(marker,injection+'\n'+marker);
   fs.writeFileSync(serverFile,src);
