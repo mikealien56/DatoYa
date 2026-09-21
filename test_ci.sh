@@ -9,6 +9,9 @@ for js in *.js; do
   node --check "$js" >/dev/null || { echo "Error de sintaxis en $js"; exit 1; }
 done
 node --check scripts/migrate_render_to_neon.js >/dev/null
+grep -q "CREATE TABLE IF NOT EXISTS market_account_types" postgres/002_market_account_types.sql
+grep -q "ON CONFLICT (user_id) DO NOTHING" postgres/002_market_account_types.sql
+grep -q "Falta tabla PostgreSQL: market_account_types" postgres_migrate.js
 echo "✅ Migrador PostgreSQL a Neon"
 echo "✅ Sintaxis JavaScript"
 
