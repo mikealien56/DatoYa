@@ -29,7 +29,7 @@
             <ul><li>Perfil del negocio</li><li>Ubicación y horarios</li><li>WhatsApp</li><li>Catálogo básico</li><li>Pedidos y retiro</li></ul>
           </section>
           <section class="dy-plan-card impulse">
-            <span>⚡ DATOYA IMPULSO</span><h2>${money(cfg.monthly_price)} <small>/ mes</small></h2><p>Más herramientas para vender y entender tu zona.</p>
+            <span>⚡ DATOYA IMPULSO</span><h2>Desde ${money(cfg.monthly_price)} <small>/ mes</small></h2><p>Elige mensual, 3 meses o anual. Mientras más tiempo eliges, más ahorras.</p>
             <ul><li>⚡ Impulso Ahora</li><li>📊 Estadísticas avanzadas</li><li>📍 Pulso Local</li><li>🎯 Radar de oportunidades</li><li>📣 Promociones destacadas</li><li>🔔 Prioridad en DatoYa Alerta</li><li>📦 Catálogo ampliado</li><li>✨ Perfil destacado</li></ul>
             <div class="dy-plan-options">
               <div class="dy-plan-option"><div><b>Mensual</b><small>${money(cfg.monthly_price)} / mes</small></div><button class="btn btn-outline btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'monthly')">Elegir</button></div>
@@ -71,7 +71,7 @@
     if(!ME||ME.account_type!=='business')return r;
     const target=document.querySelector('.dy-business-tools');
     if(target&&!target.querySelector('[data-impulso-plan-tool]')){
-      const a=document.createElement('a');a.dataset.impulsoPlanTool='1';a.href='#/mi-negocio-plan/'+Number(id);a.innerHTML='<span>⚡</span><b>DatoYa Impulso</b><small>Plan mensual, beneficios y vigencia.</small>';target.prepend(a);
+      const a=document.createElement('a');a.dataset.impulsoPlanTool='1';a.href='#/mi-negocio-plan/'+Number(id);a.innerHTML='<span>⚡</span><b>DatoYa Impulso</b><small>Planes, beneficios y vigencia.</small>';target.prepend(a);
     }
     return r;
   };
