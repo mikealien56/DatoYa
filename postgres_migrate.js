@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
+const { postgresConnectionConfig } = require('./postgres_connection');
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL no configurado');
-  const ssl = process.env.PGSSLMODE === 'disable' ? false : { rejectUnauthorized: false };
-  const client = new Client({ connectionString, ssl });
+  const client = new Client(postgresConnectionConfig(connectionString));
   await client.connect();
   try {
     const migrationDir = path.join(__dirname, 'postgres');

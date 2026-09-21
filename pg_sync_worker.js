@@ -43,7 +43,7 @@ async function ensureClient() {
   if (!connecting) {
     const pending = (async () => {
       const c = new Client({
-        connectionString: workerData.databaseUrl,
+        ...workerData.databaseConfig,
         keepAlive: true,
         connectionTimeoutMillis: Number(process.env.PG_CONNECT_TIMEOUT_MS || 10000)
       });
