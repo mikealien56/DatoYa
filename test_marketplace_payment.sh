@@ -32,8 +32,8 @@ verify_email(){
 }
 
 TS=$(date +%s%N)
-curl -fsS -c /tmp/dy_market_merchant -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Comerciante TEST\",\"email\":\"merchant-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"phone\":\"+56911112222\",\"comuna_id\":4}" >/dev/null
-curl -fsS -c /tmp/dy_market_client -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Cliente TEST\",\"email\":\"client-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"phone\":\"+56933334444\",\"comuna_id\":4}" >/dev/null
+curl -fsS -c /tmp/dy_market_merchant -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Comerciante TEST\",\"email\":\"merchant-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"account_type\":\"business\",\"phone\":\"+56911112222\",\"comuna_id\":4}" >/dev/null
+curl -fsS -c /tmp/dy_market_client -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Cliente TEST\",\"email\":\"client-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"account_type\":\"customer\",\"phone\":\"+56933334444\",\"comuna_id\":4}" >/dev/null
 verify_email /tmp/dy_market_merchant
 verify_email /tmp/dy_market_client
 curl -fsS -c /tmp/dy_market_admin -X POST "$B/auth/login" -H "$J" -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" >/dev/null

@@ -10,14 +10,14 @@
 
   routes.login=async function(){
     if(ME){location.hash='#/perfil';return;}
-    view.innerHTML=shell('Bienvenido de vuelta','Ingresa para guardar favoritos, recibir alertas y administrar tus negocios.',`
+    view.innerHTML=shell('Bienvenido de vuelta','Ingresa a tu cuenta cliente o a tu cuenta de negocio.',`
       <form id="dy-login-form" class="dy-account-form">
         <div class="field"><label>Correo electrónico</label><input name="email" type="email" autocomplete="email" placeholder="tu@correo.cl" required></div>
         <div class="field"><div class="dy-label-row"><label>Contraseña</label><a href="#/recuperar">¿La olvidaste?</a></div><input name="password" type="password" autocomplete="current-password" required></div>
         <button class="btn btn-primary btn-block" type="submit">Ingresar</button>
       </form>
       <p class="dy-auth-switch">¿Aún no tienes cuenta? <a href="#/registro">Crear cuenta</a></p>
-    `,`<span class="dy-aside-kicker">📍 TODO CERCA</span><h2>Tu barrio, en una sola app.</h2><p>Descubre negocios, ofertas activas y productos cerca de tu ubicación.</p><div class="dy-aside-points"><span>✓ Una sola cuenta</span><span>✓ Compra y guarda favoritos</span><span>✓ Administra uno o más negocios</span></div>`);
+    `,`<span class="dy-aside-kicker">📍 TODO CERCA</span><h2>Tu barrio, en una sola app.</h2><p>Descubre negocios, ofertas activas y productos cerca de tu ubicación.</p><div class="dy-aside-points"><span>✓ Compra y guarda favoritos</span><span>✓ Revisa tus pedidos</span><span>✓ Cuentas de negocio separadas</span></div>`);
     document.getElementById('dy-login-form')?.addEventListener('submit',async e=>{
       e.preventDefault(); const f=e.currentTarget,btn=f.querySelector('button[type="submit"]');
       btn.disabled=true;btn.textContent='Ingresando…';
@@ -33,10 +33,10 @@
   };
 
   routes.registro=async function(){
-    if(ME){location.hash='#/bienvenida';return;}
+    if(ME){location.hash='#/perfil';return;}
     const {comunas=[]}=await api('/comunas');
     const saved=getSavedComuna();
-    view.innerHTML=shell('Crea tu cuenta DatoYa','Una sola cuenta para descubrir, comprar y también administrar tus negocios.',`
+    view.innerHTML=shell('Crear cuenta cliente','Esta cuenta es para descubrir negocios, comprar y administrar tus pedidos.',`
       <form id="dy-register-form" class="dy-account-form">
         <div class="field"><label>Nombre</label><input name="name" autocomplete="name" required></div>
         <div class="field"><label>Correo electrónico</label><input name="email" type="email" autocomplete="email" required></div>
@@ -44,42 +44,89 @@
         <div class="field"><label>Comuna</label><select name="comuna_id" required><option value="">Selecciona tu comuna</option>${comunas.map(c=>`<option value="${Number(c.id)}" ${Number(c.id)===saved?'selected':''}>${h(c.name)}${c.region?' — '+h(c.region):''}</option>`).join('')}</select></div>
         <div class="dy-two-fields"><div class="field"><label>Contraseña</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label>Repetir contraseña</label><input name="repeat" type="password" minlength="8" autocomplete="new-password" required></div></div>
         <label class="dy-check"><input type="checkbox" name="terms" required><span>Acepto los <a href="#/terminos">Términos</a> y la <a href="#/privacidad">Política de Privacidad</a>.</span></label>
-        <button class="btn btn-primary btn-block" type="submit">Crear mi cuenta</button>
+        <button class="btn btn-primary btn-block" type="submit">Crear cuenta cliente</button>
       </form>
       <p class="dy-auth-switch">¿Ya tienes cuenta? <a href="#/login">Ingresar</a></p>
-    `,`<span class="dy-aside-kicker">🏪 ¿TIENES UN NEGOCIO?</span><h2>No necesitas otra cuenta.</h2><p>Después de registrarte puedes añadir un local físico o un emprendimiento desde casa.</p><div class="dy-aside-points"><span>✓ Categorías comerciales</span><span>✓ Ubicación y privacidad</span><span>✓ Productos y promociones</span></div>`);
+    `,`<span class="dy-aside-kicker">🏪 ¿TIENES UN NEGOCIO?</span><h2>Usa una cuenta de negocio separada.</h2><p>Las cuentas cliente no pueden crear ni administrar negocios.</p><a class="btn btn-outline" href="#/registro-negocio">Crear cuenta para negocio</a>`);
     document.getElementById('dy-register-form')?.addEventListener('submit',async e=>{
       e.preventDefault(); const f=e.currentTarget,btn=f.querySelector('button[type="submit"]');
       if(f.password.value!==f.repeat.value)return typeof toast==='function'&&toast('Las contraseñas no coinciden','err');
       btn.disabled=true;btn.textContent='Creando cuenta…';
       try{
-        await api('/auth/register',{method:'POST',body:{name:f.name.value.trim(),email:f.email.value.trim(),password:f.password.value,phone:f.phone.value.trim()||null,comuna_id:Number(f.comuna_id.value),role:'cliente',accept_terms:true,accept_privacy:true}});
+        await api('/auth/register',{method:'POST',body:{name:f.name.value.trim(),email:f.email.value.trim(),password:f.password.value,phone:f.phone.value.trim()||null,comuna_id:Number(f.comuna_id.value),role:'cliente',account_type:'customer',accept_terms:true,accept_privacy:true}});
         await refreshMe();
         await api('/legal/consent',{method:'POST',body:{accept_terms:true,accept_privacy:true,location_consent:false}}).catch(()=>{});
-        await api('/auth/email-verification/request',{method:'POST'}).catch(()=>{});
         location.hash='#/bienvenida'; if(typeof route==='function')route();
-        if(typeof toast==='function')toast('¡Cuenta creada!','ok');
-      }catch(err){btn.disabled=false;btn.textContent='Crear mi cuenta';if(typeof toast==='function')toast(err.message,'err');}
+        if(typeof toast==='function')toast('¡Cuenta cliente creada!','ok');
+      }catch(err){btn.disabled=false;btn.textContent='Crear cuenta cliente';if(typeof toast==='function')toast(err.message,'err');}
     });
+  };
+
+  routes['registro-negocio']=async function(){
+    if(ME){
+      if(ME.account_type==='business'){location.hash='#/registrar-negocio';return;}
+      view.innerHTML=shell('Cuenta de negocio separada','Tu sesión actual es una cuenta cliente. Para evitar mezclar compras y administración comercial, el negocio usa otra cuenta.',`
+        <div class="dy-empty-account"><span>🏪</span><b>Esta cuenta es solo cliente</b><p>Cierra sesión y crea una cuenta de negocio con el correo que usarás para administrar tu comercio.</p><button class="btn btn-primary btn-block" onclick="dyCreateSeparateBusinessAccount()">Cerrar sesión y crear cuenta de negocio</button><a class="btn btn-outline btn-block" href="#/perfil">Volver a mi cuenta</a></div>
+      `);
+      return;
+    }
+    const {comunas=[]}=await api('/comunas');
+    const saved=getSavedComuna();
+    view.innerHTML=shell('Crear cuenta de negocio','Esta cuenta será exclusivamente para registrar y administrar un negocio en DatoYa.',`
+      <form id="dy-business-account-form" class="dy-account-form">
+        <div class="field"><label>Nombre del encargado</label><input name="name" autocomplete="name" required></div>
+        <div class="field"><label>Correo del negocio</label><input name="email" type="email" autocomplete="email" required></div>
+        <div class="field"><label>Celular <span class="small muted">(opcional)</span></label><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+56912345678"></div>
+        <div class="field"><label>Comuna</label><select name="comuna_id" required><option value="">Selecciona tu comuna</option>${comunas.map(c=>`<option value="${Number(c.id)}" ${Number(c.id)===saved?'selected':''}>${h(c.name)}${c.region?' — '+h(c.region):''}</option>`).join('')}</select></div>
+        <div class="dy-two-fields"><div class="field"><label>Contraseña</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label>Repetir contraseña</label><input name="repeat" type="password" minlength="8" autocomplete="new-password" required></div></div>
+        <label class="dy-check"><input type="checkbox" name="terms" required><span>Acepto los <a href="#/terminos">Términos</a> y la <a href="#/privacidad">Política de Privacidad</a>.</span></label>
+        <button class="btn btn-primary btn-block" type="submit">Crear cuenta de negocio</button>
+      </form>
+      <p class="dy-auth-switch">¿Solo quieres comprar? <a href="#/registro">Crear cuenta cliente</a></p>
+    `,`<span class="dy-aside-kicker">🏪 CUENTA NEGOCIO</span><h2>Panel comercial separado.</h2><p>Productos, pedidos, promociones y Mercado Pago quedan fuera del perfil cliente.</p><div class="dy-aside-points"><span>✓ Negocio y catálogo</span><span>✓ Pedidos</span><span>✓ Promociones e Impulso</span></div>`);
+    document.getElementById('dy-business-account-form')?.addEventListener('submit',async e=>{
+      e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button[type="submit"]');
+      if(f.password.value!==f.repeat.value)return toast?.('Las contraseñas no coinciden','err');
+      btn.disabled=true;btn.textContent='Creando cuenta…';
+      try{
+        await api('/auth/register',{method:'POST',body:{name:f.name.value.trim(),email:f.email.value.trim(),password:f.password.value,phone:f.phone.value.trim()||null,comuna_id:Number(f.comuna_id.value),role:'cliente',account_type:'business',accept_terms:true,accept_privacy:true}});
+        await refreshMe();
+        await api('/legal/consent',{method:'POST',body:{accept_terms:true,accept_privacy:true,location_consent:false}}).catch(()=>{});
+        location.hash='#/seguridad';if(typeof route==='function')route();
+        toast?.('Cuenta de negocio creada. Verifica tu correo antes de registrar el negocio.','ok');
+      }catch(err){btn.disabled=false;btn.textContent='Crear cuenta de negocio';toast?.(err.message,'err');}
+    });
+  };
+  window.dyCreateSeparateBusinessAccount=async function(){
+    try{await api('/auth/logout',{method:'POST'});}catch(_){}
+    ME=null;location.hash='#/registro-negocio';if(typeof route==='function')route();
   };
 
   routes.bienvenida=async function(){
     if(!ME){location.hash='#/registro';return;}
-    const wantsBusiness=sessionStorage.getItem('datoya_after_auth')==='registrar-negocio';
-    view.innerHTML=`<div class="dy-welcome"><div class="dy-welcome-icon">🎉</div><h1>¡Bienvenido a DatoYa, ${h((ME.name||'').split(' ')[0]||'')}!</h1><p>Tu cuenta ya está lista. Elige qué quieres hacer ahora.</p><div class="dy-welcome-actions"><a class="dy-choice-card" href="#/"><span>📍</span><b>Explorar cerca de mí</b><small>Negocios, productos y ofertas de tu zona.</small></a><a class="dy-choice-card ${wantsBusiness?'featured':''}" href="#/registrar-negocio"><span>🏪</span><b>Registrar mi negocio</b><small>Local físico o emprendimiento desde casa.</small></a></div><a class="dy-security-link" href="#/seguridad">🔐 Revisar seguridad y verificar correo</a></div>`;
+    if(ME.account_type==='business'){
+      view.innerHTML=`<div class="dy-welcome"><div class="dy-welcome-icon">🏪</div><h1>¡Cuenta de negocio creada!</h1><p>Primero verifica tu correo. Después podrás registrar y administrar tu negocio.</p><div class="dy-welcome-actions"><a class="dy-choice-card featured" href="#/seguridad"><span>🔐</span><b>Verificar correo</b><small>Necesario antes de registrar el negocio.</small></a><a class="dy-choice-card" href="#/registrar-negocio"><span>🏪</span><b>Registrar negocio</b><small>Disponible cuando el correo esté verificado.</small></a></div></div>`;
+    }else{
+      view.innerHTML=`<div class="dy-welcome"><div class="dy-welcome-icon">🎉</div><h1>¡Bienvenido a DatoYa, ${h((ME.name||'').split(' ')[0]||'')}!</h1><p>Tu cuenta cliente está lista para descubrir negocios y realizar pedidos.</p><div class="dy-welcome-actions"><a class="dy-choice-card featured" href="#/"><span>📍</span><b>Explorar cerca de mí</b><small>Negocios, productos y ofertas de tu zona.</small></a><a class="dy-choice-card" href="#/pedidos"><span>🧾</span><b>Mis pedidos</b><small>Revisa tus compras y estados.</small></a></div><a class="dy-security-link" href="#/seguridad">🔐 Revisar seguridad y verificar correo</a></div>`;
+    }
     sessionStorage.removeItem('datoya_after_auth');
   };
 
   routes.perfil=async function(){
     if(!ME){location.hash='#/login';return;}
-    const [{businesses=[]},{comunas=[]}]=await Promise.all([api('/businesses/mine').catch(()=>({businesses:[]})),api('/comunas')]);
-    view.innerHTML=`<div class="dy-account-page"><div class="dy-account-top"><div><span class="dy-page-kicker">MI DATOYA</span><h1>Hola, ${h((ME.name||'').split(' ')[0]||'')}</h1><p>Administra tu cuenta y tus negocios desde un solo lugar.</p></div><button class="btn btn-outline" id="dy-logout">Cerrar sesión</button></div><div class="dy-account-grid"><section class="dy-account-card"><h2>👤 Mi cuenta</h2><form id="dy-profile-form" class="dy-account-form"><div class="field"><label>Nombre</label><input name="name" value="${h(ME.name||'')}" required></div><div class="field"><label>Correo</label><input value="${h(ME.email||'')}" disabled></div><div class="field"><label>Celular</label><input name="phone" value="${h(ME.phone||'')}" placeholder="+56912345678"></div><div class="field"><label>Comuna</label><select name="comuna_id"><option value="">Selecciona</option>${comunas.map(c=>`<option value="${Number(c.id)}" ${(ME.comuna&&ME.comuna===c.name)?'selected':''}>${h(c.name)}${c.region?' — '+h(c.region):''}</option>`).join('')}</select></div><button class="btn btn-primary" type="submit">Guardar cambios</button></form><a class="dy-account-link" href="#/seguridad">🔐 Seguridad, correo y contraseña →</a></section><section class="dy-account-card"><div class="dy-card-title-row"><div><h2>🏪 Mis negocios</h2><p class="small muted">Puedes administrar más de un negocio con tu misma cuenta.</p></div><a class="btn btn-primary" href="#/registrar-negocio">+ Registrar negocio</a></div>${businesses.length?`<div class="dy-business-list">${businesses.map(b=>`<article><div><b>${h(b.name)}</b><span>${b.business_type==='home_business'?'Emprendimiento desde casa':'Local físico'} · ${h(b.comuna||'')}</span></div><span class="dy-status ${h(b.status)}">${b.status==='pending_review'?'En revisión':h(b.status)}</span></article>`).join('')}</div>`:`<div class="dy-empty-account"><span>🏬</span><b>Aún no tienes negocios registrados</b><p>Registra tu negocio para comenzar a preparar tu presencia en DatoYa.</p><a class="btn btn-outline" href="#/registrar-negocio">Registrar mi negocio</a></div>`}</section></div></div>`;
-    document.getElementById('dy-profile-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/account/profile',{method:'PUT',body:{name:f.name.value.trim(),phone:f.phone.value.trim(),comuna_id:Number(f.comuna_id.value||0)}});await refreshMe();if(typeof toast==='function')toast('Cuenta actualizada','ok');routes.perfil();}catch(err){if(typeof toast==='function')toast(err.message,'err');}});
+    const {comunas=[]}=await api('/comunas');
+    const isBusiness=ME.account_type==='business';
+    const businesses=isBusiness?(await api('/businesses/mine').catch(()=>({businesses:[]}))).businesses||[]:[];
+    const accountLabel=isBusiness?'Cuenta de negocio':'Cuenta cliente';
+    const businessSection=isBusiness?`<section class="dy-account-card"><div class="dy-card-title-row"><div><h2>🏪 Mis negocios</h2><p class="small muted">Este panel pertenece únicamente a tu cuenta de negocio.</p></div><a class="btn btn-primary" href="#/registrar-negocio">+ Registrar negocio</a></div>${businesses.length?`<div class="dy-business-list">${businesses.map(b=>`<article><div><b>${h(b.name)}</b><span>${b.business_type==='home_business'?'Emprendimiento desde casa':'Local físico'} · ${h(b.comuna||'')}</span></div><span class="dy-status ${h(b.status)}">${b.status==='pending_review'?'En revisión':h(b.status)}</span></article>`).join('')}</div>`:`<div class="dy-empty-account"><span>🏬</span><b>Aún no tienes negocios registrados</b><p>Verifica tu correo y registra el primer negocio de esta cuenta.</p><a class="btn btn-outline" href="#/registrar-negocio">Registrar mi negocio</a></div>`}</section>`:`<section class="dy-account-card"><h2>🛍️ Mi cuenta cliente</h2><p class="small muted">Tu cuenta cliente se usa para explorar, comprar y seguir pedidos. No puede registrar ni administrar negocios.</p><div class="dy-welcome-actions"><a class="dy-choice-card" href="#/"><span>📍</span><b>Explorar</b><small>Busca productos y negocios cercanos.</small></a><a class="dy-choice-card" href="#/pedidos"><span>🧾</span><b>Mis pedidos</b><small>Revisa tus compras.</small></a></div></section>`;
+    view.innerHTML=`<div class="dy-account-page"><div class="dy-account-top"><div><span class="dy-page-kicker">${h(accountLabel.toUpperCase())}</span><h1>Hola, ${h((ME.name||'').split(' ')[0]||'')}</h1><p>${isBusiness?'Administra tu cuenta comercial y tus negocios.':'Administra tus datos personales y tus compras.'}</p></div><button class="btn btn-outline" id="dy-logout">Cerrar sesión</button></div><div class="dy-account-grid"><section class="dy-account-card"><h2>👤 Mis datos</h2><form id="dy-profile-form" class="dy-account-form"><div class="field"><label>Nombre</label><input name="name" value="${h(ME.name||'')}" required></div><div class="field"><label>Correo</label><input value="${h(ME.email||'')}" disabled></div><div class="field"><label>Celular</label><input name="phone" value="${h(ME.phone||'')}" placeholder="+56912345678"></div><div class="field"><label>Comuna</label><select name="comuna_id"><option value="">Selecciona</option>${comunas.map(c=>`<option value="${Number(c.id)}" ${(ME.comuna&&ME.comuna===c.name)?'selected':''}>${h(c.name)}${c.region?' — '+h(c.region):''}</option>`).join('')}</select></div><button class="btn btn-primary" type="submit">Guardar cambios</button></form><a class="dy-account-link" href="#/seguridad">🔐 Seguridad, correo y contraseña →</a></section>${businessSection}</div></div>`;
+    document.getElementById('dy-profile-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/account/profile',{method:'PUT',body:{name:f.name.value.trim(),phone:f.phone.value.trim(),comuna_id:Number(f.comuna_id.value||0)}});await refreshMe();toast?.('Cuenta actualizada','ok');routes.perfil();}catch(err){toast?.(err.message,'err');}});
     document.getElementById('dy-logout')?.addEventListener('click',async()=>{try{await api('/auth/logout',{method:'POST'});}catch(_){} location.hash='#/';location.reload();});
   };
 
   routes['registrar-negocio']=async function(){
-    if(!ME){sessionStorage.setItem('datoya_after_auth','registrar-negocio');location.hash='#/registro';return;}
+    if(!ME){location.hash='#/registro-negocio';return;}
+    if(ME.account_type!=='business'){location.hash='#/registro-negocio';return;}
     const [{categories=[]},{comunas=[]}]=await Promise.all([api('/market/categories'),api('/comunas')]);
     const key='datoya_business_draft';
     let draft={business_type:'physical_store',category_ids:[],pickup_enabled:true,delivery_enabled:false,public_address_mode:'approximate',comuna_id:getSavedComuna()};
@@ -114,8 +161,8 @@
     const business=event.target.closest?.('[data-dy-business-cta],[data-dy-weekly-business]');
     if(!business) return;
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-    if(ME) location.hash='#/registrar-negocio';
-    else {sessionStorage.setItem('datoya_after_auth','registrar-negocio');location.hash='#/registro';}
+    if(ME&&ME.account_type==='business') location.hash='#/registrar-negocio';
+    else location.hash='#/registro-negocio';
     if(typeof route==='function')setTimeout(route,0);
   },true);
 })();

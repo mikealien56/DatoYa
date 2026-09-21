@@ -22,6 +22,7 @@
 
   routes['mi-negocio']=async function(id){
     if(!ME){location.hash='#/login';return;}
+    if(ME.account_type!=='business'){location.hash='#/perfil';toast?.('Tu cuenta cliente no administra negocios','err');return;}
     const businessId=Number(id||0);if(!businessId){location.hash='#/perfil';return;}
     const [{business,products=[]},{categories=[]}]=await Promise.all([api('/businesses/'+businessId+'/manage'),api('/market/categories')]);
     cache={business,products,categories};newImageData=null;
@@ -41,5 +42,5 @@
   window.dyResubmitBusiness=async()=>{try{await api('/businesses/'+cache.business.id+'/resubmit',{method:'POST'});toast?.('Negocio enviado nuevamente a revisión','ok');routes['mi-negocio'](cache.business.id);}catch(err){toast?.(err.message,'err');}};
 
   const previousProfile=routes.perfil;
-  if(previousProfile)routes.perfil=async function(){await previousProfile.apply(this,arguments);if(!ME)return;try{const {businesses=[]}=await api('/businesses/mine');const cards=[...document.querySelectorAll('.dy-business-list article')];cards.forEach((el,i)=>{const b=businesses[i];if(!b||el.querySelector('.dy-manage-business'))return;const actions=document.createElement('div');actions.className='dy-business-card-actions';const a=document.createElement('a');a.className='btn btn-outline btn-sm dy-manage-business';a.href='#/mi-negocio/'+b.id;a.textContent='Administrar';const mp=document.createElement('a');mp.className='btn btn-primary btn-sm dy-manage-payment';mp.href='#/mi-negocio-pagos/'+b.id;mp.textContent='💳 Mercado Pago';actions.appendChild(a);actions.appendChild(mp);el.appendChild(actions);});}catch(_){}};
+  if(previousProfile)routes.perfil=async function(){const r=await previousProfile.apply(this,arguments);if(!ME||ME.account_type!=='business')return r;try{const {businesses=[]}=await api('/businesses/mine');const cards=[...document.querySelectorAll('.dy-business-list article')];cards.forEach((el,i)=>{const b=businesses[i];if(!b||el.querySelector('.dy-manage-business'))return;const actions=document.createElement('div');actions.className='dy-business-card-actions';const a=document.createElement('a');a.className='btn btn-outline btn-sm dy-manage-business';a.href='#/mi-negocio/'+b.id;a.textContent='Administrar';const mp=document.createElement('a');mp.className='btn btn-primary btn-sm dy-manage-payment';mp.href='#/mi-negocio-pagos/'+b.id;mp.textContent='💳 Mercado Pago';actions.appendChild(a);actions.appendChild(mp);el.appendChild(actions);});}catch(_){}};
 })();
