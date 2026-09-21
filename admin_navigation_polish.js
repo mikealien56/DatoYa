@@ -2,11 +2,10 @@
 (function(){
  if(typeof routes==='undefined')return;
  const groups=[
-  ['Principal',[['#/admin','📊','Resumen'],['#/admin/usuarios','👥','Usuarios'],['#/admin/trabajadores','🔧','Profesionales'],['#/admin/trabajos','🧾','Trabajos']]],
-  ['Atención',[['#/admin/verificaciones','🪪','Verificaciones'],['#/admin/reclamos','⚑','Reclamos'],['#/admin/disputas','⚖️','Disputas'],['#/admin/mensajes','💬','Mensajes']]],
-  ['Dinero y PRO',[['#/admin/ganancias','💰','Ganancias'],['#/admin/retiros','💸','Retiros'],['#/admin/banco','🏦','Banco'],['#/admin/suscripciones','⭐','Suscripciones'],['#/admin/regalar-pro','🎁','Regalar PRO']]],
-  ['Sistema',[['#/admin/seguridad','🛡️','Seguridad'],['#/admin/categorias','🧰','Categorías'],['#/admin/auditoria','🕘','Auditoría'],['#/admin/configuracion','⚙️','Configuración']]]
- ];
+  ['Principal',[['#/admin','📊','Resumen'],['#/admin/usuarios','👥','Usuarios'],['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos']]],
+  ['Operación',[['#/admin/pedidos','🧾','Pedidos'],['#/admin/finanzas','💰','Finanzas'],['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/impulso-semanal','⭐','Impulso semanal']]],
+  ['Control',[['#/admin/soporte','📨','Soporte'],['#/admin/analitica','📈','Analítica'],['#/admin/moderacion','🛡️','Moderación'],['#/admin/configuracion','⚙️','Configuración']]]
+ ]
  const allItems=groups.flatMap(group=>group[1]);
  function currentHash(){return (location.hash||'#/admin').split('?')[0];}
  function currentItem(){return allItems.find(item=>item[0]===currentHash())||allItems[0];}
