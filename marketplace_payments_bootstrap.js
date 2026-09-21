@@ -95,7 +95,7 @@ app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
   const items=db.prepare('SELECT * FROM commerce_order_items WHERE order_id=? ORDER BY id').all(o.id);if(!items.length)return res.status(400).json({error:'El pedido no tiene productos'});
   const cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100)),external='datoya-order:'+o.id;
   const body={items:items.map(i=>({id:'order-item-'+i.id,title:String(i.name_snapshot||'Producto DatoYa').slice(0,120),currency_id:'CLP',quantity:Number(i.quantity||1),unit_price:Number(i.unit_price||0)})),marketplace_fee:fee,external_reference:external,back_urls:{success:mpBaseUrl()+'/#/pedidos',pending:mpBaseUrl()+'/#/pedidos',failure:mpBaseUrl()+'/#/pedidos'},auto_return:'approved',notification_url:mpBaseUrl()+'/api/mercadopago/commerce-webhook'};
-  if(modeInfo.mode!=='test')body.payer={email:req.user.email};
+  body.payer={email:modeInfo.mode==='test'?'test@testuser.com':req.user.email};
   if(modeInfo.mode==='test'&&!(Number(connection.test_account||0)===1&&String(connection.test_account_mp_user_id||'')===String(connection.mp_user_id||'')))return res.status(409).json({error:'La cuenta no está verificada como vendedor TEST de Mercado Pago'});
   const mp=await mpHttp('POST','/checkout/preferences',token,body);
   const checkout=mp.init_point;
