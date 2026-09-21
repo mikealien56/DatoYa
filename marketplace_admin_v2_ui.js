@@ -110,7 +110,7 @@
 
       if(tab==='impulso'){
         const {businesses=[],history=[],config={}}=await api('/admin/marketplace-v2/impulso');
-        shell('⚡ DatoYa Impulso','Membresía mensual/anual y cortesías para negocios.',`
+        shell('⚡ DatoYa Impulso','Planes mensual, 3 meses y anual, más cortesías para negocios.',`
           <div class="card dy-admin-note"><b>Precios actuales:</b> Mensual ${money(config.monthly_price)} · 3 meses ${money(config.quarterly_price)} · Anual ${money(config.annual_price)}. Puedes cambiarlos en Configuración.</div>
           ${inputFilter('Buscar negocio, dueño o correo')}
           <div class="dy-admin-list">${businesses.map(b=>`<article class="card dy-admin-row" data-imp-row data-search="${h([b.name,b.owner_name,b.owner_email,b.comuna].join(' ').toLowerCase())}"><div><b>⚡ ${h(b.name)}</b><div class="small muted">${h(b.owner_name)} · ${h(b.owner_email)}</div><div class="dy-admin-tags">${b.expires_at?badge('Activo hasta '+String(b.expires_at).slice(0,10),'ok'):badge('Plan Gratis')} ${b.source?badge('Origen '+b.source):''}</div></div><div class="dy-admin-row-actions"><select id="gift-days-${Number(b.id)}"><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>30 días</option><option value="90">90 días</option></select><button class="btn btn-primary btn-sm" onclick="dyGiftImpulse(${Number(b.id)},'${h(String(b.name).replace(/'/g,'&#39;'))}')">🎁 Regalar</button></div></article>`).join('')}</div>
