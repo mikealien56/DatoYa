@@ -15,11 +15,11 @@
   window.registerDatoYaSecure=async function(ev){
     ev.preventDefault(); const f=ev.target;
     try{
-      await api('/auth/register',{method:'POST',body:{name:f.name.value,email:f.email.value,password:f.password.value,phone:f.phone.value||null,comuna_id:+f.comuna_id.value,role:f.role.value,accept_terms:!!f.terms.checked,accept_privacy:!!f.terms.checked}});
+      const created=await api('/auth/register',{method:'POST',body:{name:f.name.value,email:f.email.value,password:f.password.value,phone:f.phone.value||null,comuna_id:+f.comuna_id.value,role:f.role.value,accept_terms:!!f.terms.checked,accept_privacy:!!f.terms.checked}});
       await refreshMe();
       await api('/legal/consent',{method:'POST',body:{accept_terms:true,accept_privacy:true,location_consent:!!f.location.checked}}).catch(()=>{});
-      await api('/auth/email-verification/request',{method:'POST'}).catch(()=>{});
-      location.hash='#/seguridad'; route(); toast('Cuenta creada. Revisa la seguridad de tu cuenta.','ok');
+      location.hash='#/seguridad'; route();
+      toast(created.verification_email_sent?'Cuenta creada. Te enviamos un correo para verificarla.':'Cuenta creada. Desde Seguridad puedes enviar la verificación de correo.',created.verification_email_sent?'ok':'info');
     }catch(err){ toast(err.message,'err'); }
   };
 
@@ -42,7 +42,7 @@
     const safe=decodeURIComponent(token||'');
     view.innerHTML='<div class="card"><h2>Verificando correo…</h2></div>';
     if(!safe){view.innerHTML='<div class="empty">Enlace inválido.</div>';return;}
-    try{await api('/auth/email-verification/confirm',{method:'POST',body:{token:safe}});view.innerHTML='<div class="card"><h2>✅ Correo verificado</h2><p>Tu dirección de correo quedó confirmada.</p><a class="btn btn-primary" href="#/seguridad">Seguridad de la cuenta</a></div>';}catch(err){view.innerHTML=`<div class="card"><h2>No pudimos verificar el correo</h2><p>${e(err.message)}</p><a href="#/seguridad">Volver a seguridad</a></div>`;}
+    try{await api('/auth/email-verification/confirm',{method:'POST',body:{token:safe}});await refreshMe();view.innerHTML='<div class="card"><h2>✅ Correo verificado</h2><p>Tu dirección de correo quedó confirmada.</p><a class="btn btn-primary" href="#/seguridad">Seguridad de la cuenta</a></div>';}catch(err){view.innerHTML=`<div class="card"><h2>No pudimos verificar el correo</h2><p>${e(err.message)}</p><a href="#/seguridad">Volver a seguridad</a></div>`;}
   };
 
   routes.seguridad=async function(){

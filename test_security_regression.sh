@@ -32,4 +32,10 @@ grep -q "bytes\[0\]===0xff" request_photo_validation.js || fail 'Falta comprobac
 # Chat: tamaño y frecuencia.
 grep -q 'body.length>2000' chat_security_guard.js || fail 'Falta límite de mensaje'
 grep -q 'arr.length>=20' chat_security_guard.js || fail 'Falta rate limit de chat'
+# Verificación de correo: debe enviarse al registrar y proteger acciones comerciales críticas.
+grep -q 'DATOYA_EMAIL_VERIFICATION_REQUIRED_V1' email_verification_enforcement_bootstrap.js || fail 'Falta guard de verificación de correo'
+grep -q "app.post('/api/businesses',auth,__dyRequireVerifiedEmail" email_verification_enforcement_bootstrap.js || fail 'Crear negocio no exige correo verificado'
+grep -q "app.post('/api/orders',auth,__dyRequireVerifiedEmail" email_verification_enforcement_bootstrap.js || fail 'Crear pedido no exige correo verificado'
+grep -q "app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireVerifiedEmail" email_verification_enforcement_bootstrap.js || fail 'Checkout no exige correo verificado'
+grep -q 'Verifica tu cuenta DatoYa' email_verification_enforcement_bootstrap.js || fail 'Registro no prepara correo de verificación'
 echo 'Security regression suite OK'
