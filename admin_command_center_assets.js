@@ -6,7 +6,7 @@ if(fs.existsSync(src)){fs.mkdirSync(pub,{recursive:true});fs.copyFileSync(src,ds
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){
  let h=fs.readFileSync(idx,'utf8');
- if(!h.includes('/admin_command_center_ui.js'))h=h.replace('</body>','<script src="/admin_command_center_ui.js?v=4"></script>\n</body>');
- else h=h.replace(/\/admin_command_center_ui\.js(?:\?v=\d+)?/g,'/admin_command_center_ui.js?v=4');
+ if(!h.includes('/admin_command_center_ui.js'))h=h.replace('</body>','<script src="/admin_command_center_ui.js?v=5"></script>\n</body>');
+ else h=h.replace(/\/admin_command_center_ui\.js(?:\?v=\d+)?/g,'/admin_command_center_ui.js?v=5');
  fs.writeFileSync(idx,h);
 }

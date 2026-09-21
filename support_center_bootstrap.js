@@ -1,7 +1,28 @@
 // DatoYa — centro de soporte por correo.
 const fs=require('fs');
 const path=require('path');
+const {db}=require('./db');
 const serverFile=path.join(__dirname,'server.js');
+db.exec(`
+CREATE TABLE IF NOT EXISTS support_cases (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_ref TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  category TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new','in_progress','resolved')),
+  delivery_status TEXT NOT NULL DEFAULT 'pending' CHECK(delivery_status IN ('pending','sent','failed')),
+  admin_notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_support_cases_ref ON support_cases(case_ref);
+CREATE INDEX IF NOT EXISTS idx_support_cases_email ON support_cases(email);
+CREATE INDEX IF NOT EXISTS idx_support_cases_status ON support_cases(status);
+`);
 let src=fs.readFileSync(serverFile,'utf8');
 
 if(!src.includes('DATOYA_SUPPORT_CENTER_V1')){
@@ -41,9 +62,43 @@ app.post('/api/support/contact',async(req,res)=>{
   if(message.length<10)return res.status(400).json({error:'Cuéntanos un poco más para poder ayudarte'});
   if(__dySupportLimited(req,email))return res.status(429).json({error:'Has enviado varias solicitudes. Espera unos minutos antes de intentar nuevamente.'});
   const caseRef='DY-SOP-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(2).toString('hex').toUpperCase();
+  db.prepare("INSERT INTO support_cases(case_ref,name,email,category,subject,message,status,delivery_status) VALUES(?,?,?,?,?,?,'new','pending')").run(caseRef,name,email,category,subject,message);
   const ok=await __dySendSupportEmail({caseRef,email,name,category,subject,message});
-  if(!ok)return res.status(502).json({error:'No pudimos enviar tu solicitud en este momento. También puedes escribir a soporte@datoya.cl'});
+  db.prepare("UPDATE support_cases SET delivery_status=?,updated_at=datetime('now') WHERE case_ref=?").run(ok?'sent':'failed',caseRef);
+  if(!ok)return res.status(502).json({error:'Tu caso quedó registrado como '+caseRef+', pero el correo no pudo enviarse. También puedes escribir a soporte@datoya.cl',case_ref:caseRef});
   res.json({ok:true,case_ref:caseRef,message:'Recibimos tu solicitud. Te responderemos al correo que indicaste.'});
+});
+
+app.get('/api/admin/support-cases',auth,requireRole('admin'),(req,res)=>{
+  const cases=db.prepare('SELECT * FROM support_cases ORDER BY id DESC LIMIT 500').all();
+  const stats={
+    total:cases.length,
+    new:cases.filter(x=>x.status==='new').length,
+    in_progress:cases.filter(x=>x.status==='in_progress').length,
+    resolved:cases.filter(x=>x.status==='resolved').length,
+    delivery_failed:cases.filter(x=>x.delivery_status==='failed').length
+  };
+  res.json({cases,stats});
+});
+app.get('/api/admin/support-cases/:id',auth,requireRole('admin'),(req,res)=>{
+  const item=db.prepare('SELECT * FROM support_cases WHERE id=?').get(req.params.id);
+  if(!item)return res.status(404).json({error:'Caso de soporte no encontrado'});
+  res.json({case:item});
+});
+app.post('/api/admin/support-cases/:id/status',auth,requireRole('admin'),(req,res)=>{
+  const status=String(req.body?.status||'');
+  if(!['new','in_progress','resolved'].includes(status))return res.status(400).json({error:'Estado inválido'});
+  const item=db.prepare('SELECT id FROM support_cases WHERE id=?').get(req.params.id);
+  if(!item)return res.status(404).json({error:'Caso de soporte no encontrado'});
+  db.prepare("UPDATE support_cases SET status=?,updated_at=datetime('now'),resolved_at=CASE WHEN ?='resolved' THEN datetime('now') ELSE NULL END WHERE id=?").run(status,status,req.params.id);
+  res.json({ok:true,status});
+});
+app.post('/api/admin/support-cases/:id/notes',auth,requireRole('admin'),(req,res)=>{
+  const notes=__dySupportText(req.body?.notes,4000);
+  const item=db.prepare('SELECT id FROM support_cases WHERE id=?').get(req.params.id);
+  if(!item)return res.status(404).json({error:'Caso de soporte no encontrado'});
+  db.prepare("UPDATE support_cases SET admin_notes=?,updated_at=datetime('now') WHERE id=?").run(notes,req.params.id);
+  res.json({ok:true});
 });
 // ============ FIN DATOYA_SUPPORT_CENTER_V1 ============
 `;
