@@ -8,7 +8,9 @@ echo "=== DatoYa CI base: marketplace comercial ==="
 for js in *.js; do
   node --check "$js" >/dev/null || { echo "Error de sintaxis en $js"; exit 1; }
 done
-node --check scripts/migrate_render_to_neon.js >/dev/null\necho "✅ Migrador PostgreSQL a Neon"\necho "✅ Sintaxis JavaScript"
+node --check scripts/migrate_render_to_neon.js >/dev/null
+echo "✅ Migrador PostgreSQL a Neon"
+echo "✅ Sintaxis JavaScript"
 
 bash -n scripts/backup_postgres.sh scripts/verify_postgres_restore.sh
 echo "✅ Scripts de backup/restauración"
