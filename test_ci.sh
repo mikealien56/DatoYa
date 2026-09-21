@@ -17,6 +17,10 @@ grep -q "CREATE TABLE IF NOT EXISTS support_cases" postgres/003_support_cases.sq
 grep -q "Falta tabla PostgreSQL: support_cases" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS business_impulse_memberships" postgres/004_marketplace_admin_v2.sql
 grep -q "CREATE TABLE IF NOT EXISTS business_impulse_payments" postgres/004_marketplace_admin_v2.sql
+grep -q "impulso_quarterly_price" postgres/005_impulso_quarterly_pricing.sql
+grep -q "quarterly" marketplace_admin_v2_bootstrap.js
+grep -q "26990" marketplace_admin_v2_bootstrap.js
+grep -q "89990" marketplace_admin_v2_bootstrap.js
 grep -q "Falta tabla PostgreSQL: business_impulse_memberships" postgres_migrate.js
 grep -q "Falta tabla PostgreSQL: business_impulse_payments" postgres_migrate.js
 echo "✅ Migrador PostgreSQL a Neon"
@@ -123,6 +127,8 @@ grep -q "DATOYA_IMPULSO_CHECKOUT_ENABLED" marketplace_admin_v2_bootstrap.js || {
 grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de pagos reales en Impulso"; exit 1; }
 grep -q "routes\['mi-negocio-plan'\]" business_impulse_plan_ui.js || { echo "Falta página de plan Impulso para negocio"; exit 1; }
 grep -q "admin/marketplace-v2/impulso/gift" marketplace_admin_v2_ui.js || { echo "Falta gestión de cortesías Impulso en Admin"; exit 1; }
+grep -q "'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 meses en DatoYa Impulso"; exit 1; }
+grep -q "AHORRA" business_impulse_plan_ui.js || { echo "Falta mostrar ahorro del plan trimestral"; exit 1; }
 grep -q "ready_for_test:c.oauthConfigured&&c.webhookConfigured" mercadopago_source_bootstrap.js || { echo "La disponibilidad TEST de Mercado Pago depende incorrectamente de un token legacy"; exit 1; }
 grep -q "checkout=mp.init_point" marketplace_payments_bootstrap.js || { echo "Checkout Pro TEST no usa init_point actual"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const growth=s.indexOf("marketplace_growth_assets");const commerce=s.indexOf("marketplace_commerce_assets");if(growth<0||commerce<0||growth>commerce){throw new Error("El módulo de crecimiento vuelve a reemplazar la ruta del carrito")}'
