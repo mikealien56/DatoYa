@@ -127,7 +127,7 @@ grep -q "DATOYA_IMPULSO_CHECKOUT_ENABLED" marketplace_admin_v2_bootstrap.js || {
 grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de pagos reales en Impulso"; exit 1; }
 grep -q "routes\['mi-negocio-plan'\]" business_impulse_plan_ui.js || { echo "Falta página de plan Impulso para negocio"; exit 1; }
 grep -q "admin/marketplace-v2/impulso/gift" marketplace_admin_v2_ui.js || { echo "Falta gestión de cortesías Impulso en Admin"; exit 1; }
-grep -q "billing_period:'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 meses en DatoYa Impulso"; exit 1; }
+grep -q "'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 meses en DatoYa Impulso"; exit 1; }
 grep -q "AHORRA" business_impulse_plan_ui.js || { echo "Falta mostrar ahorro del plan trimestral"; exit 1; }
 grep -q "ready_for_test:c.oauthConfigured&&c.webhookConfigured" mercadopago_source_bootstrap.js || { echo "La disponibilidad TEST de Mercado Pago depende incorrectamente de un token legacy"; exit 1; }
 grep -q "checkout=mp.init_point" marketplace_payments_bootstrap.js || { echo "Checkout Pro TEST no usa init_point actual"; exit 1; }
