@@ -42,6 +42,8 @@ grep -q 'Verifica tu cuenta DatoYa' email_verification_enforcement_bootstrap.js 
 grep -q 'DATOYA_MARKET_ACCOUNT_SEPARATION_V1' marketplace_account_separation_bootstrap.js || fail 'Falta separación de cuenta cliente y negocio'
 grep -q "app.get('/api/businesses/mine',auth,__dyRequireBusinessAccount" marketplace_account_separation_bootstrap.js || fail 'Mis negocios no exige cuenta negocio'
 grep -q "app.post('/api/businesses',auth,__dyRequireBusinessAccount" marketplace_account_separation_bootstrap.js || fail 'Crear negocio no exige cuenta negocio'
+grep -q "app.post('/api/orders',auth,__dyRequireCustomerAccount" marketplace_account_separation_bootstrap.js || fail 'Crear pedido no exige cuenta cliente'
+grep -q "app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireCustomerAccount" marketplace_account_separation_bootstrap.js || fail 'Checkout comprador no exige cuenta cliente'
 grep -q "account_type:'customer'" marketplace_account_ui.js || fail 'Registro cliente no fija account_type customer'
 grep -q "account_type:'business'" marketplace_account_ui.js || fail 'Registro negocio no fija account_type business'
 echo 'Security regression suite OK'
