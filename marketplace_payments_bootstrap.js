@@ -123,7 +123,7 @@ app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
   };
   if(modeInfo.mode!=='test')body.payer={email:req.user.email};
   const mp=await mpHttp('POST','/checkout/preferences',token,body);
-  const checkout=modeInfo.mode==='test'?(mp.sandbox_init_point||mp.init_point):(mp.init_point||mp.sandbox_init_point);
+  const checkout=mp.init_point;
   if(!mp.id||!checkout)return res.status(502).json({error:'Mercado Pago no devolvió una preferencia válida'});
   let checkoutUrl;try{checkoutUrl=new URL(String(checkout));}catch(_){return res.status(502).json({error:'Mercado Pago devolvió una URL de pago inválida'});}
   const host=String(checkoutUrl.hostname||'').toLowerCase(),allowed=checkoutUrl.protocol==='https:'&&(host==='mercadopago.cl'||host.endsWith('.mercadopago.cl')||host==='mercadopago.com'||host.endsWith('.mercadopago.com'));
