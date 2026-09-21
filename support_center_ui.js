@@ -22,7 +22,7 @@
       btn.disabled=true;btn.textContent='Enviando…';result.textContent='';
       try{
         const r=await api('/support/contact',{method:'POST',body:{name:f.name.value.trim(),email:f.email.value.trim(),category:f.category.value,subject:f.subject.value.trim(),message:f.message.value.trim()}});
-        result.className='dy-support-result ok';result.textContent=r.message||'Solicitud enviada.';
+        result.className='dy-support-result ok';result.innerHTML='<div class="dy-support-success"><b>✅ Solicitud enviada</b><span>'+(r.message||'Recibimos tu mensaje.')+'</span>'+(r.case_ref?'<strong>N.º de caso: '+h(r.case_ref)+'</strong>':'')+'</div>';
         f.subject.value='';f.message.value='';toast?.('Solicitud enviada a soporte','ok');
       }catch(err){result.className='dy-support-result err';result.textContent=err.message||'No pudimos enviar tu solicitud.';}
       finally{btn.disabled=false;btn.textContent='Enviar a soporte';}
