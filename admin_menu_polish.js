@@ -2,11 +2,10 @@
 (function(){
  if(typeof routes==='undefined') return;
  const groups=[
-  {name:'Principal',items:[['#/admin','📊','Resumen'],['#/admin/usuarios','👥','Usuarios'],['#/admin/trabajadores','🔧','Profesionales'],['#/admin/trabajos','🧾','Trabajos']]},
-  {name:'Seguridad y soporte',items:[['#/admin/verificaciones','🪪','Verificaciones'],['#/admin/reclamos','⚑','Reclamos'],['#/admin/disputas','⚖️','Disputas'],['#/admin/mensajes','💬','Mensajes']]},
-  {name:'Dinero y PRO',items:[['#/admin/ganancias','💰','Ganancias'],['#/admin/retiros','💸','Retiros'],['#/admin/banco','🏦','Banco'],['#/admin/suscripciones','⭐','Suscripciones'],['#/admin/regalar-pro','🎁','Regalar PRO']]},
-  {name:'Sistema',items:[['#/admin/categorias','🧰','Categorías'],['#/admin/auditoria','🕘','Auditoría'],['#/admin/configuracion','⚙️','Configuración']]}
- ];
+  {name:'Principal',items:[['#/admin','📊','Resumen'],['#/admin/usuarios','👥','Usuarios'],['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos']]},
+  {name:'Operación',items:[['#/admin/pedidos','🧾','Pedidos'],['#/admin/finanzas','💰','Finanzas'],['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/impulso-semanal','⭐','Impulso semanal']]},
+  {name:'Control',items:[['#/admin/soporte','📨','Soporte'],['#/admin/analitica','📈','Analítica'],['#/admin/moderacion','🛡️','Moderación'],['#/admin/configuracion','⚙️','Configuración']]}
+ ]
  function activeHref(){const h=location.hash||'#/admin';return h.split('?')[0];}
  function item([href,icon,label]){const active=activeHref()===href;return `<a href="${href}" style="display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:12px;border:1px solid ${active?'var(--azul)':'var(--borde)'};background:${active?'var(--celeste)':'#fff'};color:${active?'var(--azul)':'var(--txt)'};font-weight:${active?'800':'650'};font-size:13px"><span style="font-size:18px">${icon}</span><span>${label}</span></a>`;}
  function renderMenu(){

@@ -15,6 +15,10 @@ grep -q "ON CONFLICT (user_id) DO NOTHING" postgres/002_market_account_types.sql
 grep -q "Falta tabla PostgreSQL: market_account_types" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS support_cases" postgres/003_support_cases.sql
 grep -q "Falta tabla PostgreSQL: support_cases" postgres_migrate.js
+grep -q "CREATE TABLE IF NOT EXISTS business_impulse_memberships" postgres/004_marketplace_admin_v2.sql
+grep -q "CREATE TABLE IF NOT EXISTS business_impulse_payments" postgres/004_marketplace_admin_v2.sql
+grep -q "Falta tabla PostgreSQL: business_impulse_memberships" postgres_migrate.js
+grep -q "Falta tabla PostgreSQL: business_impulse_payments" postgres_migrate.js
 echo "✅ Migrador PostgreSQL a Neon"
 echo "✅ Sintaxis JavaScript"
 
@@ -64,7 +68,7 @@ CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'impor
 echo "✅ Healthcheck + categorías comerciales"
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine orders/mine admin/support-cases; do
+for path in businesses/mine orders/mine admin/support-cases admin/marketplace-v2/summary; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done
@@ -78,7 +82,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_promo_analytics_ui.js marketplace_integrations_ui.js support_center_ui.js support_center.css admin_support_cases_ui.js   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_promo_analytics_ui.js marketplace_integrations_ui.js support_center_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q 'dy-pwa-register' public/index.html || { echo "Falta registro del Service Worker PWA"; exit 1; }
@@ -113,6 +117,12 @@ grep -q "mercadopago/disconnect" marketplace_payments_bootstrap.js || { echo "Fa
 grep -q "support_cases" support_center_bootstrap.js || { echo "Falta persistencia de casos de soporte"; exit 1; }
 grep -q "api/admin/support-cases" support_center_bootstrap.js || { echo "Falta API admin de soporte"; exit 1; }
 grep -q "routes.admin" admin_support_cases_ui.js || { echo "Falta panel admin de soporte"; exit 1; }
+grep -q "DATOYA_MARKETPLACE_ADMIN_V2" marketplace_admin_v2_bootstrap.js || { echo "Falta backend Admin marketplace V2"; exit 1; }
+grep -q "business_impulse_memberships" marketplace_admin_v2_bootstrap.js || { echo "Falta membresía DatoYa Impulso"; exit 1; }
+grep -q "DATOYA_IMPULSO_CHECKOUT_ENABLED" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de checkout Impulso"; exit 1; }
+grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de pagos reales en Impulso"; exit 1; }
+grep -q "routes\['mi-negocio-plan'\]" business_impulse_plan_ui.js || { echo "Falta página de plan Impulso para negocio"; exit 1; }
+grep -q "admin/marketplace-v2/impulso/gift" marketplace_admin_v2_ui.js || { echo "Falta gestión de cortesías Impulso en Admin"; exit 1; }
 grep -q "ready_for_test:c.oauthConfigured&&c.webhookConfigured" mercadopago_source_bootstrap.js || { echo "La disponibilidad TEST de Mercado Pago depende incorrectamente de un token legacy"; exit 1; }
 grep -q "checkout=mp.init_point" marketplace_payments_bootstrap.js || { echo "Checkout Pro TEST no usa init_point actual"; exit 1; }
 grep -q "La cuenta no está verificada como vendedor TEST" marketplace_payments_bootstrap.js || { echo "Falta candado de vendedor TEST antes de checkout"; exit 1; }

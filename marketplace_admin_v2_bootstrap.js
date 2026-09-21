@@ -1,0 +1,271 @@
+// DatoYa — consola marketplace Admin 2.0 + membresía DatoYa Impulso para negocios.
+const fs=require('fs');
+const path=require('path');
+const {db}=require('./db');
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS business_impulse_memberships (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  plan TEXT NOT NULL DEFAULT 'impulso' CHECK(plan IN ('impulso')),
+  billing_period TEXT NOT NULL DEFAULT 'gift' CHECK(billing_period IN ('gift','monthly','annual')),
+  source TEXT NOT NULL DEFAULT 'gift' CHECK(source IN ('gift','paid','manual')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('pending','active','expired','cancelled','superseded')),
+  starts_at TEXT NOT NULL DEFAULT (datetime('now')),
+  expires_at TEXT NOT NULL,
+  days_granted INTEGER NOT NULL DEFAULT 0,
+  amount INTEGER NOT NULL DEFAULT 0,
+  payment_reference TEXT,
+  created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_business_impulse_memberships_business ON business_impulse_memberships(business_id);
+CREATE INDEX IF NOT EXISTS idx_business_impulse_memberships_status ON business_impulse_memberships(status);
+
+CREATE TABLE IF NOT EXISTS business_impulse_payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  reference TEXT NOT NULL UNIQUE,
+  business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  billing_period TEXT NOT NULL CHECK(billing_period IN ('monthly','annual')),
+  amount INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','cancelled','expired','failed')),
+  preference_id TEXT,
+  payment_id TEXT,
+  checkout_url TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_business_impulse_payments_business ON business_impulse_payments(business_id);
+CREATE INDEX IF NOT EXISTS idx_business_impulse_payments_status ON business_impulse_payments(status);
+`);
+
+db.prepare("INSERT INTO settings(key,value) VALUES('impulso_monthly_price','9990') ON CONFLICT(key) DO NOTHING").run();
+db.prepare("INSERT INTO settings(key,value) VALUES('impulso_annual_price','99900') ON CONFLICT(key) DO NOTHING").run();
+db.prepare("INSERT INTO settings(key,value) VALUES('impulso_free_catalog_limit','20') ON CONFLICT(key) DO NOTHING").run();
+db.prepare("INSERT INTO settings(key,value) VALUES('weekly_impulse_days','7') ON CONFLICT(key) DO NOTHING").run();
+
+const serverFile=path.join(__dirname,'server.js');
+let src=fs.readFileSync(serverFile,'utf8');
+if(!src.includes('DATOYA_MARKETPLACE_ADMIN_V2')){
+  const marker='// ============ MISC ============';
+  function __dyAdminV2Injected(){
+// ============ DATOYA_MARKETPLACE_ADMIN_V2 ============
+function __dyImpulseNow(){return new Date().toISOString();}
+function __dyImpulseSync(){
+  const now=__dyImpulseNow();
+  try{db.prepare("UPDATE business_impulse_memberships SET status='expired',updated_at=? WHERE status='active' AND expires_at<=?").run(now,now);}catch(_){}
+}
+function __dyImpulseMembership(businessId){
+  __dyImpulseSync();
+  return db.prepare("SELECT * FROM business_impulse_memberships WHERE business_id=? AND status='active' AND expires_at>? ORDER BY expires_at DESC,id DESC LIMIT 1").get(businessId,__dyImpulseNow())||null;
+}
+function __dyOwnBusiness(userId,businessId){
+  return db.prepare('SELECT * FROM businesses WHERE id=? AND owner_user_id=?').get(businessId,userId);
+}
+function __dyAddImpulseDays(businessId,days,source,createdBy,amount,billingPeriod,paymentReference){
+  __dyImpulseSync();
+  const now=new Date(),current=__dyImpulseMembership(businessId),currentEnd=current?new Date(current.expires_at):null;
+  const base=currentEnd&&!Number.isNaN(currentEnd.getTime())&&currentEnd>now?currentEnd:now;
+  const expires=new Date(base.getTime()+Number(days)*86400000).toISOString();
+  db.prepare("UPDATE business_impulse_memberships SET status='superseded',updated_at=? WHERE business_id=? AND status='active'").run(now.toISOString(),businessId);
+  db.prepare("INSERT INTO business_impulse_memberships(business_id,plan,billing_period,source,status,starts_at,expires_at,days_granted,amount,payment_reference,created_by_user_id,created_at,updated_at) VALUES(?,'impulso',?,?, 'active',?,?,?,?,?,?,?,?)")
+    .run(businessId,billingPeriod||'gift',source||'gift',now.toISOString(),expires,Number(days),Number(amount||0),paymentReference||null,createdBy||null,now.toISOString(),now.toISOString());
+  return __dyImpulseMembership(businessId);
+}
+function __dyMoneySetting(key,def){const n=Number(getSetting(key,String(def)));return Number.isFinite(n)&&n>=0?Math.round(n):def;}
+
+app.get('/api/admin/marketplace-v2/summary',auth,requireRole('admin'),(req,res)=>{
+  __dyImpulseSync();
+  const accountRows=db.prepare("SELECT account_type,COUNT(*) c FROM market_account_types GROUP BY account_type").all();
+  const accounts=Object.fromEntries(accountRows.map(x=>[x.account_type,Number(x.c||0)]));
+  const bizRows=db.prepare("SELECT status,COUNT(*) c FROM businesses GROUP BY status").all();
+  const businesses=Object.fromEntries(bizRows.map(x=>[x.status,Number(x.c||0)]));
+  const orderRows=db.prepare("SELECT status,COUNT(*) c FROM commerce_orders GROUP BY status").all();
+  const orderStatus=Object.fromEntries(orderRows.map(x=>[x.status,Number(x.c||0)]));
+  const orders=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(total),0) total,COALESCE(SUM(CASE WHEN payment_status='paid' THEN total ELSE 0 END),0) paid_total FROM commerce_orders").get();
+  const fees=db.prepare("SELECT COALESCE(SUM(p.marketplace_fee),0) total FROM commerce_mp_payments p JOIN commerce_orders o ON o.id=p.order_id WHERE o.payment_status='paid'").get();
+  const activeImpulse=db.prepare("SELECT COUNT(*) c FROM business_impulse_memberships WHERE status='active' AND expires_at>?").get(__dyImpulseNow());
+  const weekly=db.prepare("SELECT COUNT(*) c FROM weekly_impulses WHERE status='active'").get();
+  let support={open:0};try{support=db.prepare("SELECT COUNT(*) FILTER (WHERE status IN ('new','in_progress')) c FROM support_cases").get();}catch(_){try{support=db.prepare("SELECT COUNT(*) c FROM support_cases WHERE status IN ('new','in_progress')").get();}catch(_){}}
+  res.json({summary:{
+    users:Number(accounts.customer||0)+Number(accounts.business||0)+Number(accounts.admin||0),
+    customers:Number(accounts.customer||0),business_accounts:Number(accounts.business||0),admins:Number(accounts.admin||0),
+    businesses_total:Object.values(businesses).reduce((a,b)=>a+Number(b||0),0),businesses,
+    orders:Number(orders.c||0),order_status:orderStatus,gross_orders:Number(orders.total||0),paid_gmv:Number(orders.paid_total||0),
+    datoya_fees:Number(fees.total||0),active_impulse:Number(activeImpulse.c||0),active_weekly:Number(weekly.c||0),open_support:Number(support.c||support.open||0)
+  }});
+});
+
+app.get('/api/admin/marketplace-v2/users',auth,requireRole('admin'),(req,res)=>{
+  const rows=db.prepare(`SELECT u.id,u.name,u.email,u.phone,u.role,u.is_active,u.created_at,
+    COALESCE(m.account_type,CASE WHEN u.role='admin' THEN 'admin' ELSE 'customer' END) account_type,
+    c.name comuna,
+    EXISTS(SELECT 1 FROM auth_email_verifications ev WHERE ev.user_id=u.id AND ev.verified_at IS NOT NULL) email_verified,
+    (SELECT COUNT(*) FROM businesses b WHERE b.owner_user_id=u.id) business_count
+    FROM users u LEFT JOIN market_account_types m ON m.user_id=u.id LEFT JOIN comunas c ON c.id=u.comuna_id
+    ORDER BY u.created_at DESC LIMIT 500`).all();
+  res.json({users:rows});
+});
+
+app.get('/api/admin/marketplace-v2/businesses',auth,requireRole('admin'),(req,res)=>{
+  __dyImpulseSync();
+  const rows=db.prepare(`SELECT b.id,b.name,b.slug,b.business_type,b.status,b.verified,b.sector,b.created_at,b.updated_at,
+    u.id owner_user_id,u.name owner_name,u.email owner_email,c.name comuna,
+    (SELECT COUNT(*) FROM products p WHERE p.business_id=b.id) product_count,
+    (SELECT COUNT(*) FROM commerce_orders o WHERE o.business_id=b.id) order_count,
+    (SELECT COALESCE(SUM(o.total),0) FROM commerce_orders o WHERE o.business_id=b.id AND o.payment_status='paid') paid_gmv,
+    (SELECT expires_at FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) impulse_expires_at
+    FROM businesses b JOIN users u ON u.id=b.owner_user_id LEFT JOIN comunas c ON c.id=b.comuna_id
+    ORDER BY b.created_at DESC LIMIT 500`).all(__dyImpulseNow());
+  res.json({businesses:rows});
+});
+
+app.get('/api/admin/marketplace-v2/products',auth,requireRole('admin'),(req,res)=>{
+  const rows=db.prepare(`SELECT p.id,p.business_id,p.name,p.price,p.promo_price,p.stock,p.stock_tracking,p.active,p.created_at,b.name business_name
+    FROM products p JOIN businesses b ON b.id=p.business_id ORDER BY p.created_at DESC LIMIT 500`).all();
+  res.json({products:rows});
+});
+
+app.get('/api/admin/marketplace-v2/orders',auth,requireRole('admin'),(req,res)=>{
+  const rows=db.prepare(`SELECT o.id,o.reference,o.status,o.fulfillment_method,o.customer_name,o.total,o.payment_method,o.payment_status,o.created_at,o.updated_at,
+    b.name business_name,u.email customer_email,
+    p.payment_id,p.preference_id,p.marketplace_fee,p.seller_net_estimate,p.status provider_status
+    FROM commerce_orders o JOIN businesses b ON b.id=o.business_id JOIN users u ON u.id=o.user_id
+    LEFT JOIN commerce_mp_payments p ON p.order_id=o.id ORDER BY o.created_at DESC LIMIT 500`).all();
+  res.json({orders:rows});
+});
+
+app.get('/api/admin/marketplace-v2/finance',auth,requireRole('admin'),(req,res)=>{
+  const paid=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(total),0) gmv FROM commerce_orders WHERE payment_status='paid'").get();
+  const fees=db.prepare("SELECT COALESCE(SUM(p.marketplace_fee),0) fees,COALESCE(SUM(p.seller_net_estimate),0) sellers FROM commerce_mp_payments p JOIN commerce_orders o ON o.id=p.order_id WHERE o.payment_status='paid'").get();
+  const memberships=db.prepare("SELECT COALESCE(SUM(amount),0) revenue,COUNT(*) c FROM business_impulse_memberships WHERE source='paid' AND amount>0").get();
+  const rows=db.prepare(`SELECT o.reference,o.total,o.payment_status,o.created_at,b.name business_name,
+    COALESCE(p.marketplace_fee,0) datoya_fee,COALESCE(p.seller_net_estimate,0) seller_net,p.payment_id,p.status provider_status
+    FROM commerce_orders o JOIN businesses b ON b.id=o.business_id LEFT JOIN commerce_mp_payments p ON p.order_id=o.id
+    ORDER BY o.created_at DESC LIMIT 300`).all();
+  res.json({summary:{paid_orders:Number(paid.c||0),paid_gmv:Number(paid.gmv||0),datoya_fees:Number(fees.fees||0),seller_net:Number(fees.sellers||0),impulso_revenue:Number(memberships.revenue||0),impulso_paid_count:Number(memberships.c||0)},rows});
+});
+
+app.get('/api/admin/marketplace-v2/impulso',auth,requireRole('admin'),(req,res)=>{
+  __dyImpulseSync();
+  const businesses=db.prepare(`SELECT b.id,b.name,b.status,u.name owner_name,u.email owner_email,c.name comuna,
+    (SELECT im.id FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) membership_id,
+    (SELECT im.expires_at FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) expires_at,
+    (SELECT im.source FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) source
+    FROM businesses b JOIN users u ON u.id=b.owner_user_id LEFT JOIN comunas c ON c.id=b.comuna_id ORDER BY b.name`).all(__dyImpulseNow(),__dyImpulseNow(),__dyImpulseNow());
+  const history=db.prepare(`SELECT im.*,b.name business_name,u.name granted_by
+    FROM business_impulse_memberships im JOIN businesses b ON b.id=im.business_id LEFT JOIN users u ON u.id=im.created_by_user_id
+    ORDER BY im.created_at DESC LIMIT 300`).all();
+  res.json({businesses,history,config:{monthly_price:__dyMoneySetting('impulso_monthly_price',9990),annual_price:__dyMoneySetting('impulso_annual_price',99900)}});
+});
+
+app.post('/api/admin/marketplace-v2/impulso/gift',auth,requireRole('admin'),(req,res)=>{
+  const businessId=Number(req.body?.business_id||0),days=Number(req.body?.days||0);
+  if(![7,15,30,90].includes(days))return res.status(400).json({error:'La cortesía debe ser de 7, 15, 30 o 90 días'});
+  const b=db.prepare('SELECT * FROM businesses WHERE id=?').get(businessId);
+  if(!b)return res.status(404).json({error:'Negocio no encontrado'});
+  const membership=__dyAddImpulseDays(businessId,days,'gift',req.user.id,0,'gift',null);
+  notify(b.owner_user_id,'impulso','🎁 DatoYa te regaló '+days+' días de DatoYa Impulso.','#/mi-negocio-plan/'+businessId);
+  res.json({ok:true,membership,message:'Cortesía de '+days+' días activada para '+b.name});
+});
+
+app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
+  res.json({settings:{
+    commission_pct:Number(getSetting('commission_pct','10')),
+    impulso_monthly_price:__dyMoneySetting('impulso_monthly_price',9990),
+    impulso_annual_price:__dyMoneySetting('impulso_annual_price',99900),
+    impulso_free_catalog_limit:Number(getSetting('impulso_free_catalog_limit','20')),
+    weekly_impulse_days:Number(getSetting('weekly_impulse_days','7')),
+    live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true',
+    impulso_checkout_enabled:String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()==='true'
+  }});
+});
+app.put('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
+  const body=req.body||{};
+  const ranges={commission_pct:[0,50],impulso_monthly_price:[0,1000000],impulso_annual_price:[0,10000000],impulso_free_catalog_limit:[1,1000],weekly_impulse_days:[1,30]};
+  for(const [key,[min,max]] of Object.entries(ranges)){
+    if(body[key]===undefined)continue;
+    const n=Number(body[key]);if(!Number.isFinite(n)||n<min||n>max)return res.status(400).json({error:'Valor inválido para '+key});
+    setSetting(key,String(Math.round(n*100)/100));
+  }
+  res.json({ok:true});
+});
+
+app.get('/api/businesses/:id/impulso-plan',auth,(req,res)=>{
+  const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
+  if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
+  const membership=__dyImpulseMembership(id);
+  const pending=db.prepare("SELECT * FROM business_impulse_payments WHERE business_id=? AND status='pending' ORDER BY id DESC LIMIT 1").get(id)||null;
+  const mode=String(process.env.DATOYA_IMPULSO_CHECKOUT_MODE||'test').toLowerCase()==='live'?'live':'test';
+  res.json({business:{id:b.id,name:b.name,status:b.status},membership,pending_payment:pending,config:{
+    monthly_price:__dyMoneySetting('impulso_monthly_price',9990),
+    annual_price:__dyMoneySetting('impulso_annual_price',99900),
+    checkout_enabled:String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()==='true',
+    checkout_mode:mode,
+    live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true'
+  }});
+});
+
+app.post('/api/businesses/:id/impulso-plan/checkout',auth,async(req,res)=>{
+  const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
+  if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
+  const period=String(req.body?.billing_period||'monthly');
+  if(!['monthly','annual'].includes(period))return res.status(400).json({error:'Período inválido'});
+  if(String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()!=='true')return res.status(409).json({error:'El pago de DatoYa Impulso todavía está en validación. La sección ya está preparada y se habilitará al terminar las pruebas de Mercado Pago.',code:'IMPULSO_CHECKOUT_DISABLED'});
+  const mode=String(process.env.DATOYA_IMPULSO_CHECKOUT_MODE||'test').toLowerCase()==='live'?'live':'test';
+  if(mode==='live'&&String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()!=='true')return res.status(409).json({error:'Los pagos reales siguen bloqueados hasta completar la validación TEST.',code:'LIVE_PAYMENTS_BLOCKED'});
+  const token=String(process.env.DATOYA_IMPULSO_MP_ACCESS_TOKEN||'');
+  if(!token)return res.status(503).json({error:'Falta conectar la cuenta de cobro de DatoYa para la membresía Impulso'});
+  const amount=period==='annual'?__dyMoneySetting('impulso_annual_price',99900):__dyMoneySetting('impulso_monthly_price',9990);
+  if(amount<=0)return res.status(409).json({error:'El precio de DatoYa Impulso no está configurado'});
+  const reference='DY-IMP-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(2).toString('hex').toUpperCase();
+  const base=String(process.env.PUBLIC_BASE_URL||((req.protocol||'https')+'://'+req.get('host'))).replace(/\/+$/,'');
+  const payload={
+    items:[{id:'datoya-impulso-'+period,title:'DatoYa Impulso '+(period==='annual'?'Anual':'Mensual'),currency_id:'CLP',quantity:1,unit_price:amount}],
+    external_reference:reference,
+    back_urls:{success:base+'/#/mi-negocio-plan/'+id,pending:base+'/#/mi-negocio-plan/'+id,failure:base+'/#/mi-negocio-plan/'+id},
+    auto_return:'approved',
+    payer:{email:req.user.email}
+  };
+  const response=await fetch('https://api.mercadopago.com/checkout/preferences',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.id||!data.init_point)return res.status(502).json({error:'Mercado Pago no pudo crear el checkout de DatoYa Impulso'});
+  db.prepare("INSERT INTO business_impulse_payments(reference,business_id,billing_period,amount,status,preference_id,checkout_url,created_at,updated_at) VALUES(?,?,?,?,'pending',?,?,?,?)").run(reference,id,period,amount,String(data.id),String(data.init_point),__dyImpulseNow(),__dyImpulseNow());
+  res.json({ok:true,checkout_url:String(data.init_point),reference,mode});
+});
+
+app.post('/api/businesses/:id/impulso-plan/sync',auth,async(req,res)=>{
+  const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
+  if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
+  const row=db.prepare("SELECT * FROM business_impulse_payments WHERE business_id=? AND status='pending' ORDER BY id DESC LIMIT 1").get(id);
+  if(!row)return res.json({ok:true,updated:false,membership:__dyImpulseMembership(id)});
+  const token=String(process.env.DATOYA_IMPULSO_MP_ACCESS_TOKEN||'');if(!token)return res.status(503).json({error:'Falta conectar la cuenta de cobro de DatoYa'});
+  const url='https://api.mercadopago.com/v1/payments/search?external_reference='+encodeURIComponent(row.reference)+'&sort=date_created&criteria=desc';
+  const response=await fetch(url,{headers:{Authorization:'Bearer '+token}});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)return res.status(502).json({error:'No se pudo consultar el estado del pago'});
+  const payment=Array.isArray(data.results)?data.results[0]:null;
+  if(!payment)return res.json({ok:true,updated:false,status:'pending'});
+  const amountMatches=Number(payment.transaction_amount||0)===Number(row.amount||0);
+  const status=String(payment.status||'pending');
+  if(status==='approved'&&amountMatches){
+    db.prepare("UPDATE business_impulse_payments SET status='approved',payment_id=?,updated_at=? WHERE id=?").run(String(payment.id||''),__dyImpulseNow(),row.id);
+    const days=row.billing_period==='annual'?365:30;
+    const membership=__dyAddImpulseDays(id,days,'paid',null,row.amount,row.billing_period,row.reference);
+    notify(b.owner_user_id,'impulso','⚡ Tu plan DatoYa Impulso está activo hasta '+String(membership.expires_at).slice(0,10)+'.','#/mi-negocio-plan/'+id);
+    return res.json({ok:true,updated:true,status:'approved',membership});
+  }
+  if(['rejected','cancelled','refunded','charged_back'].includes(status)){
+    db.prepare("UPDATE business_impulse_payments SET status=?,payment_id=?,updated_at=? WHERE id=?").run(status==='rejected'?'rejected':'cancelled',String(payment.id||''),__dyImpulseNow(),row.id);
+  }
+  res.json({ok:true,updated:true,status,amount_matches:amountMatches,membership:__dyImpulseMembership(id)});
+});
+// ============ FIN DATOYA_MARKETPLACE_ADMIN_V2 ============
+}
+  const injection=__dyAdminV2Injected.toString().replace(/^function __dyAdminV2Injected\(\)\{\n?/,'').replace(/\n?\}$/,'');
+  if(!src.includes(marker))throw new Error('No se encontró marcador MISC para Admin marketplace V2');
+  src=src.replace(marker,injection+'\n'+marker);
+  fs.writeFileSync(serverFile,src);
+}
+console.log('[DatoYa] Admin marketplace V2 e Impulso para negocios preparados.');
