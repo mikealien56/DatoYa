@@ -230,6 +230,9 @@ WEEKLY=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/weekly-impulses" -H "$
 WEEKLY_ID=$(printf '%s' "$WEEKLY" | json_value 'd["id"]')
 WEEK_END=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(days=7)).isoformat())')
 curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/weekly-impulses/$WEEKLY_ID/approve" -H "$J" -d "{\"placement_type\":\"launch\",\"use_original\":true,\"ends_at\":\"$WEEK_END\"}" >/dev/null
+curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/private-beta/run-matching" -H "$J" -d '{}' >/dev/null
+ALERTS_WEEKLY=$(curl -fsS -b /tmp/dy_market_client "$B/market/alerts")
+printf '%s' "$ALERTS_WEEKLY" | python3 -c 'import sys,json; d=json.load(sys.stdin); near=next(x for x in d["alerts"] if int(x["id"])==int("'"$ALERT_WEEKLY_NEAR_ID"'")); far=next(x for x in d["alerts"] if int(x["id"])==int("'"$ALERT_WEEKLY_FAR_ID"'")); assert near["status"]=="matched"; assert near["match"]["source_type"]=="weekly"; assert far["status"]=="active" and far.get("match") is None'
 curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"weekly_view\",\"visitor_id\":\"promo-week-view-$TS\"}" >/dev/null
 curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"weekly_click\",\"visitor_id\":\"promo-week-click-$TS\"}" >/dev/null
 curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"add_cart\",\"visitor_id\":\"promo-week-cart-$TS\"}" >/dev/null
