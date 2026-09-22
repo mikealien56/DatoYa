@@ -12,6 +12,7 @@ grep -q "current_legal_consent_enforcement_bootstrap" production_start.js || { e
 grep -q "LEGAL_CONSENT_REQUIRED" app.js || { echo "Frontend no maneja reaceptación legal"; exit 1; }
 echo "✅ Reaceptación de versión legal vigente protegida"
 bash test_beta_private_ui.sh
+bash test_mobile_account_role.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
 node --check push_notifications_bootstrap.js
