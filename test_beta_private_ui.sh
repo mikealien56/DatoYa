@@ -6,6 +6,10 @@ grep -q "beta_private_assets" production_start.js
 grep -q "routes\['mi-negocio-pulso'\]" beta_private_ui.js
 grep -q "routes\['mi-negocio-radar'\]" beta_private_ui.js
 grep -q "routes.alertas" beta_private_ui.js
+grep -q "category_id" beta_private_ui.js || { echo "DatoYa Alerta no permite categoría"; exit 1; }
+grep -q "datoya_lat" beta_private_ui.js || { echo "DatoYa Alerta no usa ubicación guardada"; exit 1; }
+grep -q "match.source_type" beta_private_ui.js || { echo "DatoYa Alerta no muestra origen de coincidencia"; exit 1; }
+grep -q "Avísame cuando aparezca" beta_private_ui.js || { echo "Búsqueda no ofrece crear alerta contextual"; exit 1; }
 grep -q "routes\['lo-busco-ya'\]" beta_private_ui.js
 grep -q "routes\['mi-negocio-lo-busco-ya'\]" beta_private_ui.js || { echo "Falta Lo Busco Ya en Panel Negocio"; exit 1; }
 grep -q "data-wanted-response" beta_private_ui.js || { echo "Falta formulario de respuesta Lo Busco Ya"; exit 1; }
