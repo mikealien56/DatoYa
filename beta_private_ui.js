@@ -13,7 +13,7 @@
     return bellRefresh;
   }
   const priorAuth=typeof renderAuthArea==='function'?renderAuthArea:null;
-  if(priorAuth)renderAuthArea=function(){const r=priorAuth.apply(this,arguments);setTimeout(refreshBell,0);return r};
+  if(priorAuth)renderAuthArea=function(){const r=priorAuth.apply(this,arguments);setTimeout(()=>{refreshBell();syncExistingPush().catch(()=>{})},0);return r};
 
   const pushSupported=()=>('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
   function pushAppKey(value){const pad='='.repeat((4-String(value||'').length%4)%4),base64=(String(value||'')+pad).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),out=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
@@ -39,6 +39,20 @@
     const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
     if(sub){try{await api('/push/subscribe',{method:'DELETE',body:{endpoint:sub.endpoint}})}catch(_){}await sub.unsubscribe()}
   }
+  async function syncExistingPush(){
+    if(!ME||!pushSupported()||Notification.permission!=='granted')return;
+    const config=await api('/push/config');
+    if(!config?.configured)return;
+    const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+    if(sub)await api('/push/subscribe',{method:'POST',body:sub.toJSON()});
+  }
+  async function detachPushForLogout(){
+    if(!ME||!pushSupported()||Notification.permission!=='granted')return;
+    const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+    if(sub)try{await api('/push/subscribe',{method:'DELETE',body:{endpoint:sub.endpoint}})}catch(_){}
+  }
+  const priorLogout=typeof window.logout==='function'?window.logout:null;
+  if(priorLogout)window.logout=async function(){await detachPushForLogout().catch(()=>{});return priorLogout.apply(this,arguments)};
 
   routes.notificaciones=async function(){
     if(!ME){location.hash='#/login';return}
