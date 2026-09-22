@@ -29,8 +29,8 @@
         ['⚡ Impulso Ahora','🔒','✓'],
         ['📊 Estadísticas avanzadas','🔒','✓'],
         ['✨ Perfil destacado','🔒','Próximamente'],
-        ['📍 Pulso Local','🔒','Próximamente'],
-        ['🎯 Radar de oportunidades','🔒','Próximamente'],
+        ['📍 Pulso Local','🔒','✓'],
+        ['🎯 Radar de oportunidades','🔒','✓'],
         ['🔔 Prioridad en DatoYa Alerta','🔒','Próximamente']
       ];
       view.innerHTML=`<div class="dy-plan-page">
@@ -62,7 +62,7 @@
           </section>
           <section class="dy-plan-card impulse">
             <span>⚡ DATOYA IMPULSO</span><h2>Desde ${money(cfg.monthly_price)} <small>/ mes</small></h2><p>Incluye todo lo Gratis y desbloquea herramientas para crecer.</p>
-            <ul><li>📦 Hasta <b>${paidLimit} productos</b></li><li>⚡ Impulso Ahora</li><li>📊 Estadísticas avanzadas</li><li>✨ Perfil destacado <small>(próximamente)</small></li><li>📍 Pulso Local <small>(próximamente)</small></li><li>🎯 Radar de oportunidades <small>(próximamente)</small></li><li>🔔 Prioridad en DatoYa Alerta <small>(próximamente)</small></li></ul>
+            <ul><li>📦 Hasta <b>${paidLimit} productos</b></li><li>⚡ Impulso Ahora</li><li>📊 Estadísticas avanzadas</li><li>✨ Perfil destacado <small>(próximamente)</small></li><li>📍 Pulso Local</li><li>🎯 Radar de oportunidades</li><li>🔔 Prioridad en DatoYa Alerta <small>(próximamente)</small></li></ul>
             <div class="dy-plan-options">
               <div class="dy-plan-option"><div><b>Mensual</b><small>${money(cfg.monthly_price)} / mes</small></div><button class="btn btn-outline btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'monthly')">Elegir</button></div>
               <div class="dy-plan-option popular"><div><span>AHORRA ${money((cfg.monthly_price*3)-cfg.quarterly_price)}</span><b>3 meses</b><small><s>${money(cfg.monthly_price*3)}</s> <strong>${money(cfg.quarterly_price)}</strong> · equivale a ${money(Math.round(cfg.quarterly_price/3))}/mes</small></div><button class="btn btn-primary btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'quarterly')">Elegir 3 meses</button></div>
