@@ -76,7 +76,7 @@
       api('/businesses/'+id+'/support-cases').catch(()=>({stats:{},cases:[]})),
       api('/businesses/'+id+'/impulso-plan').catch(()=>({membership:null,config:{}})),
       api('/businesses/'+id+'/mercadopago/status').catch(()=>({connected:false,payment_mode:'disconnected'})),
-      api('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}})),
+      api('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})),
       api('/businesses/'+id+'/wanted').catch(()=>({requests:[],stats:{}}))
     ]);
     planCache.set(id,{plan:planD.membership?'impulso':'free',membership:planD.membership,usage:planD.usage||{},limits:{products:Number(planD.entitlements?.catalog_limit||planD.config?.free_catalog_limit||20),free_products:Number(planD.config?.free_catalog_limit||20),impulso_products:Number(planD.config?.paid_catalog_limit||200)},access:planD.entitlements||{}});
