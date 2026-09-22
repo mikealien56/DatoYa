@@ -67,7 +67,7 @@ const __authTestMode = String(process.env.AUTH_TEST_MODE || '').toLowerCase() ==
 const __termsVersion = String(process.env.LEGAL_TERMS_VERSION || '2026-09-14-beta1');
 const __privacyVersion = String(process.env.LEGAL_PRIVACY_VERSION || '2026-09-14-beta1');
 const __paymentTermsVersion = String(process.env.LEGAL_PAYMENT_VERSION || '2026-09-14-beta1');
-const __legalEnforcement = String(process.env.LEGAL_ENFORCEMENT || '').toLowerCase() === 'true';
+const __legalEnforcement = !['0','false','off','no'].includes(String(process.env.LEGAL_ENFORCEMENT || 'true').toLowerCase());
 const __publicBaseUrl = String(process.env.PUBLIC_BASE_URL || 'http://localhost:3000').replace(/\\/$/,'');
 const __sha256 = value => crypto.createHash('sha256').update(String(value)).digest('hex');
 function __securityEvent(userId,type,detail){ try{ db.prepare('INSERT INTO security_events(user_id,event_type,detail) VALUES(?,?,?)').run(userId||null,type,String(detail||'').slice(0,500)); }catch(_){} }
@@ -87,6 +87,26 @@ app.post('/api/auth/register',(req,res,next)=>{
   const password=String(req.body?.password||'');
   if(password.length<8) return res.status(400).json({error:'La contraseña debe tener al menos 8 caracteres'});
   if(__legalEnforcement && (!req.body?.accept_terms || !req.body?.accept_privacy)) return res.status(400).json({error:'Debes aceptar los Términos y la Política de Privacidad'});
+  const originalJson=res.json.bind(res);
+  res.json=(payload)=>{
+    if(payload?.ok && payload?.user?.id && req.body?.accept_terms && req.body?.accept_privacy){
+      const userId=Number(payload.user.id);
+      try{
+        const existing=db.prepare('SELECT id FROM account_consents WHERE user_id=? AND terms_version=? AND privacy_version=? ORDER BY id DESC LIMIT 1').get(userId,__termsVersion,__privacyVersion);
+        if(!existing){
+          db.prepare('INSERT INTO account_consents(user_id,terms_version,privacy_version,payment_terms_version,location_consent) VALUES(?,?,?,?,?)').run(userId,__termsVersion,__privacyVersion,__paymentTermsVersion,req.body?.location_consent?1:0);
+          __securityEvent(userId,'legal_consent','terms='+__termsVersion+';privacy='+__privacyVersion+';location='+(req.body?.location_consent?1:0));
+        }
+        payload.legal_consent_recorded=true;
+      }catch(error){
+        console.error('[DatoYa] No se pudo persistir consentimiento de registro:',String(error?.message||error).slice(0,180));
+        try{db.prepare('DELETE FROM users WHERE id=?').run(userId);}catch(_){}
+        res.status(500);
+        return originalJson({error:'No pudimos completar el registro. Intenta nuevamente.'});
+      }
+    }
+    return originalJson(payload);
+  };
   next();
 });
 
