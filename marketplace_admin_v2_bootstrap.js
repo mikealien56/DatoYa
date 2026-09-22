@@ -44,6 +44,7 @@ db.prepare("INSERT INTO settings(key,value) VALUES('impulso_monthly_price','9990
 db.prepare("INSERT INTO settings(key,value) VALUES('impulso_quarterly_price','26990') ON CONFLICT(key) DO NOTHING").run();
 db.prepare("INSERT INTO settings(key,value) VALUES('impulso_annual_price','89990') ON CONFLICT(key) DO NOTHING").run();
 db.prepare("INSERT INTO settings(key,value) VALUES('impulso_free_catalog_limit','20') ON CONFLICT(key) DO NOTHING").run();
+db.prepare("INSERT INTO settings(key,value) VALUES('impulso_paid_catalog_limit','200') ON CONFLICT(key) DO NOTHING").run();
 db.prepare("INSERT INTO settings(key,value) VALUES('weekly_impulse_days','7') ON CONFLICT(key) DO NOTHING").run();
 
 const serverFile=path.join(__dirname,'server.js');
@@ -178,6 +179,7 @@ app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)
     impulso_quarterly_price:__dyMoneySetting('impulso_quarterly_price',26990),
     impulso_annual_price:__dyMoneySetting('impulso_annual_price',89990),
     impulso_free_catalog_limit:Number(getSetting('impulso_free_catalog_limit','20')),
+    impulso_paid_catalog_limit:Number(getSetting('impulso_paid_catalog_limit','200')),
     weekly_impulse_days:Number(getSetting('weekly_impulse_days','7')),
     live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true',
     impulso_checkout_enabled:String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()==='true'
@@ -185,7 +187,7 @@ app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)
 });
 app.put('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
   const body=req.body||{};
-  const ranges={commission_pct:[0,50],impulso_monthly_price:[0,1000000],impulso_quarterly_price:[0,3000000],impulso_annual_price:[0,10000000],impulso_free_catalog_limit:[1,1000],weekly_impulse_days:[1,30]};
+  const ranges={commission_pct:[0,50],impulso_monthly_price:[0,1000000],impulso_quarterly_price:[0,3000000],impulso_annual_price:[0,10000000],impulso_free_catalog_limit:[1,1000],impulso_paid_catalog_limit:[1,5000],weekly_impulse_days:[1,30]};
   for(const [key,[min,max]] of Object.entries(ranges)){
     if(body[key]===undefined)continue;
     const n=Number(body[key]);if(!Number.isFinite(n)||n<min||n>max)return res.status(400).json({error:'Valor inválido para '+key});
@@ -200,14 +202,50 @@ app.get('/api/businesses/:id/impulso-plan',auth,(req,res)=>{
   const membership=__dyImpulseMembership(id);
   const pending=db.prepare("SELECT * FROM business_impulse_payments WHERE business_id=? AND status='pending' ORDER BY id DESC LIMIT 1").get(id)||null;
   const mode=String(process.env.DATOYA_IMPULSO_CHECKOUT_MODE||'test').toLowerCase()==='live'?'live':'test';
-  res.json({business:{id:b.id,name:b.name,status:b.status},membership,pending_payment:pending,config:{
+  const productCount=Number((db.prepare('SELECT COUNT(*) c FROM products WHERE business_id=?').get(id)||{}).c||0);
+  const freeLimit=Number(getSetting('impulso_free_catalog_limit','20'));
+  const paidLimit=Number(getSetting('impulso_paid_catalog_limit','200'));
+  res.json({business:{id:b.id,name:b.name,status:b.status},membership,pending_payment:pending,usage:{products:productCount},entitlements:{
+    plan:membership?'impulso':'free',
+    catalog_limit:membership?paidLimit:freeLimit,
+    impulse_now:!!membership,
+    advanced_analytics:!!membership,
+    highlighted_profile:!!membership,
+    local_pulse:!!membership,
+    opportunity_radar:!!membership,
+    datoya_alert_priority:!!membership,
+    weekly_impulse_included:false
+  },config:{
     monthly_price:__dyMoneySetting('impulso_monthly_price',9990),
     quarterly_price:__dyMoneySetting('impulso_quarterly_price',26990),
     annual_price:__dyMoneySetting('impulso_annual_price',89990),
+    free_catalog_limit:freeLimit,
+    paid_catalog_limit:paidLimit,
     checkout_enabled:String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()==='true',
     checkout_mode:mode,
     live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true'
   }});
+});
+
+app.get('/api/businesses/:id/plan-access',auth,(req,res)=>{
+  const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
+  if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
+  const membership=__dyImpulseMembership(id);
+  const freeLimit=Number(getSetting('impulso_free_catalog_limit','20'));
+  const paidLimit=Number(getSetting('impulso_paid_catalog_limit','200'));
+  const productCount=Number((db.prepare('SELECT COUNT(*) c FROM products WHERE business_id=?').get(id)||{}).c||0);
+  res.json({
+    plan:membership?'impulso':'free',
+    membership,
+    usage:{products:productCount},
+    limits:{products:membership?paidLimit:freeLimit,free_products:freeLimit,impulso_products:paidLimit},
+    access:{
+      core_business:true,orders:true,support:true,pickup_delivery:true,share_qr:true,basic_dashboard:true,
+      impulse_now:!!membership,advanced_analytics:!!membership,highlighted_profile:!!membership,
+      local_pulse:!!membership,opportunity_radar:!!membership,datoya_alert_priority:!!membership,
+      weekly_impulse:false
+    }
+  });
 });
 
 app.post('/api/businesses/:id/impulso-plan/checkout',auth,async(req,res)=>{
