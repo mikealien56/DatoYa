@@ -46,6 +46,8 @@ printf '%s' "$MERCHANT_CONSENT" | python3 -c 'import sys,json; c=json.load(sys.s
 printf '%s' "$CLIENT_CONSENT" | python3 -c 'import sys,json; c=json.load(sys.stdin)["consent"]; assert c and c["terms_version"] and c["privacy_version"]'
 verify_email /tmp/dy_market_merchant
 verify_email /tmp/dy_market_client
+MERCHANT_ID=$(curl -fsS -b /tmp/dy_market_merchant "$B/auth/me" | json_value 'd["user"]["id"]')
+CLIENT_ID=$(curl -fsS -b /tmp/dy_market_client "$B/auth/me" | json_value 'd["user"]["id"]')
 curl -fsS -c /tmp/dy_market_admin -X POST "$B/auth/login" -H "$J" -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" >/dev/null
 
 INTEGRATIONS=$(curl -fsS -b /tmp/dy_market_admin "$B/admin/integration-status")
@@ -66,6 +68,12 @@ printf '%s' "$HOURS" | python3 -c 'import sys,json; d=json.load(sys.stdin); asse
 FOUNDER=$(curl -fsS -b /tmp/dy_market_admin -X PUT "$B/admin/marketplace/businesses/$BUSINESS_ID/founder" -H "$J" -d '{"enabled":true}')
 printf '%s' "$FOUNDER" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["founder_business"] is True'
 
+# Consentimiento legal vigente: una cuenta Negocio antigua no puede publicar hasta reaceptar.
+DB_DRIVER="$MARKET_DB_DRIVER" node -e 'const {db}=require("./db"); const id=Number(process.argv[1]); db.prepare("UPDATE account_consents SET terms_version=?,privacy_version=? WHERE id=(SELECT id FROM account_consents WHERE user_id=? ORDER BY id DESC LIMIT 1)").run("2026-09-14-beta1","2026-09-14-beta1",id);' "$MERCHANT_ID"
+STALE_PRODUCT_CODE=$(curl -sS -o /tmp/dy_stale_product.json -w '%{http_code}' -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Bloqueado por términos TEST\",\"category_id\":$CATEGORY_ID,\"price\":999,\"stock\":1,\"stock_tracking\":true,\"active\":true}")
+[ "$STALE_PRODUCT_CODE" = "428" ] || { echo "Producto con consentimiento antiguo debió responder 428 y respondió $STALE_PRODUCT_CODE"; cat /tmp/dy_stale_product.json; exit 1; }
+python3 -c 'import json; d=json.load(open("/tmp/dy_stale_product.json")); assert d.get("code")=="LEGAL_CONSENT_REQUIRED"'
+curl -fsS -b /tmp/dy_market_merchant -X POST "$B/legal/consent" -H "$J" -d '{"accept_terms":true,"accept_privacy":true,"location_consent":false}' >/dev/null
 
 PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Berlines caseros TEST\",\"description\":\"Producto temporal\",\"category_id\":$CATEGORY_ID,\"price\":1500,\"stock\":5,\"stock_tracking\":true,\"active\":true}")
 PRODUCT_ID=$(printf '%s' "$PRODUCT" | json_value 'd["product"]["id"]')
@@ -116,6 +124,13 @@ printf '%s' "$DELIVERY_CFG" | python3 -c 'import sys,json; d=json.load(sys.stdin
 
 DELIVERY_PUBLIC=$(curl -fsS "$B/market/business/$BUSINESS_SLUG/delivery")
 printf '%s' "$DELIVERY_PUBLIC" | python3 -c 'import sys,json; d=json.load(sys.stdin)["delivery"]; assert d["enabled"] is True; assert d["fee"]==1500; assert d["radius_km"]==5'
+
+# Consentimiento legal vigente: una cuenta Cliente antigua no puede pedir hasta reaceptar.
+DB_DRIVER="$MARKET_DB_DRIVER" node -e 'const {db}=require("./db"); const id=Number(process.argv[1]); db.prepare("UPDATE account_consents SET terms_version=?,privacy_version=? WHERE id=(SELECT id FROM account_consents WHERE user_id=? ORDER BY id DESC LIMIT 1)").run("2026-09-14-beta1","2026-09-14-beta1",id);' "$CLIENT_ID"
+STALE_ORDER_CODE=$(curl -sS -o /tmp/dy_stale_order.json -w '%{http_code}' -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"fulfillment_method":"pickup","customer_name":"Cliente TEST","customer_phone":"+56933334444","items":[{"product_id":'"$PRODUCT_ID"',"quantity":1}]}')
+[ "$STALE_ORDER_CODE" = "428" ] || { echo "Pedido con consentimiento antiguo debió responder 428 y respondió $STALE_ORDER_CODE"; cat /tmp/dy_stale_order.json; exit 1; }
+python3 -c 'import json; d=json.load(open("/tmp/dy_stale_order.json")); assert d.get("code")=="LEGAL_CONSENT_REQUIRED"'
+curl -fsS -b /tmp/dy_market_client -X POST "$B/legal/consent" -H "$J" -d '{"accept_terms":true,"accept_privacy":true,"location_consent":false}' >/dev/null
 
 DELIVERY_ORDER=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"fulfillment_method":"delivery","customer_name":"Cliente TEST","customer_phone":"+56933334444","delivery_address":"Dirección cliente TEST 456","delivery_latitude":-34.233333,"delivery_longitude":-70.966667,"items":[{"product_id":'"$PRODUCT_ID"',"quantity":2}]}')
 DELIVERY_ORDER_ID=$(printf '%s' "$DELIVERY_ORDER" | json_value 'd["order"]["id"]')
