@@ -8,6 +8,9 @@ echo "✅ Dependencias de producción sin vulnerabilidades altas/críticas"
 grep -q "legal_consent_recorded" account_security_bootstrap.js || { echo "Registro no persiste consentimiento legal"; exit 1; }
 grep -q "LEGAL_ENFORCEMENT || 'true'" account_security_bootstrap.js || { echo "Enforcement legal no queda activo por defecto"; exit 1; }
 echo "✅ Consentimiento legal integrado al registro"
+grep -q "current_legal_consent_enforcement_bootstrap" production_start.js || { echo "Guard de consentimiento vigente no montado"; exit 1; }
+grep -q "LEGAL_CONSENT_REQUIRED" app.js || { echo "Frontend no maneja reaceptación legal"; exit 1; }
+echo "✅ Reaceptación de versión legal vigente protegida"
 bash test_beta_private_ui.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
