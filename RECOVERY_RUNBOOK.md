@@ -38,4 +38,18 @@ Después comparar al menos `users`, `businesses`, `products`, `commerce_orders`,
 
 ## Verificación realizada el 22-09-2026
 
-Se creó una rama Neon aislada desde producción y se comparó con `main`. Coincidieron 75 tablas públicas y los conteos críticos: 15 usuarios, 1 negocio, 1 producto, 5 pedidos, 15 tipos de cuenta y 1 caso de soporte. Esta comprobación valida la restauración instantánea por rama de Neon; no sustituye la restauración periódica de un dump lógico en una base vacía.
+Se creó una copia aislada desde `main` y, a partir de esa copia, una segunda rama de verificación para simular una recuperación sin tocar producción.
+
+Resultado:
+
+- 77 tablas públicas presentes en origen y restauración.
+- 713 columnas con la misma firma.
+- 149 índices con la misma firma.
+- 748 restricciones con la misma firma.
+- Sin diferencias de conteos en ninguna de las 77 tablas.
+- Sin diferencias de contenido en 17 tablas críticas verificadas mediante hashes internos, entre ellas `users`, `market_account_types`, `businesses`, `products`, `commerce_orders`, `commerce_order_items`, `notifications`, `support_cases`, `market_categories`, `settings`, `mercadopago_connections`, `market_alerts`, `wanted_requests` y `push_subscriptions`.
+- Conteos críticos del punto de recuperación: 15 usuarios, 15 tipos de cuenta, 1 negocio, 1 producto, 5 pedidos, 5 ítems de pedido, 20 categorías, 19 notificaciones y 1 caso de soporte.
+
+La verificación confirma que una copia de rama actual de Neon conserva estructura y datos de DatoYa y puede usarse como punto de recuperación aislado.
+
+La validación con `pg_dump` / `pg_restore` sigue pendiente porque el entorno utilizado para esta revisión no dispone del cliente PostgreSQL. Además, el proyecto alcanzó su límite actual de snapshots manuales: existe `datoya-beta-backup-20260921`, con vencimiento 28-09-2026. No se eliminó ni reemplazó ningún snapshot durante esta comprobación.
