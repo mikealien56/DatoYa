@@ -222,6 +222,10 @@ for ST in confirmed preparing ready completed; do
 done
 
 # Impulso de la semana: publicación TEST aprobada y pedido atribuido.
+ALERT_WEEKLY_NEAR=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Caja semanal TEST","category_id":'"$CATEGORY_ID"',"comuna_id":'"$COMUNA_ID"',"latitude":-34.233333,"longitude":-70.966667,"radius_km":1,"days":1}')
+ALERT_WEEKLY_NEAR_ID=$(printf '%s' "$ALERT_WEEKLY_NEAR" | json_value 'd["id"]')
+ALERT_WEEKLY_FAR=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Caja semanal TEST","comuna_id":'"$COMUNA_ID"',"latitude":-33.4489,"longitude":-70.6693,"radius_km":1,"days":1}')
+ALERT_WEEKLY_FAR_ID=$(printf '%s' "$ALERT_WEEKLY_FAR" | json_value 'd["id"]')
 WEEKLY=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/weekly-impulses" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"title":"Caja semanal TEST","description":"Promoción semanal temporal","regular_price":1800,"offer_price":1500,"stock":5,"original_image_data":"data:image/png;base64,iVBORw0KGgo="}')
 WEEKLY_ID=$(printf '%s' "$WEEKLY" | json_value 'd["id"]')
 WEEK_END=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(days=7)).isoformat())')
