@@ -92,6 +92,8 @@ echo "✅ Centro de soporte montado y validando"
 for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_promo_analytics_ui.js marketplace_integrations_ui.js support_center_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
+grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
+grep -q "href=\"#/admin\"" marketplace_account_ui.js || { echo "Mi DatoYa admin no enlaza al panel administrativo"; exit 1; }
 grep -q 'dy-pwa-register' public/index.html || { echo "Falta registro del Service Worker PWA"; exit 1; }
 grep -q 'serviceWorker.register("/service-worker.js"' public/index.html || { echo "Registro PWA no apunta al Service Worker de DatoYa"; exit 1; }
 grep -q 'mi-negocio-pagos' marketplace_business_ui.js || { echo "Falta acceso permanente a Mercado Pago en Mi negocio"; exit 1; }
