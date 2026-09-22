@@ -54,6 +54,7 @@
       ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
       ['pulse',paid?'#/mi-negocio-pulso/'+id:'#/mi-negocio-plan/'+id,'📍','Pulso Local',!paid],
       ['radar',paid?'#/mi-negocio-radar/'+id:'#/mi-negocio-plan/'+id,'🎯','Radar',!paid],
+      ['wanted','#/mi-negocio-lo-busco-ya/'+id,'🙋','Lo Busco Ya',false],
       ['support','#/mi-negocio-soporte/'+id,'📨','Soporte',false],
       ['public',b.slug?'#/negocio/'+encodeURIComponent(b.slug):'#/mi-negocio-configuracion/'+id,'🏪','Mi negocio',false],
       ['plan','#/mi-negocio-plan/'+id,'⭐','Plan',false],
@@ -68,14 +69,15 @@
   async function renderDashboard(id){
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
-    const [manage,ordersD,analyticsD,supportD,planD,paymentD,promoD]=await Promise.all([
+    const [manage,ordersD,analyticsD,supportD,planD,paymentD,promoD,wantedD]=await Promise.all([
       getMeta(id,true),
       api('/businesses/'+id+'/orders').catch(()=>({orders:[]})),
       api('/businesses/'+id+'/analytics?days=30').catch(()=>({events:{},orders:0,completed_orders:0,sales_completed:0})),
       api('/businesses/'+id+'/support-cases').catch(()=>({stats:{},cases:[]})),
       api('/businesses/'+id+'/impulso-plan').catch(()=>({membership:null,config:{}})),
       api('/businesses/'+id+'/mercadopago/status').catch(()=>({connected:false,payment_mode:'disconnected'})),
-      api('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}}))
+      api('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})),
+      api('/businesses/'+id+'/wanted').catch(()=>({requests:[],stats:{}}))
     ]);
     planCache.set(id,{plan:planD.membership?'impulso':'free',membership:planD.membership,usage:planD.usage||{},limits:{products:Number(planD.entitlements?.catalog_limit||planD.config?.free_catalog_limit||20),free_products:Number(planD.config?.free_catalog_limit||20),impulso_products:Number(planD.config?.paid_catalog_limit||200)},access:planD.entitlements||{}});
     const b=manage.business||{},products=manage.products||[],orders=ordersD.orders||[],events=analyticsD.events||{};
@@ -83,6 +85,7 @@
     const activeOrders=orders.filter(o=>['new','confirmed','preparing','ready'].includes(o.status)).length;
     const lowStock=products.filter(p=>p.stock_tracking&&Number(p.stock||0)<=3).length;
     const openSupport=Number(supportD.stats?.new||0)+Number(supportD.stats?.in_progress||0);
+    const wantedPending=Number(wantedD.stats?.pending||0);
     const membership=planD.membership,paid=!!membership,catalogLimit=Number(planD.entitlements?.catalog_limit||planD.config?.free_catalog_limit||20);
     const promoNow=promoD.impulse_now?.summary||{},promoWeekly=promoD.weekly?.summary||{};
     const recent=orders.slice(0,4);
@@ -109,6 +112,7 @@
             <a href="#/mi-negocio-pedidos/${id}"><span>🧾</span><div><b>Gestionar pedidos</b><small>${activeOrders?activeOrders+' pedido(s) requieren seguimiento':'No hay pedidos pendientes'}</small></div><em>→</em></a>
             <a href="#/mi-negocio-productos/${id}"><span>📦</span><div><b>Catálogo y stock</b><small>${lowStock?lowStock+' producto(s) con stock bajo':'Stock sin alertas críticas'}</small></div><em>→</em></a>
             <a href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}" class="${paid?'':'dy-premium-link'}"><span>${paid?'⚡':'🔒'}</span><div><b>Impulso Ahora</b><small>${paid?'Publica una venta por horario y stock real':'Incluido con DatoYa Impulso'}</small></div><em>→</em></a>
+            <a href="#/mi-negocio-lo-busco-ya/${id}" class="${wantedPending?'attention':''}"><span>🙋</span><div><b>Lo Busco Ya</b><small>${wantedPending?wantedPending+' solicitud(es) compatibles por responder':'Sin solicitudes pendientes'}</small></div><em>→</em></a>
             <a href="#/mi-negocio-soporte/${id}"><span>📨</span><div><b>Soporte DatoYa</b><small>${openSupport?openSupport+' caso(s) abiertos':'Todo al día'}</small></div><em>→</em></a>
           </div>
         </section>
@@ -244,6 +248,8 @@
   routes['mi-negocio-configuracion']=id=>renderLegacySection(id,'config');
   routes['mi-negocio-promociones']=id=>renderPromotions(id);
   routes['mi-negocio-estadisticas']=id=>renderStats(id);
+
+  window.__datoyaBusinessHubFrame=addHubFrame;
 
   function wrap(name,active,paidFeature){
     const original=routes[name];if(!original)return;

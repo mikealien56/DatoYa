@@ -60,6 +60,21 @@ printf '%s' "$FOUNDER" | python3 -c 'import sys,json; d=json.load(sys.stdin); as
 PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Berlines caseros TEST\",\"description\":\"Producto temporal\",\"category_id\":$CATEGORY_ID,\"price\":1500,\"stock\":5,\"stock_tracking\":true,\"active\":true}")
 PRODUCT_ID=$(printf '%s' "$PRODUCT" | json_value 'd["product"]["id"]')
 
+# Lo Busco Ya: cliente publica -> negocio compatible la ve -> responde -> cliente recibe respuesta.
+WANTED=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/wanted" -H "$J" -d '{"title":"Torta cumpleaños TEST '"$TS"'","category_id":'"$CATEGORY_ID"',"description":"Necesito una torta para 10 personas para mañana","budget":25000,"days":3,"radius_km":5,"comuna_id":'"$COMUNA_ID"'}')
+WANTED_ID=$(printf '%s' "$WANTED" | json_value 'd["id"]')
+printf '%s' "$WANTED" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["id"]>0; assert "notified_businesses" in d'
+WANTED_BUSINESS=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/wanted")
+printf '%s' "$WANTED_BUSINESS" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert any(int(x["id"])==int("'"$WANTED_ID"'") for x in d["requests"]); assert d["stats"]["pending"]>=1; assert d["privacy"]'
+WANTED_RESPONSE=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/wanted/$WANTED_ID/responses" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"message":"Sí, podemos prepararla para mañana.","product_id":'"$PRODUCT_ID"',"reference_price":24000,"availability":"Retiro mañana desde las 16:00"}')
+printf '%s' "$WANTED_RESPONSE" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] is True'
+WANTED_MINE=$(curl -fsS -b /tmp/dy_market_client "$B/wanted/mine")
+printf '%s' "$WANTED_MINE" | python3 -c 'import sys,json; d=json.load(sys.stdin); q=next(x for x in d["requests"] if int(x["id"])==int("'"$WANTED_ID"'")); assert len(q["responses"])==1; r=q["responses"][0]; assert r["business_name"].startswith("Dulce Hogar TEST"); assert r["product_name"]=="Berlines caseros TEST"; assert int(r["reference_price"])==24000; assert "16:00" in r["availability"]'
+WANTED_NOTIF=$(curl -fsS -b /tmp/dy_market_client "$B/notifications/summary")
+printf '%s' "$WANTED_NOTIF" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert any(n["type"]=="wanted_response" for n in d["notifications"])'
+WANTED_AFTER=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/wanted")
+printf '%s' "$WANTED_AFTER" | python3 -c 'import sys,json; d=json.load(sys.stdin); q=next(x for x in d["requests"] if int(x["id"])==int("'"$WANTED_ID"'")); assert q["response_id"]; assert int(q["response_price"])==24000; assert d["stats"]["responded"]>=1'
+
 DELIVERY_CFG=$(curl -fsS -b /tmp/dy_market_merchant -X PUT "$B/businesses/$BUSINESS_ID/delivery" -H "$J" -d '{"enabled":true,"fee":1500,"min_order":2000,"free_from":5000,"radius_km":5}')
 printf '%s' "$DELIVERY_CFG" | python3 -c 'import sys,json; d=json.load(sys.stdin)["delivery"]; assert d["enabled"] is True; assert d["fee"]==1500; assert d["min_order"]==2000; assert d["free_from"]==5000; assert d["radius_km"]==5'
 

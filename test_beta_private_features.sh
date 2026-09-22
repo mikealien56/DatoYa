@@ -8,6 +8,10 @@ grep -q "__dyOptionalMarketUser" beta_private_features_bootstrap.js || { echo "F
 grep -q "__dySearchDedupe" beta_private_features_bootstrap.js || { echo "Falta deduplicación de búsquedas"; exit 1; }
 grep -q "IMPULSO_PLAN_REQUIRED" beta_private_features_bootstrap.js
 grep -q "requireRole('cliente')" beta_private_features_bootstrap.js
+grep -q "businesses/:id/wanted" beta_private_features_bootstrap.js || { echo "Falta bandeja Lo Busco Ya para negocios"; exit 1; }
+grep -q "wanted_response" beta_private_features_bootstrap.js || { echo "Falta notificación de respuesta Lo Busco Ya"; exit 1; }
+grep -q "business_category_links" beta_private_features_bootstrap.js || { echo "Lo Busco Ya no filtra por categoría del negocio"; exit 1; }
+grep -q "Tu negocio debe estar activo para responder" beta_private_features_bootstrap.js || { echo "Falta guard de negocio activo en Lo Busco Ya"; exit 1; }
 grep -q "Datos agregados y anónimos" beta_private_features_bootstrap.js
 grep -q "__dyRunAlertMatching" beta_private_features_bootstrap.js
 grep -q "__dyRunBusinessSignals" beta_private_features_bootstrap.js
