@@ -64,5 +64,5 @@ grep -Fq "const b=__dyOwnedBusiness(req.user.id,req.params.id)" beta_private_fea
 grep -Fq "WHERE id=? AND user_id=?" beta_private_features_bootstrap.js || fail 'Notificaciones no limitan escritura al usuario'
 grep -Fq "WHERE id=? AND user_id=? AND status='active'" beta_private_features_bootstrap.js || fail 'Lo Busco Ya no limita cambios al cliente propietario'
 grep -Fq "SELECT id FROM products WHERE id=? AND business_id=? AND active=1" beta_private_features_bootstrap.js || fail 'Respuesta permite producto de otro negocio'
-if rg -n "DATOYA_ALLOW_LIVE_PAYMENTS\s*=\s*(true|1)" --glob '!test_*' . >/dev/null; then fail 'Pagos reales fueron activados en código'; fi
+if grep -R -n -E "DATOYA_ALLOW_LIVE_PAYMENTS[[:space:]]*=[[:space:]]*(true|1)" --exclude='test_*' --exclude-dir='.git' . >/dev/null; then fail 'Pagos reales fueron activados en código'; fi
 echo 'Security regression suite OK'
