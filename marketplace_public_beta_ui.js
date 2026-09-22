@@ -36,7 +36,7 @@
     return `<button type="button" class="dy-follow-button ${active?'active':''}" data-dy-follow="${Number(id)}" aria-pressed="${active?'true':'false'}">${active?'✓ Siguiendo':'+ Seguir negocio'}</button>`;
   }
   function customerActionReady(){
-    if(!ME){toast?.('Inicia sesión como cliente para guardar y seguir negocios','err');location.hash='#/login';return false;}
+    if(!ME){try{sessionStorage.setItem('datoya_after_auth',location.hash||'#/');}catch(_){}toast?.('Inicia sesión como cliente para guardar y seguir negocios','err');location.hash='#/login';return false;}
     if(!isCustomerAccount()){toast?.('Favoritos y seguidos pertenecen a las cuentas Cliente','err');return false;}
     return true;
   }
