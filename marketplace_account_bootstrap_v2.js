@@ -54,7 +54,7 @@ const marketCategories=[
   ['comida','Restaurantes','🍽️',10],['comida-rapida','Comida rápida','🍔',20],['cafeterias','Cafeterías','☕',30],
   ['panaderia','Panaderías','🥐',40],['pastelerias','Pastelerías','🎂',50],['tiendas','Tiendas','🛍️',60],
   ['almacenes','Almacenes','🏪',70],['minimarkets','Minimarkets','🧺',80],['farmacia','Farmacias','✚',90],
-  ['ferreterias','Ferreterías','🔩',100],['mascotas','Mascotas','🐾',110],['belleza','Belleza','✂️',120],
+  ['opticas','Ópticas','👓',95],['ferreterias','Ferreterías','🔩',100],['mascotas','Mascotas','🐾',110],['belleza','Belleza','✂️',120],
   ['ropa','Ropa','👕',130],['regalos','Regalos','🎁',140],['librerias','Librerías','📚',150],
   ['tecnologia','Tecnología','💻',160],['hogar','Hogar','🏠',170],['artesania','Artesanía','🧶',180],['otros','Otros','➕',999]
 ];
