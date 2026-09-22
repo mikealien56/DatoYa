@@ -153,11 +153,12 @@
             <div class="field"><label>DatoYa Impulso 3 meses (CLP)</label><input name="impulso_quarterly_price" type="number" min="0" value="${h(s.impulso_quarterly_price)}"></div>
             <div class="field"><label>DatoYa Impulso anual (CLP)</label><input name="impulso_annual_price" type="number" min="0" value="${h(s.impulso_annual_price)}"></div>
             <div class="field"><label>Límite catálogo plan Gratis</label><input name="impulso_free_catalog_limit" type="number" min="1" value="${h(s.impulso_free_catalog_limit)}"></div>
+            <div class="field"><label>Límite catálogo DatoYa Impulso</label><input name="impulso_paid_catalog_limit" type="number" min="1" value="${h(s.impulso_paid_catalog_limit)}"></div>
             <div class="field"><label>Días por defecto Impulso semanal</label><input name="weekly_impulse_days" type="number" min="1" max="30" value="${h(s.weekly_impulse_days)}"></div>
             <button class="btn btn-primary" type="submit">Guardar configuración</button>
           </form>
           <div class="card dy-admin-note"><b>Pagos reales:</b> ${s.live_payments_allowed?'habilitados':'bloqueados'} · <b>Checkout Impulso:</b> ${s.impulso_checkout_enabled?'habilitado':'en validación'}. No se habilitan cobros reales desde esta pantalla.</div>`);
-        document.getElementById('dy-admin-settings')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/admin/marketplace-v2/settings',{method:'PUT',body:{commission_pct:Number(f.commission_pct.value),impulso_monthly_price:Number(f.impulso_monthly_price.value),impulso_quarterly_price:Number(f.impulso_quarterly_price.value),impulso_annual_price:Number(f.impulso_annual_price.value),impulso_free_catalog_limit:Number(f.impulso_free_catalog_limit.value),weekly_impulse_days:Number(f.weekly_impulse_days.value)}});toast?.('Configuración guardada','ok');}catch(err){toast?.(err.message,'err');}});
+        document.getElementById('dy-admin-settings')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/admin/marketplace-v2/settings',{method:'PUT',body:{commission_pct:Number(f.commission_pct.value),impulso_monthly_price:Number(f.impulso_monthly_price.value),impulso_quarterly_price:Number(f.impulso_quarterly_price.value),impulso_annual_price:Number(f.impulso_annual_price.value),impulso_free_catalog_limit:Number(f.impulso_free_catalog_limit.value),impulso_paid_catalog_limit:Number(f.impulso_paid_catalog_limit.value),weekly_impulse_days:Number(f.weekly_impulse_days.value)}});toast?.('Configuración guardada','ok');}catch(err){toast?.(err.message,'err');}});
         return;
       }
     }catch(e){toast?.(e.message||'No se pudo cargar el panel administrador','err');}
