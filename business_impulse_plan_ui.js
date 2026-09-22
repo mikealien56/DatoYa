@@ -28,7 +28,7 @@
         ['Productos en catálogo','Hasta '+freeLimit,'Hasta '+paidLimit],
         ['⚡ Impulso Ahora','🔒','✓'],
         ['📊 Estadísticas avanzadas','🔒','✓'],
-        ['✨ Perfil destacado','🔒','✓'],
+        ['✨ Perfil destacado','🔒','Próximamente'],
         ['📍 Pulso Local','🔒','Próximamente'],
         ['🎯 Radar de oportunidades','🔒','Próximamente'],
         ['🔔 Prioridad en DatoYa Alerta','🔒','Próximamente']
@@ -58,11 +58,11 @@
           <section class="dy-plan-card free">
             <span>PLAN GRATIS</span><h2>$0</h2><p>Para operar un negocio real dentro de DatoYa sin mensualidad.</p>
             <ul><li>Hasta <b>${freeLimit} productos</b></li><li>Perfil, horarios y ubicación</li><li>Pedidos sin límite de cantidad</li><li>Retiro y despacho propio</li><li>Soporte DatoYa</li><li>Panel básico y QR compartible</li></ul>
-            <div class="dy-plan-current">${active?'Disponible como base del plan':'✓ Este es tu plan actual'}</div>
+            <div class="dy-plan-current">${active?'Disponible como base del plan':'✓ Este es tu plan actual'}</div><div class="dy-plan-limit-note">Si tu plan Impulso vence teniendo más de ${freeLimit} productos, DatoYa no los borra. Se conservan, pero no podrás agregar nuevos hasta quedar bajo el límite Gratis o reactivar Impulso.</div>
           </section>
           <section class="dy-plan-card impulse">
             <span>⚡ DATOYA IMPULSO</span><h2>Desde ${money(cfg.monthly_price)} <small>/ mes</small></h2><p>Incluye todo lo Gratis y desbloquea herramientas para crecer.</p>
-            <ul><li>📦 Hasta <b>${paidLimit} productos</b></li><li>⚡ Impulso Ahora</li><li>📊 Estadísticas avanzadas</li><li>✨ Perfil destacado</li><li>📍 Pulso Local <small>(próximamente)</small></li><li>🎯 Radar de oportunidades <small>(próximamente)</small></li><li>🔔 Prioridad en DatoYa Alerta <small>(próximamente)</small></li></ul>
+            <ul><li>📦 Hasta <b>${paidLimit} productos</b></li><li>⚡ Impulso Ahora</li><li>📊 Estadísticas avanzadas</li><li>✨ Perfil destacado <small>(próximamente)</small></li><li>📍 Pulso Local <small>(próximamente)</small></li><li>🎯 Radar de oportunidades <small>(próximamente)</small></li><li>🔔 Prioridad en DatoYa Alerta <small>(próximamente)</small></li></ul>
             <div class="dy-plan-options">
               <div class="dy-plan-option"><div><b>Mensual</b><small>${money(cfg.monthly_price)} / mes</small></div><button class="btn btn-outline btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'monthly')">Elegir</button></div>
               <div class="dy-plan-option popular"><div><span>AHORRA ${money((cfg.monthly_price*3)-cfg.quarterly_price)}</span><b>3 meses</b><small><s>${money(cfg.monthly_price*3)}</s> <strong>${money(cfg.quarterly_price)}</strong> · equivale a ${money(Math.round(cfg.quarterly_price/3))}/mes</small></div><button class="btn btn-primary btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'quarterly')">Elegir 3 meses</button></div>
