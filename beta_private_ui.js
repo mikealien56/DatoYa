@@ -13,13 +13,58 @@
     return bellRefresh;
   }
   const priorAuth=typeof renderAuthArea==='function'?renderAuthArea:null;
-  if(priorAuth)renderAuthArea=function(){const r=priorAuth.apply(this,arguments);setTimeout(refreshBell,0);return r};
+  if(priorAuth)renderAuthArea=function(){const r=priorAuth.apply(this,arguments);setTimeout(()=>{refreshBell();syncExistingPush().catch(()=>{})},0);return r};
+
+  const pushSupported=()=>('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
+  function pushAppKey(value){const pad='='.repeat((4-String(value||'').length%4)%4),base64=(String(value||'')+pad).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),out=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
+  async function pushState(){
+    const config=await api('/push/config');
+    if(!pushSupported())return {config,supported:false,permission:'unsupported',subscription:null};
+    const reg=await navigator.serviceWorker.ready,subscription=await reg.pushManager.getSubscription();
+    return {config,supported:true,permission:Notification.permission,subscription};
+  }
+  async function enablePush(config){
+    if(!pushSupported())throw new Error('Este navegador no admite notificaciones push');
+    if(!config?.configured||!config?.public_key)throw new Error('Las notificaciones push aún no están habilitadas en DatoYa');
+    const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();
+    if(permission!=='granted')throw new Error(permission==='denied'?'Los avisos están bloqueados en la configuración del navegador':'No se autorizó el envío de avisos');
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushAppKey(config.public_key)});
+    await api('/push/subscribe',{method:'POST',body:sub.toJSON()});
+    return sub;
+  }
+  async function disablePush(){
+    if(!pushSupported())return;
+    const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+    if(sub){try{await api('/push/subscribe',{method:'DELETE',body:{endpoint:sub.endpoint}})}catch(_){}await sub.unsubscribe()}
+  }
+  async function syncExistingPush(){
+    if(!ME||!pushSupported()||Notification.permission!=='granted')return;
+    const config=await api('/push/config');
+    if(!config?.configured)return;
+    const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+    if(sub)await api('/push/subscribe',{method:'POST',body:sub.toJSON()});
+  }
+  async function detachPushForLogout(){
+    if(!ME||!pushSupported()||Notification.permission!=='granted')return;
+    const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+    if(sub)try{await api('/push/subscribe',{method:'DELETE',body:{endpoint:sub.endpoint}})}catch(_){}
+  }
+  const priorLogout=typeof window.logout==='function'?window.logout:null;
+  if(priorLogout)window.logout=async function(){await detachPushForLogout().catch(()=>{});return priorLogout.apply(this,arguments)};
 
   routes.notificaciones=async function(){
-    if(!ME){location.hash='#/login';return}const d=await api('/notifications/summary'),rows=d.notifications||[];
-    view.innerHTML=`<div class="dy-beta-page"><header class="dy-beta-head"><div><span>CENTRO DATOYA</span><h1>Notificaciones</h1><p>Pedidos, soporte, alertas y novedades importantes en un solo lugar.</p></div>${d.unread?'<button id="dy-read-all" class="btn btn-outline btn-sm">Marcar todas como leídas</button>':''}</header><div class="dy-notification-list">${rows.length?rows.map(n=>`<a href="${h(n.link||'#/notificaciones')}" class="dy-notification ${n.read_at?'':'unread'}" data-notification-id="${Number(n.id)}"><span>${n.read_at?'○':'●'}</span><div><b>${h(n.text)}</b><small>${when(n.created_at)}</small></div><em>→</em></a>`).join(''):'<div class="dy-beta-empty"><span>🔔</span><h2>Todo al día</h2><p>Las novedades importantes aparecerán aquí.</p></div>'}</div></div>`;
+    if(!ME){location.hash='#/login';return}
+    const [d,push]=await Promise.all([api('/notifications/summary'),pushState().catch(()=>({config:{configured:false},supported:false,permission:'unsupported',subscription:null}))]),rows=d.notifications||[];
+    const pushOn=!!push.subscription,pushReady=!!push.config?.configured;
+    const pushStatus=!push.supported?'No disponible en este navegador':push.permission==='denied'?'Bloqueadas por el navegador':pushOn?'Activadas en este dispositivo':pushReady?'Disponibles para activar':'Pendientes de configuración';
+    view.innerHTML=`<div class="dy-beta-page"><header class="dy-beta-head"><div><span>CENTRO DATOYA</span><h1>Notificaciones</h1><p>Pedidos, soporte, alertas y novedades importantes en un solo lugar.</p></div>${d.unread?'<button id="dy-read-all" class="btn btn-outline btn-sm">Marcar todas como leídas</button>':''}</header><section class="dy-push-card"><div><span>📲 AVISOS EN TU TELÉFONO</span><b>Notificaciones push</b><small>${h(pushStatus)}. Puedes cambiarlas cuando quieras.</small></div><div class="dy-push-actions">${pushOn?'<button id="dy-push-disable" class="btn btn-outline btn-sm">Desactivar</button><button id="dy-push-test" class="btn btn-primary btn-sm">Probar aviso</button>':`<button id="dy-push-enable" class="btn btn-primary btn-sm" ${(!push.supported||!pushReady||push.permission==='denied')?'disabled':''}>Activar avisos</button>`}</div></section><div class="dy-notification-list">${rows.length?rows.map(n=>`<a href="${h(n.link||'#/notificaciones')}" class="dy-notification ${n.read_at?'':'unread'}" data-notification-id="${Number(n.id)}"><span>${n.read_at?'○':'●'}</span><div><b>${h(n.text)}</b><small>${when(n.created_at)}</small></div><em>→</em></a>`).join(''):'<div class="dy-beta-empty"><span>🔔</span><h2>Todo al día</h2><p>Las novedades importantes aparecerán aquí.</p></div>'}</div></div>`;
     document.getElementById('dy-read-all')?.addEventListener('click',async()=>{await api('/notifications/read-all',{method:'PUT'});await refreshBell();routes.notificaciones()});
     document.querySelectorAll('[data-notification-id]').forEach(a=>a.addEventListener('click',()=>api('/notifications/'+a.dataset.notificationId+'/read',{method:'PUT'}).catch(()=>{})));
+    document.getElementById('dy-push-enable')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{await enablePush(push.config);toast?.('Avisos activados en este dispositivo','ok');routes.notificaciones()}catch(err){toast?.(err.message||'No se pudieron activar los avisos','err');e.currentTarget.disabled=false}});
+    document.getElementById('dy-push-disable')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{await disablePush();toast?.('Avisos desactivados en este dispositivo','ok');routes.notificaciones()}catch(err){toast?.(err.message||'No se pudieron desactivar los avisos','err');e.currentTarget.disabled=false}});
+    document.getElementById('dy-push-test')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{await api('/push/test',{method:'POST'});toast?.('Enviamos un aviso de prueba','ok')}catch(err){toast?.(err.message||'No se pudo enviar el aviso de prueba','err')}finally{e.currentTarget.disabled=false}});
   };
 
   routes.alertas=async function(prefillTerm='',prefillCategory=0){

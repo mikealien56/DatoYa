@@ -231,6 +231,9 @@ function setSetting(key, value) {
 }
 function notify(userId, type, text, link) {
   db.prepare('INSERT INTO notifications(user_id,type,text,link) VALUES(?,?,?,?)').run(userId, type, text, link || null);
+  if (typeof global.__datoyaPushNotify === 'function') {
+    Promise.resolve(global.__datoyaPushNotify(userId, type, text, link || null)).catch(error => console.warn('[DatoYa][Push hook]', String(error && error.message || error).slice(0, 140)));
+  }
 }
 function seed() {
   console.log('[DatoYa] PostgreSQL activo: semillas DEMO desactivadas.');

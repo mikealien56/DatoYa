@@ -6,6 +6,13 @@ echo "=== DatoYa CI base: marketplace comercial ==="
 bash test_beta_private_ui.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
+node --check push_notifications_bootstrap.js
+grep -q '"web-push"' package.json || { echo "Falta dependencia web-push"; exit 1; }
+grep -q "CREATE TABLE IF NOT EXISTS push_subscriptions" push_notifications_bootstrap.js || { echo "Falta persistencia de suscripciones Push"; exit 1; }
+grep -q "app.get('/api/push/config'" push_notifications_bootstrap.js || { echo "Falta configuración pública autenticada de Push"; exit 1; }
+grep -q "app.post('/api/push/subscribe'" push_notifications_bootstrap.js || { echo "Falta alta de suscripción Push"; exit 1; }
+grep -q "__datoyaPushNotify" db.js || { echo "SQLite no conecta notificaciones con Push"; exit 1; }
+grep -q "__datoyaPushNotify" db_pg.js || { echo "PostgreSQL no conecta notificaciones con Push"; exit 1; }
 
 # 1) Sintaxis de todo el runtime actual.
 for js in *.js; do
@@ -85,7 +92,7 @@ curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,j
 echo "✅ Healthcheck + categorías comerciales"
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine businesses/1/support-cases businesses/1/plan-access orders/mine admin/support-cases admin/marketplace-v2/summary; do
+for path in businesses/mine businesses/1/support-cases businesses/1/plan-access orders/mine admin/support-cases admin/marketplace-v2/summary push/config; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done
@@ -139,7 +146,7 @@ done
 echo "✅ HTML público sin interfaces legacy"
 
 # 7) Marcadores críticos del backend nuevo.
-for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA_SUPPORT_CENTER_V2"; do
+for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA_SUPPORT_CENTER_V2" "DATOYA WEB PUSH V1"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
 grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_payments_bootstrap.js || { echo "Falta candado de pagos reales Mercado Pago"; exit 1; }
