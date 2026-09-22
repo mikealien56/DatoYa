@@ -96,6 +96,19 @@ curl -fsS -X POST "$B/market/events" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\
 ANALYTICS=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/analytics?days=30")
 printf '%s' "$ANALYTICS" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["events"]["profile_view"]>=1; assert d["events"]["whatsapp_click"]>=1'
 
+ADV_FREE_CODE=$(curl -sS -o /tmp/dy_adv_free.json -w '%{http_code}' -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/analytics?days=30&advanced=1")
+[ "$ADV_FREE_CODE" = "403" ] || { echo "Analítica avanzada Gratis debió responder 403 y respondió $ADV_FREE_CODE"; cat /tmp/dy_adv_free.json; exit 1; }
+python3 -c 'import json; d=json.load(open("/tmp/dy_adv_free.json")); assert d.get("code")=="IMPULSO_PLAN_REQUIRED"'
+
+FREE_IMPULSE_CODE=$(curl -sS -o /tmp/dy_impulse_free.json -w '%{http_code}' -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/impulses" -H "$J" -d '{}')
+[ "$FREE_IMPULSE_CODE" = "403" ] || { echo "Impulso Ahora Gratis debió responder 403 y respondió $FREE_IMPULSE_CODE"; cat /tmp/dy_impulse_free.json; exit 1; }
+python3 -c 'import json; d=json.load(open("/tmp/dy_impulse_free.json")); assert d.get("code")=="IMPULSO_PLAN_REQUIRED"'
+
+GIFT=$(curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/marketplace-v2/impulso/gift" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"days":7}')
+printf '%s' "$GIFT" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] is True; assert d["membership"]["status"]=="active"'
+ACCESS=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/plan-access")
+printf '%s' "$ACCESS" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["plan"]=="impulso"; assert d["access"]["impulse_now"] is True; assert d["access"]["advanced_analytics"] is True; assert d["limits"]["free_products"]==20; assert d["limits"]["impulso_products"]==200'
+curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/analytics?days=30&advanced=1" >/dev/null
 
 IMP_END=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(hours=2)).isoformat())')
 IMPULSE=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/impulses" -H "$J" -d "{\"product_id\":$PRODUCT_ID,\"title\":\"Berlines Impulso TEST\",\"price\":1200,\"old_price\":1500,\"stock\":2,\"starts_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ends_at\":\"$IMP_END\",\"sale_mode\":\"last_units\",\"pickup_enabled\":true,\"delivery_enabled\":false}")
@@ -166,7 +179,7 @@ for ST in confirmed preparing ready completed; do
   curl -fsS -b /tmp/dy_market_merchant -X PUT "$B/businesses/$BUSINESS_ID/orders/$WEEK_ORDER_ID/status" -H "$J" -d "{\"status\":\"$ST\"}" >/dev/null
 done
 
-PROMO_ANALYTICS=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/promotion-analytics?days=30")
+PROMO_ANALYTICS=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/promotion-analytics?days=30&advanced=1")
 printf '%s' "$PROMO_ANALYTICS" | python3 -c 'import sys,json; d=json.load(sys.stdin); a=d["impulse_now"]["summary"]; w=d["weekly"]["summary"]; assert a["impressions"]>=1 and a["clicks"]>=1 and a["add_cart"]>=1 and a["orders"]>=1 and a["completed_orders"]>=1 and a["revenue"]>=1200; assert w["impressions"]>=1 and w["clicks"]>=1 and w["add_cart"]>=1 and w["orders"]>=1 and w["completed_orders"]>=1 and w["revenue"]>=1500'
 
 
