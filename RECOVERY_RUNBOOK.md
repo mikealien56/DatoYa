@@ -53,3 +53,42 @@ Resultado:
 La verificación confirma que una copia de rama actual de Neon conserva estructura y datos de DatoYa y puede usarse como punto de recuperación aislado.
 
 La validación con `pg_dump` / `pg_restore` sigue pendiente porque el entorno utilizado para esta revisión no dispone del cliente PostgreSQL. Además, el proyecto alcanzó su límite actual de snapshots manuales: existe `datoya-beta-backup-20260921`, con vencimiento 28-09-2026. No se eliminó ni reemplazó ningún snapshot durante esta comprobación.
+
+
+## Cierre de respaldo para beta privada · 22-09-2026
+
+Se creó una copia aislada del estado actual de producción en Neon:
+
+- Rama de producción: `main` (`br-polished-smoke-av7vvstl`).
+- Respaldo actual: `BACKUP-DO-NOT-DELETE-beta-20260922-final` (`br-withered-truth-avb7azgx`).
+- Punto copiado: 22-09-2026 23:28:57 UTC.
+- Rama de recuperación de prueba: `restore-verify-final-20260922` (`br-small-base-avvf6u79`).
+- Ninguna prueba de recuperación escribió ni restauró sobre producción.
+
+Verificación contra producción:
+
+- 77 tablas públicas en ambos lados.
+- 713 columnas en ambos lados.
+- 149 índices en ambos lados.
+- 748 restricciones en ambos lados.
+- Conteos iguales: 15 usuarios, 15 tipos de cuenta, 1 negocio, 1 producto, 5 pedidos, 5 ítems de pedido y 1 caso de soporte.
+- Hashes de contenido idénticos para `users`, `market_account_types`, `businesses`, `products`, `commerce_orders`, `commerce_order_items`, `support_cases`, `notifications`, `mercadopago_connections` y `account_consents`.
+- La copia de recuperación creada desde el respaldo volvió a producir la misma estructura, conteos y hashes críticos.
+
+### Limitaciones actuales del plan Neon Free
+
+- Neon rechazó una programación automática de snapshots para este proyecto porque esa función no está habilitada en el plan actual.
+- Neon rechazó un segundo snapshot manual porque el proyecto alcanzó el límite de snapshots.
+- Se conserva el snapshot manual existente `datoya-beta-backup-20260921`; no se eliminó ni reemplazó.
+- La rama de respaldo actual no tiene vencimiento configurado. Su nombre comienza con `BACKUP-DO-NOT-DELETE` para evitar eliminación accidental.
+- Neon no permitió marcar una segunda rama como protegida porque se alcanzó el máximo de ramas protegidas del plan.
+
+### Procedimiento de recuperación durante la beta
+
+1. No modificar ni eliminar `BACKUP-DO-NOT-DELETE-beta-20260922-final`.
+2. Ante un problema grave, detener escrituras de la aplicación antes de cualquier recuperación.
+3. Crear primero una rama nueva desde el respaldo; nunca restaurar directamente sobre `main` durante el diagnóstico.
+4. Comparar estructura, conteos críticos, autenticación, negocios, productos, pedidos, soporte y consentimientos.
+5. Probar la aplicación contra la rama recuperada antes de cambiar la conexión de Render.
+6. Solo después de una validación completa, cambiar producción en una ventana controlada.
+7. Mientras DatoYa siga en el plan Free, crear una nueva rama de respaldo antes de cambios estructurales importantes o antes de ampliar la beta.
