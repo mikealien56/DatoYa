@@ -15,6 +15,11 @@ grep -q "dy-notification-bell" beta_private_ui.js
 grep -q "if(bellRefresh)return bellRefresh" beta_private_ui.js
 grep -q "querySelectorAll('#dy-notification-bell')" beta_private_ui.js
 grep -q "routes.favoritos" beta_private_ui.js
+grep -q "data-remove-favorite" beta_private_ui.js || { echo "Mis guardados no permite quitar favoritos"; exit 1; }
+grep -q "data-toggle-follow-notify" beta_private_ui.js || { echo "Mis guardados no permite controlar avisos"; exit 1; }
+grep -q "savedButton" marketplace_public_beta_ui.js || { echo "Faltan corazones en marketplace público"; exit 1; }
+grep -q "data-dy-follow" marketplace_public_beta_ui.js || { echo "Falta botón Seguir negocio"; exit 1; }
+grep -q "bindSavedActions" marketplace_public_beta_ui.js || { echo "Favoritos visuales no están conectados a API"; exit 1; }
 grep -q "trackSearch" marketplace_public_beta_ui.js || { echo "La búsqueda pública no registra demanda"; exit 1; }
 grep -q "market/search-events" marketplace_public_beta_ui.js || { echo "La búsqueda no llama al registro de demanda"; exit 1; }
 grep -q "matchingBusinessIds.size+matchingProducts.length" marketplace_public_beta_ui.js || { echo "Las categorías no registran demanda local"; exit 1; }
