@@ -46,9 +46,12 @@ function __dyRequireCurrentLegalConsent(req,res,next){
   ];
   let protectedCount=0;
   for(const prefix of prefixes){
-    if(src.includes(prefix) && !src.includes(prefix+'__dyRequireCurrentLegalConsent,')){
-      src=src.replace(prefix,prefix+'__dyRequireCurrentLegalConsent,');
-      protectedCount++;
+    const guarded=prefix+'__dyRequireCurrentLegalConsent,';
+    if(src.includes(guarded)) continue;
+    const occurrences=src.split(prefix).length-1;
+    if(occurrences>0){
+      src=src.split(prefix).join(guarded);
+      protectedCount+=occurrences;
     }
   }
   if(protectedCount<12) throw new Error('Se protegieron menos rutas comerciales de las esperadas: '+protectedCount);
