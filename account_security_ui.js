@@ -17,7 +17,6 @@
     try{
       const created=await api('/auth/register',{method:'POST',body:{name:f.name.value,email:f.email.value,password:f.password.value,phone:f.phone.value||null,comuna_id:+f.comuna_id.value,role:f.role.value,accept_terms:!!f.terms.checked,accept_privacy:!!f.terms.checked}});
       await refreshMe();
-      await api('/legal/consent',{method:'POST',body:{accept_terms:true,accept_privacy:true,location_consent:!!f.location.checked}}).catch(()=>{});
       location.hash='#/seguridad'; route();
       toast(created.verification_email_sent?'Cuenta creada. Te enviamos un correo para verificarla.':'Cuenta creada. Desde Seguridad puedes enviar la verificación de correo.',created.verification_email_sent?'ok':'info');
     }catch(err){ toast(err.message,'err'); }
@@ -56,7 +55,7 @@
   window.updateDatoYaPhone=async function(){try{await api('/auth/contact',{method:'PUT',body:{phone:document.getElementById('security-phone').value}});await refreshMe();routes.seguridad();toast('Celular actualizado','ok');}catch(err){toast(err.message,'err');}};
   window.requestDatoYaPhoneCode=async function(){try{const r=await api('/auth/phone-verification/request',{method:'POST'});const box=document.getElementById('phone-code-box');box.innerHTML=`<div class="field" style="margin-top:10px"><label>Código de 6 dígitos</label><input id="security-code" inputmode="numeric" maxlength="6" placeholder="000000"></div><button class="btn btn-green btn-block" onclick="confirmDatoYaPhoneCode()">Confirmar código</button>${r.test_code?`<p class="small muted">Código TEST: <b>${e(r.test_code)}</b></p>`:''}`;}catch(err){toast(err.message,'err');}};
   window.confirmDatoYaPhoneCode=async function(){try{await api('/auth/phone-verification/confirm',{method:'POST',body:{code:document.getElementById('security-code').value}});routes.seguridad();toast('Celular verificado','ok');}catch(err){toast(err.message,'err');}};
-  window.acceptDatoYaCurrentLegal=async function(){try{await api('/legal/consent',{method:'POST',body:{accept_terms:true,accept_privacy:true,location_consent:false}});routes.seguridad();toast('Preferencias legales actualizadas','ok');}catch(err){toast(err.message,'err');}};
+  window.acceptDatoYaCurrentLegal=async function(){try{await api('/legal/consent',{method:'POST',body:{accept_terms:true,accept_privacy:true,location_consent:false}});let back=null;try{back=sessionStorage.getItem('datoya_legal_return');sessionStorage.removeItem('datoya_legal_return');}catch(_){}toast('Términos y privacidad actualizados','ok');if(back&&back!=='#/seguridad'){location.hash=back;}else routes.seguridad();}catch(err){toast(err.message,'err');}};
 
   routes.terminos=async function(){
     const v=await api('/legal/versions').catch(()=>({terms_version:'beta'}));
