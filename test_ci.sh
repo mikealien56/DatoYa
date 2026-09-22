@@ -18,6 +18,9 @@ grep -q "ON CONFLICT (user_id) DO NOTHING" postgres/002_market_account_types.sql
 grep -q "Falta tabla PostgreSQL: market_account_types" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS support_cases" postgres/003_support_cases.sql
 grep -q "Falta tabla PostgreSQL: support_cases" postgres_migrate.js
+grep -q "ADD COLUMN IF NOT EXISTS business_id" postgres/006_business_support_threads.sql
+grep -q "CREATE TABLE IF NOT EXISTS support_case_messages" postgres/006_business_support_threads.sql
+grep -q "Falta tabla PostgreSQL: support_case_messages" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS business_impulse_memberships" postgres/004_marketplace_admin_v2.sql
 grep -q "CREATE TABLE IF NOT EXISTS business_impulse_payments" postgres/004_marketplace_admin_v2.sql
 grep -q "impulso_quarterly_price" postgres/005_impulso_quarterly_pricing.sql
@@ -75,7 +78,7 @@ CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'impor
 echo "✅ Healthcheck + categorías comerciales"
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine orders/mine admin/support-cases admin/marketplace-v2/summary; do
+for path in businesses/mine businesses/1/support-cases orders/mine admin/support-cases admin/marketplace-v2/summary; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done
@@ -89,7 +92,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_promo_analytics_ui.js marketplace_integrations_ui.js support_center_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_promo_analytics_ui.js marketplace_integrations_ui.js support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
@@ -118,13 +121,18 @@ done
 echo "✅ HTML público sin interfaces legacy"
 
 # 7) Marcadores críticos del backend nuevo.
-for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA_SUPPORT_CENTER_V1"; do
+for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA_SUPPORT_CENTER_V2"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
 grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_payments_bootstrap.js || { echo "Falta candado de pagos reales Mercado Pago"; exit 1; }
 grep -q "mercadopago/disconnect" marketplace_payments_bootstrap.js || { echo "Falta desconexión segura de Mercado Pago"; exit 1; }
 grep -q "support_cases" support_center_bootstrap.js || { echo "Falta persistencia de casos de soporte"; exit 1; }
 grep -q "api/admin/support-cases" support_center_bootstrap.js || { echo "Falta API admin de soporte"; exit 1; }
+grep -q "api/businesses/:businessId/support-cases" support_center_bootstrap.js || { echo "Falta API privada de soporte para negocios"; exit 1; }
+grep -q "api/admin/support-cases/:id/reply" support_center_bootstrap.js || { echo "Falta respuesta visible de soporte desde Admin"; exit 1; }
+grep -q "support_case_messages" support_center_bootstrap.js || { echo "Falta conversación persistente de soporte"; exit 1; }
+grep -q "routes\['mi-negocio-soporte'\]" business_support_ui.js || { echo "Falta panel de soporte para negocio"; exit 1; }
+grep -q "routes\['mi-negocio-soporte-caso'\]" business_support_ui.js || { echo "Falta detalle conversacional de soporte para negocio"; exit 1; }
 grep -q "routes.admin" admin_support_cases_ui.js || { echo "Falta panel admin de soporte"; exit 1; }
 grep -q "DATOYA_MARKETPLACE_ADMIN_V2" marketplace_admin_v2_bootstrap.js || { echo "Falta backend Admin marketplace V2"; exit 1; }
 grep -q "business_impulse_memberships" marketplace_admin_v2_bootstrap.js || { echo "Falta membresía DatoYa Impulso"; exit 1; }
