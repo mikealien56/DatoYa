@@ -55,7 +55,6 @@
       try{
         await api('/auth/register',{method:'POST',body:{name:f.name.value.trim(),email:f.email.value.trim(),password:f.password.value,phone:f.phone.value.trim()||null,comuna_id:Number(f.comuna_id.value),role:'cliente',account_type:'customer',accept_terms:true,accept_privacy:true}});
         await refreshMe();
-        await api('/legal/consent',{method:'POST',body:{accept_terms:true,accept_privacy:true,location_consent:false}}).catch(()=>{});
         location.hash='#/bienvenida'; if(typeof route==='function')route();
         if(typeof toast==='function')toast('¡Cuenta cliente creada!','ok');
       }catch(err){btn.disabled=false;btn.textContent='Crear cuenta cliente';if(typeof toast==='function')toast(err.message,'err');}
@@ -91,7 +90,6 @@
       try{
         await api('/auth/register',{method:'POST',body:{name:f.name.value.trim(),email:f.email.value.trim(),password:f.password.value,phone:f.phone.value.trim()||null,comuna_id:Number(f.comuna_id.value),role:'cliente',account_type:'business',accept_terms:true,accept_privacy:true}});
         await refreshMe();
-        await api('/legal/consent',{method:'POST',body:{accept_terms:true,accept_privacy:true,location_consent:false}}).catch(()=>{});
         location.hash='#/seguridad';if(typeof route==='function')route();
         toast?.('Cuenta de negocio creada. Verifica tu correo antes de registrar el negocio.','ok');
       }catch(err){btn.disabled=false;btn.textContent='Crear cuenta de negocio';toast?.(err.message,'err');}
