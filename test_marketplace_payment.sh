@@ -32,8 +32,18 @@ verify_email(){
 }
 
 TS=$(date +%s%N)
-curl -fsS -c /tmp/dy_market_merchant -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Comerciante TEST\",\"email\":\"merchant-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"account_type\":\"business\",\"phone\":\"+56911112222\",\"comuna_id\":4}" >/dev/null
-curl -fsS -c /tmp/dy_market_client -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Cliente TEST\",\"email\":\"client-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"account_type\":\"customer\",\"phone\":\"+56933334444\",\"comuna_id\":4}" >/dev/null
+NO_CONSENT_CODE=$(curl -sS -o /tmp/dy_no_consent.json -w '%{http_code}' -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Sin Consentimiento TEST\",\"email\":\"no-consent-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"account_type\":\"customer\",\"comuna_id\":4}")
+[ "$NO_CONSENT_CODE" = "400" ] || { echo "Registro sin consentimiento debió responder 400 y respondió $NO_CONSENT_CODE"; cat /tmp/dy_no_consent.json; exit 1; }
+python3 -c 'import json; d=json.load(open("/tmp/dy_no_consent.json")); assert "Términos" in d.get("error","") and "Privacidad" in d.get("error","")'
+
+MERCHANT_REG=$(curl -fsS -c /tmp/dy_market_merchant -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Comerciante TEST\",\"email\":\"merchant-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"account_type\":\"business\",\"phone\":\"+56911112222\",\"comuna_id\":4,\"accept_terms\":true,\"accept_privacy\":true}")
+CLIENT_REG=$(curl -fsS -c /tmp/dy_market_client -X POST "$B/auth/register" -H "$J" -d "{\"name\":\"Cliente TEST\",\"email\":\"client-$TS@datoya.invalid\",\"password\":\"DatoYa-Test-2026\",\"role\":\"cliente\",\"account_type\":\"customer\",\"phone\":\"+56933334444\",\"comuna_id\":4,\"accept_terms\":true,\"accept_privacy\":true}")
+printf '%s' "$MERCHANT_REG" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] is True and d.get("legal_consent_recorded") is True'
+printf '%s' "$CLIENT_REG" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] is True and d.get("legal_consent_recorded") is True'
+MERCHANT_CONSENT=$(curl -fsS -b /tmp/dy_market_merchant "$B/legal/consent")
+CLIENT_CONSENT=$(curl -fsS -b /tmp/dy_market_client "$B/legal/consent")
+printf '%s' "$MERCHANT_CONSENT" | python3 -c 'import sys,json; c=json.load(sys.stdin)["consent"]; assert c and c["terms_version"] and c["privacy_version"]'
+printf '%s' "$CLIENT_CONSENT" | python3 -c 'import sys,json; c=json.load(sys.stdin)["consent"]; assert c and c["terms_version"] and c["privacy_version"]'
 verify_email /tmp/dy_market_merchant
 verify_email /tmp/dy_market_client
 curl -fsS -c /tmp/dy_market_admin -X POST "$B/auth/login" -H "$J" -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" >/dev/null
