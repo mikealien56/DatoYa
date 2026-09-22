@@ -11,6 +11,7 @@ grep -q "__dyRunBusinessSignals" beta_private_features_bootstrap.js
 grep -q "stock_low" beta_private_features_bootstrap.js
 grep -q "impulse_expiring" beta_private_features_bootstrap.js
 grep -q "order_cancelled" beta_private_features_bootstrap.js
+if grep -q "b.logo_data" beta_private_features_bootstrap.js; then echo "Favorites consulta una columna inexistente en businesses"; exit 1; fi
 grep -q "api/admin/private-beta" beta_private_features_bootstrap.js
 grep -q "commerce/favorites/details" beta_private_features_bootstrap.js
 ! grep -q "DATOYA_ALLOW_LIVE_PAYMENTS.*true" beta_private_features_bootstrap.js
