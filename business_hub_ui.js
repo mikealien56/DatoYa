@@ -126,12 +126,7 @@
       <section class="dy-business-card">
         <div class="dy-card-head"><div><span>ÚLTIMOS 30 DÍAS</span><h2>${paid?'Tu negocio en números':'Resumen básico'}</h2><p>${paid?'Métricas reales registradas por DatoYa.':'Las estadísticas avanzadas están disponibles con DatoYa Impulso.'}</p></div><a class="btn btn-outline btn-sm" href="${paid?'#/mi-negocio-estadisticas/'+id:'#/mi-negocio-plan/'+id}">${paid?'Ver estadísticas':'🔒 Ver Impulso'}</a></div>
         <div class="dy-dashboard-metrics">
-          <div><strong>${Number(events.profile_view||0)}</strong><span>Vistas del perfil</span></div>
-          <div><strong>${Number(events.product_view||0)}</strong><span>Vistas de productos</span></div>
-          <div><strong>${Number(events.whatsapp_click||0)}</strong><span>Clics a WhatsApp</span></div>
-          <div><strong>${Number(analyticsD.orders||0)}</strong><span>Pedidos</span></div>
-          <div><strong>${money(analyticsD.sales_completed||0)}</strong><span>Ventas completadas</span></div>
-          <div><strong>${Number(promoNow.orders||0)+Number(promoWeekly.orders||0)}</strong><span>Pedidos por promociones</span></div>
+          ${paid?`<div><strong>${Number(events.profile_view||0)}</strong><span>Vistas del perfil</span></div><div><strong>${Number(events.product_view||0)}</strong><span>Vistas de productos</span></div><div><strong>${Number(events.whatsapp_click||0)}</strong><span>Clics a WhatsApp</span></div><div><strong>${Number(analyticsD.orders||0)}</strong><span>Pedidos</span></div><div><strong>${money(analyticsD.sales_completed||0)}</strong><span>Ventas completadas</span></div><div><strong>${Number(promoNow.orders||0)+Number(promoWeekly.orders||0)}</strong><span>Pedidos por promociones</span></div>`:`<div><strong>${products.length}</strong><span>Productos</span></div><div><strong>${activeOrders}</strong><span>Pedidos en proceso</span></div><div><strong>${Number(analyticsD.completed_orders||0)}</strong><span>Pedidos completados</span></div><div><strong>${money(analyticsD.sales_completed||0)}</strong><span>Ventas completadas</span></div><div class="dy-basic-lock"><strong>🔒</strong><span>Vistas y clics con Impulso</span></div><div class="dy-basic-lock"><strong>🔒</strong><span>Conversión avanzada</span></div>`}
         </div>
       </section>
 
