@@ -60,6 +60,15 @@ printf '%s' "$FOUNDER" | python3 -c 'import sys,json; d=json.load(sys.stdin); as
 PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Berlines caseros TEST\",\"description\":\"Producto temporal\",\"category_id\":$CATEGORY_ID,\"price\":1500,\"stock\":5,\"stock_tracking\":true,\"active\":true}")
 PRODUCT_ID=$(printf '%s' "$PRODUCT" | json_value 'd["product"]["id"]')
 
+# DatoYa Alerta V2: una promoción nueva debe activar una alerta cercana.
+ALERT_PROMO=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Promo especial TEST","category_id":'"$CATEGORY_ID"',"comuna_id":'"$COMUNA_ID"',"latitude":-34.233333,"longitude":-70.966667,"radius_km":1,"days":1}')
+ALERT_PROMO_ID=$(printf '%s' "$ALERT_PROMO" | json_value 'd["id"]')
+PROMO_PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d '{"name":"Promo especial TEST","description":"Oferta temporal para alerta","category_id":'"$CATEGORY_ID"',"price":1400,"promo_price":990,"stock":4,"stock_tracking":true,"active":true}')
+PROMO_PRODUCT_ID=$(printf '%s' "$PROMO_PRODUCT" | json_value 'd["product"]["id"]')
+curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/private-beta/run-matching" -H "$J" -d '{}' >/dev/null
+ALERTS_PROMO=$(curl -fsS -b /tmp/dy_market_client "$B/market/alerts")
+printf '%s' "$ALERTS_PROMO" | python3 -c 'import sys,json; d=json.load(sys.stdin); a=next(x for x in d["alerts"] if int(x["id"])==int("'"$ALERT_PROMO_ID"'")); assert a["status"]=="matched"; assert a["match"]["source_type"]=="promotion"; assert int(a["match"]["source_id"])==int("'"$PROMO_PRODUCT_ID"'"); assert int(a["match"]["price"])==990'
+
 # Favoritos y seguimiento: solo Cliente puede guardar/seguir; Negocio queda bloqueado.
 FAV_PRODUCT=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/commerce/favorites/product/$PRODUCT_ID" -H "$J" -d '{}')
 printf '%s' "$FAV_PRODUCT" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["saved"] is True and d["type"]=="product"'
@@ -152,10 +161,15 @@ printf '%s' "$PULSE" | python3 -c 'import sys,json; d=json.load(sys.stdin); t=ne
 RADAR=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/opportunity-radar")
 printf '%s' "$RADAR" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert any(x["term"]=="berlines" and int(x["demand"])>=3 for x in d["opportunities"])'
 
+ALERT_IMPULSE=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Berlines Impulso TEST","category_id":'"$CATEGORY_ID"',"comuna_id":'"$COMUNA_ID"',"latitude":-34.233333,"longitude":-70.966667,"radius_km":1,"days":1}')
+ALERT_IMPULSE_ID=$(printf '%s' "$ALERT_IMPULSE" | json_value 'd["id"]')
 IMP_END=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(hours=2)).isoformat())')
 IMPULSE=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/impulses" -H "$J" -d "{\"product_id\":$PRODUCT_ID,\"title\":\"Berlines Impulso TEST\",\"price\":1200,\"old_price\":1500,\"stock\":2,\"starts_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ends_at\":\"$IMP_END\",\"sale_mode\":\"last_units\",\"pickup_enabled\":true,\"delivery_enabled\":false}")
 printf '%s' "$IMPULSE" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] is True; assert d["impulse"]["stock_remaining"]==2'
 curl -fsS "$B/market/impulses?business_id=$BUSINESS_ID" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert any(x["title"]=="Berlines Impulso TEST" for x in d["impulses"])'
+curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/private-beta/run-matching" -H "$J" -d '{}' >/dev/null
+ALERTS_IMPULSE=$(curl -fsS -b /tmp/dy_market_client "$B/market/alerts")
+printf '%s' "$ALERTS_IMPULSE" | python3 -c 'import sys,json; d=json.load(sys.stdin); a=next(x for x in d["alerts"] if int(x["id"])==int("'"$ALERT_IMPULSE_ID"'")); assert a["status"]=="matched"; assert a["match"]["source_type"]=="impulse_now"; assert a["match"]["title"]=="Berlines Impulso TEST"'
 
 ORDER=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente TEST\",\"customer_phone\":\"+56933334444\",\"items\":[{\"product_id\":$PRODUCT_ID,\"quantity\":2}]}")
 ORDER_ID=$(printf '%s' "$ORDER" | json_value 'd["order"]["id"]')
@@ -208,10 +222,17 @@ for ST in confirmed preparing ready completed; do
 done
 
 # Impulso de la semana: publicación TEST aprobada y pedido atribuido.
+ALERT_WEEKLY_NEAR=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Caja semanal TEST","category_id":'"$CATEGORY_ID"',"comuna_id":'"$COMUNA_ID"',"latitude":-34.233333,"longitude":-70.966667,"radius_km":1,"days":1}')
+ALERT_WEEKLY_NEAR_ID=$(printf '%s' "$ALERT_WEEKLY_NEAR" | json_value 'd["id"]')
+ALERT_WEEKLY_FAR=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Caja semanal TEST","comuna_id":'"$COMUNA_ID"',"latitude":-33.4489,"longitude":-70.6693,"radius_km":1,"days":1}')
+ALERT_WEEKLY_FAR_ID=$(printf '%s' "$ALERT_WEEKLY_FAR" | json_value 'd["id"]')
 WEEKLY=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/weekly-impulses" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"title":"Caja semanal TEST","description":"Promoción semanal temporal","regular_price":1800,"offer_price":1500,"stock":5,"original_image_data":"data:image/png;base64,iVBORw0KGgo="}')
 WEEKLY_ID=$(printf '%s' "$WEEKLY" | json_value 'd["id"]')
 WEEK_END=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(days=7)).isoformat())')
 curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/weekly-impulses/$WEEKLY_ID/approve" -H "$J" -d "{\"placement_type\":\"launch\",\"use_original\":true,\"ends_at\":\"$WEEK_END\"}" >/dev/null
+curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/private-beta/run-matching" -H "$J" -d '{}' >/dev/null
+ALERTS_WEEKLY=$(curl -fsS -b /tmp/dy_market_client "$B/market/alerts")
+printf '%s' "$ALERTS_WEEKLY" | python3 -c 'import sys,json; d=json.load(sys.stdin); near=next(x for x in d["alerts"] if int(x["id"])==int("'"$ALERT_WEEKLY_NEAR_ID"'")); far=next(x for x in d["alerts"] if int(x["id"])==int("'"$ALERT_WEEKLY_FAR_ID"'")); assert near["status"]=="matched"; assert near["match"]["source_type"]=="weekly"; assert far["status"]=="active" and far.get("match") is None'
 curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"weekly_view\",\"visitor_id\":\"promo-week-view-$TS\"}" >/dev/null
 curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"weekly_click\",\"visitor_id\":\"promo-week-click-$TS\"}" >/dev/null
 curl -fsS -X POST "$B/market/promo-event" -H "$J" -d "{\"business_id\":$BUSINESS_ID,\"weekly_id\":$WEEKLY_ID,\"event_type\":\"add_cart\",\"visitor_id\":\"promo-week-cart-$TS\"}" >/dev/null
