@@ -60,6 +60,15 @@ printf '%s' "$FOUNDER" | python3 -c 'import sys,json; d=json.load(sys.stdin); as
 PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Berlines caseros TEST\",\"description\":\"Producto temporal\",\"category_id\":$CATEGORY_ID,\"price\":1500,\"stock\":5,\"stock_tracking\":true,\"active\":true}")
 PRODUCT_ID=$(printf '%s' "$PRODUCT" | json_value 'd["product"]["id"]')
 
+# DatoYa Alerta V2: una promoción nueva debe activar una alerta cercana.
+ALERT_PROMO=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Promo especial TEST","category_id":'"$CATEGORY_ID"',"comuna_id":'"$COMUNA_ID"',"latitude":-34.233333,"longitude":-70.966667,"radius_km":1,"days":1}')
+ALERT_PROMO_ID=$(printf '%s' "$ALERT_PROMO" | json_value 'd["id"]')
+PROMO_PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{"name":"Promo especial TEST","description":"Oferta temporal para alerta","category_id":$CATEGORY_ID,"price":1400,"promo_price":990,"stock":4,"stock_tracking":true,"active":true}")
+PROMO_PRODUCT_ID=$(printf '%s' "$PROMO_PRODUCT" | json_value 'd["product"]["id"]')
+curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/private-beta/run-matching" -H "$J" -d '{}' >/dev/null
+ALERTS_PROMO=$(curl -fsS -b /tmp/dy_market_client "$B/market/alerts")
+printf '%s' "$ALERTS_PROMO" | python3 -c 'import sys,json; d=json.load(sys.stdin); a=next(x for x in d["alerts"] if int(x["id"])==int("'"$ALERT_PROMO_ID"'")); assert a["status"]=="matched"; assert a["match"]["source_type"]=="promotion"; assert int(a["match"]["source_id"])==int("'"$PROMO_PRODUCT_ID"'"); assert int(a["match"]["price"])==990'
+
 # Favoritos y seguimiento: solo Cliente puede guardar/seguir; Negocio queda bloqueado.
 FAV_PRODUCT=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/commerce/favorites/product/$PRODUCT_ID" -H "$J" -d '{}')
 printf '%s' "$FAV_PRODUCT" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["saved"] is True and d["type"]=="product"'
