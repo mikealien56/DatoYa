@@ -161,6 +161,8 @@ printf '%s' "$PULSE" | python3 -c 'import sys,json; d=json.load(sys.stdin); t=ne
 RADAR=$(curl -fsS -b /tmp/dy_market_merchant "$B/businesses/$BUSINESS_ID/opportunity-radar")
 printf '%s' "$RADAR" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert any(x["term"]=="berlines" and int(x["demand"])>=3 for x in d["opportunities"])'
 
+ALERT_IMPULSE=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Berlines Impulso TEST","category_id":'"$CATEGORY_ID"',"comuna_id":'"$COMUNA_ID"',"latitude":-34.233333,"longitude":-70.966667,"radius_km":1,"days":1}')
+ALERT_IMPULSE_ID=$(printf '%s' "$ALERT_IMPULSE" | json_value 'd["id"]')
 IMP_END=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(hours=2)).isoformat())')
 IMPULSE=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/impulses" -H "$J" -d "{\"product_id\":$PRODUCT_ID,\"title\":\"Berlines Impulso TEST\",\"price\":1200,\"old_price\":1500,\"stock\":2,\"starts_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ends_at\":\"$IMP_END\",\"sale_mode\":\"last_units\",\"pickup_enabled\":true,\"delivery_enabled\":false}")
 printf '%s' "$IMPULSE" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] is True; assert d["impulse"]["stock_remaining"]==2'
