@@ -13,6 +13,41 @@
   function searchVisitorId(){let id=localStorage.getItem('datoya_search_visitor_id');if(id)return id;id=(window.crypto&&typeof window.crypto.randomUUID==='function'?window.crypto.randomUUID():'dy-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12));try{localStorage.setItem('datoya_search_visitor_id',id)}catch(_){}return id;}
   function trackSearch(term,categoryId,resultCount){const q=String(term||'').trim();if(q.length<2)return Promise.resolve();const loc=locationState(),comunaId=Number(loc.comunaId||ME?.comuna_id||0)||null;return api('/market/search-events',{method:'POST',body:{term:q,category_id:Number(categoryId)||null,comuna_id:comunaId,radius_km:[1,3,5,10].includes(Number(loc.radius))?Number(loc.radius):5,result_count:Math.max(0,Number(resultCount)||0),visitor_id:searchVisitorId()}}).catch(()=>null);}
   let cache={at:0,categories:[],businesses:[],products:[]};
+  let savedState={at:0,products:new Set(),businesses:new Set(),following:new Set(),notify:new Map()};
+  const isCustomerAccount=()=>!!ME&&ME.account_type!=='business'&&ME.role!=='admin';
+  const showCustomerControls=()=>!ME||isCustomerAccount();
+  async function loadSavedState(force=false){
+    if(!isCustomerAccount()){savedState={at:Date.now(),products:new Set(),businesses:new Set(),following:new Set(),notify:new Map()};return savedState;}
+    if(!force&&Date.now()-savedState.at<15000)return savedState;
+    try{
+      const d=await api('/commerce/favorites/details');
+      savedState={at:Date.now(),products:new Set((d.products||[]).map(x=>Number(x.id))),businesses:new Set((d.businesses||[]).map(x=>Number(x.id))),following:new Set((d.following||[]).map(x=>Number(x.id))),notify:new Map((d.following||[]).map(x=>[Number(x.id),!!x.notify_promotions]))};
+    }catch(_){savedState={at:Date.now(),products:new Set(),businesses:new Set(),following:new Set(),notify:new Map()};}
+    return savedState;
+  }
+  function savedButton(type,id,label=''){
+    if(!showCustomerControls())return '';
+    const set=type==='product'?savedState.products:savedState.businesses,active=set.has(Number(id));
+    return `<button type="button" class="dy-save-button ${active?'active':''}" data-dy-favorite="${type}" data-id="${Number(id)}" aria-label="${active?'Quitar de favoritos':'Guardar en favoritos'}" aria-pressed="${active?'true':'false'}"><span>${active?'♥':'♡'}</span>${label?`<b>${active?'Guardado':label}</b>`:''}</button>`;
+  }
+  function followButton(id){
+    if(!showCustomerControls())return '';
+    const active=savedState.following.has(Number(id));
+    return `<button type="button" class="dy-follow-button ${active?'active':''}" data-dy-follow="${Number(id)}" aria-pressed="${active?'true':'false'}">${active?'✓ Siguiendo':'+ Seguir negocio'}</button>`;
+  }
+  function customerActionReady(){
+    if(!ME){toast?.('Inicia sesión como cliente para guardar y seguir negocios','err');location.hash='#/login';return false;}
+    if(!isCustomerAccount()){toast?.('Favoritos y seguidos pertenecen a las cuentas Cliente','err');return false;}
+    return true;
+  }
+  function syncSavedButtons(){
+    document.querySelectorAll('[data-dy-favorite]').forEach(btn=>{const type=btn.dataset.dyFavorite,id=Number(btn.dataset.id),active=(type==='product'?savedState.products:savedState.businesses).has(id);btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active?'true':'false');const span=btn.querySelector('span');if(span)span.textContent=active?'♥':'♡';const b=btn.querySelector('b');if(b)b.textContent=active?'Guardado':'Guardar';btn.setAttribute('aria-label',active?'Quitar de favoritos':'Guardar en favoritos');});
+    document.querySelectorAll('[data-dy-follow]').forEach(btn=>{const id=Number(btn.dataset.dyFollow),active=savedState.following.has(id);btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active?'true':'false');btn.textContent=active?'✓ Siguiendo':'+ Seguir negocio';});
+  }
+  function bindSavedActions(){
+    document.querySelectorAll('[data-dy-favorite]').forEach(btn=>{if(btn.dataset.dyBound)return;btn.dataset.dyBound='1';btn.addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();if(!customerActionReady())return;const type=btn.dataset.dyFavorite,id=Number(btn.dataset.id);btn.disabled=true;try{const r=await api('/commerce/favorites/'+type+'/'+id,{method:'POST'}),set=type==='product'?savedState.products:savedState.businesses;r.saved?set.add(id):set.delete(id);savedState.at=Date.now();syncSavedButtons();toast?.(r.saved?'Guardado en favoritos':'Quitado de favoritos','ok');}catch(err){toast?.(err.message||'No se pudo actualizar favoritos','err')}finally{btn.disabled=false;}});});
+    document.querySelectorAll('[data-dy-follow]').forEach(btn=>{if(btn.dataset.dyBound)return;btn.dataset.dyBound='1';btn.addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();if(!customerActionReady())return;const id=Number(btn.dataset.dyFollow);btn.disabled=true;try{const r=await api('/businesses/'+id+'/follow',{method:'POST'});if(r.following){savedState.following.add(id);savedState.notify.set(id,!!r.notify_promotions);}else{savedState.following.delete(id);savedState.notify.delete(id);}savedState.at=Date.now();syncSavedButtons();toast?.(r.following?'Ahora sigues este negocio':'Dejaste de seguir este negocio','ok');}catch(err){toast?.(err.message||'No se pudo actualizar el seguimiento','err')}finally{btn.disabled=false;}});});
+  }
 
   async function loadMarketplace(force=false){
     if(!force && Date.now()-cache.at<15000) return cache;
@@ -40,7 +75,7 @@
   function businessCard(b,products){
     const dist=fmtDistance(b.distance_km);
     return `<article class="dy-business-card dy-real-card" data-beta-business="${Number(b.id)}">
-      <div class="dy-business-photo dy-real-photo">${businessPhoto(b,products)}${b.verified?'<span class="dy-open">✓ Verificado</span>':''}</div>
+      <div class="dy-business-photo dy-real-photo">${businessPhoto(b,products)}${b.verified?'<span class="dy-open">✓ Verificado</span>':''}${savedButton('business',b.id)}</div>
       <div class="dy-business-body"><h3>${h(b.name)}</h3><div class="dy-business-meta">${dist?`<span>📍 ${h(dist)}</span><span>•</span>`:''}<span>${h(b.comuna||'')}</span></div><div class="dy-business-category">${h(categoryText(b))}</div><div class="dy-card-action"><span>${Number(b.products_count||0)} producto${Number(b.products_count||0)===1?'':'s'}</span><a href="#/negocio/${Number(b.id)}">Ver negocio →</a></div></div>
     </article>`;
   }
@@ -50,7 +85,7 @@
     const price=p.promo_price||p.price;
     const badge=kind==='promo'?'🔥 OFERTA':'DISPONIBLE';
     return `<article class="dy-live-card dy-real-product">
-      <div class="dy-live-image dy-real-product-photo">${productPhoto(p)}<span class="dy-live-badge">${badge}</span>${p.stock_tracking?`<span class="dy-stock-badge">${Number(p.stock||0)>0?`Quedan ${Number(p.stock)}`:'Sin stock'}</span>`:''}</div>
+      <div class="dy-live-image dy-real-product-photo">${productPhoto(p)}<span class="dy-live-badge">${badge}</span>${p.stock_tracking?`<span class="dy-stock-badge">${Number(p.stock||0)>0?`Quedan ${Number(p.stock)}`:'Sin stock'}</span>`:''}${savedButton('product',p.id)}</div>
       <div class="dy-live-body"><h3>${h(p.name)}</h3><p>${h(p.business_name||b?.name||'')} ${p.distance_km!=null?`· 📍 ${h(fmtDistance(p.distance_km))}`:''}</p><div class="dy-live-price-row"><div class="dy-live-price"><strong>${money(price)}</strong>${p.promo_price?`<span class="dy-old-price">${money(p.price)}</span>`:''}</div><a class="dy-beta-link" href="#/negocio/${Number(p.business_id)}">Ver →</a></div></div>
     </article>`;
   }
@@ -65,6 +100,7 @@
     view.innerHTML=`<div class="dy-home"><div class="dy-real-loading"><span></span>Buscando negocios reales cerca de ti…</div></div>`;
     try{
       const {categories,businesses,products}=await loadMarketplace();
+      await loadSavedState();
       const promos=products.filter(p=>p.promo_price&&(!p.stock_tracking||Number(p.stock)>0)).slice(0,6);
       const visibleBusinesses=businesses.slice(0,8);
       const productCount=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).length;
@@ -78,6 +114,7 @@
         <section class="dy-local-banner"><div><h2>❤️ Lo local también es grande</h2><p>¿Tienes un negocio? Regístralo, carga tus productos y después de la revisión aparecerá públicamente aquí.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio</a></section>
       </div>`;
       bindHome(categories,businesses,products);
+      bindSavedActions();
       window.dispatchEvent(new CustomEvent('datoya:market-home-rendered'));
     }catch(err){
       view.innerHTML=`<div class="dy-home">${emptyBlock('⚠️','No pudimos cargar el marketplace',err.message||'Intenta nuevamente.',`<button class="btn btn-primary" onclick="location.reload()">Reintentar</button>`)}</div>`;
@@ -97,7 +134,7 @@
       const matchingBusinessIds=new Set(businesses.filter(b=>(b.categories||[]).some(c=>Number(c.id)===id)).map(b=>Number(b.id)));
       const matchingProducts=products.filter(p=>Number(p.category_id)===id||matchingBusinessIds.has(Number(p.business_id)));
       document.querySelectorAll('#dy-beta-businesses [data-beta-business]').forEach(el=>el.style.display=matchingBusinessIds.has(Number(el.dataset.betaBusiness))?'':'none');
-      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){promoGrid.innerHTML=matchingProducts.filter(p=>p.promo_price).slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin promociones en esta categoría','Sí puede haber negocios disponibles más abajo.');}
+      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){promoGrid.innerHTML=matchingProducts.filter(p=>p.promo_price).slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin promociones en esta categoría','Sí puede haber negocios disponibles más abajo.');bindSavedActions();}
       const category=categories.find(c=>Number(c.id)===id);if(category)trackSearch(category.name,id,matchingBusinessIds.size+matchingProducts.length);
       document.getElementById('negocios-cerca')?.scrollIntoView({behavior:'smooth',block:'start'});
     }));
@@ -108,6 +145,7 @@
     view.innerHTML=`<div class="dy-public-page"><div class="dy-real-loading"><span></span>Buscando…</div></div>`;
     try{
       const {categories,businesses,products}=await loadMarketplace(true);
+      await loadSavedState(true);
       const nq=q.toLocaleLowerCase('es');
       const allowedBusinesses=businesses.filter(b=>{
         const catOk=!categoryId||(b.categories||[]).some(c=>Number(c.id)===categoryId);
@@ -122,6 +160,7 @@
       if(trackedTerm)trackSearch(trackedTerm,categoryId,allowedBusinesses.length+matchedProducts.length);
       view.innerHTML=`<div class="dy-public-page"><a class="dy-public-back" href="#/">← Inicio</a><div class="dy-public-head"><span>BÚSQUEDA LOCAL</span><h1>${q?`Resultados para “${h(q)}”`:'Explorar DatoYa'}</h1><form id="dy-beta-search-page"><input name="q" value="${h(q)}" placeholder="Buscar producto o negocio"><select name="category"><option value="0">Todas las categorías</option>${categories.map(c=>`<option value="${c.id}" ${Number(c.id)===categoryId?'selected':''}>${h(c.icon)} ${h(c.name)}</option>`).join('')}</select><button class="btn btn-primary">Buscar</button></form></div><section><h2>Negocios (${allowedBusinesses.length})</h2><div class="dy-card-grid">${allowedBusinesses.length?allowedBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Sin negocios coincidentes','Prueba otra búsqueda o cambia tu zona.')}</div></section><section><h2>Productos (${matchedProducts.length})</h2><div class="dy-live-grid">${matchedProducts.length?matchedProducts.slice(0,24).map(p=>productCard(p,businesses,p.promo_price?'promo':'product')).join(''):emptyBlock('📦','Sin productos coincidentes','Los negocios pueden seguir cargando productos durante la beta.')}</div></section></div>`;
       document.getElementById('dy-beta-search-page')?.addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;location.hash='#/buscar/'+encodeURIComponent(f.q.value.trim()||'_')+'/'+Number(f.category.value||0);});
+      bindSavedActions();
     }catch(err){view.innerHTML=`<div class="dy-public-page">${emptyBlock('⚠️','No pudimos buscar',err.message||'Intenta otra vez.')}</div>`;}
   };
 
@@ -130,13 +169,15 @@
     view.innerHTML=`<div class="dy-public-page"><div class="dy-real-loading"><span></span>Cargando negocio…</div></div>`;
     try{
       const {businesses,products}=await loadMarketplace(true);
+      await loadSavedState(true);
       const b=businesses.find(x=>String(x.id)===key||String(x.slug)===key);
       if(!b)throw new Error('Este negocio no está disponible públicamente. Puede estar pendiente de revisión o pausado.');
       const items=products.filter(p=>Number(p.business_id)===Number(b.id));
       const exact=b.business_type!=='home_business'&&b.public_address_mode==='exact'&&b.address;
       const publicPlace=exact?`${b.address}${b.comuna?', '+b.comuna:''}`:[b.sector,b.comuna].filter(Boolean).join(', ');
       const wa=String(b.whatsapp||b.phone||'').replace(/\D/g,'');
-      view.innerHTML=`<div class="dy-public-page dy-store-page"><a class="dy-public-back" href="#/">← Volver</a><section class="dy-store-hero"><div class="dy-store-cover">${businessPhoto(b,items)}</div><div class="dy-store-info"><span>${b.business_type==='home_business'?'🏠 Emprendimiento desde casa':'🏬 Local físico'}${b.verified?' · ✓ Verificado':''}</span><h1>${h(b.name)}</h1><p>${h(b.description||'Negocio local en DatoYa.')}</p><div class="dy-store-meta"><span>📍 ${h(publicPlace||b.comuna||'Ubicación protegida')}</span>${b.opening_hours?`<span>🕒 ${h(b.opening_hours)}</span>`:''}<span>${b.pickup_enabled?'✓ Retiro disponible':''}${b.pickup_enabled&&b.delivery_enabled?' · ':''}${b.delivery_enabled?'✓ Despacho propio':''}</span></div><div class="dy-store-cats">${(b.categories||[]).map(c=>`<span>${h(c.icon)} ${h(c.name)}</span>`).join('')}</div>${wa?`<a class="btn btn-primary" href="https://wa.me/${h(wa)}" target="_blank" rel="noopener">💬 Consultar por WhatsApp</a>`:''}${b.business_type==='home_business'?'<small class="dy-privacy-public">🔒 La dirección residencial exacta está protegida.</small>':''}</div></section><section><h2>Productos (${items.length})</h2><div class="dy-store-products">${items.length?items.map(p=>`<article class="dy-store-product"><div>${productPhoto(p)}</div><div><span>${h(p.category_icon||'')} ${h(p.category_name||'')}</span><h3>${h(p.name)}</h3><p>${h(p.description||'')}</p><div class="dy-product-public-price">${p.promo_price?`<s>${money(p.price)}</s>`:''}<strong>${money(p.promo_price||p.price)}</strong>${p.stock_tracking?`<em>${Number(p.stock||0)>0?`${Number(p.stock)} disponibles`:'Sin stock'}</em>`:''}</div></div></article>`).join(''):emptyBlock('📦','Este negocio todavía no tiene productos visibles','Puede agregarlos desde Mi negocio.')}</div></section></div>`;
+      view.innerHTML=`<div class="dy-public-page dy-store-page"><a class="dy-public-back" href="#/">← Volver</a><section class="dy-store-hero"><div class="dy-store-cover">${businessPhoto(b,items)}</div><div class="dy-store-info"><span>${b.business_type==='home_business'?'🏠 Emprendimiento desde casa':'🏬 Local físico'}${b.verified?' · ✓ Verificado':''}</span><h1>${h(b.name)}</h1><p>${h(b.description||'Negocio local en DatoYa.')}</p><div class="dy-store-meta"><span>📍 ${h(publicPlace||b.comuna||'Ubicación protegida')}</span>${b.opening_hours?`<span>🕒 ${h(b.opening_hours)}</span>`:''}<span>${b.pickup_enabled?'✓ Retiro disponible':''}${b.pickup_enabled&&b.delivery_enabled?' · ':''}${b.delivery_enabled?'✓ Despacho propio':''}</span></div><div class="dy-store-cats">${(b.categories||[]).map(c=>`<span>${h(c.icon)} ${h(c.name)}</span>`).join('')}</div><div class="dy-store-social-actions">${savedButton('business',b.id,'Guardar')}${followButton(b.id)}</div>${wa?`<a class="btn btn-primary" href="https://wa.me/${h(wa)}" target="_blank" rel="noopener">💬 Consultar por WhatsApp</a>`:''}${b.business_type==='home_business'?'<small class="dy-privacy-public">🔒 La dirección residencial exacta está protegida.</small>':''}</div></section><section><h2>Productos (${items.length})</h2><div class="dy-store-products">${items.length?items.map(p=>`<article class="dy-store-product"><div class="dy-store-product-image">${productPhoto(p)}${savedButton('product',p.id)}</div><div><span>${h(p.category_icon||'')} ${h(p.category_name||'')}</span><h3>${h(p.name)}</h3><p>${h(p.description||'')}</p><div class="dy-product-public-price">${p.promo_price?`<s>${money(p.price)}</s>`:''}<strong>${money(p.promo_price||p.price)}</strong>${p.stock_tracking?`<em>${Number(p.stock||0)>0?`${Number(p.stock)} disponibles`:'Sin stock'}</em>`:''}</div></div></article>`).join(''):emptyBlock('📦','Este negocio todavía no tiene productos visibles','Puede agregarlos desde Mi negocio.')}</div></section></div>`;
+      bindSavedActions();
     }catch(err){view.innerHTML=`<div class="dy-public-page"><a class="dy-public-back" href="#/">← Inicio</a>${emptyBlock('🏪','Negocio no disponible',err.message||'Intenta nuevamente.')}</div>`;}
   };
 
