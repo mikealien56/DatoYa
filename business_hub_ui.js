@@ -52,6 +52,8 @@
       ['promos','#/mi-negocio-promociones/'+id,'🏷️','Promociones',false],
       ['impulse','#/impulso-ahora/'+id,'⚡','Impulso',!paid],
       ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
+      ['pulse',paid?'#/mi-negocio-pulso/'+id:'#/mi-negocio-plan/'+id,'📍','Pulso Local',!paid],
+      ['radar',paid?'#/mi-negocio-radar/'+id:'#/mi-negocio-plan/'+id,'🎯','Radar',!paid],
       ['support','#/mi-negocio-soporte/'+id,'📨','Soporte',false],
       ['public',b.slug?'#/negocio/'+encodeURIComponent(b.slug):'#/mi-negocio-configuracion/'+id,'🏪','Mi negocio',false],
       ['plan','#/mi-negocio-plan/'+id,'⭐','Plan',false],
