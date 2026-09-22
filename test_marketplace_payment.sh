@@ -63,7 +63,7 @@ PRODUCT_ID=$(printf '%s' "$PRODUCT" | json_value 'd["product"]["id"]')
 # DatoYa Alerta V2: una promoción nueva debe activar una alerta cercana.
 ALERT_PROMO=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/market/alerts" -H "$J" -d '{"term":"Promo especial TEST","category_id":'"$CATEGORY_ID"',"comuna_id":'"$COMUNA_ID"',"latitude":-34.233333,"longitude":-70.966667,"radius_km":1,"days":1}')
 ALERT_PROMO_ID=$(printf '%s' "$ALERT_PROMO" | json_value 'd["id"]')
-PROMO_PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{"name":"Promo especial TEST","description":"Oferta temporal para alerta","category_id":$CATEGORY_ID,"price":1400,"promo_price":990,"stock":4,"stock_tracking":true,"active":true}")
+PROMO_PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d '{"name":"Promo especial TEST","description":"Oferta temporal para alerta","category_id":'"$CATEGORY_ID"',"price":1400,"promo_price":990,"stock":4,"stock_tracking":true,"active":true}')
 PROMO_PRODUCT_ID=$(printf '%s' "$PROMO_PRODUCT" | json_value 'd["product"]["id"]')
 curl -fsS -b /tmp/dy_market_admin -X POST "$B/admin/private-beta/run-matching" -H "$J" -d '{}' >/dev/null
 ALERTS_PROMO=$(curl -fsS -b /tmp/dy_market_client "$B/market/alerts")
