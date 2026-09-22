@@ -23,9 +23,10 @@ STATUS=$(curl -s -o /tmp/demo-login.json -w '%{http_code}' -c /tmp/demo-cookies.
 # Un cliente real nuevo debe poder registrarse.
 STATUS=$(curl -s -o /tmp/real-register.json -w '%{http_code}' -c /tmp/real-cookies.txt \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Beta Real","email":"beta.real@example.com","password":"clave-segura-123","role":"cliente"}' \
+  -d '{"name":"Beta Real","email":"beta.real@example.com","password":"clave-segura-123","role":"cliente","account_type":"customer","accept_terms":true,"accept_privacy":true}' \
   http://localhost:3101/api/auth/register)
 [ "$STATUS" = "200" ] || [ "$STATUS" = "201" ] || { echo "Registro real falló HTTP $STATUS"; cat /tmp/real-register.json; exit 1; }
+python3 -c 'import json; d=json.load(open("/tmp/real-register.json")); assert d.get("legal_consent_recorded") is True'
 ME=$(curl -fsS -b /tmp/real-cookies.txt http://localhost:3101/api/auth/me)
 printf '%s' "$ME" | grep -q 'beta.real@example.com'
 if grep -q 'Sembrando datos DEMO' /tmp/datoya-real.log; then echo "Se ejecutó seed DEMO con DEMO_MODE=false"; cat /tmp/datoya-real.log; exit 1; fi
