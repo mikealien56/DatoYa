@@ -6,6 +6,7 @@
   const money=n=>'$'+Number(n||0).toLocaleString('es-CL');
   const date=v=>{try{return new Date(v).toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'})}catch(_){return String(v||'')}};
   const metaCache=new Map();
+  const planCache=new Map();
   const legacyManage=routes['mi-negocio'];
 
   function requireBusiness(){
@@ -20,6 +21,19 @@
     metaCache.set(id,data);
     return data;
   }
+  async function getPlanAccess(id,force=false){
+    id=Number(id||0);
+    if(!force&&planCache.has(id))return planCache.get(id);
+    const data=await api('/businesses/'+id+'/plan-access');
+    planCache.set(id,data);
+    return data;
+  }
+  async function renderPremiumLock(id,feature,title,description){
+    const [meta,plan]=await Promise.all([getMeta(id,true),getPlanAccess(id,true)]);
+    const b=meta.business||{},limit=Number(plan.limits?.products||20);
+    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-premium-lock"><span>🔒</span><small>DATOYA IMPULSO</small><h1>${h(title)}</h1><p>${h(description)}</p><div class="dy-premium-lock-info"><b>Tu plan actual: Gratis</b><span>Incluye hasta ${limit} productos, pedidos, soporte, retiro/despacho, QR y panel básico.</span></div><a class="btn btn-primary" href="#/mi-negocio-plan/${id}">Ver DatoYa Impulso</a><a class="btn btn-outline" href="#/mi-negocio/${id}">Volver al inicio</a></section></div>`;
+    await addHubFrame(id,feature);
+  }
   function currentPath(){return String(location.hash||'#/').replace(/^#\//,'').split('?')[0].split('/')[0];}
   function statusLabel(s){return ({draft:'Borrador',pending_review:'En revisión',active:'Activo',paused:'Pausado',rejected:'Rechazado',suspended:'Suspendido'})[s]||s||'—';}
   function orderLabel(s){return ({new:'Nuevo',confirmed:'Confirmado',preparing:'Preparando',ready:'Listo',completed:'Completado',cancelled:'Cancelado'})[s]||s;}
@@ -28,24 +42,24 @@
     if(!requireBusiness())return;
     const root=document.getElementById('view')||view;
     root.querySelector('.dy-business-hub-shell')?.remove();
-    let meta={business:{id:Number(id)}};
-    try{meta=await getMeta(id);}catch(_){}
-    const b=meta.business||{id:Number(id)};
+    let meta={business:{id:Number(id)}},plan={plan:'free',access:{}};
+    try{[meta,plan]=await Promise.all([getMeta(id),getPlanAccess(id)]);}catch(_){}
+    const b=meta.business||{id:Number(id)},paid=plan.plan==='impulso';
     const nav=[
-      ['home','#/mi-negocio/'+id,'⌂','Inicio'],
-      ['products','#/mi-negocio-productos/'+id,'📦','Productos'],
-      ['orders','#/mi-negocio-pedidos/'+id,'🧾','Pedidos'],
-      ['promos','#/mi-negocio-promociones/'+id,'🏷️','Promociones'],
-      ['impulse','#/impulso-ahora/'+id,'⚡','Impulso'],
-      ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas'],
-      ['support','#/mi-negocio-soporte/'+id,'📨','Soporte'],
-      ['public',b.slug?'#/negocio/'+encodeURIComponent(b.slug):'#/mi-negocio-configuracion/'+id,'🏪','Mi negocio'],
-      ['plan','#/mi-negocio-plan/'+id,'⭐','Plan'],
-      ['config','#/mi-negocio-configuracion/'+id,'⚙️','Configuración']
+      ['home','#/mi-negocio/'+id,'⌂','Inicio',false],
+      ['products','#/mi-negocio-productos/'+id,'📦','Productos',false],
+      ['orders','#/mi-negocio-pedidos/'+id,'🧾','Pedidos',false],
+      ['promos','#/mi-negocio-promociones/'+id,'🏷️','Promociones',false],
+      ['impulse','#/impulso-ahora/'+id,'⚡','Impulso',!paid],
+      ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
+      ['support','#/mi-negocio-soporte/'+id,'📨','Soporte',false],
+      ['public',b.slug?'#/negocio/'+encodeURIComponent(b.slug):'#/mi-negocio-configuracion/'+id,'🏪','Mi negocio',false],
+      ['plan','#/mi-negocio-plan/'+id,'⭐','Plan',false],
+      ['config','#/mi-negocio-configuracion/'+id,'⚙️','Configuración',false]
     ];
     const shell=document.createElement('div');
     shell.className='dy-business-hub-shell';
-    shell.innerHTML=`<div class="dy-business-hub-brand"><div><span>DATOYA NEGOCIOS</span><b>${h(b.name||'Mi negocio')}</b></div><div class="dy-business-hub-state"><span class="dy-business-status ${h(b.status||'')}">${h(statusLabel(b.status))}</span><a href="#/perfil">Cambiar negocio</a></div></div><nav class="dy-business-hub-nav" aria-label="Panel del negocio">${nav.map(([key,href,icon,label])=>`<a href="${href}" class="${active===key?'active':''}" data-hub-key="${key}"><span>${icon}</span><b>${label}</b></a>`).join('')}</nav>`;
+    shell.innerHTML=`<div class="dy-business-hub-brand"><div><span>DATOYA NEGOCIOS</span><b>${h(b.name||'Mi negocio')}</b></div><div class="dy-business-hub-state"><span class="dy-business-status ${h(b.status||'')}">${h(statusLabel(b.status))}</span><a href="#/perfil">Cambiar negocio</a></div></div><nav class="dy-business-hub-nav" aria-label="Panel del negocio">${nav.map(([key,href,icon,label,locked])=>`<a href="${href}" class="${active===key?'active':''} ${locked?'locked':''}" data-hub-key="${key}"><span>${icon}</span><b>${label}</b>${locked?'<em>🔒</em>':''}</a>`).join('')}</nav>`;
     root.prepend(shell);
   }
 
@@ -61,12 +75,13 @@
       api('/businesses/'+id+'/mercadopago/status').catch(()=>({connected:false,payment_mode:'disconnected'})),
       api('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}}))
     ]);
+    planCache.set(id,{plan:planD.membership?'impulso':'free',membership:planD.membership,usage:planD.usage||{},limits:{products:Number(planD.entitlements?.catalog_limit||planD.config?.free_catalog_limit||20),free_products:Number(planD.config?.free_catalog_limit||20),impulso_products:Number(planD.config?.paid_catalog_limit||200)},access:planD.entitlements||{}});
     const b=manage.business||{},products=manage.products||[],orders=ordersD.orders||[],events=analyticsD.events||{};
     const newOrders=orders.filter(o=>o.status==='new').length;
     const activeOrders=orders.filter(o=>['new','confirmed','preparing','ready'].includes(o.status)).length;
     const lowStock=products.filter(p=>p.stock_tracking&&Number(p.stock||0)<=3).length;
     const openSupport=Number(supportD.stats?.new||0)+Number(supportD.stats?.in_progress||0);
-    const membership=planD.membership;
+    const membership=planD.membership,paid=!!membership,catalogLimit=Number(planD.entitlements?.catalog_limit||planD.config?.free_catalog_limit||20);
     const promoNow=promoD.impulse_now?.summary||{},promoWeekly=promoD.weekly?.summary||{};
     const recent=orders.slice(0,4);
 
@@ -80,7 +95,7 @@
 
       <section class="dy-dashboard-priority">
         <a href="#/mi-negocio-pedidos/${id}" class="${newOrders?'attention':''}"><span>🧾</span><strong>${newOrders}</strong><b>Pedidos nuevos</b><small>${activeOrders} en proceso</small></a>
-        <a href="#/mi-negocio-productos/${id}" class="${lowStock?'attention':''}"><span>📦</span><strong>${lowStock}</strong><b>Stock bajo</b><small>${products.length} productos totales</small></a>
+        <a href="#/mi-negocio-productos/${id}" class="${lowStock?'attention':''}"><span>📦</span><strong>${products.length}/${catalogLimit}</strong><b>Productos</b><small>${lowStock?lowStock+' con stock bajo':paid?'Catálogo Impulso':'Límite plan Gratis'}</small></a>
         <a href="#/mi-negocio-soporte/${id}" class="${openSupport?'attention':''}"><span>📨</span><strong>${openSupport}</strong><b>Soporte pendiente</b><small>${Number(supportD.stats?.resolved||0)} resueltos</small></a>
         <a href="#/mi-negocio-plan/${id}"><span>⚡</span><strong>${membership?'Activo':'Gratis'}</strong><b>DatoYa Impulso</b><small>${membership?'Vigente hasta '+String(membership.expires_at||'').slice(0,10):'Revisa beneficios'}</small></a>
       </section>
@@ -91,7 +106,7 @@
           <div class="dy-dashboard-actions">
             <a href="#/mi-negocio-pedidos/${id}"><span>🧾</span><div><b>Gestionar pedidos</b><small>${activeOrders?activeOrders+' pedido(s) requieren seguimiento':'No hay pedidos pendientes'}</small></div><em>→</em></a>
             <a href="#/mi-negocio-productos/${id}"><span>📦</span><div><b>Catálogo y stock</b><small>${lowStock?lowStock+' producto(s) con stock bajo':'Stock sin alertas críticas'}</small></div><em>→</em></a>
-            <a href="#/impulso-ahora/${id}"><span>⚡</span><div><b>Impulso Ahora</b><small>Publica una venta por horario y stock real</small></div><em>→</em></a>
+            <a href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}" class="${paid?'':'dy-premium-link'}"><span>${paid?'⚡':'🔒'}</span><div><b>Impulso Ahora</b><small>${paid?'Publica una venta por horario y stock real':'Incluido con DatoYa Impulso'}</small></div><em>→</em></a>
             <a href="#/mi-negocio-soporte/${id}"><span>📨</span><div><b>Soporte DatoYa</b><small>${openSupport?openSupport+' caso(s) abiertos':'Todo al día'}</small></div><em>→</em></a>
           </div>
         </section>
@@ -102,14 +117,14 @@
             <div><span>${b.status==='active'?'✅':'○'}</span><b>Negocio publicado</b><small>${h(statusLabel(b.status))}</small></div>
             <div><span>${products.some(p=>p.active)?'✅':'○'}</span><b>Productos visibles</b><small>${products.filter(p=>p.active).length} publicados</small></div>
             <div><span>${paymentD.connected?'✅':'○'}</span><b>Mercado Pago</b><small>${paymentD.connected?(paymentD.payment_mode==='test'?'Conectado en TEST':'Conectado'):'Sin conectar'}</small></div>
-            <div><span>${membership?'✅':'○'}</span><b>Plan Impulso</b><small>${membership?'Activo':'Plan Gratis'}</small></div>
+            <div><span>${membership?'✅':'○'}</span><b>Plan</b><small>${membership?'DatoYa Impulso activo':'Gratis · '+products.length+'/'+catalogLimit+' productos'}</small></div>
           </div>
           <a class="btn btn-outline btn-block" href="#/mi-negocio-configuracion/${id}">Revisar configuración</a>
         </section>
       </div>
 
       <section class="dy-business-card">
-        <div class="dy-card-head"><div><span>ÚLTIMOS 30 DÍAS</span><h2>Tu negocio en números</h2><p>Métricas reales registradas por DatoYa.</p></div><a class="btn btn-outline btn-sm" href="#/mi-negocio-estadisticas/${id}">Ver estadísticas</a></div>
+        <div class="dy-card-head"><div><span>ÚLTIMOS 30 DÍAS</span><h2>${paid?'Tu negocio en números':'Resumen básico'}</h2><p>${paid?'Métricas reales registradas por DatoYa.':'Las estadísticas avanzadas están disponibles con DatoYa Impulso.'}</p></div><a class="btn btn-outline btn-sm" href="${paid?'#/mi-negocio-estadisticas/'+id:'#/mi-negocio-plan/'+id}">${paid?'Ver estadísticas':'🔒 Ver Impulso'}</a></div>
         <div class="dy-dashboard-metrics">
           <div><strong>${Number(events.profile_view||0)}</strong><span>Vistas del perfil</span></div>
           <div><strong>${Number(events.product_view||0)}</strong><span>Vistas de productos</span></div>
@@ -130,7 +145,7 @@
           <div class="dy-card-head"><div><span>CRECIMIENTO</span><h2>Haz que te encuentren</h2></div></div>
           <div class="dy-dashboard-growth">
             <a href="#/mi-negocio-promociones/${id}"><span>🏷️</span><b>Promociones</b><small>Revisa qué campañas generan actividad.</small></a>
-            <a href="#/impulso-ahora/${id}"><span>⚡</span><b>Impulso Ahora</b><small>Activa una oferta en tiempo real.</small></a>
+            <a href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}" class="${paid?'':'dy-premium-link'}"><span>${paid?'⚡':'🔒'}</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Requiere DatoYa Impulso.'}</small></a>
             <a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso semanal</b><small>Prepara una oferta destacada.</small></a>
             <a href="#/mi-negocio-plan/${id}"><span>🚀</span><b>Plan DatoYa Impulso</b><small>Revisa beneficios y vigencia.</small></a>
           </div>
@@ -164,6 +179,13 @@
     if(mode==='products'){
       const hero=root.querySelector('.dy-business-hero h1');
       if(hero)hero.insertAdjacentHTML('afterend','<p class="dy-hub-section-caption">📦 Productos · precios · stock · disponibilidad</p>');
+      try{
+        const plan=await getPlanAccess(id,true),used=Number(plan.usage?.products||0),limit=Number(plan.limits?.products||20),paid=plan.plan==='impulso';
+        const heroBox=root.querySelector('.dy-business-hero');
+        heroBox?.insertAdjacentHTML('afterend',`<div class="dy-plan-usage-banner ${used>=limit?'limit':''}"><div><b>${paid?'⚡ DatoYa Impulso':'Plan Gratis'}</b><span>${used} de ${limit} productos usados</span></div><div class="dy-plan-usage-bar"><i style="width:${Math.min(100,Math.round((used/Math.max(1,limit))*100))}%"></i></div>${paid?'':`<a href="#/mi-negocio-plan/${id}">Ampliar catálogo →</a>`}</div>`);
+        const add=[...root.querySelectorAll('button')].find(x=>String(x.getAttribute('onclick')||'').includes('dyNewProduct'));
+        if(add&&used>=limit){add.disabled=true;add.textContent='🔒 Límite de '+limit+' alcanzado';}
+      }catch(_){}
     }else{
       const hero=root.querySelector('.dy-business-hero h1');
       if(hero)hero.insertAdjacentHTML('afterend','<p class="dy-hub-section-caption">⚙️ Datos, ubicación, entrega y configuración comercial</p>');
@@ -175,9 +197,10 @@
   async function renderPromotions(id){
     if(!requireBusiness())return;
     id=Number(id||0);
+    const plan=await getPlanAccess(id,true),paid=plan.plan==='impulso';
     const [manage,promo,impulsesD,weeklyD]=await Promise.all([
       getMeta(id,true),
-      api('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})),
+      paid?api('/businesses/'+id+'/promotion-analytics?days=30&advanced=1').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})):Promise.resolve({impulse_now:{summary:{}},weekly:{summary:{}}}),
       api('/businesses/'+id+'/impulses').catch(()=>({impulses:[]})),
       api('/weekly-impulses/mine').catch(()=>({impulses:[]}))
     ]);
@@ -186,10 +209,10 @@
     view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
       <section class="dy-business-dashboard-hero"><div><span>PROMOCIONES</span><h1>Haz que ${h(b.name)} destaque</h1><p>Dos formatos distintos para vender más sin perder el control de precio y stock.</p></div></section>
       <div class="dy-dashboard-grid">
-        <section class="dy-business-card dy-promo-choice"><span>⚡</span><h2>Impulso Ahora</h2><p>Para productos que quieres mover hoy: horario, stock real y últimas unidades.</p><div class="dy-promo-mini"><b>${impulses.filter(x=>!['ended','sold_out','cancelled'].includes(x.status)).length}</b><small>activos ahora</small></div><a class="btn btn-primary btn-block" href="#/impulso-ahora/${id}">Administrar Impulso Ahora</a></section>
-        <section class="dy-business-card dy-promo-choice"><span>⭐</span><h2>Impulso de la semana</h2><p>Una oferta destacada que DatoYa revisa y presenta con una línea gráfica consistente.</p><div class="dy-promo-mini"><b>${weekly.filter(x=>['pending_review','scheduled','active','invited'].includes(x.status)).length}</b><small>en curso</small></div><a class="btn btn-outline btn-block" href="#/impulso-semanal-nuevo/${id}">Preparar oferta semanal</a></section>
+        <section class="dy-business-card dy-promo-choice ${paid?'':'locked'}"><span>${paid?'⚡':'🔒'}</span><h2>Impulso Ahora</h2><p>Para productos que quieres mover hoy: horario, stock real y últimas unidades. <b>${paid?'Incluido en tu plan.':'Requiere DatoYa Impulso.'}</b></p><div class="dy-promo-mini"><b>${paid?impulses.filter(x=>!['ended','sold_out','cancelled'].includes(x.status)).length:'—'}</b><small>${paid?'activos ahora':'premium'}</small></div><a class="btn ${paid?'btn-primary':'btn-outline'} btn-block" href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}">${paid?'Administrar Impulso Ahora':'Ver DatoYa Impulso'}</a></section>
+        <section class="dy-business-card dy-promo-choice"><span>⭐</span><h2>Impulso de la semana</h2><p>Destacado especial <b>aparte de la membresía</b>. Puede contratarse por campaña o ser regalado por DatoYa.</p><div class="dy-promo-mini"><b>${weekly.filter(x=>['pending_review','scheduled','active','invited'].includes(x.status)).length}</b><small>en curso</small></div><a class="btn btn-outline btn-block" href="#/impulso-semanal-nuevo/${id}">Preparar oferta semanal</a></section>
       </div>
-      <section class="dy-business-card"><div class="dy-card-head"><div><span>ÚLTIMOS 30 DÍAS</span><h2>Rendimiento promocional</h2><p>Solo actividad registrada realmente por DatoYa.</p></div></div><div class="dy-promo-performance"><article><b>⚡ Impulso Ahora</b><div><span><strong>${Number(now.impressions||0)}</strong> vistas</span><span><strong>${Number(now.clicks||0)}</strong> clics</span><span><strong>${Number(now.add_cart||0)}</strong> al carrito</span><span><strong>${Number(now.orders||0)}</strong> pedidos</span><span><strong>${money(now.revenue||0)}</strong> ventas</span></div></article><article><b>⭐ Impulso semanal</b><div><span><strong>${Number(week.impressions||0)}</strong> vistas</span><span><strong>${Number(week.clicks||0)}</strong> clics</span><span><strong>${Number(week.add_cart||0)}</strong> al carrito</span><span><strong>${Number(week.orders||0)}</strong> pedidos</span><span><strong>${money(week.revenue||0)}</strong> ventas</span></div></article></div></section>
+      <section class="dy-business-card"><div class="dy-card-head"><div><span>ÚLTIMOS 30 DÍAS</span><h2>Rendimiento promocional ${paid?'':'🔒'}</h2><p>${paid?'Solo actividad registrada realmente por DatoYa.':'El análisis detallado de promociones está incluido con DatoYa Impulso.'}</p></div>${paid?'':'<a class="btn btn-outline btn-sm" href="#/mi-negocio-plan/'+id+'">Desbloquear</a>'}</div>${paid?'<div class="dy-promo-performance">':'<div class="dy-premium-inline-lock"><span>🔒</span><b>Estadísticas avanzadas</b><p>Activa DatoYa Impulso para ver vistas, clics, carritos, pedidos y ventas atribuidas a tus promociones.</p></div><div style="display:none">'}<article><b>⚡ Impulso Ahora</b><div><span><strong>${Number(now.impressions||0)}</strong> vistas</span><span><strong>${Number(now.clicks||0)}</strong> clics</span><span><strong>${Number(now.add_cart||0)}</strong> al carrito</span><span><strong>${Number(now.orders||0)}</strong> pedidos</span><span><strong>${money(now.revenue||0)}</strong> ventas</span></div></article><article><b>⭐ Impulso semanal</b><div><span><strong>${Number(week.impressions||0)}</strong> vistas</span><span><strong>${Number(week.clicks||0)}</strong> clics</span><span><strong>${Number(week.add_cart||0)}</strong> al carrito</span><span><strong>${Number(week.orders||0)}</strong> pedidos</span><span><strong>${money(week.revenue||0)}</strong> ventas</span></div></article></div></section>
     </div>`;
     await addHubFrame(id,'promos');
   }
@@ -197,10 +220,12 @@
   async function renderStats(id){
     if(!requireBusiness())return;
     id=Number(id||0);
+    const plan=await getPlanAccess(id,true);
+    if(plan.plan!=='impulso')return renderPremiumLock(id,'stats','Estadísticas avanzadas','Analiza vistas, clics, conversiones, promociones y ventas para tomar mejores decisiones.');
     const [manage,a,p]=await Promise.all([
       getMeta(id,true),
-      api('/businesses/'+id+'/analytics?days=30').catch(()=>({events:{},orders:0,completed_orders:0,sales_completed:0})),
-      api('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}}))
+      api('/businesses/'+id+'/analytics?days=30&advanced=1').catch(()=>({events:{},orders:0,completed_orders:0,sales_completed:0})),
+      api('/businesses/'+id+'/promotion-analytics?days=30&advanced=1').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}}))
     ]);
     const b=manage.business||{},e=a.events||{},pn=p.impulse_now?.summary||{},pw=p.weekly?.summary||{};
     const shares=Number(e.share_business||0)+Number(e.share_product||0);
@@ -223,15 +248,24 @@
   routes['mi-negocio-promociones']=id=>renderPromotions(id);
   routes['mi-negocio-estadisticas']=id=>renderStats(id);
 
-  function wrap(name,active){
+  function wrap(name,active,paidFeature){
     const original=routes[name];if(!original)return;
-    routes[name]=async function(...args){const out=await original.apply(this,args);const id=Number(args[0]||0);if(id)await addHubFrame(id,active);return out;};
+    routes[name]=async function(...args){
+      const id=Number(args[0]||0);
+      if(id&&paidFeature){
+        const plan=await getPlanAccess(id,true);
+        if(plan.plan!=='impulso')return renderPremiumLock(id,active,paidFeature.title,paidFeature.description);
+      }
+      const out=await original.apply(this,args);
+      if(id)await addHubFrame(id,active);
+      return out;
+    };
   }
   wrap('mi-negocio-pedidos','orders');
   wrap('mi-negocio-pagos','config');
   wrap('mi-negocio-plan','plan');
   wrap('mi-negocio-soporte','support');
   wrap('mi-negocio-soporte-caso','support');
-  wrap('impulso-ahora','impulse');
+  wrap('impulso-ahora','impulse',{title:'Impulso Ahora',description:'Publica ofertas por horario y stock real para destacar lo que quieres vender hoy.'});
   wrap('impulso-semanal-nuevo','promos');
 })();
