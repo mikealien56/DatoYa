@@ -8,6 +8,8 @@ grep -q "routes\['mi-negocio-radar'\]" beta_private_ui.js
 grep -q "routes.alertas" beta_private_ui.js
 grep -q "routes\['lo-busco-ya'\]" beta_private_ui.js
 grep -q "dy-notification-bell" beta_private_ui.js
+grep -q "routes.favoritos" beta_private_ui.js
+grep -q "admin/private-beta" beta_private_ui.js
 grep -q "Pulso Local" business_hub_ui.js
 grep -q "Radar" business_hub_ui.js
 echo "Beta privada UI: validaciones correctas"
