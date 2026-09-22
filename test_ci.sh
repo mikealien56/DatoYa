@@ -5,6 +5,7 @@ cd "$(dirname "$0")"
 echo "=== DatoYa CI base: marketplace comercial ==="
 bash test_beta_private_ui.sh
 bash test_beta_private_features.sh
+bash test_pwa_security.sh
 
 # 1) Sintaxis de todo el runtime actual.
 for js in *.js; do
@@ -37,6 +38,7 @@ echo "✅ Migrador PostgreSQL a Neon"
 echo "✅ Sintaxis JavaScript"
 
 bash -n scripts/backup_postgres.sh scripts/verify_postgres_restore.sh
+test -s RECOVERY_RUNBOOK.md
 echo "✅ Scripts de backup/restauración"
 
 # 2) El Home debe arrancar por la capa comercial, no por trabajadores.
