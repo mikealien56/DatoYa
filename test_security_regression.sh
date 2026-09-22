@@ -46,4 +46,13 @@ grep -q "app.post('/api/orders',auth,__dyRequireCustomerAccount" marketplace_acc
 grep -q "app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireCustomerAccount" marketplace_account_separation_bootstrap.js || fail 'Checkout comprador no exige cuenta cliente'
 grep -q "account_type:'customer'" marketplace_account_ui.js || fail 'Registro cliente no fija account_type customer'
 grep -q "account_type:'business'" marketplace_account_ui.js || fail 'Registro negocio no fija account_type business'
+# Beta privada: RBAC, propiedad e IDOR deben seguir protegidos en backend.
+grep -Fq "app.get('/api/admin/private-beta',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Admin beta privada no exige rol admin'
+grep -Fq "app.post('/api/admin/private-beta/run-matching',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Matching manual no exige rol admin'
+grep -Fq "function __dyOwnedBusiness(uid,id)" beta_private_features_bootstrap.js || fail 'Falta guard de propiedad de negocio'
+grep -Fq "const b=__dyOwnedBusiness(req.user.id,req.params.id)" beta_private_features_bootstrap.js || fail 'Pulso/Radar/solicitudes no validan propiedad'
+grep -Fq "WHERE id=? AND user_id=?" beta_private_features_bootstrap.js || fail 'Notificaciones no limitan escritura al usuario'
+grep -Fq "WHERE id=? AND user_id=? AND status='active'" beta_private_features_bootstrap.js || fail 'Lo Busco Ya no limita cambios al cliente propietario'
+grep -Fq "SELECT id FROM products WHERE id=? AND business_id=? AND active=1" beta_private_features_bootstrap.js || fail 'Respuesta permite producto de otro negocio'
+if rg -n "DATOYA_ALLOW_LIVE_PAYMENTS\s*=\s*(true|1)" --glob '!test_*' . >/dev/null; then fail 'Pagos reales fueron activados en código'; fi
 echo 'Security regression suite OK'
