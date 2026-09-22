@@ -7,6 +7,7 @@ grep -q "CREATE TABLE IF NOT EXISTS market_alert_matches" beta_private_features_
 grep -q "__dyAlertKm" beta_private_features_bootstrap.js || { echo "DatoYa Alerta no valida radio por distancia"; exit 1; }
 grep -q "'impulse_now' source_type" beta_private_features_bootstrap.js || { echo "DatoYa Alerta no considera Impulso Ahora"; exit 1; }
 grep -q "'weekly' source_type" beta_private_features_bootstrap.js || { echo "DatoYa Alerta no considera Impulso semanal"; exit 1; }
+grep -q "CAST(w.updated_at AS TEXT)" beta_private_features_bootstrap.js || { echo "DatoYa Alerta semanal mezcla tipos de fecha en PostgreSQL"; exit 1; }
 grep -q "'promotion' ELSE 'product'" beta_private_features_bootstrap.js || { echo "DatoYa Alerta no distingue promociones"; exit 1; }
 grep -q "impulse_priority" beta_private_features_bootstrap.js || { echo "Falta prioridad Impulso en DatoYa Alerta"; exit 1; }
 grep -q "app.post('/api/market/search-events',(req,res)" beta_private_features_bootstrap.js || { echo "La captura de búsquedas sigue exigiendo sesión"; exit 1; }
