@@ -52,10 +52,10 @@ grep -q "INSERT INTO account_consents" account_security_bootstrap.js || fail 'Re
 if grep -q "api('/legal/consent'.*method:'POST'" marketplace_account_ui.js; then fail 'Frontend mantiene segunda escritura redundante de consentimiento'; fi
 grep -q 'DATOYA_CURRENT_LEGAL_CONSENT_REQUIRED_V1' current_legal_consent_enforcement_bootstrap.js || fail 'Falta guard de consentimiento legal vigente'
 grep -q 'LEGAL_CONSENT_REQUIRED' current_legal_consent_enforcement_bootstrap.js || fail 'Guard legal no devuelve código explícito'
-grep -q "app.post('/api/orders',auth,__dyRequireCurrentLegalConsent" current_legal_consent_enforcement_bootstrap.js || fail 'Crear pedido no exige consentimiento vigente'
-grep -q "app.post('/api/businesses/:id/products',auth,__dyRequireCurrentLegalConsent" current_legal_consent_enforcement_bootstrap.js || fail 'Publicar producto no exige consentimiento vigente'
-grep -q "app.post('/api/businesses/:id/impulses',auth,__dyRequireCurrentLegalConsent" current_legal_consent_enforcement_bootstrap.js || fail 'Impulso Ahora no exige consentimiento vigente'
-grep -q "app.post('/api/weekly-impulses',auth,__dyRequireCurrentLegalConsent" current_legal_consent_enforcement_bootstrap.js || fail 'Impulso semanal no exige consentimiento vigente'
+grep -q "app.post('/api/orders',auth,__dyRequireCurrentLegalConsent" server.js || fail 'Crear pedido no exige consentimiento vigente en runtime'
+grep -q "app.post('/api/businesses/:id/products',auth,__dyRequireCurrentLegalConsent" server.js || fail 'Publicar producto no exige consentimiento vigente en runtime'
+grep -q "app.post('/api/businesses/:id/impulses',auth,__dyRequireCurrentLegalConsent" server.js || fail 'Impulso Ahora no exige consentimiento vigente en runtime'
+grep -q "app.post('/api/weekly-impulses',auth,__dyRequireCurrentLegalConsent" server.js || fail 'Impulso semanal no exige consentimiento vigente en runtime'
 # Beta privada: RBAC, propiedad e IDOR deben seguir protegidos en backend.
 grep -Fq "app.get('/api/admin/private-beta',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Admin beta privada no exige rol admin'
 grep -Fq "app.post('/api/admin/private-beta/run-matching',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Matching manual no exige rol admin'
