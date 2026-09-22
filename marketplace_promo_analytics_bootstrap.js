@@ -32,6 +32,10 @@ app.post('/api/market/promo-event',(req,res)=>{
 });
 app.get('/api/businesses/:id/promotion-analytics',auth,(req,res)=>{
   const id=Number(req.params.id),b=db.prepare('SELECT id FROM businesses WHERE id=? AND owner_user_id=?').get(id,req.user.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
+  if(String(req.query.advanced||'')==='1'){
+    let hasImpulse=false;try{hasImpulse=!!db.prepare("SELECT id FROM business_impulse_memberships WHERE business_id=? AND status='active' AND expires_at>? ORDER BY expires_at DESC LIMIT 1").get(id,new Date().toISOString());}catch(_){}
+    if(!hasImpulse)return res.status(403).json({error:'🔒 El análisis avanzado de promociones está incluido en DatoYa Impulso.',code:'IMPULSO_PLAN_REQUIRED'});
+  }
   const requested=Number(req.query.days||30),days=[7,30,0].includes(requested)?requested:30,since=days?Date.now()-days*86400000:0,inRange=v=>!days||__dyPromoDateMs(v)>=since;
   const events=db.prepare('SELECT event_type,impulse_id,weekly_id,created_at FROM business_events WHERE business_id=? ORDER BY id DESC LIMIT 20000').all(id).filter(e=>inRange(e.created_at));
   const impulses=db.prepare('SELECT id,title,status,starts_at,ends_at,created_at FROM impulse_now WHERE business_id=? ORDER BY created_at DESC').all(id);
