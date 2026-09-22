@@ -1,0 +1,37 @@
+name: DatoYa dependency audit diagnostic
+
+on:
+  push:
+    branches:
+      - security/dependency-audit
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Audit dependencies
+        run: |
+          npm audit --json > audit.json || true
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('audit.json','utf8'));
+          const out={
+            metadata:d.metadata,
+            vulnerabilities:Object.fromEntries(Object.entries(d.vulnerabilities||{}).map(([name,v])=>[name,{
+              severity:v.severity,
+              isDirect:v.isDirect,
+              via:v.via,
+              effects:v.effects,
+              range:v.range,
+              nodes:v.nodes,
+              fixAvailable:v.fixAvailable
+            }]))
+          };
+          console.log(JSON.stringify(out,null,2));
+          NODE
