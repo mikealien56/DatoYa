@@ -1,11 +1,11 @@
-// DatoYa — exige consentimiento legal vigente para acciones comerciales mutables.
+// DatoYa — puerta central de consentimiento legal vigente para acciones comerciales mutables.
 const fs=require('fs'),path=require('path');
 const serverFile=path.join(__dirname,'server.js');
 let src=fs.readFileSync(serverFile,'utf8');
 
 if(!src.includes('DATOYA_CURRENT_LEGAL_CONSENT_REQUIRED_V2')){
   const authMarker='// ============ AUTH ============';
-  const helper=`
+  const injection=`
 // DATOYA_CURRENT_LEGAL_CONSENT_REQUIRED_V2
 function __dyCurrentLegalConsent(userId){
   try{
@@ -24,34 +24,38 @@ function __dyRequireCurrentLegalConsent(req,res,next){
 }
 function __dyCommercialLegalRoute(req){
   const method=String(req.method||'GET').toUpperCase();
-  const route=String(req.originalUrl||req.url||'').split('?')[0];
+  const route=String(req.path||'');
+
   if(method==='POST' && route==='/api/businesses') return true;
   if(method==='PUT' && /^\\/api\\/businesses\\/\\d+\\/manage$/.test(route)) return true;
   if(method==='POST' && /^\\/api\\/businesses\\/\\d+\\/resubmit$/.test(route)) return true;
+
   if(method==='POST' && /^\\/api\\/businesses\\/\\d+\\/products$/.test(route)) return true;
   if(method==='PUT' && /^\\/api\\/businesses\\/\\d+\\/products\\/\\d+$/.test(route)) return true;
   if(method==='PUT' && /^\\/api\\/businesses\\/\\d+\\/products\\/\\d+\\/availability$/.test(route)) return true;
+
   if(method==='POST' && route==='/api/weekly-impulses') return true;
   if(method==='PUT' && /^\\/api\\/weekly-impulses\\/\\d+\\/submit$/.test(route)) return true;
+
   if(method==='POST' && /^\\/api\\/businesses\\/\\d+\\/impulses$/.test(route)) return true;
   if(method==='PUT' && /^\\/api\\/businesses\\/\\d+\\/impulses\\/\\d+\\/stock$/.test(route)) return true;
   if(method==='POST' && /^\\/api\\/businesses\\/\\d+\\/impulses\\/\\d+\\/cancel$/.test(route)) return true;
+
   if(method==='POST' && route==='/api/orders') return true;
   if(method==='POST' && /^\\/api\\/orders\\/\\d+\\/cancel$/.test(route)) return true;
   if(method==='PUT' && /^\\/api\\/businesses\\/\\d+\\/orders\\/\\d+\\/status$/.test(route)) return true;
   if(method==='PUT' && /^\\/api\\/businesses\\/\\d+\\/orders\\/\\d+\\/payment$/.test(route)) return true;
   if(method==='POST' && /^\\/api\\/orders\\/\\d+\\/mercadopago\\/checkout$/.test(route)) return true;
-  if(method==='POST' && route==='/api/wanted') return true;
-  if(method==='POST' && /^\\/api\\/wanted\\/\\d+\\/responses$/.test(route)) return true;
+
   return false;
 }
-app.use('/api',(req,res,next)=>{
+app.use((req,res,next)=>{
   if(!__dyCommercialLegalRoute(req)) return next();
   return auth(req,res,()=>__dyRequireCurrentLegalConsent(req,res,next));
 });
 `;
   if(!src.includes(authMarker)) throw new Error('No se encontró marcador AUTH para consentimiento vigente');
-  src=src.replace(authMarker,helper+'\n'+authMarker);
+  src=src.replace(authMarker,injection+'\n'+authMarker);
   fs.writeFileSync(serverFile,src);
-  console.log('[DatoYa] Consentimiento legal vigente protegido por puerta central.');
+  console.log('[DatoYa] Puerta central de consentimiento legal vigente preparada.');
 }
