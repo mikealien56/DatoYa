@@ -10,6 +10,8 @@
   const distanceKm=(a,b,c,d)=>{const R=6371,dl=rad(c-a),dn=rad(d-b),x=Math.sin(dl/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
   const fmtDistance=d=>d==null?'':d<1?`${Math.max(50,Math.round(d*1000/50)*50)} m`:`${d.toFixed(d<10?1:0).replace('.',',')} km`;
   const locationState=()=>({lat:num('datoya_lat'),lng:num('datoya_lng'),comunaId:Number(localStorage.getItem('datoya_comuna_id')||0),radius:Math.min(30,Math.max(1,Number(localStorage.getItem('datoya_radius_km')||5))),label:localStorage.getItem('datoya_location_label')||'Elegir ubicación'});
+  function searchVisitorId(){let id=localStorage.getItem('datoya_search_visitor_id');if(id)return id;id=(window.crypto&&typeof window.crypto.randomUUID==='function'?window.crypto.randomUUID():'dy-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12));try{localStorage.setItem('datoya_search_visitor_id',id)}catch(_){}return id;}
+  function trackSearch(term,categoryId,resultCount){const q=String(term||'').trim();if(q.length<2)return Promise.resolve();const loc=locationState(),comunaId=Number(loc.comunaId||ME?.comuna_id||0)||null;return api('/market/search-events',{method:'POST',body:{term:q,category_id:Number(categoryId)||null,comuna_id:comunaId,radius_km:[1,3,5,10].includes(Number(loc.radius))?Number(loc.radius):5,result_count:Math.max(0,Number(resultCount)||0),visitor_id:searchVisitorId()}}).catch(()=>null);}
   let cache={at:0,categories:[],businesses:[],products:[]};
 
   async function loadMarketplace(force=false){
@@ -93,8 +95,10 @@
     document.querySelectorAll('[data-dy-beta-category]').forEach(btn=>btn.addEventListener('click',()=>{
       const id=Number(btn.dataset.dyBetaCategory);document.querySelectorAll('[data-dy-beta-category]').forEach(x=>x.classList.toggle('active',x===btn));
       const matchingBusinessIds=new Set(businesses.filter(b=>(b.categories||[]).some(c=>Number(c.id)===id)).map(b=>Number(b.id)));
+      const matchingProducts=products.filter(p=>Number(p.category_id)===id||matchingBusinessIds.has(Number(p.business_id)));
       document.querySelectorAll('#dy-beta-businesses [data-beta-business]').forEach(el=>el.style.display=matchingBusinessIds.has(Number(el.dataset.betaBusiness))?'':'none');
-      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){promoGrid.innerHTML=products.filter(p=>p.promo_price&&(Number(p.category_id)===id||matchingBusinessIds.has(Number(p.business_id)))).slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin promociones en esta categoría','Sí puede haber negocios disponibles más abajo.');}
+      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){promoGrid.innerHTML=matchingProducts.filter(p=>p.promo_price).slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin promociones en esta categoría','Sí puede haber negocios disponibles más abajo.');}
+      const category=categories.find(c=>Number(c.id)===id);if(category)trackSearch(category.name,id,matchingBusinessIds.size+matchingProducts.length);
       document.getElementById('negocios-cerca')?.scrollIntoView({behavior:'smooth',block:'start'});
     }));
   }
@@ -114,6 +118,8 @@
         const catOk=!categoryId||Number(p.category_id)===categoryId||allowedIds.has(Number(p.business_id));
         const text=(p.name+' '+(p.description||'')+' '+(p.business_name||'')).toLocaleLowerCase('es');return catOk&&(!nq||text.includes(nq));
       });
+      const selectedCategory=categories.find(c=>Number(c.id)===categoryId),trackedTerm=q||(selectedCategory&&selectedCategory.name)||'';
+      if(trackedTerm)trackSearch(trackedTerm,categoryId,allowedBusinesses.length+matchedProducts.length);
       view.innerHTML=`<div class="dy-public-page"><a class="dy-public-back" href="#/">← Inicio</a><div class="dy-public-head"><span>BÚSQUEDA LOCAL</span><h1>${q?`Resultados para “${h(q)}”`:'Explorar DatoYa'}</h1><form id="dy-beta-search-page"><input name="q" value="${h(q)}" placeholder="Buscar producto o negocio"><select name="category"><option value="0">Todas las categorías</option>${categories.map(c=>`<option value="${c.id}" ${Number(c.id)===categoryId?'selected':''}>${h(c.icon)} ${h(c.name)}</option>`).join('')}</select><button class="btn btn-primary">Buscar</button></form></div><section><h2>Negocios (${allowedBusinesses.length})</h2><div class="dy-card-grid">${allowedBusinesses.length?allowedBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Sin negocios coincidentes','Prueba otra búsqueda o cambia tu zona.')}</div></section><section><h2>Productos (${matchedProducts.length})</h2><div class="dy-live-grid">${matchedProducts.length?matchedProducts.slice(0,24).map(p=>productCard(p,businesses,p.promo_price?'promo':'product')).join(''):emptyBlock('📦','Sin productos coincidentes','Los negocios pueden seguir cargando productos durante la beta.')}</div></section></div>`;
       document.getElementById('dy-beta-search-page')?.addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;location.hash='#/buscar/'+encodeURIComponent(f.q.value.trim()||'_')+'/'+Number(f.category.value||0);});
     }catch(err){view.innerHTML=`<div class="dy-public-page">${emptyBlock('⚠️','No pudimos buscar',err.message||'Intenta otra vez.')}</div>`;}
