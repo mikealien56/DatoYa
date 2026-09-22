@@ -69,7 +69,7 @@ FOUNDER=$(curl -fsS -b /tmp/dy_market_admin -X PUT "$B/admin/marketplace/busines
 printf '%s' "$FOUNDER" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["founder_business"] is True'
 
 # Consentimiento legal vigente: una cuenta Negocio antigua no puede publicar hasta reaceptar.
-DB_DRIVER="$MARKET_DB_DRIVER" node -e 'const {db}=require("./db"); const id=Number(process.argv[1]); db.prepare("UPDATE account_consents SET terms_version=?,privacy_version=? WHERE id=(SELECT id FROM account_consents WHERE user_id=? ORDER BY id DESC LIMIT 1)").run("2026-09-14-beta1","2026-09-14-beta1",id);' "$MERCHANT_ID"
+DB_DRIVER="$MARKET_DB_DRIVER" node -e 'const {db}=require("./db"); const id=Number(process.argv[1]); db.prepare("UPDATE account_consents SET terms_version=?,privacy_version=? WHERE user_id=?").run("2026-09-14-beta1","2026-09-14-beta1",id);' "$MERCHANT_ID"
 STALE_PRODUCT_CODE=$(curl -sS -o /tmp/dy_stale_product.json -w '%{http_code}' -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Bloqueado por términos TEST\",\"category_id\":$CATEGORY_ID,\"price\":999,\"stock\":1,\"stock_tracking\":true,\"active\":true}")
 [ "$STALE_PRODUCT_CODE" = "428" ] || { echo "Producto con consentimiento antiguo debió responder 428 y respondió $STALE_PRODUCT_CODE"; cat /tmp/dy_stale_product.json; exit 1; }
 python3 -c 'import json; d=json.load(open("/tmp/dy_stale_product.json")); assert d.get("code")=="LEGAL_CONSENT_REQUIRED"'
@@ -126,7 +126,7 @@ DELIVERY_PUBLIC=$(curl -fsS "$B/market/business/$BUSINESS_SLUG/delivery")
 printf '%s' "$DELIVERY_PUBLIC" | python3 -c 'import sys,json; d=json.load(sys.stdin)["delivery"]; assert d["enabled"] is True; assert d["fee"]==1500; assert d["radius_km"]==5'
 
 # Consentimiento legal vigente: una cuenta Cliente antigua no puede pedir hasta reaceptar.
-DB_DRIVER="$MARKET_DB_DRIVER" node -e 'const {db}=require("./db"); const id=Number(process.argv[1]); db.prepare("UPDATE account_consents SET terms_version=?,privacy_version=? WHERE id=(SELECT id FROM account_consents WHERE user_id=? ORDER BY id DESC LIMIT 1)").run("2026-09-14-beta1","2026-09-14-beta1",id);' "$CLIENT_ID"
+DB_DRIVER="$MARKET_DB_DRIVER" node -e 'const {db}=require("./db"); const id=Number(process.argv[1]); db.prepare("UPDATE account_consents SET terms_version=?,privacy_version=? WHERE user_id=?").run("2026-09-14-beta1","2026-09-14-beta1",id);' "$CLIENT_ID"
 STALE_ORDER_CODE=$(curl -sS -o /tmp/dy_stale_order.json -w '%{http_code}' -b /tmp/dy_market_client -X POST "$B/orders" -H "$J" -d '{"business_id":'"$BUSINESS_ID"',"fulfillment_method":"pickup","customer_name":"Cliente TEST","customer_phone":"+56933334444","items":[{"product_id":'"$PRODUCT_ID"',"quantity":1}]}')
 [ "$STALE_ORDER_CODE" = "428" ] || { echo "Pedido con consentimiento antiguo debió responder 428 y respondió $STALE_ORDER_CODE"; cat /tmp/dy_stale_order.json; exit 1; }
 python3 -c 'import json; d=json.load(open("/tmp/dy_stale_order.json")); assert d.get("code")=="LEGAL_CONSENT_REQUIRED"'
