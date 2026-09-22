@@ -25,7 +25,9 @@
         await api('/auth/login',{method:'POST',body:{email:f.email.value.trim(),password:f.password.value}});
         await refreshMe();
         const next=sessionStorage.getItem('datoya_after_auth');sessionStorage.removeItem('datoya_after_auth');
-        location.hash=next==='registrar-negocio'?'#/registrar-negocio':'#/';
+        const rawNext=String(next||'');
+        const safeHash=rawNext.startsWith('#/')&&!/^#\/(?:trabajador|solicitar|solicitudes|solicitud|bandeja|mensajes|chat|trabajos|trabaja|pro)(?:\/|$)/.test(rawNext)?rawNext:(rawNext==='registrar-negocio'?'#/registrar-negocio':'#/');
+        location.hash=safeHash;
         if(typeof route==='function') route();
         if(typeof toast==='function')toast('Bienvenido a DatoYa','ok');
       }catch(err){btn.disabled=false;btn.textContent='Ingresar';if(typeof toast==='function')toast(err.message,'err');}
