@@ -50,6 +50,13 @@ grep -q "LEGAL_ENFORCEMENT || 'true'" account_security_bootstrap.js || fail 'Con
 grep -q "legal_consent_recorded" account_security_bootstrap.js || fail 'Registro no confirma persistencia de consentimiento'
 grep -q "INSERT INTO account_consents" account_security_bootstrap.js || fail 'Registro no persiste consentimiento en backend'
 if grep -q "api('/legal/consent'.*method:'POST'" marketplace_account_ui.js; then fail 'Frontend mantiene segunda escritura redundante de consentimiento'; fi
+grep -q 'DATOYA_CURRENT_LEGAL_CONSENT_REQUIRED_V2' current_legal_consent_enforcement_bootstrap.js || fail 'Falta guard central de consentimiento legal vigente'
+grep -q 'LEGAL_CONSENT_REQUIRED' current_legal_consent_enforcement_bootstrap.js || fail 'Guard legal no devuelve código explícito'
+grep -q '__dyCommercialLegalRoute' current_legal_consent_enforcement_bootstrap.js || fail 'Falta puerta central de acciones comerciales'
+grep -q "route==='/api/orders'" current_legal_consent_enforcement_bootstrap.js || fail 'Crear pedido no está cubierto por puerta legal'
+grep -q "products" current_legal_consent_enforcement_bootstrap.js || fail 'Publicar producto no está cubierto por puerta legal'
+grep -q "weekly-impulses" current_legal_consent_enforcement_bootstrap.js || fail 'Impulso semanal no está cubierto por puerta legal'
+grep -q "mercadopago.*checkout" current_legal_consent_enforcement_bootstrap.js || fail 'Checkout no está cubierto por puerta legal'
 # Beta privada: RBAC, propiedad e IDOR deben seguir protegidos en backend.
 grep -Fq "app.get('/api/admin/private-beta',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Admin beta privada no exige rol admin'
 grep -Fq "app.post('/api/admin/private-beta/run-matching',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Matching manual no exige rol admin'
@@ -58,5 +65,5 @@ grep -Fq "const b=__dyOwnedBusiness(req.user.id,req.params.id)" beta_private_fea
 grep -Fq "WHERE id=? AND user_id=?" beta_private_features_bootstrap.js || fail 'Notificaciones no limitan escritura al usuario'
 grep -Fq "WHERE id=? AND user_id=? AND status='active'" beta_private_features_bootstrap.js || fail 'Lo Busco Ya no limita cambios al cliente propietario'
 grep -Fq "SELECT id FROM products WHERE id=? AND business_id=? AND active=1" beta_private_features_bootstrap.js || fail 'Respuesta permite producto de otro negocio'
-if rg -n "DATOYA_ALLOW_LIVE_PAYMENTS\s*=\s*(true|1)" --glob '!test_*' . >/dev/null; then fail 'Pagos reales fueron activados en código'; fi
+if grep -R -n -E "DATOYA_ALLOW_LIVE_PAYMENTS[[:space:]]*=[[:space:]]*(true|1)" --exclude='test_*' --exclude-dir='.git' . >/dev/null; then fail 'Pagos reales fueron activados en código'; fi
 echo 'Security regression suite OK'
