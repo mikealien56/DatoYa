@@ -4,7 +4,7 @@
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const when=v=>{try{return new Date(v).toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'})}catch(_){return String(v||'')}};
   const status=s=>({active:'Activa',matched:'Encontrada',expired:'Vencida',cancelled:'Cancelada',closed:'Cerrada'})[s]||s;
-  function requireClient(){if(!ME){location.hash='#/login';return false}if(ME.account_type==='business'||ME.role==='admin'){toast?.('Esta sección pertenece a clientes','err');location.hash='#/perfil';return false}return true}
+  function requireClient(){if(!ME){try{sessionStorage.setItem('datoya_after_auth',location.hash||'#/perfil');}catch(_){}location.hash='#/login';return false}if(ME.account_type==='business'||ME.role==='admin'){toast?.('Esta sección pertenece a clientes','err');location.hash='#/perfil';return false}return true}
 
   let bellRefresh=null;
   function refreshBell(){
