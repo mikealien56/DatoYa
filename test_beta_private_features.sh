@@ -6,5 +6,8 @@ grep -q "CREATE TABLE IF NOT EXISTS market_alerts" beta_private_features_bootstr
 grep -q "IMPULSO_PLAN_REQUIRED" beta_private_features_bootstrap.js
 grep -q "requireRole('cliente')" beta_private_features_bootstrap.js
 grep -q "Datos agregados y anónimos" beta_private_features_bootstrap.js
+grep -q "__dyRunAlertMatching" beta_private_features_bootstrap.js
+grep -q "api/admin/private-beta" beta_private_features_bootstrap.js
+grep -q "commerce/favorites/details" beta_private_features_bootstrap.js
 ! grep -q "DATOYA_ALLOW_LIVE_PAYMENTS.*true" beta_private_features_bootstrap.js
 echo "Beta privada: validaciones estáticas correctas"
