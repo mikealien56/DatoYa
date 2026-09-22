@@ -60,6 +60,23 @@ printf '%s' "$FOUNDER" | python3 -c 'import sys,json; d=json.load(sys.stdin); as
 PRODUCT=$(curl -fsS -b /tmp/dy_market_merchant -X POST "$B/businesses/$BUSINESS_ID/products" -H "$J" -d "{\"name\":\"Berlines caseros TEST\",\"description\":\"Producto temporal\",\"category_id\":$CATEGORY_ID,\"price\":1500,\"stock\":5,\"stock_tracking\":true,\"active\":true}")
 PRODUCT_ID=$(printf '%s' "$PRODUCT" | json_value 'd["product"]["id"]')
 
+# Favoritos y seguimiento: solo Cliente puede guardar/seguir; Negocio queda bloqueado.
+FAV_PRODUCT=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/commerce/favorites/product/$PRODUCT_ID" -H "$J" -d '{}')
+printf '%s' "$FAV_PRODUCT" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["saved"] is True and d["type"]=="product"'
+FAV_BUSINESS=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/commerce/favorites/business/$BUSINESS_ID" -H "$J" -d '{}')
+printf '%s' "$FAV_BUSINESS" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["saved"] is True and d["type"]=="business"'
+FOLLOW=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/businesses/$BUSINESS_ID/follow" -H "$J" -d '{}')
+printf '%s' "$FOLLOW" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["following"] is True and d["notify_promotions"] is True'
+SAVED=$(curl -fsS -b /tmp/dy_market_client "$B/commerce/favorites/details")
+printf '%s' "$SAVED" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert any(int(x["id"])==int("'"$PRODUCT_ID"'") for x in d["products"]); assert any(int(x["id"])==int("'"$BUSINESS_ID"'") for x in d["businesses"]); f=next(x for x in d["following"] if int(x["id"])==int("'"$BUSINESS_ID"'")); assert f["notify_promotions"] in (1,True)'
+MUTE=$(curl -fsS -b /tmp/dy_market_client -X PUT "$B/businesses/$BUSINESS_ID/follow/notifications" -H "$J" -d '{"enabled":false}')
+printf '%s' "$MUTE" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["following"] is True and d["notify_promotions"] is False'
+UNMUTE=$(curl -fsS -b /tmp/dy_market_client -X PUT "$B/businesses/$BUSINESS_ID/follow/notifications" -H "$J" -d '{"enabled":true}')
+printf '%s' "$UNMUTE" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["notify_promotions"] is True'
+MERCHANT_FAV_CODE=$(curl -sS -o /tmp/dy_merchant_fav.json -w '%{http_code}' -b /tmp/dy_market_merchant -X POST "$B/commerce/favorites/product/$PRODUCT_ID" -H "$J" -d '{}')
+[ "$MERCHANT_FAV_CODE" = "403" ] || { echo "Cuenta Negocio no debió poder usar favoritos: $MERCHANT_FAV_CODE"; cat /tmp/dy_merchant_fav.json; exit 1; }
+python3 -c 'import json; d=json.load(open("/tmp/dy_merchant_fav.json")); assert "cuentas Cliente" in d.get("error","")'
+
 # Lo Busco Ya: cliente publica -> negocio compatible la ve -> responde -> cliente recibe respuesta.
 WANTED=$(curl -fsS -b /tmp/dy_market_client -X POST "$B/wanted" -H "$J" -d '{"title":"Torta cumpleaños TEST '"$TS"'","category_id":'"$CATEGORY_ID"',"description":"Necesito una torta para 10 personas para mañana","budget":25000,"days":3,"radius_km":5,"comuna_id":'"$COMUNA_ID"'}')
 WANTED_ID=$(printf '%s' "$WANTED" | json_value 'd["id"]')
