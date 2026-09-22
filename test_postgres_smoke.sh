@@ -47,9 +47,11 @@ DEMO_STATUS=$(curl -s -o /tmp/demo-login.json -w '%{http_code}' -X POST "http://
 
 STAMP="$(date +%s%N)"
 EMAIL="merchant-pg-smoke-${STAMP}@datoya.invalid"
-curl -fsS -c /tmp/pg-smoke.cookies -X POST "http://127.0.0.1:${PORT}/api/auth/register"   -H 'Content-Type: application/json'   -d "{\"name\":\"Comerciante PostgreSQL TEST\",\"email\":\"$EMAIL\",\"password\":\"DatoYa-Test-2026\",\"phone\":\"+56911112222\",\"role\":\"cliente\",\"comuna_id\":$COMUNA_ID}" >/tmp/pg-smoke-register.json
+curl -fsS -c /tmp/pg-smoke.cookies -X POST "http://127.0.0.1:${PORT}/api/auth/register"   -H 'Content-Type: application/json'   -d "{\"name\":\"Comerciante PostgreSQL TEST\",\"email\":\"$EMAIL\",\"password\":\"DatoYa-Test-2026\",\"phone\":\"+56911112222\",\"role\":\"cliente\",\"account_type\":\"business\",\"comuna_id\":$COMUNA_ID,\"accept_terms\":true,\"accept_privacy\":true}" >/tmp/pg-smoke-register.json
 grep -q '"ok":true' /tmp/pg-smoke-register.json
+grep -q '"legal_consent_recorded":true' /tmp/pg-smoke-register.json
 curl -fsS -b /tmp/pg-smoke.cookies "http://127.0.0.1:${PORT}/api/auth/me" | grep -q "$EMAIL"
+curl -fsS -b /tmp/pg-smoke.cookies "http://127.0.0.1:${PORT}/api/legal/consent" | grep -q '"terms_version"'
 
 # Rutas marketplace privadas deben exigir sesión.
 for path in businesses/mine orders/mine; do
