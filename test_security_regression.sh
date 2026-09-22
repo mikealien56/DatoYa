@@ -46,6 +46,10 @@ grep -q "app.post('/api/orders',auth,__dyRequireCustomerAccount" marketplace_acc
 grep -q "app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireCustomerAccount" marketplace_account_separation_bootstrap.js || fail 'Checkout comprador no exige cuenta cliente'
 grep -q "account_type:'customer'" marketplace_account_ui.js || fail 'Registro cliente no fija account_type customer'
 grep -q "account_type:'business'" marketplace_account_ui.js || fail 'Registro negocio no fija account_type business'
+grep -q "LEGAL_ENFORCEMENT || 'true'" account_security_bootstrap.js || fail 'Consentimiento legal no queda habilitado por defecto'
+grep -q "legal_consent_recorded" account_security_bootstrap.js || fail 'Registro no confirma persistencia de consentimiento'
+grep -q "INSERT INTO account_consents" account_security_bootstrap.js || fail 'Registro no persiste consentimiento en backend'
+if grep -q "api('/legal/consent'.*method:'POST'" marketplace_account_ui.js; then fail 'Frontend mantiene segunda escritura redundante de consentimiento'; fi
 # Beta privada: RBAC, propiedad e IDOR deben seguir protegidos en backend.
 grep -Fq "app.get('/api/admin/private-beta',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Admin beta privada no exige rol admin'
 grep -Fq "app.post('/api/admin/private-beta/run-matching',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Matching manual no exige rol admin'
