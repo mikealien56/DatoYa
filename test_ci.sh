@@ -3,6 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "=== DatoYa CI base: marketplace comercial ==="
+bash test_beta_private_features.sh
 
 # 1) Sintaxis de todo el runtime actual.
 for js in *.js; do
