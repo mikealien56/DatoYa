@@ -3,6 +3,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "=== DatoYa CI base: marketplace comercial ==="
+npm audit --omit=dev --audit-level=high
+echo "✅ Dependencias de producción sin vulnerabilidades altas/críticas"
 bash test_beta_private_ui.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
