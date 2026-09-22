@@ -11,6 +11,6 @@ if(fs.existsSync(idx)){
   html=html.replace(/<link[^>]+href="\/marketplace_account\.css[^\"]*"[^>]*>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_account_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_account.css?v=20260917-1">\n</head>');
-  html=html.replace('</body>','<script src="/marketplace_account_ui.js?v=20260922-1"></script>\n</body>');
+  html=html.replace('</body>','<script src="/marketplace_account_ui.js?v=20260922-2"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
