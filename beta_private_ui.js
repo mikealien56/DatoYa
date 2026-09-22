@@ -6,9 +6,11 @@
   const status=s=>({active:'Activa',matched:'Encontrada',expired:'Vencida',cancelled:'Cancelada',closed:'Cerrada'})[s]||s;
   function requireClient(){if(!ME){location.hash='#/login';return false}if(ME.account_type==='business'||ME.role==='admin'){toast?.('Esta sección pertenece a clientes','err');location.hash='#/perfil';return false}return true}
 
-  async function refreshBell(){
-    const old=document.getElementById('dy-notification-bell');if(!ME){old?.remove();return}
-    try{const d=await api('/notifications/summary');let bell=old;if(!bell){bell=document.createElement('a');bell.id='dy-notification-bell';bell.href='#/notificaciones';bell.className='dy-notification-bell';bell.setAttribute('aria-label','Notificaciones');(document.getElementById('auth-area')||document.body).prepend(bell)}bell.innerHTML=`🔔${Number(d.unread)>0?`<b>${Math.min(99,Number(d.unread))}</b>`:''}`;bell.classList.toggle('has-unread',Number(d.unread)>0)}catch(_){}
+  let bellRefresh=null;
+  function refreshBell(){
+    if(bellRefresh)return bellRefresh;
+    bellRefresh=(async()=>{const existing=[...document.querySelectorAll('#dy-notification-bell')];if(!ME){existing.forEach(x=>x.remove());return}try{const d=await api('/notifications/summary');let bell=document.getElementById('dy-notification-bell');document.querySelectorAll('#dy-notification-bell').forEach((x,i)=>{if(i>0)x.remove()});if(!bell){bell=document.createElement('a');bell.id='dy-notification-bell';bell.href='#/notificaciones';bell.className='dy-notification-bell';bell.setAttribute('aria-label','Notificaciones');(document.getElementById('auth-area')||document.body).prepend(bell)}bell.innerHTML=`🔔${Number(d.unread)>0?`<b>${Math.min(99,Number(d.unread))}</b>`:''}`;bell.classList.toggle('has-unread',Number(d.unread)>0)}catch(_){}})().finally(()=>{bellRefresh=null});
+    return bellRefresh;
   }
   const priorAuth=typeof renderAuthArea==='function'?renderAuthArea:null;
   if(priorAuth)renderAuthArea=function(){const r=priorAuth.apply(this,arguments);setTimeout(refreshBell,0);return r};
