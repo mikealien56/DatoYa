@@ -17,6 +17,17 @@ function mpDec(value){
   return Buffer.concat([decipher.update(Buffer.from(datas,'base64url')),decipher.final()]).toString('utf8');
 }
 
+function mpGet(path,token){
+  return new Promise((resolve,reject)=>{
+    const req=https.request({hostname:'api.mercadopago.com',path,method:'GET',headers:{Accept:'application/json',Authorization:'Bearer '+token}},res=>{
+      let raw='';res.on('data',d=>raw+=d);res.on('end',()=>{let parsed={};try{parsed=raw?JSON.parse(raw):{};}catch(_){}
+        if(res.statusCode>=200&&res.statusCode<300)return resolve(parsed);
+        const err=new Error(parsed.message||parsed.error||('Mercado Pago HTTP '+res.statusCode));err.status=res.statusCode;err.provider=parsed;reject(err);
+      });
+    });req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Mercado Pago timeout')));req.end();
+  });
+}
+
 function mpRequest(path,token,body,idempotencyKey){
   return new Promise((resolve,reject)=>{
     const data=JSON.stringify(body);
@@ -84,6 +95,14 @@ async function run(){
     ['official_min',{...baseBody,capture_mode:'automatic_async',payer:{email:'test@testuser.com'},items:[fullItem]}],
     ['official_marketplace',{...baseBody,capture_mode:'automatic_async',marketplace_fee:String(fee),payer:{email:'test@testuser.com'},items:[fullItem],config:fullConfig}]
   ];
+  const inspectId=String(process.env.DATOYA_MP_ORDER_INSPECT_ID||'').trim();
+  if(inspectId){
+    try{
+      const p=await mpGet('/v1/orders/'+encodeURIComponent(inspectId),token);
+      const safe={id:String(p.id||''),status:String(p.status||''),status_detail:String(p.status_detail||''),external_reference:String(p.external_reference||''),total_amount:String(p.total_amount||''),marketplace_fee:String(p.marketplace_fee||''),checkout_host:(()=>{try{return new URL(String(p.checkout_url||'')).hostname}catch(_){return null}})(),payments:(((p.transactions||{}).payments)||[]).map(x=>({id:String(x.id||''),status:String(x.status||''),status_detail:String(x.status_detail||''),amount:String(x.amount||x.total_paid_amount||''),payment_method_id:String(x.payment_method_id||''),payment_type_id:String(x.payment_type_id||'')}))};
+      console.log('[DatoYa][MP Order Inspect]',JSON.stringify(safe));
+    }catch(e){console.error('[DatoYa][MP Order Inspect] FAILED',JSON.stringify({message:String(e.message||e),status:e.status||null,provider:e.provider||null}));}
+  }
   const results=[];
   for(const [name,body0] of variants){
     const body={...body0,external_reference:'datoya_probe_'+name+'_'+order.id+'_'+Date.now()};
