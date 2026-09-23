@@ -41,7 +41,7 @@ function mpRequest(path,token,body,idempotencyKey){
         const err=new Error(parsed.message||parsed.error||('Mercado Pago HTTP '+res.statusCode));
         err.status=res.statusCode;
         err.code=parsed.code||parsed.cause?.[0]?.code||null;
-        err.provider={message:parsed.message||null,error:parsed.error||null,code:parsed.code||null,details:parsed.details||parsed.cause||null};
+        err.provider={message:parsed.message||null,error:parsed.error||null,code:parsed.code||null,details:parsed.details||parsed.cause||null,errors:parsed.errors||null,status:parsed.status||null};
         reject(err);
       });
     });
@@ -78,13 +78,11 @@ async function run(){
   const baseUrl=String(process.env.PUBLIC_BASE_URL||'https://datoya.cl').replace(/\/$/,'');
   const first=items[0],quantity=Math.max(1,Number(first.quantity||1)),unit=Number(first.unit_price||0);
   const baseBody={type:'online',processing_mode:'manual',total_amount:String(Number(order.total||0))};
+  const fullItem={title:String(first.name_snapshot||'Producto DatoYa').slice(0,120),quantity,unit_price:String(unit),unit_measure:'unit',total_amount:String(unit*quantity)};
+  const fullConfig={online:{success_url:baseUrl+'/#/pedidos',failure_url:baseUrl+'/#/pedidos',pending_url:baseUrl+'/#/pedidos',auto_return:'approved'}};
   const variants=[
-    ['base',baseBody],
-    ['payer',{...baseBody,payer:{email:'test@testuser.com'}}],
-    ['items',{...baseBody,items:[{title:String(first.name_snapshot||'Producto DatoYa').slice(0,120),quantity,unit_price:String(unit),unit_measure:'unit',total_amount:String(unit*quantity)}]}],
-    ['items_payer',{...baseBody,payer:{email:'test@testuser.com'},items:[{title:String(first.name_snapshot||'Producto DatoYa').slice(0,120),quantity,unit_price:String(unit),unit_measure:'unit',total_amount:String(unit*quantity)}]}],
-    ['marketplace_fee',{...baseBody,marketplace_fee:String(fee)}],
-    ['config',{...baseBody,config:{online:{success_url:baseUrl+'/#/pedidos',failure_url:baseUrl+'/#/pedidos',pending_url:baseUrl+'/#/pedidos',auto_return:'approved'}}}]
+    ['official_min',{...baseBody,capture_mode:'automatic_async',payer:{email:'test@testuser.com'},items:[fullItem]}],
+    ['official_marketplace',{...baseBody,capture_mode:'automatic_async',marketplace_fee:String(fee),payer:{email:'test@testuser.com'},items:[fullItem],config:fullConfig}]
   ];
   const results=[];
   for(const [name,body0] of variants){
