@@ -19,7 +19,7 @@ function __dyCommerceEmail(to,subject,title,body,ctaLabel,ctaPath){
 app.get('/api/admin/integration-status',auth,requireRole('admin'),(req,res)=>{
   res.json({
     email:{provider:'resend',configured:!!process.env.RESEND_API_KEY,from_configured:!!(process.env.AUTH_EMAIL_FROM||process.env.DATOYA_EMAIL_FROM)},
-    mercadopago:{access_token:!!process.env.MP_ACCESS_TOKEN,oauth:!!(process.env.MP_CLIENT_ID&&process.env.MP_CLIENT_SECRET&&process.env.MP_TOKEN_ENCRYPTION_KEY),webhook:!!process.env.MP_WEBHOOK_SECRET,redirect_uri:!!process.env.MP_REDIRECT_URI,live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true'},
+    khipu:{api_key:!!process.env.KHIPU_API_KEY,receiver_id:!!process.env.KHIPU_RECEIVER_ID,webhook_secret:!!process.env.KHIPU_MERCHANT_SECRET,development_mode:String(process.env.KHIPU_RECEIVER_ID||'')==='529396'&&String(process.env.DATOYA_KHIPU_LIVE_PAYMENTS||'false').toLowerCase()!=='true',integrator_enabled:false,integrator_requested:String(process.env.KHIPU_INTEGRATOR_ENABLED||'').toLowerCase()==='true',live_payments_allowed:false},
     runtime:{db_driver:String(process.env.DB_DRIVER||'sqlite'),public_base_url:!!process.env.PUBLIC_BASE_URL}
   });
 });
@@ -52,4 +52,4 @@ if(source.includes(statusNeedle)&&!source.includes("Actualización de tu pedido 
 }
 
 fs.writeFileSync(serverPath,source);
-console.log('[DatoYa] Integraciones: email='+(process.env.RESEND_API_KEY?'configurado':'pendiente')+', mp_oauth='+(process.env.MP_CLIENT_ID&&process.env.MP_CLIENT_SECRET&&process.env.MP_TOKEN_ENCRYPTION_KEY?'configurado':'pendiente')+', mp_webhook='+(process.env.MP_WEBHOOK_SECRET?'configurado':'pendiente')+'.');
+console.log('[DatoYa] Integraciones: email='+(process.env.RESEND_API_KEY?'configurado':'pendiente')+', khipu='+(process.env.KHIPU_API_KEY&&process.env.KHIPU_RECEIVER_ID?'configurado':'pendiente')+', khipu_dev='+(String(process.env.KHIPU_RECEIVER_ID||'')==='529396'?'activo':'pendiente')+'.');
