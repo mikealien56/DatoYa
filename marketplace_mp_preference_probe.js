@@ -44,23 +44,37 @@ async function run(){
   if(Number(connection.test_account||0)!==1||String(connection.test_account_mp_user_id||'')!==String(connection.mp_user_id||''))throw new Error('Cuenta conectada no reconocida como TEST');
   const token=mpDec(connection.access_token_enc);
   if(!token)throw new Error('Token OAuth TEST ausente');
+
   const base=String(process.env.PUBLIC_BASE_URL||'https://datoya.cl').replace(/\/$/,'');
   const fee=Math.round(Number(order.total||0)*0.10);
-  const body={
+  const baseBody={
     items:items.map(i=>({id:'order-item-'+i.id,title:String(i.name_snapshot||'Producto DatoYa').slice(0,120),currency_id:'CLP',quantity:Number(i.quantity||1),unit_price:Number(i.unit_price||0)})),
-    marketplace_fee:fee,
-    external_reference:'datoya-order:'+order.id,
     back_urls:{success:base+'/#/pedidos',pending:base+'/#/pedidos',failure:base+'/#/pedidos'},
-    auto_return:'approved',
-    notification_url:base+'/api/mercadopago/commerce-webhook'
+    auto_return:'approved'
   };
-  const mp=await request('/checkout/preferences',token,body);
-  const checkout=String(mp.init_point||'');
-  if(!mp.id||!checkout)throw new Error('Mercado Pago no devolvió preference/init_point');
-  const u=new URL(checkout),host=u.hostname.toLowerCase();
-  const allowed=u.protocol==='https:'&&(host==='mercadopago.cl'||host.endsWith('.mercadopago.cl')||host==='mercadopago.com'||host.endsWith('.mercadopago.com'));
-  if(!allowed)throw new Error('init_point inesperado');
-  console.log('[DatoYa][MP Preference Probe] OK',JSON.stringify({order_id:Number(order.id),preference_id:String(mp.id),checkout_host:host,total:Number(order.total||0),marketplace_fee:fee}));
+  const variants=[
+    ['simple',{...baseBody,external_reference:'datoya-probe-simple:'+order.id+':'+Date.now()}],
+    ['split',{...baseBody,marketplace_fee:fee,external_reference:'datoya-probe-split:'+order.id+':'+Date.now(),notification_url:base+'/api/mercadopago/commerce-webhook'}]
+  ];
+  const results=[];
+  for(const [kind,body] of variants){
+    try{
+      const mp=await request('/checkout/preferences',token,body);
+      const init=String(mp.init_point||''),sandbox=String(mp.sandbox_init_point||'');
+      const host=url=>{try{return new URL(url).hostname}catch(_){return null}};
+      results.push({
+        kind,ok:!!(mp.id&&init),preference_id:String(mp.id||''),
+        init_point_host:host(init),sandbox_init_point_host:host(sandbox),
+        marketplace_fee:Number(mp.marketplace_fee||0),
+        marketplace:String(mp.marketplace||''),
+        collector_id:String(mp.collector_id||''),
+        client_id:String(mp.client_id||'')
+      });
+    }catch(e){
+      results.push({kind,ok:false,status:e.status||null,message:String(e.message||e),provider:e.provider||null});
+    }
+  }
+  console.log('[DatoYa][MP Preference Compare Probe]',JSON.stringify({order_id:Number(order.id),total:Number(order.total||0),seller_mp_user_id:String(connection.mp_user_id||''),results}));
 }
 if(String(process.env.DATOYA_MP_PREFERENCE_PROBE||'')==='1'){
   setTimeout(()=>run().catch(e=>console.error('[DatoYa][MP Preference Probe] FAILED',JSON.stringify({message:String(e.message||e),status:e.status||null,provider:e.provider||null}))),5000);
