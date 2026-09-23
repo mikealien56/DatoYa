@@ -119,6 +119,26 @@ function publicUser(id) {
 
 
   
+// ============ DATOYA_CLIENT_DIAGNOSTICS ============
+app.post('/api/client-diagnostics',(req,res)=>{
+  try{
+    const body=req.body||{};
+    const clean=v=>String(v==null?'':v).replace(/[\r\n\t]+/g,' ').slice(0,500);
+    const payload={
+      kind:clean(body.kind||'error'),
+      message:clean(body.message),
+      source:clean(body.source),
+      line:Number(body.line||0)||0,
+      column:Number(body.column||0)||0,
+      route:clean(body.route),
+      width:Number(body.width||0)||0,
+      height:Number(body.height||0)||0
+    };
+    console.error('[DatoYa][ClientError] '+JSON.stringify(payload));
+    res.json({ok:true});
+  }catch(_){res.status(204).end();}
+});
+
 // ============ DATOYA KHIPU PAYMENTS V1 ============
 db.exec(`
 CREATE TABLE IF NOT EXISTS commerce_khipu_payments (
