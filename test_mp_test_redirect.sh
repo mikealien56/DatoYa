@@ -11,5 +11,9 @@ grep -q "mode==='test'&&host.startsWith('sandbox.')" marketplace_payments_bootst
 grep -q "https://www.mercadopago.cl/checkout/v1/redirect?pref_id=" marketplace_payments_bootstrap.js || fail "Falta checkout web normal para TEST"
 grep -q "modeInfo.mode!=='test'||!host.startsWith('sandbox.')" marketplace_payments_bootstrap.js || fail "TEST todavía permite devolver sandbox.mercadopago"
 if grep -q "const checkout=mp.init_point;" marketplace_payments_bootstrap.js; then fail "Checkout sigue usando init_point crudo"; fi
+grep -q "dyCopyMPTestLink" marketplace_payments_ui.js || fail "Falta copia segura del enlace TEST"
+grep -q "APRO" marketplace_payments_ui.js || fail "Faltan instrucciones de pago aprobado TEST"
+grep -q "123456789" marketplace_payments_ui.js || fail "Falta documento TEST aprobado"
+grep -q "marketplace_payments_ui.js?v=20260923-1" marketplace_commerce_assets.js || fail "Asset de pagos TEST no fue refrescado"
 
 echo "Mercado Pago TEST redirect QA suite OK"
