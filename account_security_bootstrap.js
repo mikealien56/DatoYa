@@ -162,7 +162,7 @@ app.post('/api/auth/forgot-password',async(req,res)=>{
     const expires=new Date(Date.now()+30*60*1000).toISOString();
     db.prepare('DELETE FROM auth_password_resets WHERE user_id=? AND used_at IS NULL').run(user.id);
     db.prepare('INSERT INTO auth_password_resets(user_id,token_hash,expires_at) VALUES(?,?,?)').run(user.id,__sha256(token),expires);
-    const link=__publicBaseUrl+'/#/restablecer?token='+encodeURIComponent(token);
+    const link=__publicBaseUrl+'/#/restablecer/'+encodeURIComponent(token);
     await __sendAuthEmail(user.email,'Restablece tu contraseña de DatoYa','<p>Hola '+String(user.name||'')+'.</p><p>Usa este enlace para crear una nueva contraseña. Vence en 30 minutos:</p><p><a href="'+link+'">Restablecer contraseña</a></p><p>Si no pediste este cambio, ignora este correo.</p>');
     __securityEvent(user.id,'password_reset_requested','');
   }
@@ -193,7 +193,7 @@ app.post('/api/auth/email-verification/request',auth,async(req,res)=>{
   const expires=new Date(Date.now()+24*60*60*1000).toISOString();
   db.prepare('DELETE FROM auth_email_verifications WHERE user_id=? AND verified_at IS NULL').run(req.user.id);
   db.prepare('INSERT INTO auth_email_verifications(user_id,token_hash,expires_at) VALUES(?,?,?)').run(req.user.id,__sha256(token),expires);
-  const link=__publicBaseUrl+'/#/verificar-correo?token='+encodeURIComponent(token);
+  const link=__publicBaseUrl+'/#/verificar-correo/'+encodeURIComponent(token);
   await __sendAuthEmail(req.user.email,'Verifica tu correo en DatoYa','<p>Hola '+String(req.user.name||'')+'.</p><p>Confirma tu correo con este enlace:</p><p><a href="'+link+'">Verificar correo</a></p><p>El enlace vence en 24 horas.</p>');
   __securityEvent(req.user.id,'email_verification_requested','');
   const out={ok:true,delivery_configured:configured}; if(__authTestMode) out.test_token=token; res.json(out);
