@@ -22,6 +22,46 @@ function ensureUser(email,password,name){
   return Number(r.lastInsertRowid);
 }
 
+if(action==='seed_customer'){
+  if(!validEmail(buyerEmail)||buyerPassword.length<12)throw new Error('Credenciales de comprador TEST incompletas o inválidas');
+  const buyerId=ensureUser(buyerEmail,buyerPassword,'Comprador Mercado Pago TEST Nuevo');
+  const now=new Date().toISOString(),expires=new Date(Date.now()+365*86400000).toISOString();
+  db.prepare('UPDATE users SET phone=?,role=?,is_active=1,is_demo=1 WHERE id=?').run('+56900000000','cliente',buyerId);
+
+  const type=db.prepare('SELECT user_id FROM market_account_types WHERE user_id=?').get(buyerId);
+  if(type)db.prepare("UPDATE market_account_types SET account_type='customer',updated_at=? WHERE user_id=?").run(now,buyerId);
+  else db.prepare("INSERT INTO market_account_types(user_id,account_type,created_at,updated_at) VALUES(?,?,?,?)").run(buyerId,'customer',now,now);
+
+  db.prepare('DELETE FROM auth_email_verifications WHERE user_id=?').run(buyerId);
+  db.prepare('INSERT INTO auth_email_verifications(user_id,token_hash,expires_at,verified_at,created_at) VALUES(?,?,?,?,?)')
+    .run(buyerId,'seeded-test-customer-'+buyerId,expires,now,now);
+
+  const terms=String(process.env.LEGAL_TERMS_VERSION||'2026-09-14-beta1');
+  const privacy=String(process.env.LEGAL_PRIVACY_VERSION||'2026-09-14-beta1');
+  const payment=String(process.env.LEGAL_PAYMENT_VERSION||'2026-09-14-beta1');
+  const consent=db.prepare('SELECT id FROM account_consents WHERE user_id=? AND terms_version=? AND privacy_version=? ORDER BY id DESC LIMIT 1').get(buyerId,terms,privacy);
+  if(!consent)db.prepare('INSERT INTO account_consents(user_id,terms_version,privacy_version,payment_terms_version,location_consent,accepted_at) VALUES(?,?,?,?,0,?)')
+    .run(buyerId,terms,privacy,payment,now);
+
+  const business=db.prepare("SELECT id,status FROM businesses WHERE name='DatoYa Mercado Pago TEST' ORDER BY id LIMIT 1").get();
+  const product=business?db.prepare("SELECT id,name,price,promo_price,stock,stock_tracking FROM products WHERE business_id=? AND name='Producto Mercado Pago TEST' AND active=1 ORDER BY id LIMIT 1").get(business.id):null;
+  let order=null;
+  if(business&&product){
+    order=db.prepare("SELECT id,reference,total,payment_status,status FROM commerce_orders WHERE user_id=? AND business_id=? AND payment_status='pending' AND status NOT IN ('cancelled','completed') ORDER BY id DESC LIMIT 1").get(buyerId,business.id);
+    if(!order){
+      const qty=1,unit=Number(product.promo_price||product.price||0),subtotal=unit,total=subtotal,reference='DY-TEST-MP-NEW-'+Date.now();
+      db.prepare("INSERT INTO commerce_orders(reference,user_id,business_id,status,fulfillment_method,customer_name,customer_phone,delivery_address,notes,subtotal,delivery_fee,total,payment_method,payment_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        .run(reference,buyerId,business.id,'new','pickup','Comprador Mercado Pago TEST Nuevo','+56900000000',null,'Pedido exclusivo para prueba Mercado Pago TEST',subtotal,0,total,'arrange','pending',now,now);
+      order=db.prepare('SELECT id,reference,total,payment_status,status FROM commerce_orders WHERE reference=?').get(reference);
+      db.prepare("INSERT INTO commerce_order_items(order_id,product_id,impulse_id,name_snapshot,unit_price,quantity,created_at) VALUES(?,?,?,?,?,?,?)")
+        .run(order.id,product.id,null,product.name,unit,qty,now);
+      if(product.stock_tracking&&Number(product.stock||0)>0)db.prepare('UPDATE products SET stock=stock-?,updated_at=? WHERE id=?').run(qty,now,product.id);
+    }
+  }
+
+  console.log('[DatoYa][MP TEST Customer Seed] listo',JSON.stringify({buyer_email:buyerEmail,buyer_user_id:buyerId,account_type:'customer',email_verified:true,is_demo:true,order_id:order?Number(order.id):null,order_reference:order?String(order.reference):null,business_status:business?String(business.status):null}));
+}
+
 if(action==='seed'){
   if(!validEmail(merchantEmail)||!validEmail(buyerEmail)||merchantPassword.length<12||buyerPassword.length<12){
     throw new Error('Credenciales DatoYa Mercado Pago TEST incompletas o inválidas');
