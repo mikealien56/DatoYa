@@ -109,7 +109,7 @@ async function run(){
     const key=crypto.randomUUID();
     try{
       const mp=await mpRequest('/v1/orders',token,body,key);
-      results.push({name,ok:true,id:String(mp.id||''),status:String(mp.status||''),checkout_host:(()=>{try{return new URL(String(mp.checkout_url||'')).hostname}catch(_){return null}})()});
+      results.push({name,ok:true,id:String(mp.id||''),status:String(mp.status||''),checkout_url:String(mp.checkout_url||''),checkout_host:(()=>{try{return new URL(String(mp.checkout_url||'')).hostname}catch(_){return null}})()});
     }catch(e){
       results.push({name,ok:false,status:e.status||null,code:e.code||null,provider:e.provider||null});
     }
