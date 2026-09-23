@@ -2,14 +2,18 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-fail(){ echo "MP TEST REDIRECT QA FAIL: $1"; exit 1; }
+fail(){ echo "MP TEST ORDERS QA FAIL: $1"; exit 1; }
 
 node --check marketplace_payments_bootstrap.js
 
-grep -q "function __cmpCheckoutUrl" marketplace_payments_bootstrap.js || fail "Falta resolver seguro de checkout"
-grep -q "mode==='test'&&host.startsWith('sandbox.')" marketplace_payments_bootstrap.js || fail "Falta normalización de host sandbox en TEST"
-grep -q "https://www.mercadopago.cl/checkout/v1/redirect?pref_id=" marketplace_payments_bootstrap.js || fail "Falta checkout web normal para TEST"
-grep -q "modeInfo.mode!=='test'||!host.startsWith('sandbox.')" marketplace_payments_bootstrap.js || fail "TEST todavía permite devolver sandbox.mercadopago"
-if grep -q "const checkout=mp.init_point;" marketplace_payments_bootstrap.js; then fail "Checkout sigue usando init_point crudo"; fi
+grep -q "mpHttp('POST','/v1/orders'" marketplace_payments_bootstrap.js || fail "TEST no crea Orders API"
+grep -q "'X-Idempotency-Key':idem" marketplace_payments_bootstrap.js || fail "Falta idempotencia de Orders API"
+grep -q "payer:{email:'test@testuser.com'}" marketplace_payments_bootstrap.js || fail "Falta payer TEST válido"
+grep -q "processing_mode:'manual'" marketplace_payments_bootstrap.js || fail "Checkout Pro Orders requiere processing_mode manual"
+grep -q "provider_api:'orders'" marketplace_payments_bootstrap.js || fail "Respuesta TEST no identifica Orders API"
+grep -q "provider_order_id=excluded.provider_order_id" marketplace_payments_bootstrap.js || fail "No se persiste provider_order_id"
+grep -q "p&&String(p.external_reference||'')==='datoya-order:'" marketplace_payments_bootstrap.js || fail "Falta validación de external_reference de Orders"
+grep -q "topic==='order'" marketplace_payments_bootstrap.js || fail "Falta webhook topic order"
+grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_payments_bootstrap.js || fail "Falta candado de pagos reales"
 
-echo "Mercado Pago TEST redirect QA suite OK"
+echo "Mercado Pago TEST Orders QA suite OK"
