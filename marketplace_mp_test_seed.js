@@ -23,6 +23,20 @@ function createProviderTestUser(token,description){
     req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Mercado Pago timeout')));req.write(data);req.end();
   });
 }
+function createAppAccessToken(){
+  return new Promise((resolve,reject)=>{
+    const clientId=String(process.env.MP_CLIENT_ID||'').trim(),clientSecret=String(process.env.MP_CLIENT_SECRET||'').trim();
+    if(!clientId||!clientSecret)return reject(new Error('MP_CLIENT_ID/MP_CLIENT_SECRET no configurados'));
+    const data=JSON.stringify({client_id:clientId,client_secret:clientSecret,grant_type:'client_credentials'});
+    const req=https.request({hostname:'api.mercadopago.com',path:'/oauth/token',method:'POST',headers:{
+      Accept:'application/json','Content-Type':'application/json','Content-Length':Buffer.byteLength(data)
+    }},res=>{let raw='';res.on('data',d=>raw+=d);res.on('end',()=>{let parsed={};try{parsed=raw?JSON.parse(raw):{};}catch(_){}
+      if(res.statusCode>=200&&res.statusCode<300&&parsed.access_token)return resolve(String(parsed.access_token));
+      const e=new Error(parsed.message||parsed.error||('Mercado Pago OAuth HTTP '+res.statusCode));e.status=res.statusCode;e.provider={message:parsed.message||null,error:parsed.error||null,cause:parsed.cause||null};reject(e);
+    });});
+    req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Mercado Pago OAuth timeout')));req.write(data);req.end();
+  });
+}
 function ensureUser(email,password,name){
   let row=db.prepare('SELECT id,email FROM users WHERE email=?').get(email);
   if(row){
@@ -37,15 +51,17 @@ function ensureUser(email,password,name){
 
 if(action==='create_provider_buyer'){
   const nonce=String(process.env.DATOYA_MP_CREATE_TEST_USER_NONCE||'').trim();
-  if(!nonce)throw new Error('Falta nonce de creación de usuario TEST');
-  if(String(getSetting('mp_test_user_created_nonce',''))===nonce){
+  if(!nonce){
+    console.error('[DatoYa][MP TEST Provider User] FAILED',JSON.stringify({message:'Falta nonce de creación de usuario TEST'}));
+  }else if(String(getSetting('mp_test_user_created_nonce',''))===nonce){
     console.log('[DatoYa][MP TEST Provider User] omitido: nonce ya utilizado');
+  }else if(String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true'){
+    console.error('[DatoYa][MP TEST Provider User] FAILED',JSON.stringify({message:'Creación TEST bloqueada mientras pagos live estén habilitados'}));
   }else{
-    if(String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true')throw new Error('Creación TEST bloqueada mientras pagos live estén habilitados');
-    const token=String(process.env.MP_ACCESS_TOKEN||'').trim();
-    if(!token)throw new Error('MP_ACCESS_TOKEN no configurado');
     setTimeout(async()=>{
       try{
+        let token=String(process.env.MP_ACCESS_TOKEN||'').trim();
+        if(!token)token=await createAppAccessToken();
         const user=await createProviderTestUser(token,'DatoYa comprador TEST '+nonce);
         setSetting('mp_test_user_created_nonce',nonce);
         console.log('[DatoYa][MP TEST Provider User] creado',JSON.stringify({
