@@ -65,8 +65,8 @@ if(action==='create_provider_buyer'){
         const user=await createProviderTestUser(token,'DatoYa comprador TEST '+nonce);
         setSetting('mp_test_user_created_nonce',nonce);
         console.log('[DatoYa][MP TEST Provider User] creado',JSON.stringify({
-          id:String(user.id||''),nickname:String(user.nickname||''),password:String(user.password||''),email:String(user.email||''),
-          site_id:String(user.site_id||''),site_status:String(user.site_status||'')
+          id:String(user.id||''),nickname:String(user.nickname||''),email:String(user.email||''),
+          site_id:String(user.site_id||''),site_status:String(user.site_status||''),credentials_redacted:true
         }));
       }catch(e){
         console.error('[DatoYa][MP TEST Provider User] FAILED',JSON.stringify({message:String(e.message||e),status:e.status||null,provider:e.provider||null}));
