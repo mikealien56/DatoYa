@@ -78,7 +78,7 @@ async function run(){
   const baseUrl=String(process.env.PUBLIC_BASE_URL||'https://datoya.cl').replace(/\/$/,'');
   const first=items[0],quantity=Math.max(1,Number(first.quantity||1)),unit=Number(first.unit_price||0);
   const baseBody={type:'online',processing_mode:'manual',total_amount:String(Number(order.total||0))};
-  const fullItem={title:String(first.name_snapshot||'Producto DatoYa').slice(0,120),quantity,unit_price:String(unit),unit_measure:'unit',total_amount:String(unit*quantity)};
+  const fullItem={title:String(first.name_snapshot||'Producto DatoYa').slice(0,120),quantity,unit_price:String(unit)};
   const fullConfig={online:{success_url:baseUrl+'/#/pedidos',failure_url:baseUrl+'/#/pedidos',pending_url:baseUrl+'/#/pedidos',auto_return:'approved'}};
   const variants=[
     ['official_min',{...baseBody,capture_mode:'automatic_async',payer:{email:'test@testuser.com'},items:[fullItem]}],
@@ -86,7 +86,7 @@ async function run(){
   ];
   const results=[];
   for(const [name,body0] of variants){
-    const body={...body0,external_reference:'datoya-probe:'+name+':'+order.id+':'+Date.now()};
+    const body={...body0,external_reference:'datoya_probe_'+name+'_'+order.id+'_'+Date.now()};
     const key=crypto.randomUUID();
     try{
       const mp=await mpRequest('/v1/orders',token,body,key);
