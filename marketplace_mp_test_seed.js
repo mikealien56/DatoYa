@@ -49,6 +49,70 @@ function ensureUser(email,password,name){
   return Number(r.lastInsertRowid);
 }
 
+// Bootstrap temporal y seguro para el comprador Mercado Pago TEST.
+// La clave real no se guarda en texto plano: solo su hash scrypt.
+// Se activa únicamente con DATOYA_MP_FIXED_TEST_BUYER=1 y pagos live bloqueados.
+function ensureFixedTestBuyer(){
+  if(String(process.env.DATOYA_MP_FIXED_TEST_BUYER||'')!=='1')return;
+  if(String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true'){
+    console.error('[DatoYa][MP TEST Fixed Buyer] bloqueado: pagos live habilitados');
+    return;
+  }
+  const email='comprador.mp.test@datoya.cl';
+  const passwordHash='170a1e1ebb1b965ed67e97ae6f16ef69:55a892a3f1b33f53a0407b040d1fc26ef53e7c40947814d5e21bd30e2452b61d60f6de8cb5dad0932f5a26e6396daf4ee46fbbffd3a96c793282927ff20d3786';
+  let row=db.prepare('SELECT id,email FROM users WHERE email=?').get(email);
+  if(row){
+    db.prepare('UPDATE users SET password_hash=?,name=?,phone=?,role=?,is_active=1,is_demo=1 WHERE id=?')
+      .run(passwordHash,'Comprador Mercado Pago TEST Nuevo','+56900000000','cliente',row.id);
+  }else{
+    const comuna=db.prepare("SELECT id FROM comunas WHERE lower(name)=lower('Doñihue') LIMIT 1").get();
+    const r=db.prepare('INSERT INTO users(email,password_hash,name,phone,role,comuna_id,is_active,is_demo) VALUES(?,?,?,?,?,?,1,1)')
+      .run(email,passwordHash,'Comprador Mercado Pago TEST Nuevo','+56900000000','cliente',comuna?Number(comuna.id):null);
+    row={id:Number(r.lastInsertRowid),email};
+  }
+  const buyerId=Number(row.id),now=new Date().toISOString(),expires=new Date(Date.now()+365*86400000).toISOString();
+  try{
+    const type=db.prepare('SELECT user_id FROM market_account_types WHERE user_id=?').get(buyerId);
+    if(type)db.prepare("UPDATE market_account_types SET account_type='customer',updated_at=? WHERE user_id=?").run(now,buyerId);
+    else db.prepare("INSERT INTO market_account_types(user_id,account_type,created_at,updated_at) VALUES(?,?,?,?)").run(buyerId,'customer',now,now);
+  }catch(_){}
+  try{
+    db.prepare('DELETE FROM auth_email_verifications WHERE user_id=?').run(buyerId);
+    db.prepare('INSERT INTO auth_email_verifications(user_id,token_hash,expires_at,verified_at,created_at) VALUES(?,?,?,?,?)')
+      .run(buyerId,'fixed-test-customer-'+buyerId,expires,now,now);
+  }catch(_){}
+  try{
+    const terms=String(process.env.LEGAL_TERMS_VERSION||'2026-09-14-beta1');
+    const privacy=String(process.env.LEGAL_PRIVACY_VERSION||'2026-09-14-beta1');
+    const payment=String(process.env.LEGAL_PAYMENT_VERSION||'2026-09-14-beta1');
+    const consent=db.prepare('SELECT id FROM account_consents WHERE user_id=? AND terms_version=? AND privacy_version=? ORDER BY id DESC LIMIT 1').get(buyerId,terms,privacy);
+    if(!consent)db.prepare('INSERT INTO account_consents(user_id,terms_version,privacy_version,payment_terms_version,location_consent,accepted_at) VALUES(?,?,?,?,0,?)')
+      .run(buyerId,terms,privacy,payment,now);
+  }catch(_){}
+  let order=null,business=null;
+  try{
+    business=db.prepare("SELECT id,status FROM businesses WHERE name='DatoYa Mercado Pago TEST' ORDER BY id LIMIT 1").get();
+    const product=business?db.prepare("SELECT id,name,price,promo_price,stock,stock_tracking FROM products WHERE business_id=? AND name='Producto Mercado Pago TEST' AND active=1 ORDER BY id LIMIT 1").get(business.id):null;
+    if(business&&product){
+      order=db.prepare("SELECT id,reference,total,payment_status,status FROM commerce_orders WHERE user_id=? AND business_id=? AND payment_status='pending' AND status NOT IN ('cancelled','completed') ORDER BY id DESC LIMIT 1").get(buyerId,business.id);
+      if(!order){
+        const qty=1,unit=Number(product.promo_price||product.price||0),subtotal=unit,total=subtotal,reference='DY-TEST-MP-FIXED-'+Date.now();
+        db.prepare("INSERT INTO commerce_orders(reference,user_id,business_id,status,fulfillment_method,customer_name,customer_phone,delivery_address,notes,subtotal,delivery_fee,total,payment_method,payment_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+          .run(reference,buyerId,business.id,'new','pickup','Comprador Mercado Pago TEST Nuevo','+56900000000',null,'Pedido exclusivo para prueba Mercado Pago TEST',subtotal,0,total,'arrange','pending',now,now);
+        order=db.prepare('SELECT id,reference,total,payment_status,status FROM commerce_orders WHERE reference=?').get(reference);
+        db.prepare("INSERT INTO commerce_order_items(order_id,product_id,impulse_id,name_snapshot,unit_price,quantity,created_at) VALUES(?,?,?,?,?,?,?)")
+          .run(order.id,product.id,null,product.name,unit,qty,now);
+        if(product.stock_tracking&&Number(product.stock||0)>0)db.prepare('UPDATE products SET stock=stock-?,updated_at=? WHERE id=?').run(qty,now,product.id);
+      }
+    }
+  }catch(_){}
+  console.log('[DatoYa][MP TEST Fixed Buyer] listo',JSON.stringify({
+    buyer_email:email,buyer_user_id:buyerId,account_type:'customer',email_verified:true,is_demo:true,
+    order_id:order?Number(order.id):null,order_reference:order?String(order.reference):null,business_status:business?String(business.status):null
+  }));
+}
+ensureFixedTestBuyer();
+
 if(action==='create_provider_buyer'){
   const nonce=String(process.env.DATOYA_MP_CREATE_TEST_USER_NONCE||'').trim();
   if(!nonce){
