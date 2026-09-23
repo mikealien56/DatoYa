@@ -133,7 +133,7 @@ app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
       total_amount:String(Math.round(Number(o.total||0))),
       external_reference:'datoya_order_'+o.id,
       marketplace_fee:String(fee),
-      payer:{email:'test@testuser.com'},
+      payer:{email:String(process.env.DATOYA_MP_TEST_PAYER_EMAIL||'test@testuser.com')},
       items:items.map(i=>({title:String(i.name_snapshot||'Producto DatoYa').slice(0,120),quantity:Math.max(1,Number(i.quantity||1)),unit_price:String(Math.round(Number(i.unit_price||0)))})),
       config:{online:{success_url:mpBaseUrl()+'/#/pedidos',pending_url:mpBaseUrl()+'/#/pedidos',failure_url:mpBaseUrl()+'/#/pedidos',auto_return:'approved'}}
     };
