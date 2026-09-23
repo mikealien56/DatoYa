@@ -13,7 +13,7 @@ if(fs.existsSync(idx)){
   if(!html.includes('manifest.webmanifest'))html=html.replace('</head>','<link rel="manifest" href="/manifest.webmanifest">\n<meta name="theme-color" content="#0B3A82">\n<link rel="apple-touch-icon" href="/brand/pwa/icon-192.png">\n</head>');
   if(!html.includes('/brand_phase_a_ui.js'))html=html.replace('</body>','<script src="/brand_phase_a_ui.js?v=1"></script>\n</body>');
   html=html.replace(/<script id="dy-pwa-register">[\s\S]*?<\/script>\s*/g,'');
-  const pwaRegister='<script id="dy-pwa-register">(()=>{if(!("serviceWorker" in navigator))return;const secure=location.protocol==="https:"||["localhost","127.0.0.1"].includes(location.hostname);if(!secure)return;addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js",{scope:"/"}).catch(err=>console.warn("[DatoYa] Service Worker:",err.message)));})();</script>\\n';
+  const pwaRegister='<script id="dy-pwa-register">(()=>{if(!("serviceWorker" in navigator))return;const secure=location.protocol==="https:"||["localhost","127.0.0.1"].includes(location.hostname);if(!secure)return;addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js",{scope:"/"}).catch(err=>console.warn("[DatoYa] Service Worker:",err.message)));})();</script>\n';
   html=html.replace('</body>',pwaRegister+'</body>');
   fs.writeFileSync(idx,html);
 }
