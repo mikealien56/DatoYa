@@ -43,7 +43,23 @@ if(action==='seed_customer'){
   if(!consent)db.prepare('INSERT INTO account_consents(user_id,terms_version,privacy_version,payment_terms_version,location_consent,accepted_at) VALUES(?,?,?,?,0,?)')
     .run(buyerId,terms,privacy,payment,now);
 
-  console.log('[DatoYa][MP TEST Customer Seed] listo',JSON.stringify({buyer_email:buyerEmail,buyer_user_id:buyerId,account_type:'customer',email_verified:true,is_demo:true}));
+  const business=db.prepare("SELECT id,status FROM businesses WHERE name='DatoYa Mercado Pago TEST' ORDER BY id LIMIT 1").get();
+  const product=business?db.prepare("SELECT id,name,price,promo_price,stock,stock_tracking FROM products WHERE business_id=? AND name='Producto Mercado Pago TEST' AND active=1 ORDER BY id LIMIT 1").get(business.id):null;
+  let order=null;
+  if(business&&product){
+    order=db.prepare("SELECT id,reference,total,payment_status,status FROM commerce_orders WHERE user_id=? AND business_id=? AND payment_status='pending' AND status NOT IN ('cancelled','completed') ORDER BY id DESC LIMIT 1").get(buyerId,business.id);
+    if(!order){
+      const qty=1,unit=Number(product.promo_price||product.price||0),subtotal=unit,total=subtotal,reference='DY-TEST-MP-NEW-'+Date.now();
+      db.prepare("INSERT INTO commerce_orders(reference,user_id,business_id,status,fulfillment_method,customer_name,customer_phone,delivery_address,notes,subtotal,delivery_fee,total,payment_method,payment_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        .run(reference,buyerId,business.id,'new','pickup','Comprador Mercado Pago TEST Nuevo','+56900000000',null,'Pedido exclusivo para prueba Mercado Pago TEST',subtotal,0,total,'arrange','pending',now,now);
+      order=db.prepare('SELECT id,reference,total,payment_status,status FROM commerce_orders WHERE reference=?').get(reference);
+      db.prepare("INSERT INTO commerce_order_items(order_id,product_id,impulse_id,name_snapshot,unit_price,quantity,created_at) VALUES(?,?,?,?,?,?,?)")
+        .run(order.id,product.id,null,product.name,unit,qty,now);
+      if(product.stock_tracking&&Number(product.stock||0)>0)db.prepare('UPDATE products SET stock=stock-?,updated_at=? WHERE id=?').run(qty,now,product.id);
+    }
+  }
+
+  console.log('[DatoYa][MP TEST Customer Seed] listo',JSON.stringify({buyer_email:buyerEmail,buyer_user_id:buyerId,account_type:'customer',email_verified:true,is_demo:true,order_id:order?Number(order.id):null,order_reference:order?String(order.reference):null,business_status:business?String(business.status):null}));
 }
 
 if(action==='seed'){
