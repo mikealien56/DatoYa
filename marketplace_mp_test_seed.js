@@ -59,7 +59,7 @@ function ensureFixedTestBuyer(){
     return;
   }
   const email='comprador.mp.test@datoya.cl';
-  const passwordHash='bdba5fc9a492900d397d7137355da16e:559bc39d2c23f5159a8450a2ad5061857522601a569af6929fa0b8841fb2d6aa02d905a7171a1c145ae6006ed641b932e2badd639080e8b27d4be4ee795e3eb9';
+  const passwordHash='adbcffbe32a3cfb3cf5b74b0260037e4:5f621ea2d34e613956c47ad5fbb963c213f0f33c7459966557415c1bd40a1f00c03b9b794c0744c4a8311d6665583f03876768a7e126be607c6547d7bd8fff72';
   let row=db.prepare('SELECT id,email FROM users WHERE email=?').get(email);
   if(row){
     db.prepare('UPDATE users SET password_hash=?,name=?,phone=?,role=?,is_active=1,is_demo=1 WHERE id=?')
