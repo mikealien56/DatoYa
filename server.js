@@ -256,10 +256,39 @@ app.post('/api/orders/:id/khipu/checkout',auth,async(req,res)=>{try{
 app.post('/api/khipu/webhook',async(req,res)=>{try{
   if(!__khVerifySignature(req))return res.status(401).json({error:'Firma Khipu inválida'});
   const paymentId=String((req.body&&req.body.payment_id)||'').trim();if(!paymentId)return res.status(200).json({ok:true,ignored:true});
-  const row=db.prepare('SELECT * FROM commerce_khipu_payments WHERE payment_id=?').get(paymentId);if(!row)return res.status(200).json({ok:true,unknown:true});
-  const o=db.prepare('SELECT o.*,b.owner_user_id FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=?').get(row.order_id);if(!o)return res.status(200).json({ok:true,orphan:true});
-  const sync=await __khSyncPayment(row,o);
-  res.status(200).json({ok:true,paid:!!sync.paid});
+
+  const row=db.prepare('SELECT * FROM commerce_khipu_payments WHERE payment_id=?').get(paymentId);
+  if(row){
+    const o=db.prepare('SELECT o.*,b.owner_user_id FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=?').get(row.order_id);
+    if(!o)return res.status(200).json({ok:true,orphan:true});
+    const sync=await __khSyncPayment(row,o);
+    return res.status(200).json({ok:true,type:'order',paid:!!sync.paid});
+  }
+
+  let impulse=null;try{impulse=db.prepare('SELECT * FROM business_impulse_payments WHERE payment_id=?').get(paymentId);}catch(_){}
+  if(impulse){
+    const payment=await __khApi('GET','/v3/payments/'+encodeURIComponent(paymentId));
+    const amountOk=Math.round(Number(payment.amount||0))===Number(impulse.amount||0);
+    const receiverOk=String(payment.receiver_id||'')===String(process.env.KHIPU_RECEIVER_ID||'');
+    const referenceOk=String(payment.transaction_id||'')===String(impulse.reference||'');
+    const status=String(payment.status||'pending'),detail=String(payment.status_detail||'');
+    try{db.prepare("UPDATE business_impulse_payments SET provider_status=?,updated_at=? WHERE id=?").run(status+(detail?':'+detail:''),new Date().toISOString(),impulse.id);}catch(_){}
+    if(status==='done'&&detail==='normal'&&amountOk&&receiverOk&&referenceOk){
+      if(String(impulse.status)!=='approved'){
+        db.prepare("UPDATE business_impulse_payments SET status='approved',provider_status='done:normal',updated_at=? WHERE id=?").run(new Date().toISOString(),impulse.id);
+        if(typeof __dyAddImpulseDays==='function'){
+          const days=impulse.billing_period==='annual'?365:impulse.billing_period==='quarterly'?90:30;
+          const membership=__dyAddImpulseDays(impulse.business_id,days,'paid',null,impulse.amount,impulse.billing_period,impulse.reference);
+          const b=db.prepare('SELECT owner_user_id,name FROM businesses WHERE id=?').get(impulse.business_id);
+          if(b)notify(b.owner_user_id,'impulso','⚡ Tu plan DatoYa Impulso está activo hasta '+String(membership.expires_at).slice(0,10)+'.','#/mi-negocio-plan/'+impulse.business_id);
+        }
+      }
+      return res.status(200).json({ok:true,type:'impulso',paid:true});
+    }
+    return res.status(200).json({ok:true,type:'impulso',paid:false,status,detail,amount_ok:amountOk,receiver_ok:receiverOk,reference_ok:referenceOk});
+  }
+
+  return res.status(200).json({ok:true,unknown:true});
 }catch(e){console.error('[DatoYa][Khipu webhook]',e.status||'',e.provider||e.message||e);res.status(500).json({error:'No se pudo procesar la notificación'});}});
 
 // ============ CATÁLOGOS ============
