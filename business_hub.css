@@ -107,3 +107,58 @@
   .dy-payment-hero{align-items:stretch!important}
   .dy-khipu-status-pill{text-align:center}
 }
+
+
+/* Corrección móvil: tarjetas de herramientas nunca deben comprimir texto en vertical. */
+@media(max-width:820px){
+  .dy-dashboard-growth,
+  .dy-hub-clean-tools{
+    grid-template-columns:minmax(0,1fr)!important;
+    width:100%!important;
+  }
+  .dy-dashboard-growth>a,
+  .dy-hub-clean-tools>a{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    min-height:0!important;
+    display:grid!important;
+    grid-template-columns:48px minmax(0,1fr)!important;
+    grid-template-areas:"icon title" "icon desc"!important;
+    column-gap:12px!important;
+    row-gap:2px!important;
+    align-items:center!important;
+    padding:14px 15px!important;
+    text-align:left!important;
+  }
+  .dy-dashboard-growth>a>span,
+  .dy-hub-clean-tools>a>span{
+    grid-area:icon!important;
+    width:48px!important;
+    height:48px!important;
+    min-width:48px!important;
+    display:grid!important;
+    place-items:center!important;
+    margin:0!important;
+  }
+  .dy-dashboard-growth>a>b,
+  .dy-hub-clean-tools>a>b{
+    grid-area:title!important;
+    min-width:0!important;
+    width:auto!important;
+    white-space:normal!important;
+    word-break:normal!important;
+    overflow-wrap:break-word!important;
+    line-height:1.25!important;
+  }
+  .dy-dashboard-growth>a>small,
+  .dy-hub-clean-tools>a>small{
+    grid-area:desc!important;
+    min-width:0!important;
+    width:auto!important;
+    white-space:normal!important;
+    word-break:normal!important;
+    overflow-wrap:break-word!important;
+    line-height:1.35!important;
+  }
+}
