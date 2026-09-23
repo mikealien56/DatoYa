@@ -48,6 +48,7 @@ async function run(){
   if(Number(conn.test_account||0)!==1||String(conn.test_account_mp_user_id||'')!==String(conn.mp_user_id||''))throw new Error('La cuenta conectada no está reconocida como TEST');
   const token=dec(conn.access_token_enc);
   const mp=await get('/checkout/preferences/'+encodeURIComponent(p.preference_id),token);
+  const paymentSearch=await get('/v1/payments/search?external_reference='+encodeURIComponent('datoya-order:'+p.order_id)+'&limit=20&sort=date_created&criteria=desc',token).catch(()=>({paging:{total:0},results:[]}));
   const safe={
     stored_reference:String(p.reference||''),
     preference_id:String(mp.id||''),
@@ -65,7 +66,9 @@ async function run(){
     sandbox_init_point_host:(()=>{try{return new URL(String(mp.sandbox_init_point||'')).hostname}catch(_){return null}})(),
     payment_methods:mp.payment_methods||null,
     expires:Boolean(mp.expires),
-    date_of_expiration:mp.date_of_expiration||null
+    date_of_expiration:mp.date_of_expiration||null,
+    payment_search_total:Number(paymentSearch&&paymentSearch.paging&&paymentSearch.paging.total||0),
+    payment_attempts:(paymentSearch&&paymentSearch.results||[]).slice(0,10).map(x=>({id:String(x.id||''),status:String(x.status||''),status_detail:String(x.status_detail||''),payment_method_id:String(x.payment_method_id||''),payment_type_id:String(x.payment_type_id||''),collector_id:String(x.collector_id||x.user_id||''),payer_id:String(x.payer&&x.payer.id||''),live_mode:!!x.live_mode,date_created:x.date_created||null}))
   };
   console.log('[DatoYa][MP Preference Diagnostic] OK',JSON.stringify(safe));
 }
