@@ -16,7 +16,7 @@
       }
       const m=data.membership,cfg=data.config||{},active=!!m,usage=data.usage||{};
       const freeLimit=Number(cfg.free_catalog_limit||20),paidLimit=Number(cfg.paid_catalog_limit||200);
-      const canCheckout=!!cfg.checkout_enabled&&(cfg.checkout_mode!=='live'||cfg.live_payments_allowed);
+      const canCheckout=!!cfg.checkout_enabled&&cfg.payment_provider==='khipu';
       const rows=[
         ['Perfil público del negocio','✓','✓'],
         ['Ubicación, horarios y WhatsApp','✓','✓'],
@@ -64,20 +64,20 @@
             <span>⚡ DATOYA IMPULSO</span><h2>Desde ${money(cfg.monthly_price)} <small>/ mes</small></h2><p>Incluye todo lo Gratis y desbloquea herramientas para crecer.</p>
             <ul><li>📦 Hasta <b>${paidLimit} productos</b></li><li>⚡ Impulso Ahora</li><li>📊 Estadísticas avanzadas</li><li>✨ Perfil destacado <small>(próximamente)</small></li><li>📍 Pulso Local</li><li>🎯 Radar de oportunidades</li><li>🔔 Prioridad en DatoYa Alerta</li></ul>
             <div class="dy-plan-options">
-              <div class="dy-plan-option"><div><b>Mensual</b><small>${money(cfg.monthly_price)} / mes</small></div><button class="btn btn-outline btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'monthly')">Elegir</button></div>
-              <div class="dy-plan-option popular"><div><span>AHORRA ${money((cfg.monthly_price*3)-cfg.quarterly_price)}</span><b>3 meses</b><small><s>${money(cfg.monthly_price*3)}</s> <strong>${money(cfg.quarterly_price)}</strong> · equivale a ${money(Math.round(cfg.quarterly_price/3))}/mes</small></div><button class="btn btn-primary btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'quarterly')">Elegir 3 meses</button></div>
-              <div class="dy-plan-option best"><div><span>⭐ MEJOR VALOR · CASI 3 MESES GRATIS</span><b>Anual</b><small><s>${money(cfg.monthly_price*12)}</s> <strong>${money(cfg.annual_price)}</strong> · equivale a ${money(Math.round(cfg.annual_price/12))}/mes</small><em>Ahorras ${money((cfg.monthly_price*12)-cfg.annual_price)} al año</em></div><button class="btn btn-primary btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'annual')">Elegir anual</button></div>
+              <div class="dy-plan-option"><div><b>Mensual</b><small>${money(cfg.monthly_price)} · 30 días de acceso</small><em>Pago Khipu por período. Renovación manual por ahora.</em></div><button class="btn btn-outline btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'monthly')">Pagar con Khipu</button></div>
+              <div class="dy-plan-option popular"><div><span>AHORRA ${money((cfg.monthly_price*3)-cfg.quarterly_price)}</span><b>3 meses</b><small><s>${money(cfg.monthly_price*3)}</s> <strong>${money(cfg.quarterly_price)}</strong> · equivale a ${money(Math.round(cfg.quarterly_price/3))}/mes</small></div><button class="btn btn-primary btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'quarterly')">Pagar 3 meses con Khipu</button></div>
+              <div class="dy-plan-option best"><div><span>⭐ MEJOR VALOR · CASI 3 MESES GRATIS</span><b>Anual</b><small><s>${money(cfg.monthly_price*12)}</s> <strong>${money(cfg.annual_price)}</strong> · equivale a ${money(Math.round(cfg.annual_price/12))}/mes</small><em>Ahorras ${money((cfg.monthly_price*12)-cfg.annual_price)} al año</em></div><button class="btn btn-primary btn-sm" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'annual')">Pagar anual con Khipu</button></div>
             </div>
-            ${!canCheckout?'<div class="dy-plan-note">🔒 La membresía está definida y los candados ya funcionan, pero el cobro sigue deshabilitado mientras terminamos la validación TEST de Mercado Pago.</div>':''}
+            ${!canCheckout?'<div class="dy-plan-note">🔒 El cobro Khipu todavía no está disponible en esta cuenta. Los pagos reales permanecen bloqueados durante la validación.</div>':''}
           </section>
         </div>
 
-        <section class="dy-plan-card dy-plan-weekly">
+        <section class="dy-plan-card"><span>🎁 CORTESÍAS DATOYA</span><h2>7 y 15 días gratis</h2><p>Estas cortesías las entrega administración desde el panel de DatoYa. No generan cobro Khipu y se suman a la vigencia que ya tenga el negocio.</p></section>\n\n        <section class="dy-plan-card dy-plan-weekly">
           <div><span>⭐ DESTACADO APARTE</span><h2>Impulso de la semana</h2><p>No forma parte del plan Gratis ni de DatoYa Impulso. Es una campaña especial por período que puede contratarse aparte o ser entregada como cortesía por DatoYa.</p></div>
           <a class="btn btn-outline" href="#/impulso-semanal-nuevo/${id}">Ver Impulso semanal</a>
         </section>
 
-        ${data.pending_payment?'<section class="dy-plan-card"><h3>Pago pendiente</h3><p>Si ya terminaste el pago en Mercado Pago, puedes actualizar su estado.</p><button class="btn btn-outline" onclick="dySyncImpulsePayment('+id+')">Actualizar pago</button></section>':''}
+        ${data.pending_payment?'<section class="dy-plan-card"><h3>Pago Khipu pendiente</h3><p>Si ya terminaste el pago en Khipu, puedes actualizar su estado. DatoYa activará el plan solo cuando Khipu confirme el pago.</p><button class="btn btn-outline" onclick="dySyncImpulsePayment('+id+')">Actualizar pago Khipu</button></section>':''}
       </div>`;
     }catch(e){toast?.(e.message||'No se pudo cargar el plan DatoYa Impulso','err');}
   };
@@ -85,14 +85,14 @@
   window.dyStartImpulseCheckout=async function(id,period){
     try{
       const r=await api('/businesses/'+id+'/impulso-plan/checkout',{method:'POST',body:{billing_period:period}});
-      if(!r.checkout_url)throw new Error('No se recibió la URL de pago');
+      if(!r.checkout_url)throw new Error('Khipu no devolvió la URL de pago');
       location.href=r.checkout_url;
     }catch(e){toast?.(e.message||'No se pudo iniciar el pago','err');}
   };
   window.dySyncImpulsePayment=async function(id){
     try{
       const r=await api('/businesses/'+id+'/impulso-plan/sync',{method:'POST',body:{}});
-      toast?.(r.status==='approved'?'Pago aprobado y DatoYa Impulso activado':'Estado actualizado: '+(r.status||'pendiente'),r.status==='approved'?'ok':'info');
+      toast?.(r.status==='approved'?'Pago Khipu aprobado y DatoYa Impulso activado':'Estado Khipu: '+(r.status||'pendiente'),r.status==='approved'?'ok':'info');
       routes['mi-negocio-plan'](id);
     }catch(e){toast?.(e.message||'No se pudo consultar el pago','err');}
   };
@@ -107,4 +107,4 @@
     }
     return r;
   };
-})();
+  if(!window.dyImpulsePlanDeepLinkReady){\n    window.dyImpulsePlanDeepLinkReady=true;\n    const bootPath=location.hash.replace(/^#\\//,'').split('/')[0];\n    if(bootPath==='mi-negocio-plan')setTimeout(()=>{if(typeof route==='function'&&routes['mi-negocio-plan'])route();},60);\n  }\n})();
