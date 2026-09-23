@@ -14,6 +14,8 @@ if grep -q "const checkout=mp.init_point;" marketplace_payments_bootstrap.js; th
 grep -q "dyCopyMPTestLink" marketplace_payments_ui.js || fail "Falta copia segura del enlace TEST"
 grep -q "APRO" marketplace_payments_ui.js || fail "Faltan instrucciones de pago aprobado TEST"
 grep -q "123456789" marketplace_payments_ui.js || fail "Falta documento TEST aprobado"
-grep -q "marketplace_payments_ui.js?v=20260923-1" marketplace_commerce_assets.js || fail "Asset de pagos TEST no fue refrescado"
+grep -q "mp_test_integrator_mismatch" marketplace_payments_bootstrap.js || fail "Falta guard de integrador TEST/real mezclado"
+grep -q "test_environment_ready" marketplace_payments_ui.js || fail "La UI no muestra el estado del entorno TEST"
+grep -q "marketplace_payments_ui.js?v=20260923-2" marketplace_commerce_assets.js || fail "Asset de pagos TEST no fue refrescado"
 
 echo "Mercado Pago TEST redirect QA suite OK"
