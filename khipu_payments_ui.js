@@ -48,4 +48,11 @@
       toast?.(err.message||'No se pudo abrir Khipu','err');
     }
   };
+  // En una carga directa a #/pedidos, app.js puede ejecutar route() antes de que
+  // las rutas del marketplace terminen de registrarse. Re-resuelve una sola vez.
+  if(!window.dyKhipuDeepLinkReady){
+    window.dyKhipuDeepLinkReady=true;
+    const bootPath=location.hash.replace(/^#\//,'').split('/')[0];
+    if(bootPath==='pedidos')setTimeout(()=>{if(typeof route==='function'&&routes.pedidos)route();},50);
+  }
 })();
