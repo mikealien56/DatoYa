@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS business_impulse_payments (
 CREATE INDEX IF NOT EXISTS idx_business_impulse_payments_business ON business_impulse_payments(business_id);
 CREATE INDEX IF NOT EXISTS idx_business_impulse_payments_status ON business_impulse_payments(status);
 `);
+try{db.prepare("ALTER TABLE business_impulse_payments ADD COLUMN provider TEXT DEFAULT 'khipu'").run();}catch(_){}
+try{db.prepare("ALTER TABLE business_impulse_payments ADD COLUMN provider_status TEXT").run();}catch(_){}
 
 db.prepare("INSERT INTO settings(key,value) VALUES('impulso_monthly_price','9990') ON CONFLICT(key) DO NOTHING").run();
 db.prepare("INSERT INTO settings(key,value) VALUES('impulso_quarterly_price','26990') ON CONFLICT(key) DO NOTHING").run();
@@ -86,7 +88,7 @@ app.get('/api/admin/marketplace-v2/summary',auth,requireRole('admin'),(req,res)=
   const orderRows=db.prepare("SELECT status,COUNT(*) c FROM commerce_orders GROUP BY status").all();
   const orderStatus=Object.fromEntries(orderRows.map(x=>[x.status,Number(x.c||0)]));
   const orders=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(total),0) total,COALESCE(SUM(CASE WHEN payment_status='paid' THEN total ELSE 0 END),0) paid_total FROM commerce_orders").get();
-  const fees=db.prepare("SELECT COALESCE(SUM(p.marketplace_fee),0) total FROM commerce_mp_payments p JOIN commerce_orders o ON o.id=p.order_id WHERE o.payment_status='paid'").get();
+  const fees=db.prepare("SELECT COALESCE(SUM(CASE WHEN p.integrator_fee_applied=1 THEN p.datoya_fee ELSE 0 END),0) total FROM commerce_khipu_payments p JOIN commerce_orders o ON o.id=p.order_id WHERE o.payment_status='paid'").get();
   const activeImpulse=db.prepare("SELECT COUNT(*) c FROM business_impulse_memberships WHERE status='active' AND expires_at>?").get(__dyImpulseNow());
   const weekly=db.prepare("SELECT COUNT(*) c FROM weekly_impulses WHERE status='active'").get();
   let support={open:0};try{support=db.prepare("SELECT COUNT(*) FILTER (WHERE status IN ('new','in_progress')) c FROM support_cases").get();}catch(_){try{support=db.prepare("SELECT COUNT(*) c FROM support_cases WHERE status IN ('new','in_progress')").get();}catch(_){}}
@@ -132,19 +134,23 @@ app.get('/api/admin/marketplace-v2/products',auth,requireRole('admin'),(req,res)
 app.get('/api/admin/marketplace-v2/orders',auth,requireRole('admin'),(req,res)=>{
   const rows=db.prepare(`SELECT o.id,o.reference,o.status,o.fulfillment_method,o.customer_name,o.total,o.payment_method,o.payment_status,o.created_at,o.updated_at,
     b.name business_name,u.email customer_email,
-    p.payment_id,p.preference_id,p.marketplace_fee,p.seller_net_estimate,p.status provider_status
+    p.payment_id,p.datoya_fee AS marketplace_fee,
+    CASE WHEN p.integrator_fee_applied=1 THEN (p.amount-p.datoya_fee) ELSE 0 END AS seller_net_estimate,
+    p.status provider_status,p.integrator_fee_applied,'khipu' AS payment_provider
     FROM commerce_orders o JOIN businesses b ON b.id=o.business_id JOIN users u ON u.id=o.user_id
-    LEFT JOIN commerce_mp_payments p ON p.order_id=o.id ORDER BY o.created_at DESC LIMIT 500`).all();
+    LEFT JOIN commerce_khipu_payments p ON p.order_id=o.id ORDER BY o.created_at DESC LIMIT 500`).all();
   res.json({orders:rows});
 });
 
 app.get('/api/admin/marketplace-v2/finance',auth,requireRole('admin'),(req,res)=>{
   const paid=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(total),0) gmv FROM commerce_orders WHERE payment_status='paid'").get();
-  const fees=db.prepare("SELECT COALESCE(SUM(p.marketplace_fee),0) fees,COALESCE(SUM(p.seller_net_estimate),0) sellers FROM commerce_mp_payments p JOIN commerce_orders o ON o.id=p.order_id WHERE o.payment_status='paid'").get();
+  const fees=db.prepare("SELECT COALESCE(SUM(CASE WHEN p.integrator_fee_applied=1 THEN p.datoya_fee ELSE 0 END),0) fees,COALESCE(SUM(CASE WHEN p.integrator_fee_applied=1 THEN p.amount-p.datoya_fee ELSE 0 END),0) sellers FROM commerce_khipu_payments p JOIN commerce_orders o ON o.id=p.order_id WHERE o.payment_status='paid'").get();
   const memberships=db.prepare("SELECT COALESCE(SUM(amount),0) revenue,COUNT(*) c FROM business_impulse_memberships WHERE source='paid' AND amount>0").get();
   const rows=db.prepare(`SELECT o.reference,o.total,o.payment_status,o.created_at,b.name business_name,
-    COALESCE(p.marketplace_fee,0) datoya_fee,COALESCE(p.seller_net_estimate,0) seller_net,p.payment_id,p.status provider_status
-    FROM commerce_orders o JOIN businesses b ON b.id=o.business_id LEFT JOIN commerce_mp_payments p ON p.order_id=o.id
+    CASE WHEN p.integrator_fee_applied=1 THEN COALESCE(p.datoya_fee,0) ELSE 0 END datoya_fee,
+    CASE WHEN p.integrator_fee_applied=1 THEN COALESCE(p.amount-p.datoya_fee,0) ELSE 0 END seller_net,
+    p.payment_id,p.status provider_status,p.integrator_fee_applied,'khipu' AS payment_provider
+    FROM commerce_orders o JOIN businesses b ON b.id=o.business_id LEFT JOIN commerce_khipu_payments p ON p.order_id=o.id
     ORDER BY o.created_at DESC LIMIT 300`).all();
   res.json({summary:{paid_orders:Number(paid.c||0),paid_gmv:Number(paid.gmv||0),datoya_fees:Number(fees.fees||0),seller_net:Number(fees.sellers||0),impulso_revenue:Number(memberships.revenue||0),impulso_paid_count:Number(memberships.c||0)},rows});
 });
@@ -181,8 +187,10 @@ app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)
     impulso_free_catalog_limit:Number(getSetting('impulso_free_catalog_limit','20')),
     impulso_paid_catalog_limit:Number(getSetting('impulso_paid_catalog_limit','200')),
     weekly_impulse_days:Number(getSetting('weekly_impulse_days','7')),
-    live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true',
-    impulso_checkout_enabled:String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()==='true'
+    live_payments_allowed:false,
+    impulso_checkout_enabled:typeof __khConfigured==='function'&&__khConfigured()&&typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed(),
+    payment_provider:'khipu',
+    khipu_mode:typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed()?'development':'blocked'
   }});
 });
 app.put('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
@@ -201,7 +209,7 @@ app.get('/api/businesses/:id/impulso-plan',auth,(req,res)=>{
   if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
   const membership=__dyImpulseMembership(id);
   const pending=db.prepare("SELECT * FROM business_impulse_payments WHERE business_id=? AND status='pending' ORDER BY id DESC LIMIT 1").get(id)||null;
-  const mode=String(process.env.DATOYA_IMPULSO_CHECKOUT_MODE||'test').toLowerCase()==='live'?'live':'test';
+  const mode=typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed()?'development':'blocked';
   const productCount=Number((db.prepare('SELECT COUNT(*) c FROM products WHERE business_id=?').get(id)||{}).c||0);
   const freeLimit=Number(getSetting('impulso_free_catalog_limit','20'));
   const paidLimit=Number(getSetting('impulso_paid_catalog_limit','200'));
@@ -221,9 +229,10 @@ app.get('/api/businesses/:id/impulso-plan',auth,(req,res)=>{
     annual_price:__dyMoneySetting('impulso_annual_price',89990),
     free_catalog_limit:freeLimit,
     paid_catalog_limit:paidLimit,
-    checkout_enabled:String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()==='true',
+    checkout_enabled:typeof __khConfigured==='function'&&__khConfigured()&&mode==='development',
     checkout_mode:mode,
-    live_payments_allowed:String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true'
+    live_payments_allowed:false,
+    payment_provider:'khipu'
   }});
 });
 
@@ -248,60 +257,69 @@ app.get('/api/businesses/:id/plan-access',auth,(req,res)=>{
   });
 });
 
-app.post('/api/businesses/:id/impulso-plan/checkout',auth,async(req,res)=>{
+app.post('/api/businesses/:id/impulso-plan/checkout',auth,async(req,res)=>{try{
   const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
   if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
   const period=String(req.body?.billing_period||'monthly');
   if(!['monthly','quarterly','annual'].includes(period))return res.status(400).json({error:'Período inválido'});
-  if(String(process.env.DATOYA_IMPULSO_CHECKOUT_ENABLED||'').toLowerCase()!=='true')return res.status(409).json({error:'El pago de DatoYa Impulso todavía está en validación. La sección ya está preparada y se habilitará al terminar las pruebas de Mercado Pago.',code:'IMPULSO_CHECKOUT_DISABLED'});
-  const mode=String(process.env.DATOYA_IMPULSO_CHECKOUT_MODE||'test').toLowerCase()==='live'?'live':'test';
-  if(mode==='live'&&String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()!=='true')return res.status(409).json({error:'Los pagos reales siguen bloqueados hasta completar la validación TEST.',code:'LIVE_PAYMENTS_BLOCKED'});
-  const token=String(process.env.DATOYA_IMPULSO_MP_ACCESS_TOKEN||'');
-  if(!token)return res.status(503).json({error:'Falta conectar la cuenta de cobro de DatoYa para la membresía Impulso'});
+  if(typeof __khConfigured!=='function'||!__khConfigured())return res.status(503).json({error:'Khipu todavía no está configurado en Render'});
+  if(typeof __khDevelopmentAllowed!=='function'||!__khDevelopmentAllowed())return res.status(409).json({error:'DatoYa Impulso solo permite cobros Khipu de desarrollo por ahora. Los pagos reales siguen bloqueados.',code:'KHIPU_LIVE_BLOCKED'});
   const amount=period==='annual'?__dyMoneySetting('impulso_annual_price',89990):period==='quarterly'?__dyMoneySetting('impulso_quarterly_price',26990):__dyMoneySetting('impulso_monthly_price',9990);
   if(amount<=0)return res.status(409).json({error:'El precio de DatoYa Impulso no está configurado'});
   const reference='DY-IMP-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(2).toString('hex').toUpperCase();
   const base=String(process.env.PUBLIC_BASE_URL||((req.protocol||'https')+'://'+req.get('host'))).replace(/\/+$/,'');
+  const label=period==='annual'?'Anual':period==='quarterly'?'3 meses':'Mensual';
   const payload={
-    items:[{id:'datoya-impulso-'+period,title:'DatoYa Impulso '+(period==='annual'?'Anual':period==='quarterly'?'3 meses':'Mensual'),currency_id:'CLP',quantity:1,unit_price:amount}],
-    external_reference:reference,
-    back_urls:{success:base+'/#/mi-negocio-plan/'+id,pending:base+'/#/mi-negocio-plan/'+id,failure:base+'/#/mi-negocio-plan/'+id},
-    auto_return:'approved',
-    payer:{email:req.user.email}
+    amount,
+    currency:'CLP',
+    subject:('DatoYa Impulso '+label).slice(0,255),
+    transaction_id:reference,
+    custom:JSON.stringify({type:'datoya_impulso',business_id:id,billing_period:period,reference}),
+    body:('Membresía DatoYa Impulso '+label+' para '+b.name).slice(0,5120),
+    payer_name:String(req.user.name||'').slice(0,100),
+    payer_email:String(req.user.email||'').slice(0,150),
+    return_url:base+'/#/mi-negocio-plan/'+id,
+    cancel_url:base+'/#/mi-negocio-plan/'+id,
+    notify_url:base+'/api/khipu/webhook',
+    notify_api_version:'3.0',
+    send_email:false
   };
-  const response=await fetch('https://api.mercadopago.com/checkout/preferences',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data.id||!data.init_point)return res.status(502).json({error:'Mercado Pago no pudo crear el checkout de DatoYa Impulso'});
-  db.prepare("INSERT INTO business_impulse_payments(reference,business_id,billing_period,amount,status,preference_id,checkout_url,created_at,updated_at) VALUES(?,?,?,?,'pending',?,?,?,?)").run(reference,id,period,amount,String(data.id),String(data.init_point),__dyImpulseNow(),__dyImpulseNow());
-  res.json({ok:true,checkout_url:String(data.init_point),reference,mode});
-});
+  const data=await __khApi('POST','/v3/payments',payload),paymentUrl=__khSafePaymentUrl(data.payment_url);
+  if(!data.payment_id||!paymentUrl)return res.status(502).json({error:'Khipu no devolvió un checkout válido para DatoYa Impulso'});
+  const verify=await __khApi('GET','/v3/payments/'+encodeURIComponent(data.payment_id));
+  if(String(verify.receiver_id||'')!==String(process.env.KHIPU_RECEIVER_ID||''))return res.status(502).json({error:'La cuenta Khipu devuelta no corresponde a la configurada en DatoYa'});
+  const now=__dyImpulseNow();
+  db.prepare("INSERT INTO business_impulse_payments(reference,business_id,billing_period,amount,status,preference_id,payment_id,checkout_url,provider,provider_status,created_at,updated_at) VALUES(?,?,?,?,'pending',NULL,?,?, 'khipu',?,?,?)")
+    .run(reference,id,period,amount,String(data.payment_id),String(paymentUrl),String(verify.status||'pending'),now,now);
+  res.json({ok:true,checkout_url:String(paymentUrl),reference,mode:'development',provider:'khipu',payment_id:String(data.payment_id)});
+}catch(e){console.error('[DatoYa][Impulso Khipu checkout]',e.status||'',e.provider||e.message||e);res.status(e.status||500).json({error:e.message||'No se pudo iniciar Khipu'});}});
 
-app.post('/api/businesses/:id/impulso-plan/sync',auth,async(req,res)=>{
+app.post('/api/businesses/:id/impulso-plan/sync',auth,async(req,res)=>{try{
   const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
   if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
   const row=db.prepare("SELECT * FROM business_impulse_payments WHERE business_id=? AND status='pending' ORDER BY id DESC LIMIT 1").get(id);
   if(!row)return res.json({ok:true,updated:false,membership:__dyImpulseMembership(id)});
-  const token=String(process.env.DATOYA_IMPULSO_MP_ACCESS_TOKEN||'');if(!token)return res.status(503).json({error:'Falta conectar la cuenta de cobro de DatoYa'});
-  const url='https://api.mercadopago.com/v1/payments/search?external_reference='+encodeURIComponent(row.reference)+'&sort=date_created&criteria=desc';
-  const response=await fetch(url,{headers:{Authorization:'Bearer '+token}});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok)return res.status(502).json({error:'No se pudo consultar el estado del pago'});
-  const payment=Array.isArray(data.results)?data.results[0]:null;
-  if(!payment)return res.json({ok:true,updated:false,status:'pending'});
-  const amountMatches=Number(payment.transaction_amount||0)===Number(row.amount||0);
-  const status=String(payment.status||'pending');
-  if(status==='approved'&&amountMatches){
-    db.prepare("UPDATE business_impulse_payments SET status='approved',payment_id=?,updated_at=? WHERE id=?").run(String(payment.id||''),__dyImpulseNow(),row.id);
+  if(String(row.provider||'khipu')!=='khipu'||!row.payment_id)return res.status(409).json({error:'Este pago pendiente pertenece a un proveedor anterior y no se volverá a procesar. Inicia un nuevo pago con Khipu.'});
+  if(typeof __khConfigured!=='function'||!__khConfigured())return res.status(503).json({error:'Khipu todavía no está configurado'});
+  const payment=await __khApi('GET','/v3/payments/'+encodeURIComponent(row.payment_id));
+  const amountMatches=Math.round(Number(payment.amount||0))===Number(row.amount||0);
+  const receiverMatches=String(payment.receiver_id||'')===String(process.env.KHIPU_RECEIVER_ID||'');
+  const referenceMatches=String(payment.transaction_id||'')===String(row.reference||'');
+  const providerStatus=String(payment.status||'pending'),detail=String(payment.status_detail||'');
+  db.prepare("UPDATE business_impulse_payments SET provider_status=?,updated_at=? WHERE id=?").run(providerStatus+(detail?':'+detail:''),__dyImpulseNow(),row.id);
+  if(providerStatus==='done'&&detail==='normal'&&amountMatches&&receiverMatches&&referenceMatches){
+    db.prepare("UPDATE business_impulse_payments SET status='approved',provider_status=?,updated_at=? WHERE id=?").run('done:normal',__dyImpulseNow(),row.id);
     const days=row.billing_period==='annual'?365:row.billing_period==='quarterly'?90:30;
     const membership=__dyAddImpulseDays(id,days,'paid',null,row.amount,row.billing_period,row.reference);
     notify(b.owner_user_id,'impulso','⚡ Tu plan DatoYa Impulso está activo hasta '+String(membership.expires_at).slice(0,10)+'.','#/mi-negocio-plan/'+id);
-    return res.json({ok:true,updated:true,status:'approved',membership});
+    return res.json({ok:true,updated:true,status:'approved',provider:'khipu',membership});
   }
-  if(['rejected','cancelled','refunded','charged_back'].includes(status)){
-    db.prepare("UPDATE business_impulse_payments SET status=?,payment_id=?,updated_at=? WHERE id=?").run(status==='rejected'?'rejected':'cancelled',String(payment.id||''),__dyImpulseNow(),row.id);
+  if(['failed','cancelled'].includes(providerStatus)){
+    db.prepare("UPDATE business_impulse_payments SET status='failed',provider_status=?,updated_at=? WHERE id=?").run(providerStatus+(detail?':'+detail:''),__dyImpulseNow(),row.id);
   }
-  res.json({ok:true,updated:true,status,amount_matches:amountMatches,membership:__dyImpulseMembership(id)});
-});
+  res.json({ok:true,updated:true,status:providerStatus,detail,amount_matches:amountMatches,receiver_matches:receiverMatches,reference_matches:referenceMatches,provider:'khipu',membership:__dyImpulseMembership(id)});
+}catch(e){console.error('[DatoYa][Impulso Khipu sync]',e.status||'',e.provider||e.message||e);res.status(e.status||500).json({error:e.message||'No se pudo consultar Khipu'});}});
+
 // ============ FIN DATOYA_MARKETPLACE_ADMIN_V2 ============
 }
   const injection=__dyAdminV2Injected.toString().replace(/^function __dyAdminV2Injected\(\)\{\n?/,'').replace(/\n?\}$/,'');
