@@ -74,4 +74,4 @@ if(!source.includes(anchor))throw new Error('No se encontró punto de montaje pa
 source=source.replace(anchor,injection+'\n'+anchor);
 fs.writeFileSync(serverPath,source);
 }
-console.log('[DatoYa] Web Push preparado (requiere VAPID para activarse).');
+console.log('[DatoYa] Web Push '+(__dyPushConfigured?'configurado y listo.':'pendiente: faltan claves VAPID válidas.'));
