@@ -130,7 +130,7 @@ app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
     auto_return:'approved',
     notification_url:mpBaseUrl()+'/api/mercadopago/commerce-webhook'
   };
-  if(modeInfo.mode!=='test')body.payer={email:req.user.email};
+  body.payer={email:modeInfo.mode==='test'?'test@testuser.com':req.user.email};
   const mp=await mpHttp('POST','/checkout/preferences',token,body);
   const checkout=__cmpCheckoutUrl(mp,modeInfo.mode);
   if(!mp.id||!checkout)return res.status(502).json({error:'Mercado Pago no devolvió una preferencia válida'});
