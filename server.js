@@ -215,7 +215,8 @@ app.get('/api/khipu/status',auth,(req,res)=>{
     mode:__khDevelopmentAllowed()?'development':'blocked',
     receiver_id:__khConfigured()?String(process.env.KHIPU_RECEIVER_ID||''):null,
     live_payments_allowed:false,
-    integrator_enabled:false,\n    integrator_requested:__khIntegratorEnabled(),
+    integrator_enabled:false,
+    integrator_requested:__khIntegratorEnabled(),
     commission_pct:__khCommissionPct()
   });
 });
@@ -242,7 +243,8 @@ app.post('/api/orders/:id/khipu/checkout',auth,async(req,res)=>{try{
   const amount=Math.round(Number(o.total||0));if(!Number.isFinite(amount)||amount<1)return res.status(400).json({error:'El total del pedido no es válido'});
   const fee=Math.max(0,Math.round(amount*__khCommissionPct()/100)),integrator=false,tx='datoya-order-'+o.id+'-'+Date.now(),base=__khBaseUrl();
   const body={amount,currency:'CLP',subject:('Pedido '+o.reference+' - DatoYa').slice(0,255),transaction_id:tx,custom:JSON.stringify({datoya_order_id:Number(o.id),reference:String(o.reference),mode:'development'}),body:('Pago de '+o.reference+' en DatoYa').slice(0,5120),return_url:base+'/#/pedidos',cancel_url:base+'/#/pedidos',notify_url:base+'/api/khipu/webhook',notify_api_version:'3.0',send_email:false};
-  // integrator_fee se habilitará únicamente cuando cada negocio tenga su cuenta hija Khipu y credenciales propias.\n  if(integrator)body.integrator_fee=String(fee);
+  // integrator_fee se habilitará únicamente cuando cada negocio tenga su cuenta hija Khipu y credenciales propias.
+  if(integrator)body.integrator_fee=String(fee);
   const p=await __khApi('POST','/v3/payments',body),paymentUrl=__khSafePaymentUrl(p.payment_url);
   if(!p.payment_id||!paymentUrl)return res.status(502).json({error:'Khipu no devolvió un cobro válido'});
   const verify=await __khApi('GET','/v3/payments/'+encodeURIComponent(p.payment_id));
