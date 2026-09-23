@@ -14,6 +14,7 @@ echo "✅ Reaceptación de versión legal vigente protegida"
 bash test_beta_private_ui.sh
 bash test_mobile_account_role.sh
 bash test_mobile_notifications.sh
+bash test_password_reset_links.sh
 bash test_mp_test_redirect.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
