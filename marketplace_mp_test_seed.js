@@ -22,6 +22,30 @@ function ensureUser(email,password,name){
   return Number(r.lastInsertRowid);
 }
 
+if(action==='seed_customer'){
+  if(!validEmail(buyerEmail)||buyerPassword.length<12)throw new Error('Credenciales de comprador TEST incompletas o inválidas');
+  const buyerId=ensureUser(buyerEmail,buyerPassword,'Comprador Mercado Pago TEST Nuevo');
+  const now=new Date().toISOString(),expires=new Date(Date.now()+365*86400000).toISOString();
+  db.prepare('UPDATE users SET phone=?,role=?,is_active=1,is_demo=1 WHERE id=?').run('+56900000000','cliente',buyerId);
+
+  const type=db.prepare('SELECT user_id FROM market_account_types WHERE user_id=?').get(buyerId);
+  if(type)db.prepare("UPDATE market_account_types SET account_type='customer',updated_at=? WHERE user_id=?").run(now,buyerId);
+  else db.prepare("INSERT INTO market_account_types(user_id,account_type,created_at,updated_at) VALUES(?,?,?,?)").run(buyerId,'customer',now,now);
+
+  db.prepare('DELETE FROM auth_email_verifications WHERE user_id=?').run(buyerId);
+  db.prepare('INSERT INTO auth_email_verifications(user_id,token_hash,expires_at,verified_at,created_at) VALUES(?,?,?,?,?)')
+    .run(buyerId,'seeded-test-customer-'+buyerId,expires,now,now);
+
+  const terms=String(process.env.LEGAL_TERMS_VERSION||'2026-09-14-beta1');
+  const privacy=String(process.env.LEGAL_PRIVACY_VERSION||'2026-09-14-beta1');
+  const payment=String(process.env.LEGAL_PAYMENT_VERSION||'2026-09-14-beta1');
+  const consent=db.prepare('SELECT id FROM account_consents WHERE user_id=? AND terms_version=? AND privacy_version=? ORDER BY id DESC LIMIT 1').get(buyerId,terms,privacy);
+  if(!consent)db.prepare('INSERT INTO account_consents(user_id,terms_version,privacy_version,payment_terms_version,location_consent,accepted_at) VALUES(?,?,?,?,0,?)')
+    .run(buyerId,terms,privacy,payment,now);
+
+  console.log('[DatoYa][MP TEST Customer Seed] listo',JSON.stringify({buyer_email:buyerEmail,buyer_user_id:buyerId,account_type:'customer',email_verified:true,is_demo:true}));
+}
+
 if(action==='seed'){
   if(!validEmail(merchantEmail)||!validEmail(buyerEmail)||merchantPassword.length<12||buyerPassword.length<12){
     throw new Error('Credenciales DatoYa Mercado Pago TEST incompletas o inválidas');
