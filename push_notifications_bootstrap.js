@@ -74,4 +74,5 @@ if(!source.includes(anchor))throw new Error('No se encontró punto de montaje pa
 source=source.replace(anchor,injection+'\n'+anchor);
 fs.writeFileSync(serverPath,source);
 }
-console.log('[DatoYa] Web Push preparado (requiere VAPID para activarse).');
+const __dyBootstrapVapidPresent=!!(String(process.env.DATOYA_VAPID_PUBLIC_KEY||'').trim()&&String(process.env.DATOYA_VAPID_PRIVATE_KEY||'').trim());
+console.log('[DatoYa] Web Push bootstrap: '+(__dyBootstrapVapidPresent?'claves VAPID presentes.':'claves VAPID pendientes.'));
