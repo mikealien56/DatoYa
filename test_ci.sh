@@ -184,7 +184,8 @@ grep -q "admin/marketplace-v2/impulso/gift" marketplace_admin_v2_ui.js || { echo
 grep -q "'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 meses en DatoYa Impulso"; exit 1; }
 grep -q "AHORRA" business_impulse_plan_ui.js || { echo "Falta mostrar ahorro del plan trimestral"; exit 1; }
 grep -q "ready_for_test:c.oauthConfigured&&c.webhookConfigured" mercadopago_source_bootstrap.js || { echo "La disponibilidad TEST de Mercado Pago depende incorrectamente de un token legacy"; exit 1; }
-grep -q "checkout=mp.init_point" marketplace_payments_bootstrap.js || { echo "Checkout Pro TEST no usa init_point actual"; exit 1; }
+grep -q "checkout=__cmpCheckoutUrl(mp,modeInfo.mode)" marketplace_payments_bootstrap.js || { echo "Checkout Pro TEST no usa resolver seguro actual"; exit 1; }
+grep -q "modeInfo.mode!==\x27test\x27||!host.startsWith(\x27sandbox.\x27)" marketplace_payments_bootstrap.js || { echo "Checkout Pro TEST todavía permite sandbox roto"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const growth=s.indexOf("marketplace_growth_assets");const commerce=s.indexOf("marketplace_commerce_assets");if(growth<0||commerce<0||growth>commerce){throw new Error("El módulo de crecimiento vuelve a reemplazar la ruta del carrito")}'
 grep -q "La cuenta no está verificada como vendedor TEST" marketplace_payments_bootstrap.js || { echo "Falta candado de vendedor TEST antes de checkout"; exit 1; }
 grep -q "receivedAmount===expectedAmount" marketplace_payments_bootstrap.js || { echo "Falta validar el monto del pago Mercado Pago"; exit 1; }
