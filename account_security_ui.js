@@ -32,13 +32,15 @@
   };
 
   routes.restablecer=async function(token){
-    const safe=decodeURIComponent(token||'');
+    const legacyToken=new URLSearchParams((location.hash.split('?')[1]||'')).get('token')||'';
+    const safe=decodeURIComponent(token||legacyToken||'');
     view.innerHTML=`<div class="card" style="max-width:460px;margin:20px auto"><h2>Nueva contraseña</h2>${safe?`<form onsubmit="completeDatoYaPasswordReset(event,'${e(safe)}')"><div class="field"><label>Nueva contraseña</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label>Repite la contraseña</label><input name="repeat" type="password" minlength="8" autocomplete="new-password" required></div><button class="btn btn-primary btn-block">Cambiar contraseña</button></form>`:'<div class="empty">El enlace de recuperación no es válido.</div>'}</div>`;
   };
   window.completeDatoYaPasswordReset=async function(ev,token){ev.preventDefault();const f=ev.target;if(f.password.value!==f.repeat.value)return toast('Las contraseñas no coinciden','err');try{const r=await api('/auth/reset-password',{method:'POST',body:{token,password:f.password.value}});toast(r.message||'Contraseña actualizada','ok');location.hash='#/login';route();}catch(err){toast(err.message,'err');}};
 
   routes['verificar-correo']=async function(token){
-    const safe=decodeURIComponent(token||'');
+    const legacyToken=new URLSearchParams((location.hash.split('?')[1]||'')).get('token')||'';
+    const safe=decodeURIComponent(token||legacyToken||'');
     view.innerHTML='<div class="card"><h2>Verificando correo…</h2></div>';
     if(!safe){view.innerHTML='<div class="empty">Enlace inválido.</div>';return;}
     try{await api('/auth/email-verification/confirm',{method:'POST',body:{token:safe}});await refreshMe();view.innerHTML='<div class="card"><h2>✅ Correo verificado</h2><p>Tu dirección de correo quedó confirmada.</p><a class="btn btn-primary" href="#/seguridad">Seguridad de la cuenta</a></div>';}catch(err){view.innerHTML=`<div class="card"><h2>No pudimos verificar el correo</h2><p>${e(err.message)}</p><a href="#/seguridad">Volver a seguridad</a></div>`;}
