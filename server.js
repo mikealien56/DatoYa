@@ -215,7 +215,7 @@ app.get('/api/khipu/status',auth,(req,res)=>{
     mode:__khDevelopmentAllowed()?'development':'blocked',
     receiver_id:__khConfigured()?String(process.env.KHIPU_RECEIVER_ID||''):null,
     live_payments_allowed:false,
-    integrator_enabled:__khIntegratorEnabled(),
+    integrator_enabled:false,\n    integrator_requested:__khIntegratorEnabled(),
     commission_pct:__khCommissionPct()
   });
 });
@@ -229,7 +229,7 @@ app.get('/api/orders/:id/khipu/status',auth,async(req,res)=>{try{
     try{const sync=await __khSyncPayment(payment,o);paid=!!sync.paid;payment=db.prepare('SELECT * FROM commerce_khipu_payments WHERE id=?').get(payment.id);}catch(e){console.warn('[DatoYa][Khipu sync]',e.message||e);}
   }
   const fee=Math.max(0,Math.round(Number(o.total||0)*__khCommissionPct()/100));
-  res.json({available:__khConfigured()&&__khDevelopmentAllowed(),mode:__khDevelopmentAllowed()?'development':'blocked',payment,paid,integrator_enabled:__khIntegratorEnabled(),breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:Math.max(0,Number(o.total||0)-fee)}});
+  res.json({available:__khConfigured()&&__khDevelopmentAllowed(),mode:__khDevelopmentAllowed()?'development':'blocked',payment,paid,integrator_enabled:false,integrator_requested:__khIntegratorEnabled(),breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:Math.max(0,Number(o.total||0)-fee)}});
 }catch(e){res.status(e.status||500).json({error:e.message});}});
 
 app.post('/api/orders/:id/khipu/checkout',auth,async(req,res)=>{try{
@@ -240,9 +240,9 @@ app.post('/api/orders/:id/khipu/checkout',auth,async(req,res)=>{try{
   if(['cancelled','completed'].includes(String(o.status)))return res.status(409).json({error:'Este pedido ya no admite un nuevo pago'});
   if(String(o.payment_status)==='paid')return res.status(409).json({error:'Este pedido ya está pagado'});
   const amount=Math.round(Number(o.total||0));if(!Number.isFinite(amount)||amount<1)return res.status(400).json({error:'El total del pedido no es válido'});
-  const fee=Math.max(0,Math.round(amount*__khCommissionPct()/100)),integrator=__khIntegratorEnabled(),tx='datoya-order-'+o.id+'-'+Date.now(),base=__khBaseUrl();
+  const fee=Math.max(0,Math.round(amount*__khCommissionPct()/100)),integrator=false,tx='datoya-order-'+o.id+'-'+Date.now(),base=__khBaseUrl();
   const body={amount,currency:'CLP',subject:('Pedido '+o.reference+' - DatoYa').slice(0,255),transaction_id:tx,custom:JSON.stringify({datoya_order_id:Number(o.id),reference:String(o.reference),mode:'development'}),body:('Pago de '+o.reference+' en DatoYa').slice(0,5120),return_url:base+'/#/pedidos',cancel_url:base+'/#/pedidos',notify_url:base+'/api/khipu/webhook',notify_api_version:'3.0',send_email:false};
-  if(integrator)body.integrator_fee=String(fee);
+  // integrator_fee se habilitará únicamente cuando cada negocio tenga su cuenta hija Khipu y credenciales propias.\n  if(integrator)body.integrator_fee=String(fee);
   const p=await __khApi('POST','/v3/payments',body),paymentUrl=__khSafePaymentUrl(p.payment_url);
   if(!p.payment_id||!paymentUrl)return res.status(502).json({error:'Khipu no devolvió un cobro válido'});
   const verify=await __khApi('GET','/v3/payments/'+encodeURIComponent(p.payment_id));
