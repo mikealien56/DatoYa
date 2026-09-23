@@ -1,7 +1,8 @@
 // DatoYa — creación temporal de escenario Mercado Pago TEST.
 // Solo actúa cuando DATOYA_MP_TEST_SEED_ACTION=seed y recibe credenciales por variables de entorno.
 // Nunca imprime contraseñas ni tokens.
-const {db,hashPassword}=require('./db');
+const https=require('https');
+const {db,hashPassword,getSetting,setSetting}=require('./db');
 
 const action=String(process.env.DATOYA_MP_TEST_SEED_ACTION||'').trim().toLowerCase();
 const merchantEmail=String(process.env.DATOYA_MP_TEST_MERCHANT_EMAIL||'').trim().toLowerCase();
@@ -10,6 +11,18 @@ const buyerEmail=String(process.env.DATOYA_MP_TEST_BUYER_EMAIL||'').trim().toLow
 const buyerPassword=String(process.env.DATOYA_MP_TEST_BUYER_PASSWORD||'');
 
 function validEmail(v){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v||''));}
+function createProviderTestUser(token,description){
+  return new Promise((resolve,reject)=>{
+    const data=JSON.stringify({site_id:'MLC',description});
+    const req=https.request({hostname:'api.mercadopago.com',path:'/users/test',method:'POST',headers:{
+      Accept:'application/json','Content-Type':'application/json',Authorization:'Bearer '+token,'Content-Length':Buffer.byteLength(data)
+    }},res=>{let raw='';res.on('data',d=>raw+=d);res.on('end',()=>{let parsed={};try{parsed=raw?JSON.parse(raw):{};}catch(_){}
+      if(res.statusCode>=200&&res.statusCode<300)return resolve(parsed);
+      const e=new Error(parsed.message||parsed.error||('Mercado Pago HTTP '+res.statusCode));e.status=res.statusCode;e.provider={message:parsed.message||null,error:parsed.error||null,cause:parsed.cause||null};reject(e);
+    });});
+    req.on('error',reject);req.setTimeout(15000,()=>req.destroy(new Error('Mercado Pago timeout')));req.write(data);req.end();
+  });
+}
 function ensureUser(email,password,name){
   let row=db.prepare('SELECT id,email FROM users WHERE email=?').get(email);
   if(row){
@@ -20,6 +33,30 @@ function ensureUser(email,password,name){
   const r=db.prepare('INSERT INTO users(email,password_hash,name,phone,role,comuna_id,is_active,is_demo) VALUES(?,?,?,?,?,?,1,1)')
     .run(email,hashPassword(password),name,null,'cliente',comuna?Number(comuna.id):null);
   return Number(r.lastInsertRowid);
+}
+
+if(action==='create_provider_buyer'){
+  const nonce=String(process.env.DATOYA_MP_CREATE_TEST_USER_NONCE||'').trim();
+  if(!nonce)throw new Error('Falta nonce de creación de usuario TEST');
+  if(String(getSetting('mp_test_user_created_nonce',''))===nonce){
+    console.log('[DatoYa][MP TEST Provider User] omitido: nonce ya utilizado');
+  }else{
+    if(String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true')throw new Error('Creación TEST bloqueada mientras pagos live estén habilitados');
+    const token=String(process.env.MP_ACCESS_TOKEN||'').trim();
+    if(!token)throw new Error('MP_ACCESS_TOKEN no configurado');
+    setTimeout(async()=>{
+      try{
+        const user=await createProviderTestUser(token,'DatoYa comprador TEST '+nonce);
+        setSetting('mp_test_user_created_nonce',nonce);
+        console.log('[DatoYa][MP TEST Provider User] creado',JSON.stringify({
+          id:String(user.id||''),nickname:String(user.nickname||''),password:String(user.password||''),email:String(user.email||''),
+          site_id:String(user.site_id||''),site_status:String(user.site_status||'')
+        }));
+      }catch(e){
+        console.error('[DatoYa][MP TEST Provider User] FAILED',JSON.stringify({message:String(e.message||e),status:e.status||null,provider:e.provider||null}));
+      }
+    },5000);
+  }
 }
 
 if(action==='seed_customer'){
