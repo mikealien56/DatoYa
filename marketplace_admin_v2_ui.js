@@ -89,7 +89,7 @@
       if(tab==='pedidos'){
         const {orders=[]}=await api('/admin/marketplace-v2/orders');
         shell('Pedidos','Seguimiento de pedidos, pagos y estados.',inputFilter('Buscar pedido, negocio, cliente o payment_id')+
-          '<div class="dy-admin-list">'+orders.map(o=>`<article class="card dy-admin-row" data-order-row data-search="${h([o.reference,o.business_name,o.customer_name,o.customer_email,o.payment_id,o.payment_status,o.status].join(' ').toLowerCase())}"><div><b>${h(o.reference)}</b><div class="small muted">${h(o.business_name)} · ${h(o.customer_name)} · ${dt(o.created_at)}</div><div class="dy-admin-tags">${badge(o.status)} ${badge('Pago: '+o.payment_status,o.payment_status==='paid'?'ok':'warn')} ${o.payment_id?badge('MP '+o.payment_id):''}</div></div><div class="dy-admin-money-inline"><b>${money(o.total)}</b><small>Fee: ${money(o.marketplace_fee||0)}</small></div></article>`).join('')+'</div>');
+          '<div class="dy-admin-list">'+orders.map(o=>`<article class="card dy-admin-row" data-order-row data-search="${h([o.reference,o.business_name,o.customer_name,o.customer_email,o.payment_id,o.payment_status,o.status].join(' ').toLowerCase())}"><div><b>${h(o.reference)}</b><div class="small muted">${h(o.business_name)} · ${h(o.customer_name)} · ${dt(o.created_at)}</div><div class="dy-admin-tags">${badge(o.status)} ${badge('Pago: '+o.payment_status,o.payment_status==='paid'?'ok':'warn')} ${o.payment_id?badge('Khipu '+o.payment_id):''}</div></div><div class="dy-admin-money-inline"><b>${money(o.total)}</b><small>Fee: ${money(o.marketplace_fee||0)}</small></div></article>`).join('')+'</div>');
         wireSearch('[data-order-row]');return;
       }
 
@@ -102,9 +102,9 @@
             <div><strong>${money(s.seller_net)}</strong><span>Neto estimado negocios</span></div>
             <div><strong>${money(s.impulso_revenue)}</strong><span>Ingresos Impulso</span></div>
           </div>
-          <div class="card dy-admin-note">💡 Esta vista es contable/operativa. DatoYa no se presenta como banco ni billetera. Los fondos reales se concilian con Mercado Pago.</div>
+          <div class="card dy-admin-note">💡 Esta vista es contable/operativa. DatoYa no se presenta como banco ni billetera. Los pagos se concilian con Khipu. El split real se mostrará solo cuando la cuenta integradora esté habilitada.</div>
           ${inputFilter('Buscar referencia, negocio o payment_id')}
-          <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.reference,r.business_name,r.payment_id,r.payment_status].join(' ').toLowerCase())}"><div><b>${h(r.reference)}</b><div class="small muted">${h(r.business_name)} · ${dt(r.created_at)} · ${h(r.payment_status)}</div><div class="small muted">${r.payment_id?'payment_id '+h(r.payment_id):'Sin payment_id'}</div></div><div class="dy-admin-money-inline"><b>${money(r.total)}</b><small>DatoYa ${money(r.datoya_fee)}</small></div></article>`).join('')}</div>`);
+          <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.reference,r.business_name,r.payment_id,r.payment_status].join(' ').toLowerCase())}"><div><b>${h(r.reference)}</b><div class="small muted">${h(r.business_name)} · ${dt(r.created_at)} · ${h(r.payment_status)}</div><div class="small muted">${r.payment_id?'payment_id '+h(r.payment_id):'Sin payment_id'}</div></div><div class="dy-admin-money-inline"><b>${money(r.total)}</b><small>Comisión DatoYa ${money(r.datoya_fee)}</small></div></article>`).join('')}</div>`);
         wireSearch('[data-fin-row]');return;
       }
 
