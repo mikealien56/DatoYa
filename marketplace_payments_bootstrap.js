@@ -35,6 +35,20 @@ function __cmpConnectionForBusiness(businessId){return db.prepare('SELECT mc.* F
 function __cmpPaymentRow(row){if(!row)return null;row.transaction_amount=Number(row.transaction_amount||0);row.marketplace_fee=Number(row.marketplace_fee||0);row.seller_net_estimate=Number(row.seller_net_estimate||0);row.live_mode=!!row.live_mode;return row;}
 function __cmpLiveAllowed(){return String(process.env.DATOYA_ALLOW_LIVE_PAYMENTS||'').toLowerCase()==='true';}
 function __cmpListedTestUserId(id){const set=new Set(String(process.env.DATOYA_MP_TEST_USER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean));return !!id&&set.has(String(id));}
+function __cmpCheckoutUrl(mp,mode){
+  const raw=String(mp&&mp.init_point||'').trim();
+  if(!raw)return null;
+  let u;try{u=new URL(raw)}catch(_){return null}
+  const host=String(u.hostname||'').toLowerCase();
+  const isMp=u.protocol==='https:'&&(host==='mercadopago.cl'||host.endsWith('.mercadopago.cl')||host==='mercadopago.com'||host.endsWith('.mercadopago.com'));
+  if(!isMp)return null;
+  if(mode==='test'&&host.startsWith('sandbox.')){
+    const pref=String(mp&&mp.id||'').trim();
+    if(!pref)return null;
+    return 'https://www.mercadopago.cl/checkout/v1/redirect?pref_id='+encodeURIComponent(pref);
+  }
+  return raw;
+}
 function __cmpLooksLikeTestAccount(account){
   if(!account)return false;
   const nickname=String(account.nickname||'').trim(),email=String(account.email||'').trim().toLowerCase(),id=String(account.id||'');
@@ -123,10 +137,10 @@ app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
   };
   if(modeInfo.mode!=='test')body.payer={email:req.user.email};
   const mp=await mpHttp('POST','/checkout/preferences',token,body);
-  const checkout=mp.init_point;
+  const checkout=__cmpCheckoutUrl(mp,modeInfo.mode);
   if(!mp.id||!checkout)return res.status(502).json({error:'Mercado Pago no devolvió una preferencia válida'});
   let checkoutUrl;try{checkoutUrl=new URL(String(checkout));}catch(_){return res.status(502).json({error:'Mercado Pago devolvió una URL de pago inválida'});}
-  const host=String(checkoutUrl.hostname||'').toLowerCase(),allowed=checkoutUrl.protocol==='https:'&&(host==='mercadopago.cl'||host.endsWith('.mercadopago.cl')||host==='mercadopago.com'||host.endsWith('.mercadopago.com'));
+  const host=String(checkoutUrl.hostname||'').toLowerCase(),allowed=checkoutUrl.protocol==='https:'&&(host==='mercadopago.cl'||host.endsWith('.mercadopago.cl')||host==='mercadopago.com'||host.endsWith('.mercadopago.com'))&&(modeInfo.mode!=='test'||!host.startsWith('sandbox.'));
   if(!allowed)return res.status(502).json({error:'Mercado Pago devolvió una URL inesperada y DatoYa la bloqueó'});
   const sellerNet=Math.max(0,Number(o.total||0)-fee);
   db.prepare("INSERT INTO commerce_mp_payments(order_id,preference_id,provider_order_id,provider_api,idempotency_key,status,transaction_amount,marketplace_fee,seller_net_estimate,checkout_url,live_mode) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET preference_id=excluded.preference_id,provider_order_id=NULL,provider_api='preferences',idempotency_key=NULL,status=excluded.status,transaction_amount=excluded.transaction_amount,marketplace_fee=excluded.marketplace_fee,seller_net_estimate=excluded.seller_net_estimate,checkout_url=excluded.checkout_url,live_mode=excluded.live_mode,updated_at=datetime('now')").run(o.id,String(mp.id),null,'preferences',null,'preference_created',Number(o.total||0),fee,sellerNet,checkout,modeInfo.mode==='live'?1:0);
