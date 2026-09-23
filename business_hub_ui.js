@@ -260,7 +260,7 @@
           <div><span>Pagos reales</span><b>${khipu.live_payments_allowed?'Habilitados':'Bloqueados'}</b></div>
           <div><span>Comisión automática</span><b>${khipu.integrator_enabled?'Activa':'Pendiente de habilitación Khipu'}</b></div>
         </div>
-        <div class="dy-khipu-note"><b>DatoYa usa Khipu.</b><span>Mercado Pago ya no forma parte del flujo del marketplace. La comisión automática se activará cuando Khipu habilite la modalidad integrador para los negocios.</span></div>
+        <div class="dy-khipu-note"><b>DatoYa usa Khipu.</b><span>Khipu es el único proveedor de pago visible en el marketplace. La comisión automática se activará cuando Khipu habilite la modalidad integrador para los negocios.</span></div>
         <div class="dy-khipu-actions"><a class="btn btn-primary" href="#/mi-negocio-pedidos/${id}">Ver pedidos</a><a class="btn btn-outline" href="#/mi-negocio-plan/${id}">Ver DatoYa Impulso</a></div>
       </section>
     </div>`;
