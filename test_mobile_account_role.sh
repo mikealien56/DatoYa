@@ -25,6 +25,6 @@ grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_public_beta_ui.js || 
 grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_growth_ui.js || fail "Ficha growth no identifica productos por ID"
 grep -q "productById=new Map" marketplace_commerce_ui.js || fail "Carrito sigue dependiendo del orden visual de productos"
 grep -q "el.dataset.productId" marketplace_commerce_ui.js || fail "Carrito no enlaza botón con ID de producto"
-grep -q "datoya-shell-v46" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+grep -q "datoya-shell-v47" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
 
 echo "Mobile account-role QA suite OK"
