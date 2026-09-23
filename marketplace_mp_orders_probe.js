@@ -92,8 +92,8 @@ async function run(){
   const fullItem={title:String(first.name_snapshot||'Producto DatoYa').slice(0,120),quantity,unit_price:String(unit)};
   const fullConfig={online:{success_url:baseUrl+'/#/pedidos',failure_url:baseUrl+'/#/pedidos',pending_url:baseUrl+'/#/pedidos',auto_return:'approved'}};
   const variants=[
-    ['no_payer',{...baseBody,capture_mode:'automatic_async',items:[fullItem]}],
-    ['no_payer_marketplace',{...baseBody,capture_mode:'automatic_async',marketplace_fee:String(fee),items:[fullItem],config:fullConfig}]
+    ['buyer_email_exact',{...baseBody,capture_mode:'automatic_async',payer:{email:'testuser3712462638@testuser.com'},items:[fullItem]}],
+    ['buyer_email_exact_marketplace',{...baseBody,capture_mode:'automatic_async',marketplace_fee:String(fee),payer:{email:'testuser3712462638@testuser.com'},items:[fullItem],config:fullConfig}]
   ];
   const inspectId=String(process.env.DATOYA_MP_ORDER_INSPECT_ID||'').trim();
   if(inspectId){
