@@ -54,23 +54,6 @@ function __cmpLooksLikeTestAccount(account){
   const nickname=String(account.nickname||'').trim(),email=String(account.email||'').trim().toLowerCase(),id=String(account.id||'');
   return __cmpListedTestUserId(id)||/^TEST[A-Z0-9_-]*/i.test(nickname)||/@testuser\.com$/i.test(email)||/testuser/i.test(email);
 }
-let __cmpIntegratorCache={at:0,value:null};
-async function __cmpIntegratorEnvironment(){
-  if(process.env.NODE_ENV==='test')return{known:false,test:null};
-  if(__cmpIntegratorCache.value&&Date.now()-__cmpIntegratorCache.at<10*60*1000)return __cmpIntegratorCache.value;
-  try{
-    if(!process.env.MP_CLIENT_ID||!process.env.MP_CLIENT_SECRET)return{known:false,test:null};
-    const token=await mpOauthHttp({client_id:process.env.MP_CLIENT_ID,client_secret:process.env.MP_CLIENT_SECRET,grant_type:'client_credentials'});
-    if(!token||!token.access_token)return{known:false,test:null};
-    const account=await mpHttp('GET','/users/me',token.access_token);
-    const tags=Array.isArray(account&&account.tags)?account.tags.map(x=>String(x)):[];
-    const value={known:true,test:tags.includes('test_user')||__cmpLooksLikeTestAccount(account),site_id:String(account&&account.site_id||'')};
-    __cmpIntegratorCache={at:Date.now(),value};return value;
-  }catch(e){
-    console.warn('[DatoYa][Commerce MP] No se pudo validar entorno integrador TEST',String(e&&e.message||e));
-    return{known:false,test:null};
-  }
-}
 async function __cmpConnectionPaymentMode(connection,validated){
   if(!connection||!validated||!validated.connected)return{mode:'disconnected',account:validated&&validated.account?validated.account:null};
   if(!connection.live_mode)return{mode:'test',account:validated.account||null};
@@ -88,8 +71,8 @@ async function __cmpConnectionPaymentMode(connection,validated){
 
 app.get('/api/businesses/:id/mercadopago/status',auth,async(req,res)=>{try{
   const b=__cmpBusinessOwner(req.user.id,req.params.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
-  const config=mpPublicConfig(),connection=db.prepare('SELECT * FROM mercadopago_connections WHERE user_id=?').get(req.user.id),status=await mpValidatedConnection(connection),modeInfo=await __cmpConnectionPaymentMode(connection,status),testEnv=modeInfo.mode==='test'?await __cmpIntegratorEnvironment():null;
-  res.json({eligible:true,...status,account:modeInfo.account||status.account||null,integration:config.integration,commission_pct:config.commission_pct,payment_mode:modeInfo.mode,provider_live_mode:!!status.live_mode,recognized_test_account:modeInfo.mode==='test'&&!!connection,live_payments_allowed:__cmpLiveAllowed(),test_environment_ready:testEnv&&testEnv.known?!!testEnv.test:null,test_environment_issue:testEnv&&testEnv.known&&!testEnv.test?'integrator_not_test':null});
+  const config=mpPublicConfig(),connection=db.prepare('SELECT * FROM mercadopago_connections WHERE user_id=?').get(req.user.id),status=await mpValidatedConnection(connection),modeInfo=await __cmpConnectionPaymentMode(connection,status);
+  res.json({eligible:true,...status,account:modeInfo.account||status.account||null,integration:config.integration,commission_pct:config.commission_pct,payment_mode:modeInfo.mode,provider_live_mode:!!status.live_mode,recognized_test_account:modeInfo.mode==='test'&&!!connection,live_payments_allowed:__cmpLiveAllowed()});
 }catch(e){res.status(e.status||500).json({error:e.message});}});
 
 app.get('/api/businesses/:id/mercadopago/connect',auth,async(req,res)=>{try{
@@ -113,7 +96,7 @@ app.delete('/api/businesses/:id/mercadopago/disconnect',auth,(req,res)=>{try{
 app.get('/api/orders/:id/mercadopago/status',auth,async(req,res)=>{try{
   const o=db.prepare('SELECT o.*,b.owner_user_id,b.name AS business_name FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=? AND o.user_id=?').get(Number(req.params.id),req.user.id);
   if(!o)return res.status(404).json({error:'Pedido no encontrado'});
-  const connection=__cmpConnectionForBusiness(o.business_id),connectionStatus=await mpValidatedConnection(connection),modeInfo=await __cmpConnectionPaymentMode(connection,connectionStatus),testEnv=modeInfo.mode==='test'?await __cmpIntegratorEnvironment():null,cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100));
+  const connection=__cmpConnectionForBusiness(o.business_id),connectionStatus=await mpValidatedConnection(connection),modeInfo=await __cmpConnectionPaymentMode(connection,connectionStatus),cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100));
   let payment=__cmpPaymentRow(db.prepare('SELECT * FROM commerce_mp_payments WHERE order_id=?').get(o.id));
   if(modeInfo.mode==='test'&&connectionStatus.connected&&payment&&String(payment.provider_api||'')==='orders'&&payment.provider_order_id){
     try{
@@ -129,7 +112,7 @@ app.get('/api/orders/:id/mercadopago/status',auth,async(req,res)=>{try{
       }
     }catch(e){console.warn('[DatoYa][Commerce MP Orders sync]',e.message||e);}
   }
-  res.json({available:connectionStatus.connected&&(modeInfo.mode==='test'||modeInfo.mode==='live')&&!(testEnv&&testEnv.known&&!testEnv.test),connected:connectionStatus.connected,payment,commission_pct:cfg.commissionPct,breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:Math.max(0,Number(o.total||0)-fee)},integration:mpPublicConfig().integration,payment_mode:modeInfo.mode,provider_live_mode:!!connectionStatus.live_mode,recognized_test_account:modeInfo.mode==='test'&&!!connection,live_payments_allowed:__cmpLiveAllowed(),test_environment_ready:testEnv&&testEnv.known?!!testEnv.test:null,test_environment_issue:testEnv&&testEnv.known&&!testEnv.test?'integrator_not_test':null});
+  res.json({available:connectionStatus.connected&&(modeInfo.mode==='test'||modeInfo.mode==='live'),connected:connectionStatus.connected,payment,commission_pct:cfg.commissionPct,breakdown:{amount:Number(o.total||0),datoya_fee:fee,seller_net_estimate:Math.max(0,Number(o.total||0)-fee)},integration:mpPublicConfig().integration,payment_mode:modeInfo.mode,provider_live_mode:!!connectionStatus.live_mode,recognized_test_account:modeInfo.mode==='test'&&!!connection,live_payments_allowed:__cmpLiveAllowed()});
 }catch(e){res.status(e.status||500).json({error:e.message});}});
 
 app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
@@ -140,7 +123,6 @@ app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>{try{
   const connection=__cmpConnectionForBusiness(o.business_id);if(!connection)return res.status(409).json({error:'Este negocio todavía no conectó Mercado Pago'});
   const validated=await mpValidatedConnection(connection);if(!validated.connected)return res.status(409).json({error:'La cuenta Mercado Pago del negocio necesita reconectarse'});
   const modeInfo=await __cmpConnectionPaymentMode(connection,validated);if(modeInfo.mode==='live_blocked')return res.status(409).json({error:'Los pagos reales están bloqueados mientras terminamos la validación TEST de Mercado Pago',live_mode_blocked:true});
-  if(modeInfo.mode==='test'){const testEnv=await __cmpIntegratorEnvironment();if(testEnv.known&&!testEnv.test)return res.status(409).json({error:'Mercado Pago TEST incompleto: la aplicación integradora está en modo real y el vendedor está en modo TEST. DatoYa bloqueó este checkout para evitar el error del proveedor.',code:'mp_test_integrator_mismatch',test_environment_ready:false});}
   const token=await mpSellerToken(connection);if(!token)return res.status(409).json({error:'No se pudo obtener la autorización de Mercado Pago del negocio'});
   const items=db.prepare('SELECT * FROM commerce_order_items WHERE order_id=? ORDER BY id').all(o.id);if(!items.length)return res.status(400).json({error:'El pedido no tiene productos'});
   const cfg=mpConfig(),fee=Math.max(0,Math.round(Number(o.total||0)*Number(cfg.commissionPct||0)/100)),external='datoya-order:'+o.id;
