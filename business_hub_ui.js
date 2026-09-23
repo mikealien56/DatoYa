@@ -49,7 +49,6 @@
       ['home','#/mi-negocio/'+id,'⌂','Inicio',false],
       ['products','#/mi-negocio-productos/'+id,'📦','Productos',false],
       ['orders','#/mi-negocio-pedidos/'+id,'🧾','Pedidos',false],
-      ['payments','#/mi-negocio-pagos/'+id,'💳','Pagos',false],
       ['promos','#/mi-negocio-promociones/'+id,'🏷️','Promociones',false],
       ['impulse','#/impulso-ahora/'+id,'⚡','Impulso',!paid],
       ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
@@ -123,7 +122,7 @@
           <div class="dy-dashboard-checks">
             <div><span>${b.status==='active'?'✅':'○'}</span><b>Negocio publicado</b><small>${h(statusLabel(b.status))}</small></div>
             <div><span>${products.some(p=>p.active)?'✅':'○'}</span><b>Productos visibles</b><small>${products.filter(p=>p.active).length} publicados</small></div>
-            <div><span>${khipuD.configured&&khipuD.mode==='development'?'✅':'○'}</span><b>Khipu</b><small>${khipuD.configured?(khipuD.mode==='development'?'Operativo en modo desarrollo':'Configuración disponible'):'No disponible'}</small></div>
+            <div><span>${khipuD.configured&&khipuD.mode==='development'?'✅':'○'}</span><b>Khipu</b><small>${khipuD.configured?(khipuD.mode==='development'?'Operativo en TEST':'Configurado'):'No disponible'}</small></div>
             <div><span>${membership?'✅':'○'}</span><b>Plan</b><small>${membership?'DatoYa Impulso activo':'Gratis · '+products.length+'/'+catalogLimit+' productos'}</small></div>
           </div>
           <a class="btn btn-outline btn-block" href="#/mi-negocio-configuracion/${id}">Revisar configuración</a>
@@ -148,7 +147,7 @@
           <div class="dy-dashboard-growth">
             <a href="#/mi-negocio-promociones/${id}"><span>🏷️</span><b>Promociones</b><small>Revisa qué campañas generan actividad.</small></a>
             <a href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}" class="${paid?'':'dy-premium-link'}"><span>${paid?'⚡':'🔒'}</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Requiere DatoYa Impulso.'}</small></a>
-            <a class="dy-weekly-tool" href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso de la semana</b><small>Oferta destacada por 7 días.</small></a>
+            <a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso semanal</b><small>Prepara una oferta destacada.</small></a>
             <a href="#/mi-negocio-plan/${id}"><span>🚀</span><b>Plan DatoYa Impulso</b><small>Revisa beneficios y vigencia.</small></a>
           </div>
         </section>
@@ -191,7 +190,7 @@
     }else{
       const hero=root.querySelector('.dy-business-hero h1');
       if(hero)hero.insertAdjacentHTML('afterend','<p class="dy-hub-section-caption">⚙️ Datos, ubicación, entrega y configuración comercial</p>');
-      root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>HERRAMIENTAS DEL NEGOCIO</span><h2>Pagos, plan y soporte</h2><p>Todo lo esencial del negocio en un solo lugar.</p></div></div><div class="dy-dashboard-growth dy-hub-clean-tools"><a class="dy-khipu-tool" href="#/mi-negocio-pagos/${id}"><span>🏦</span><b>Khipu</b><small>Medio de pago activo en DatoYa.</small></a><a href="#/mi-negocio-plan/${id}"><span>⚡</span><b>DatoYa Impulso</b><small>Plan, vigencia y beneficios.</small></a><a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso de la semana</b><small>Prepara una oferta destacada.</small></a><a href="#/mi-negocio-soporte/${id}"><span>📨</span><b>Soporte</b><small>Casos y respuestas de DatoYa.</small></a></div></section>`);
+      root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>CONFIGURACIÓN ADICIONAL</span><h2>Conexiones y cuenta</h2><p>Herramientas relacionadas con la operación del negocio.</p></div></div><div class="dy-dashboard-growth"><a href="#/mi-negocio-pedidos/${id}"><span>🏦</span><b>Khipu</b><small>Pagos de pedidos y cobros TEST.</small></a><a href="#/mi-negocio-plan/${id}"><span>⭐</span><b>Plan</b><small>DatoYa Impulso y vigencia.</small></a><a href="#/mi-negocio-soporte/${id}"><span>📨</span><b>Soporte</b><small>Casos y respuestas de DatoYa.</small></a><a href="#/perfil"><span>👤</span><b>Cuenta</b><small>Datos y seguridad de acceso.</small></a></div></section>`);
     }
     await addHubFrame(id,mode==='products'?'products':'config');
   }
@@ -239,34 +238,6 @@
     await addHubFrame(id,'stats');
   }
 
-  async function renderPayments(id){
-    if(!requireBusiness())return;
-    id=Number(id||0);if(!id){location.hash='#/perfil';return;}
-    const [meta,khipu]=await Promise.all([
-      getMeta(id,true),
-      api('/khipu/status').catch(()=>({configured:false,mode:'blocked',live_payments_allowed:false,integrator_enabled:false}))
-    ]);
-    const b=meta.business||{};
-    const ready=!!khipu.configured&&khipu.mode==='development';
-    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
-      <section class="dy-business-dashboard-hero dy-payment-hero">
-        <div><span>PAGOS</span><h1>Khipu</h1><p>Estado del medio de pago usado por DatoYa para <b>${h(b.name||'tu negocio')}</b>.</p></div>
-        <div class="dy-khipu-status-pill ${ready?'ok':'warn'}">${ready?'✓ Operativo':'Revisar configuración'}</div>
-      </section>
-      <section class="dy-business-card dy-khipu-overview">
-        <div class="dy-khipu-brand"><span>🏦</span><div><small>PROVEEDOR ACTIVO</small><h2>Khipu</h2><p>${ready?'Los pagos de prueba están funcionando correctamente con Khipu.':'Khipu todavía no está disponible para este flujo.'}</p></div></div>
-        <div class="dy-khipu-facts">
-          <div><span>Modo</span><b>${khipu.mode==='development'?'Desarrollo / TEST':'Bloqueado'}</b></div>
-          <div><span>Pagos reales</span><b>${khipu.live_payments_allowed?'Habilitados':'Bloqueados'}</b></div>
-          <div><span>Comisión automática</span><b>${khipu.integrator_enabled?'Activa':'Pendiente de habilitación Khipu'}</b></div>
-        </div>
-        <div class="dy-khipu-note"><b>DatoYa usa Khipu.</b><span>Khipu es el único proveedor de pago visible en el marketplace. La comisión automática se activará cuando Khipu habilite la modalidad integrador para los negocios.</span></div>
-        <div class="dy-khipu-actions"><a class="btn btn-primary" href="#/mi-negocio-pedidos/${id}">Ver pedidos</a><a class="btn btn-outline" href="#/mi-negocio-plan/${id}">Ver DatoYa Impulso</a></div>
-      </section>
-    </div>`;
-    await addHubFrame(id,'payments');
-  }
-
   routes['mi-negocio']=async function(id){
     const path=currentPath();
     if(path==='mi-negocio-productos')return renderLegacySection(id,'products');
@@ -275,7 +246,6 @@
   };
   routes['mi-negocio-productos']=id=>renderLegacySection(id,'products');
   routes['mi-negocio-configuracion']=id=>renderLegacySection(id,'config');
-  routes['mi-negocio-pagos']=id=>renderPayments(id);
   routes['mi-negocio-promociones']=id=>renderPromotions(id);
   routes['mi-negocio-estadisticas']=id=>renderStats(id);
 
@@ -295,6 +265,7 @@
     };
   }
   wrap('mi-negocio-pedidos','orders');
+  wrap('mi-negocio-pagos','config');
   wrap('mi-negocio-plan','plan');
   wrap('mi-negocio-soporte','support');
   wrap('mi-negocio-soporte-caso','support');
