@@ -72,7 +72,9 @@
           </section>
         </div>
 
-        <section class="dy-plan-card"><span>🎁 CORTESÍAS DATOYA</span><h2>7 y 15 días gratis</h2><p>Estas cortesías las entrega administración desde el panel de DatoYa. No generan cobro Khipu y se suman a la vigencia que ya tenga el negocio.</p></section>\n\n        <section class="dy-plan-card dy-plan-weekly">
+        <section class="dy-plan-card"><span>🎁 CORTESÍAS DATOYA</span><h2>7 y 15 días gratis</h2><p>Estas cortesías las entrega administración desde el panel de DatoYa. No generan cobro Khipu y se suman a la vigencia que ya tenga el negocio.</p></section>
+
+        <section class="dy-plan-card dy-plan-weekly">
           <div><span>⭐ DESTACADO APARTE</span><h2>Impulso de la semana</h2><p>No forma parte del plan Gratis ni de DatoYa Impulso. Es una campaña especial por período que puede contratarse aparte o ser entregada como cortesía por DatoYa.</p></div>
           <a class="btn btn-outline" href="#/impulso-semanal-nuevo/${id}">Ver Impulso semanal</a>
         </section>
@@ -107,4 +109,9 @@
     }
     return r;
   };
-  if(!window.dyImpulsePlanDeepLinkReady){\n    window.dyImpulsePlanDeepLinkReady=true;\n    const bootPath=location.hash.replace(/^#\\//,'').split('/')[0];\n    if(bootPath==='mi-negocio-plan')setTimeout(()=>{if(typeof route==='function'&&routes['mi-negocio-plan'])route();},60);\n  }\n})();
+  if(!window.dyImpulsePlanDeepLinkReady){
+    window.dyImpulsePlanDeepLinkReady=true;
+    const bootPath=location.hash.replace(/^#\\//,'').split('/')[0];
+    if(bootPath==='mi-negocio-plan')setTimeout(()=>{if(typeof route==='function'&&routes['mi-negocio-plan'])route();},60);
+  }
+})();
