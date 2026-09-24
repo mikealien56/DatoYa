@@ -5,3 +5,95 @@
 .dy-account-page{max-width:1120px;margin:24px auto}.dy-account-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:20px}.dy-account-top h1{margin:3px 0;color:#1b2b48}.dy-account-top p{margin:0;color:#64748b}.dy-page-kicker{font-size:11px;font-weight:800;letter-spacing:.12em;color:#0b3a82}.dy-account-grid{display:grid;grid-template-columns:380px minmax(0,1fr);gap:18px}.dy-account-card{background:#fff;border:1px solid #e9eef5;border-radius:22px;padding:22px;box-shadow:0 12px 34px rgba(7,43,99,.06)}.dy-account-card h2{margin-top:0;color:#1b2b48}.dy-account-link{display:block;margin-top:18px}.dy-card-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.dy-business-list{display:grid;gap:10px;margin-top:16px}.dy-business-list article{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px;border:1px solid #e9eef5;border-radius:15px}.dy-business-list article div{display:grid;gap:4px}.dy-business-list article span{font-size:12px;color:#64748b}.dy-status{padding:6px 9px;border-radius:999px;background:#fff7ed;color:#9a3412;font-weight:700;white-space:nowrap}.dy-status.active{background:#dcfce7;color:#166534}.dy-empty-account{border:1px dashed #cbd5e1;border-radius:18px;padding:28px;text-align:center;margin-top:18px}.dy-empty-account>span{font-size:42px}.dy-empty-account b{display:block;margin:8px 0;color:#1b2b48}.dy-empty-account p{color:#64748b}
 .dy-business-wizard{max-width:820px;margin:24px auto}.dy-wizard-back{display:inline-block;margin-bottom:12px}.dy-wizard-head{text-align:center;margin-bottom:18px}.dy-wizard-head>span{font-size:11px;letter-spacing:.12em;color:#0b3a82;font-weight:800}.dy-wizard-head h1{margin:6px 0 14px;color:#1b2b48}.dy-progress{height:7px;background:#e9eef5;border-radius:999px;overflow:hidden}.dy-progress i{display:block;height:100%;background:linear-gradient(90deg,#19c6b4,#0b3a82);border-radius:999px;transition:.2s}.dy-wizard-head small{display:block;margin-top:8px;color:#64748b}.dy-wizard-card{background:#fff;border:1px solid #e9eef5;border-radius:22px;padding:24px;box-shadow:0 16px 42px rgba(7,43,99,.07)}.dy-business-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.dy-business-type-grid button{border:1px solid #e9eef5;border-radius:18px;background:#fff;padding:22px;text-align:left;cursor:pointer}.dy-business-type-grid button.selected{border-color:#19c6b4;background:#f0fffc;box-shadow:0 10px 28px rgba(25,198,180,.12)}.dy-business-type-grid span{font-size:34px}.dy-business-type-grid b{display:block;margin:9px 0 5px;color:#1b2b48;font-size:17px}.dy-business-type-grid small{color:#64748b;line-height:1.45}.dy-category-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:300px;overflow:auto}.dy-category-picker label{cursor:pointer}.dy-category-picker input{position:absolute;opacity:0;pointer-events:none}.dy-category-picker span{display:block;padding:11px 12px;border:1px solid #e9eef5;border-radius:12px;background:#fff;font-size:13px}.dy-category-picker input:checked+span{border-color:#19c6b4;background:#effdfa;color:#072b63;font-weight:700}.dy-privacy-note,.dy-review-note{background:#f7f9fc;border:1px solid #e9eef5;border-radius:14px;padding:13px 14px;color:#475569;line-height:1.45;margin-bottom:16px}.dy-option-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dy-business-preview{display:flex;gap:16px}.dy-preview-icon{font-size:46px}.dy-business-preview small{font-weight:800;letter-spacing:.08em;color:#0b3a82}.dy-business-preview h2{margin:5px 0;color:#1b2b48}.dy-business-preview p{color:#64748b}.dy-preview-tags{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.dy-preview-tags span{background:#effdfa;border:1px solid #c9f3eb;border-radius:999px;padding:6px 9px;font-size:12px}.dy-wizard-actions{display:flex;justify-content:space-between;gap:12px;margin-top:14px}
 @media(max-width:800px){.dy-auth-shell{display:block;margin:12px;border-radius:20px}.dy-auth-aside{display:none}.dy-auth-panel{padding:24px 20px}.dy-auth-heading h1{font-size:27px}.dy-two-fields,.dy-welcome-actions,.dy-account-grid,.dy-business-type-grid,.dy-option-row{grid-template-columns:1fr}.dy-account-page,.dy-business-wizard{margin:14px 12px}.dy-account-top,.dy-card-title-row{flex-direction:column}.dy-account-top .btn,.dy-card-title-row .btn{width:100%}.dy-welcome{margin:14px 12px;padding:24px 18px}.dy-category-picker{grid-template-columns:1fr}.dy-business-preview{flex-direction:column}.dy-wizard-card{padding:18px}.dy-wizard-actions .btn{flex:1}}
+
+
+/* ===== Registro unificado + activación de cuenta ===== */
+.dy-register-type{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin:0 0 18px;
+}
+.dy-register-type button{
+  border:1px solid #dce6f0;
+  background:#fff;
+  border-radius:16px;
+  padding:15px;
+  display:grid;
+  gap:4px;
+  text-align:left;
+  cursor:pointer;
+  color:#1B2B48;
+}
+.dy-register-type button>span{font-size:26px}
+.dy-register-type button>b{font-size:15px}
+.dy-register-type button>small{color:#64748b;line-height:1.35}
+.dy-register-type button.selected{
+  border:2px solid #19C6B4;
+  background:linear-gradient(135deg,#f0fdfa,#eff6ff);
+  box-shadow:0 8px 22px rgba(11,58,130,.06);
+}
+.dy-activation-page{
+  min-height:60vh;
+  display:grid;
+  place-items:center;
+  padding:24px 12px 120px;
+}
+.dy-activation-card{
+  width:min(100%,560px);
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:24px;
+  padding:30px 24px;
+  text-align:center;
+  box-shadow:0 18px 45px rgba(11,58,130,.08);
+}
+.dy-activation-icon{
+  width:72px;height:72px;
+  margin:0 auto 14px;
+  display:grid;place-items:center;
+  border-radius:22px;
+  background:linear-gradient(135deg,#eaf3ff,#e8fffb);
+  font-size:34px;
+}
+.dy-activation-card>span{
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.12em;
+  color:#0f766e;
+}
+.dy-activation-card h1{margin:7px 0 10px;color:#072B63}
+.dy-activation-card p{color:#64748b;line-height:1.55}
+.dy-activation-email{
+  display:block;
+  margin:10px 0 16px;
+  color:#0B3A82;
+  overflow-wrap:anywhere;
+}
+.dy-activation-actions{
+  display:grid;
+  gap:9px;
+  margin:18px 0 14px;
+}
+.dy-account-summary-lines{
+  display:grid;
+  gap:10px;
+  margin:14px 0 16px;
+}
+.dy-account-summary-lines>div{
+  display:grid;
+  gap:3px;
+  padding:11px 12px;
+  background:#f8fafc;
+  border:1px solid #edf2f7;
+  border-radius:13px;
+}
+.dy-account-summary-lines span{font-size:11px;color:#64748b;font-weight:700}
+.dy-account-summary-lines b{color:#1B2B48;overflow-wrap:anywhere}
+.dy-account-summary-lines b.ok{color:#047857}
+.dy-account-summary-lines b.warn{color:#b45309}
+
+@media(max-width:620px){
+  .dy-register-type{grid-template-columns:1fr}
+  .dy-activation-card{padding:24px 17px;border-radius:20px}
+}
