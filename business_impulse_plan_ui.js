@@ -40,6 +40,16 @@
           <div class="dy-plan-status">${active?'<b>IMPULSO ACTIVO</b><small>'+h(m.source==='gift'?'Cortesía DatoYa':m.billing_period==='annual'?'Plan anual':m.billing_period==='quarterly'?'Plan 3 meses':'Plan mensual')+'</small>':'<b>PLAN GRATIS</b><small>'+Number(usage.products||0)+' / '+freeLimit+' productos</small>'}</div>
         </section>
 
+        ${!active?`<section class="dy-plan-buy-now">
+          <div class="dy-plan-buy-copy"><span>⚡ ACTIVA DATOYA IMPULSO</span><h2>Aún no has comprado Impulso</h2><p>Tu negocio está en <b>Plan Gratis</b>. Elige un período y continúa a Khipu TEST.</p></div>
+          <div class="dy-plan-buy-actions">
+            <button class="btn btn-outline" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'monthly')"><b>Mensual</b><small>${money(cfg.monthly_price)} · 30 días</small></button>
+            <button class="btn btn-primary" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'quarterly')"><b>3 meses</b><small>${money(cfg.quarterly_price)}</small></button>
+            <button class="btn btn-primary" ${canCheckout?'':'disabled'} onclick="dyStartImpulseCheckout(${id},'annual')"><b>Anual</b><small>${money(cfg.annual_price)}</small></button>
+          </div>
+          ${!canCheckout?'<div class="dy-plan-note">Khipu TEST no está disponible en este momento. No se habilitarán pagos reales.</div>':''}
+        </section>`:''}
+
         <section class="dy-plan-clarity">
           <div><span>✓</span><b>Lo esencial siempre es gratis</b><p>Perfil, pedidos, soporte, horarios, retiro/despacho y hasta ${freeLimit} productos.</p></div>
           <div><span>🔒</span><b>Lo premium está marcado</b><p>Impulso Ahora, estadísticas avanzadas y herramientas de crecimiento requieren una membresía activa.</p></div>
