@@ -6,17 +6,38 @@
   const money=n=>'$'+Number(n||0).toLocaleString('es-CL');
   const dt=v=>{try{return new Date(v).toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'})}catch(_){return String(v||'')}};
   const badge=(text,tone='')=>'<span class="dy-admin-badge '+tone+'">'+h(text)+'</span>';
-  const navItems=[
-    ['#/admin','📊','Resumen'],['#/admin/usuarios','👥','Usuarios'],['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos'],
-    ['#/admin/pedidos','🧾','Pedidos'],['#/admin/finanzas','💰','Finanzas'],['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/impulso-semanal','⭐','Impulso semanal'],
-    ['#/admin/soporte','📨','Soporte'],['#/admin/analitica','📈','Analítica'],['#/admin/moderacion','🛡️','Moderación'],['#/admin/configuracion','⚙️','Configuración']
+  const navGroups=[
+    ['Control',[
+      ['#/admin','📊','Resumen']
+    ]],
+    ['Operación',[
+      ['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos'],['#/admin/pedidos','🧾','Pedidos'],['#/admin/soporte','📨','Soporte']
+    ]],
+    ['Crecimiento',[
+      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/impulso-semanal','⭐','Impulso semanal'],['#/admin/analitica','📈','Analítica']
+    ]],
+    ['Sistema',[
+      ['#/admin/usuarios','👥','Usuarios'],['#/admin/finanzas','💰','Finanzas'],['#/admin/configuracion','⚙️','Configuración']
+    ]]
   ];
+  const navItems=navGroups.flatMap(group=>group[1]);
   function nav(){
-    return '<div class="dy-admin-v2-nav">'+navItems.map(([href,icon,label])=>'<a href="'+href+'" class="'+((location.hash||'#/admin').split('?')[0]===href?'active':'')+'"><span>'+icon+'</span><b>'+label+'</b></a>').join('')+'</div>';
+    const active=(location.hash||'#/admin').split('?')[0];
+    return '<aside class="dy-admin-v2-nav" aria-label="Navegación de administración">'+
+      '<div class="dy-admin-nav-brand"><span class="dy-admin-nav-mark">D</span><div><b>DatoYa Admin</b><small>Centro de control</small></div></div>'+
+      '<div class="dy-admin-nav-scroll">'+navGroups.map(([group,items])=>
+        '<section><span class="dy-admin-nav-label">'+h(group)+'</span>'+
+        items.map(([href,icon,label])=>'<a href="'+href+'" class="'+(active===href?'active':'')+'"><span aria-hidden="true">'+icon+'</span><b>'+h(label)+'</b></a>').join('')+
+        '</section>').join('')+'</div></aside>';
   }
   function shell(title,sub,body){
-    view.innerHTML='<div class="dy-admin-v2"><div class="dy-admin-v2-head"><div><span>ADMINISTRACIÓN DATOYA</span><h1>'+h(title)+'</h1><p>'+h(sub||'')+'</p></div><a class="btn btn-outline btn-sm" href="#/">Ver DatoYa</a></div>'+nav()+body+'</div>';
+    view.innerHTML='<div class="dy-admin-v2">'+
+      '<header class="dy-admin-v2-head"><div class="dy-admin-v2-title"><span>ADMINISTRACIÓN DATOYA</span><h1>'+h(title)+'</h1><p>'+h(sub||'')+'</p></div>'+
+      '<div class="dy-admin-v2-head-actions"><span class="dy-admin-v2-role">🛡️ Administrador</span><a class="btn btn-outline btn-sm" href="#/">Abrir DatoYa</a></div></header>'+
+      '<div class="dy-admin-v2-layout">'+nav()+'<main class="dy-admin-v2-content">'+body+'</main></div></div>';
   }
+  window.__datoyaAdminV2Shell=shell;
+  window.__datoyaAdminV2Nav=nav;
   const inputFilter=(placeholder)=>'<div class="dy-admin-filter"><input data-dy-search placeholder="'+h(placeholder)+'"></div>';
   function wireSearch(selector){
     const inp=document.querySelector('[data-dy-search]'); if(!inp)return;
