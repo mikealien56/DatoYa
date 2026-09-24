@@ -266,15 +266,15 @@ input,select,textarea,button{
     padding:20px 16px calc(20px + env(safe-area-inset-bottom))!important;
   }
 
-  /* Evita que textos, IDs o correos largos ensanchen la app */
+  /* El texto normal se mantiene legible; los datos largos se tratan aparte. */
   .card,
   .dy-account-card,
   .dy-admin-row,
   .dy-business-dashboard,
   .dy-business-section-page,
   .dy-plan-card{
-    overflow-wrap:anywhere;
-    word-break:break-word;
+    overflow-wrap:normal;
+    word-break:normal;
   }
 
   /* Objetivos táctiles */
