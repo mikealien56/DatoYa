@@ -121,7 +121,7 @@
   };
   if(!window.dyImpulsePlanDeepLinkReady){
     window.dyImpulsePlanDeepLinkReady=true;
-    const bootPath=location.hash.replace(/^#\\//,'').split('/')[0];
+    const bootPath=location.hash.replace(/^#\//,'').split('/')[0];
     if(bootPath==='mi-negocio-plan')setTimeout(()=>{if(typeof route==='function'&&routes['mi-negocio-plan'])route();},60);
   }
 })();
