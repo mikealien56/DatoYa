@@ -305,3 +305,111 @@ input,select,textarea,button{
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
   }
 }
+
+
+/* ===== CLEAN MOBILE GUARD V2 =====
+   Nunca partir palabras normales letra por letra. */
+@media (max-width:820px){
+  .card,
+  .dy-account-card,
+  .dy-admin-row,
+  .dy-business-card,
+  .dy-business-dashboard,
+  .dy-business-section-page,
+  .dy-plan-card,
+  .dy-commerce-card,
+  .dy-hours-main-card,
+  .dy-hours-day-card{
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+  }
+
+  #view h1,#view h2,#view h3,#view h4,
+  #view p,#view label,#view b,#view strong,#view small,
+  #view button,#view .btn,
+  #view article span,#view section span{
+    word-break:normal!important;
+    overflow-wrap:normal!important;
+    hyphens:none!important;
+  }
+
+  /* Solo datos que realmente pueden ser una cadena larga. */
+  .dy-activation-email,
+  .dy-account-summary-lines b,
+  [data-long-text],
+  code,pre{
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+  }
+
+  /* Contenedores de texto nunca deben quedar con ancho microscópico. */
+  .dy-card-head,
+  .dy-card-head>div,
+  .dy-dashboard-actions>a>div,
+  .dy-dashboard-checks>div,
+  .dy-payment-order-list>a>div,
+  .dy-business-list article>div,
+  .dy-plan-option>div{
+    min-width:0!important;
+  }
+
+  .dy-card-head h2,
+  .dy-card-head p,
+  .dy-dashboard-actions b,
+  .dy-dashboard-actions small,
+  .dy-dashboard-checks b,
+  .dy-dashboard-checks small,
+  .dy-dashboard-growth b,
+  .dy-dashboard-growth small,
+  .dy-admin-kpis span,
+  .dy-admin-kpis small{
+    width:auto!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+}
+
+@media (max-width:520px){
+  /* Bloques con texto: una columna = lectura limpia. */
+  .dy-dashboard-priority,
+  .dy-admin-kpis,
+  .dy-admin-kpis.finance,
+  .finance,
+  .dy-plan-clarity,
+  .dy-promo-metrics{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+
+  .dy-dashboard-priority>a{
+    grid-template-columns:42px minmax(0,1fr)!important;
+    grid-template-areas:"icon value" "label label" "small small"!important;
+  }
+
+  .dy-business-list article{
+    align-items:stretch!important;
+    flex-direction:column!important;
+  }
+
+  .dy-business-card-actions{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  .dy-business-card-actions .btn{
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  .dy-plan-option{
+    align-items:stretch!important;
+    flex-direction:column!important;
+  }
+
+  /* La grilla legacy de categorías era demasiado estrecha en teléfonos. */
+  .cat-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  .cat-item{
+    min-width:0!important;
+    overflow-wrap:break-word!important;
+  }
+}
