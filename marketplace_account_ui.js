@@ -24,6 +24,12 @@
       try{
         await api('/auth/login',{method:'POST',body:{email:f.email.value.trim(),password:f.password.value}});
         await refreshMe();
+        if(ME&&!ME.email_verified){
+          location.hash='#/verifica-tu-cuenta';
+          if(typeof route==='function')route();
+          toast?.('Verifica tu correo para activar la cuenta','info');
+          return;
+        }
         const next=sessionStorage.getItem('datoya_after_auth');sessionStorage.removeItem('datoya_after_auth');
         const rawNext=String(next||'');
         const safeHash=rawNext.startsWith('#/')&&!/^#\/(?:trabajador|solicitar|solicitudes|solicitud|bandeja|mensajes|chat|trabajos|trabaja|pro)(?:\/|$)/.test(rawNext)?rawNext:(rawNext==='registrar-negocio'?'#/registrar-negocio':'#/');
@@ -34,69 +40,75 @@
     });
   };
 
-  routes.registro=async function(){
-    if(ME){location.hash='#/perfil';return;}
-    const {comunas=[]}=await api('/comunas');
+  async function renderUnifiedRegistration(typeHint){
+    if(ME){
+      if(!ME.email_verified){location.hash='#/verifica-tu-cuenta';return;}
+      location.hash='#/perfil';return;
+    }
     const saved=getSavedComuna();
-    view.innerHTML=shell('Crear cuenta cliente','Esta cuenta es para descubrir negocios, comprar y administrar tus pedidos.',`
-      <form id="dy-register-form" class="dy-account-form">
-        <div class="field"><label>Nombre</label><input name="name" autocomplete="name" required></div>
+    const initial=typeHint==='business'?'business':'customer';
+    view.innerHTML=shell('Crear cuenta','Elige cómo quieres usar DatoYa. Tu cuenta se activa al verificar el correo.',`
+      <div class="dy-register-type" role="radiogroup" aria-label="Tipo de cuenta">
+        <button type="button" data-account-type="customer" class="${initial==='customer'?'selected':''}"><span>🛍️</span><b>Cliente</b><small>Buscar, comprar y seguir pedidos.</small></button>
+        <button type="button" data-account-type="business" class="${initial==='business'?'selected':''}"><span>🏪</span><b>Negocio</b><small>Publicar productos, gestionar pedidos e Impulso.</small></button>
+      </div>
+      <form id="dy-unified-register-form" class="dy-account-form">
+        <input type="hidden" name="account_type" value="${initial}">
+        <div class="field"><label id="dy-register-name-label">${initial==='business'?'Nombre del encargado':'Nombre'}</label><input name="name" autocomplete="name" required></div>
         <div class="field"><label>Correo electrónico</label><input name="email" type="email" autocomplete="email" required></div>
         <div class="field"><label>Celular <span class="small muted">(opcional)</span></label><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+56912345678"></div>
-        <div class="field"><label>Comuna</label><select name="comuna_id" required><option value="">Selecciona tu comuna</option>${comunas.map(c=>`<option value="${Number(c.id)}" ${Number(c.id)===saved?'selected':''}>${h(c.name)}${c.region?' — '+h(c.region):''}</option>`).join('')}</select></div>
+        <div class="field"><label>Comuna</label><select name="comuna_id" required><option value="">Selecciona tu comuna</option>${comunas.map(x=>`<option value="${Number(x.id)}" ${Number(x.id)===saved?'selected':''}>${h(x.name)}${x.region?' — '+h(x.region):''}</option>`).join('')}</select></div>
         <div class="dy-two-fields"><div class="field"><label>Contraseña</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label>Repetir contraseña</label><input name="repeat" type="password" minlength="8" autocomplete="new-password" required></div></div>
         <label class="dy-check"><input type="checkbox" name="terms" required><span>Acepto los <a href="#/terminos">Términos</a> y la <a href="#/privacidad">Política de Privacidad</a>.</span></label>
-        <button class="btn btn-primary btn-block" type="submit">Crear cuenta cliente</button>
+        <button class="btn btn-primary btn-block" type="submit">Crear cuenta y verificar correo</button>
       </form>
       <p class="dy-auth-switch">¿Ya tienes cuenta? <a href="#/login">Ingresar</a></p>
-    `,`<span class="dy-aside-kicker">🏪 ¿TIENES UN NEGOCIO?</span><h2>Usa una cuenta de negocio separada.</h2><p>Las cuentas cliente no pueden crear ni administrar negocios.</p><a class="btn btn-outline" href="#/registro-negocio">Crear cuenta para negocio</a>`);
-    document.getElementById('dy-register-form')?.addEventListener('submit',async e=>{
-      e.preventDefault(); const f=e.currentTarget,btn=f.querySelector('button[type="submit"]');
-      if(f.password.value!==f.repeat.value)return typeof toast==='function'&&toast('Las contraseñas no coinciden','err');
+    `,`<span class="dy-aside-kicker">✉️ ACTIVACIÓN POR CORREO</span><h2>Una cuenta, un correo confirmado.</h2><p>Después de registrarte te enviaremos un enlace. Al verificarlo tu cuenta quedará activa.</p><div class="dy-aside-points"><span>✓ Cliente: entra a explorar y comprar</span><span>✓ Negocio: continúa con Crear mi negocio</span><span>✓ Khipu se usa en los pagos habilitados</span></div>`);
+
+    const form=document.getElementById('dy-unified-register-form');
+    document.querySelectorAll('[data-account-type]').forEach(btn=>btn.addEventListener('click',()=>{
+      const type=btn.dataset.accountType==='business'?'business':'customer';
+      form.account_type.value=type;
+      document.querySelectorAll('[data-account-type]').forEach(x=>x.classList.toggle('selected',x===btn));
+      const label=document.getElementById('dy-register-name-label');if(label)label.textContent=type==='business'?'Nombre del encargado':'Nombre';
+    }));
+    form?.addEventListener('submit',async e=>{
+      e.preventDefault();const x=e.currentTarget,btn=x.querySelector('button[type="submit"]');
+      if(x.password.value!==x.repeat.value)return toast?.('Las contraseñas no coinciden','err');
+      const type=x.account_type.value==='business'?'business':'customer';
       btn.disabled=true;btn.textContent='Creando cuenta…';
       try{
-        await api('/auth/register',{method:'POST',body:{name:f.name.value.trim(),email:f.email.value.trim(),password:f.password.value,phone:f.phone.value.trim()||null,comuna_id:Number(f.comuna_id.value),role:'cliente',account_type:'customer',accept_terms:true,accept_privacy:true}});
+        const r=await api('/auth/register',{method:'POST',body:{name:x.name.value.trim(),email:x.email.value.trim(),password:x.password.value,phone:x.phone.value.trim()||null,comuna_id:Number(x.comuna_id.value),role:'cliente',account_type:type,accept_terms:true,accept_privacy:true}});
         await refreshMe();
-        location.hash='#/bienvenida'; if(typeof route==='function')route();
-        if(typeof toast==='function')toast('¡Cuenta cliente creada!','ok');
-      }catch(err){btn.disabled=false;btn.textContent='Crear cuenta cliente';if(typeof toast==='function')toast(err.message,'err');}
+        try{sessionStorage.setItem('datoya_activation_type',type);}catch(_){}
+        location.hash='#/verifica-tu-cuenta';if(typeof route==='function')route();
+        toast?.(r.verification_email_sent?'Te enviamos el enlace de verificación':'Cuenta creada. Puedes reenviar el correo de verificación.','ok');
+      }catch(err){btn.disabled=false;btn.textContent='Crear cuenta y verificar correo';toast?.(err.message,'err');}
     });
-  };
+  }
 
-  routes['registro-negocio']=async function(){
-    if(ME){
-      if(ME.account_type==='business'){location.hash='#/registrar-negocio';return;}
-      view.innerHTML=shell('Cuenta de negocio separada','Tu sesión actual es una cuenta cliente. Para evitar mezclar compras y administración comercial, el negocio usa otra cuenta.',`
-        <div class="dy-empty-account"><span>🏪</span><b>Esta cuenta es solo cliente</b><p>Cierra sesión y crea una cuenta de negocio con el correo que usarás para administrar tu comercio.</p><button class="btn btn-primary btn-block" onclick="dyCreateSeparateBusinessAccount()">Cerrar sesión y crear cuenta de negocio</button><a class="btn btn-outline btn-block" href="#/perfil">Volver a mi cuenta</a></div>
-      `);
+  routes.registro=()=>renderUnifiedRegistration('customer');
+  routes['registro-negocio']=()=>renderUnifiedRegistration('business');
+
+  routes['verifica-tu-cuenta']=async function(){
+    if(!ME){location.hash='#/login';return;}
+    if(ME.email_verified){
+      location.hash=ME.account_type==='business'?'#/registrar-negocio':'#/';
+      if(typeof route==='function')setTimeout(route,0);
       return;
     }
-    const {comunas=[]}=await api('/comunas');
-    const saved=getSavedComuna();
-    view.innerHTML=shell('Crear cuenta de negocio','Esta cuenta será exclusivamente para registrar y administrar un negocio en DatoYa.',`
-      <form id="dy-business-account-form" class="dy-account-form">
-        <div class="field"><label>Nombre del encargado</label><input name="name" autocomplete="name" required></div>
-        <div class="field"><label>Correo del negocio</label><input name="email" type="email" autocomplete="email" required></div>
-        <div class="field"><label>Celular <span class="small muted">(opcional)</span></label><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+56912345678"></div>
-        <div class="field"><label>Comuna</label><select name="comuna_id" required><option value="">Selecciona tu comuna</option>${comunas.map(c=>`<option value="${Number(c.id)}" ${Number(c.id)===saved?'selected':''}>${h(c.name)}${c.region?' — '+h(c.region):''}</option>`).join('')}</select></div>
-        <div class="dy-two-fields"><div class="field"><label>Contraseña</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label>Repetir contraseña</label><input name="repeat" type="password" minlength="8" autocomplete="new-password" required></div></div>
-        <label class="dy-check"><input type="checkbox" name="terms" required><span>Acepto los <a href="#/terminos">Términos</a> y la <a href="#/privacidad">Política de Privacidad</a>.</span></label>
-        <button class="btn btn-primary btn-block" type="submit">Crear cuenta de negocio</button>
-      </form>
-      <p class="dy-auth-switch">¿Solo quieres comprar? <a href="#/registro">Crear cuenta cliente</a></p>
-    `,`<span class="dy-aside-kicker">🏪 CUENTA NEGOCIO</span><h2>Panel comercial separado.</h2><p>Productos, pedidos, promociones y Mercado Pago quedan fuera del perfil cliente.</p><div class="dy-aside-points"><span>✓ Negocio y catálogo</span><span>✓ Pedidos</span><span>✓ Promociones e Impulso</span></div>`);
-    document.getElementById('dy-business-account-form')?.addEventListener('submit',async e=>{
-      e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button[type="submit"]');
-      if(f.password.value!==f.repeat.value)return toast?.('Las contraseñas no coinciden','err');
-      btn.disabled=true;btn.textContent='Creando cuenta…';
-      try{
-        await api('/auth/register',{method:'POST',body:{name:f.name.value.trim(),email:f.email.value.trim(),password:f.password.value,phone:f.phone.value.trim()||null,comuna_id:Number(f.comuna_id.value),role:'cliente',account_type:'business',accept_terms:true,accept_privacy:true}});
-        await refreshMe();
-        location.hash='#/seguridad';if(typeof route==='function')route();
-        toast?.('Cuenta de negocio creada. Verifica tu correo antes de registrar el negocio.','ok');
-      }catch(err){btn.disabled=false;btn.textContent='Crear cuenta de negocio';toast?.(err.message,'err');}
-    });
+    const type=ME.account_type==='business'?'business':'customer';
+    view.innerHTML=`<div class="dy-activation-page"><section class="dy-activation-card"><div class="dy-activation-icon">✉️</div><span>ACTIVA TU CUENTA</span><h1>Revisa tu correo</h1><p>Enviamos un enlace de verificación a:</p><b class="dy-activation-email">${h(ME.email||'')}</b><p>Al abrir el enlace, tu cuenta ${type==='business'?'de negocio':'cliente'} quedará activa oficialmente.</p><div class="dy-activation-actions"><button class="btn btn-primary btn-block" onclick="dyResendActivationEmail()">Reenviar correo</button><button class="btn btn-outline btn-block" onclick="dyCheckActivation()">Ya verifiqué mi correo</button></div><small>El enlace vence en 24 horas. Si no lo ves, revisa Spam o Correo no deseado.</small></section></div>`;
   };
+  window.dyResendActivationEmail=async function(){
+    try{const r=await api('/auth/email-verification/request',{method:'POST'});if(r.already_verified)return window.dyCheckActivation();toast?.('Correo de verificación enviado','ok');}catch(err){toast?.(err.message||'No pudimos enviar el correo','err');}
+  };
+  window.dyCheckActivation=async function(){
+    await refreshMe();
+    if(ME?.email_verified){location.hash=ME.account_type==='business'?'#/registrar-negocio':'#/';if(typeof route==='function')route();return;}
+    toast?.('Todavía no aparece verificado. Abre el enlace que llegó a tu correo.','info');
+  };
+
   window.dyCreateSeparateBusinessAccount=async function(){
     try{await api('/auth/logout',{method:'POST'});}catch(_){}
     ME=null;location.hash='#/registro-negocio';if(typeof route==='function')route();
@@ -126,10 +138,10 @@
 
     const customerSection=`<section class="dy-account-card"><h2>🛍️ Mi cuenta cliente</h2><p class="small muted">Tu cuenta cliente se usa para explorar, comprar y seguir pedidos. No puede registrar ni administrar negocios.</p><div class="dy-welcome-actions"><a class="dy-choice-card" href="#/"><span>📍</span><b>Explorar</b><small>Busca productos y negocios cercanos.</small></a><a class="dy-choice-card" href="#/pedidos"><span>🧾</span><b>Mis pedidos</b><small>Revisa tus compras.</small></a></div></section>`;
     const accountSection=isAdmin?adminSection:isBusiness?businessSection:customerSection;
-    const intro=isAdmin?'Administra DatoYa y controla la operación del marketplace.':isBusiness?'Administra tu cuenta comercial y tus negocios.':'Administra tus datos personales y tus compras.';
+    const intro=isAdmin?'Administra DatoYa y controla la operación del marketplace.':isBusiness?'Administra tu negocio y las herramientas comerciales.':'Tus compras, pedidos y seguridad en un solo lugar.';
+    const verified=!!ME.email_verified;
 
-    view.innerHTML=`<div class="dy-account-page"><div class="dy-account-top"><div><span class="dy-page-kicker">${h(accountLabel.toUpperCase())}</span><h1>Hola, ${h((ME.name||'').split(' ')[0]||'')}</h1><p>${h(intro)}</p></div><button class="btn btn-outline" id="dy-logout">Cerrar sesión</button></div><div class="dy-account-grid"><section class="dy-account-card"><h2>👤 Mis datos</h2><form id="dy-profile-form" class="dy-account-form"><div class="field"><label>Nombre</label><input name="name" value="${h(ME.name||'')}" required></div><div class="field"><label>Correo</label><input value="${h(ME.email||'')}" disabled></div><div class="field"><label>Celular</label><input name="phone" value="${h(ME.phone||'')}" placeholder="+56912345678"></div><div class="field"><label>Comuna</label><select name="comuna_id"><option value="">Selecciona</option>${comunas.map(c=>`<option value="${Number(c.id)}" ${(ME.comuna&&ME.comuna===c.name)?'selected':''}>${h(c.name)}${c.region?' — '+h(c.region):''}</option>`).join('')}</select></div><button class="btn btn-primary" type="submit">Guardar cambios</button></form><a class="dy-account-link" href="#/seguridad">🔐 Seguridad, correo y contraseña →</a></section>${accountSection}</div></div>`;
-    document.getElementById('dy-profile-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/account/profile',{method:'PUT',body:{name:f.name.value.trim(),phone:f.phone.value.trim(),comuna_id:Number(f.comuna_id.value||0)}});await refreshMe();toast?.('Cuenta actualizada','ok');routes.perfil();}catch(err){toast?.(err.message,'err');}});
+    view.innerHTML=`<div class="dy-account-page"><div class="dy-account-top"><div><span class="dy-page-kicker">${h(accountLabel.toUpperCase())}</span><h1>Hola, ${h((ME.name||'').split(' ')[0]||'')}</h1><p>${h(intro)}</p></div><button class="btn btn-outline" id="dy-logout">Cerrar sesión</button></div><div class="dy-account-grid"><section class="dy-account-card dy-account-security-summary"><div class="dy-card-title-row"><div><h2>🔐 Cuenta y seguridad</h2><p class="small muted">Tus datos de acceso se definieron al registrarte. Aquí solo revisas seguridad y cambios posteriores.</p></div></div><div class="dy-account-summary-lines"><div><span>Nombre</span><b>${h(ME.name||'')}</b></div><div><span>Correo</span><b>${h(ME.email||'')}</b></div><div><span>Estado</span><b class="${verified?'ok':'warn'}">${verified?'✓ Cuenta verificada':'Correo pendiente de verificación'}</b></div></div><a class="btn btn-outline btn-block" href="${verified?'#/seguridad':'#/verifica-tu-cuenta'}">${verified?'Administrar cuenta y seguridad':'Verificar mi cuenta'}</a></section>${accountSection}</div></div>`;
     document.getElementById('dy-logout')?.addEventListener('click',async()=>{try{await api('/auth/logout',{method:'POST'});}catch(_){} location.hash='#/';location.reload();});
   };
 
