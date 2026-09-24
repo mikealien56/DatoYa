@@ -8,13 +8,11 @@
   const statusClass=s=>s==='new'?'st-DISPUTA':s==='in_progress'?'st-PENDIENTE':'st-FINALIZADO';
 
   function shell(body){
-    view.innerHTML=`<div class="dy-admin-support">
-      <div class="row between" style="gap:12px;align-items:center;margin-bottom:14px">
-        <div><div class="small muted">Panel Admin</div><h2 style="margin:2px 0">📨 Casos de soporte</h2><p class="small muted" style="margin:0">Busca por número de caso, correo, nombre, negocio o asunto.</p></div>
-        <a class="btn btn-outline btn-sm" href="#/admin">← Resumen</a>
-      </div>
-      ${body}
-    </div>`;
+    if(typeof window.__datoyaAdminV2Shell==='function'){
+      window.__datoyaAdminV2Shell('Soporte','Casos, conversaciones y respuestas en un solo lugar.',body);
+      return;
+    }
+    view.innerHTML=`<div class="dy-admin-support"><div class="row between" style="gap:12px;align-items:center;margin-bottom:14px"><div><div class="small muted">Panel Admin</div><h2 style="margin:2px 0">📨 Casos de soporte</h2><p class="small muted" style="margin:0">Busca por número de caso, correo, nombre, negocio o asunto.</p></div><a class="btn btn-outline btn-sm" href="#/admin">← Resumen</a></div>${body}</div>`;
   }
 
   function filters(){
