@@ -49,6 +49,8 @@
       ['home','#/mi-negocio/'+id,'⌂','Inicio',false],
       ['products','#/mi-negocio-productos/'+id,'📦','Productos',false],
       ['orders','#/mi-negocio-pedidos/'+id,'🧾','Pedidos',false],
+      ['payments','#/mi-negocio-pagos/'+id,'💳','Pagos',false],
+      ['hours','#/mi-negocio-horarios/'+id,'🕒','Horarios',false],
       ['promos','#/mi-negocio-promociones/'+id,'🏷️','Promociones',false],
       ['impulse','#/impulso-ahora/'+id,'⚡','Impulso',!paid],
       ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
@@ -190,9 +192,65 @@
     }else{
       const hero=root.querySelector('.dy-business-hero h1');
       if(hero)hero.insertAdjacentHTML('afterend','<p class="dy-hub-section-caption">⚙️ Datos, ubicación, entrega y configuración comercial</p>');
-      root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>CONFIGURACIÓN ADICIONAL</span><h2>Conexiones y cuenta</h2><p>Herramientas relacionadas con la operación del negocio.</p></div></div><div class="dy-dashboard-growth"><a href="#/mi-negocio-pedidos/${id}"><span>🏦</span><b>Khipu</b><small>Pagos de pedidos y cobros TEST.</small></a><a href="#/mi-negocio-plan/${id}"><span>⭐</span><b>Plan</b><small>DatoYa Impulso y vigencia.</small></a><a href="#/mi-negocio-soporte/${id}"><span>📨</span><b>Soporte</b><small>Casos y respuestas de DatoYa.</small></a><a href="#/perfil"><span>👤</span><b>Cuenta</b><small>Datos y seguridad de acceso.</small></a></div></section>`);
+      root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>CONFIGURACIÓN ADICIONAL</span><h2>Conexiones y cuenta</h2><p>Herramientas relacionadas con la operación del negocio.</p></div></div><div class="dy-dashboard-growth"><a href="#/mi-negocio-pagos/${id}"><span>🏦</span><b>Pagos · Khipu</b><small>Estado y cobros de pedidos.</small></a><a href="#/mi-negocio-horarios/${id}"><span>🕒</span><b>Horarios</b><small>Define cuándo atiendes.</small></a><a href="#/mi-negocio-plan/${id}"><span>⭐</span><b>Plan</b><small>DatoYa Impulso y vigencia.</small></a><a href="#/mi-negocio-soporte/${id}"><span>📨</span><b>Soporte</b><small>Casos y respuestas de DatoYa.</small></a><a href="#/perfil"><span>👤</span><b>Cuenta</b><small>Datos y seguridad de acceso.</small></a></div></section>`);
     }
     await addHubFrame(id,mode==='products'?'products':'config');
+  }
+
+  async function renderPayments(id){
+    if(!requireBusiness())return;
+    id=Number(id||0);if(!id){location.hash='#/perfil';return;}
+    view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-loading"><b>💳 Cargando pagos…</b><small>Consultando Khipu y los pedidos del negocio.</small></section></div>';
+    let meta={business:{}},khipu={},ordersD={orders:[]};
+    try{
+      [meta,khipu,ordersD]=await Promise.all([
+        getMeta(id,true),
+        api('/khipu/status'),
+        api('/businesses/'+id+'/orders').catch(()=>({orders:[]}))
+      ]);
+    }catch(err){
+      view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-error"><span>⚠️</span><h2>No pudimos cargar Pagos</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><button class="btn btn-primary" onclick="routes['mi-negocio-pagos'](${id})">Reintentar</button></section></div>`;
+      await addHubFrame(id,'payments');
+      return;
+    }
+    const b=meta.business||{},orders=ordersD.orders||[];
+    const paidOrders=orders.filter(x=>String(x.payment_status)==='paid');
+    const pendingOrders=orders.filter(x=>String(x.payment_status)!=='paid'&&!['cancelled'].includes(String(x.status)));
+    const paidTotal=paidOrders.reduce((sum,x)=>sum+Number(x.total||0),0);
+    const ready=!!khipu.configured&&khipu.mode==='development';
+    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
+      <section class="dy-business-dashboard-hero dy-payments-hero">
+        <div><span>PAGOS</span><h1>Cobros de ${h(b.name||'tu negocio')}</h1><p>Khipu es el proveedor de pago activo del marketplace durante esta etapa de prueba.</p></div>
+        <div class="dy-payments-provider-state ${ready?'ok':'warn'}"><span>🏦</span><div><b>Khipu</b><small>${ready?'Operativo en TEST':'Revisar configuración'}</small></div></div>
+      </section>
+
+      <section class="dy-payment-summary">
+        <div><span>✅</span><strong>${paidOrders.length}</strong><b>Pedidos pagados</b><small>${money(paidTotal)} confirmado</small></div>
+        <div><span>⏳</span><strong>${pendingOrders.length}</strong><b>Pagos pendientes</b><small>Pedidos aún sin pago confirmado</small></div>
+        <div><span>🧪</span><strong>TEST</strong><b>Modo actual</b><small>Los pagos reales siguen bloqueados</small></div>
+      </section>
+
+      <div class="dy-dashboard-grid">
+        <section class="dy-business-card dy-khipu-card">
+          <div class="dy-card-head"><div><span>PROVEEDOR</span><h2>Khipu</h2><p>Estado del sistema de cobros configurado para DatoYa.</p></div><span class="dy-khipu-dot ${ready?'ok':'warn'}">${ready?'Activo':'Atención'}</span></div>
+          <div class="dy-payment-details">
+            <div><span>Entorno</span><b>${khipu.mode==='development'?'Desarrollo / TEST':'Bloqueado'}</b></div>
+            <div><span>Pagos reales</span><b>${khipu.live_payments_allowed?'Habilitados':'Bloqueados'}</b></div>
+            <div><span>Comisión automática DatoYa</span><b>${khipu.integrator_enabled?'Habilitada':'Aún no habilitada'}</b></div>
+          </div>
+          <div class="dy-payment-info-note"><b>Importante</b><p>Esta pantalla muestra el estado real registrado por DatoYa. No presenta una comisión como cobrada automáticamente mientras Khipu no tenga habilitada la modalidad integrador.</p></div>
+        </section>
+
+        <section class="dy-business-card">
+          <div class="dy-card-head"><div><span>MOVIMIENTOS</span><h2>Pedidos y pagos</h2><p>Los cobros quedan ligados a cada pedido.</p></div></div>
+          ${orders.length?`<div class="dy-payment-order-list">${orders.slice(0,6).map(o=>`<a href="#/mi-negocio-pedidos/${id}"><div><b>${h(o.reference||'Pedido')}</b><small>${h(o.customer_name||'Cliente')}</small></div><div><strong>${money(o.total)}</strong><span class="${String(o.payment_status)==='paid'?'paid':'pending'}">${String(o.payment_status)==='paid'?'Pagado':'Pendiente'}</span></div></a>`).join('')}</div>`:'<div class="dy-empty-products"><span>🧾</span><b>Aún no hay movimientos</b><p>Cuando recibas pedidos, sus pagos aparecerán aquí.</p></div>'}
+          <a class="btn btn-outline btn-block" href="#/mi-negocio-pedidos/${id}">Ver todos los pedidos</a>
+        </section>
+      </div>
+
+      <section class="dy-business-card dy-payment-plan-link"><div><span>⚡</span><div><b>DatoYa Impulso</b><p>La membresía se administra aparte de los pagos de pedidos.</p></div></div><a class="btn btn-primary" href="#/mi-negocio-plan/${id}">Ver plan y comprar</a></section>
+    </div>`;
+    await addHubFrame(id,'payments');
   }
 
   async function renderPromotions(id){
@@ -246,6 +304,7 @@
   };
   routes['mi-negocio-productos']=id=>renderLegacySection(id,'products');
   routes['mi-negocio-configuracion']=id=>renderLegacySection(id,'config');
+  routes['mi-negocio-pagos']=id=>renderPayments(id);
   routes['mi-negocio-promociones']=id=>renderPromotions(id);
   routes['mi-negocio-estadisticas']=id=>renderStats(id);
 
@@ -265,7 +324,7 @@
     };
   }
   wrap('mi-negocio-pedidos','orders');
-  wrap('mi-negocio-pagos','config');
+  wrap('mi-negocio-horarios','hours');
   wrap('mi-negocio-plan','plan');
   wrap('mi-negocio-soporte','support');
   wrap('mi-negocio-soporte-caso','support');
