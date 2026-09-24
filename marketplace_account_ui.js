@@ -45,6 +45,7 @@
       if(!ME.email_verified){location.hash='#/verifica-tu-cuenta';return;}
       location.hash='#/perfil';return;
     }
+    const {comunas=[]}=await api('/comunas');
     const saved=getSavedComuna();
     const initial=typeHint==='business'?'business':'customer';
     view.innerHTML=shell('Crear cuenta','Elige cómo quieres usar DatoYa. Tu cuenta se activa al verificar el correo.',`
@@ -116,6 +117,7 @@
 
   routes.bienvenida=async function(){
     if(!ME){location.hash='#/registro';return;}
+    if(!ME.email_verified){location.hash='#/verifica-tu-cuenta';if(typeof route==='function')setTimeout(route,0);return;}
     if(ME.account_type==='business'){
       view.innerHTML=`<div class="dy-welcome"><div class="dy-welcome-icon">🏪</div><h1>¡Cuenta de negocio creada!</h1><p>Primero verifica tu correo. Después podrás registrar y administrar tu negocio.</p><div class="dy-welcome-actions"><a class="dy-choice-card featured" href="#/seguridad"><span>🔐</span><b>Verificar correo</b><small>Necesario antes de registrar el negocio.</small></a><a class="dy-choice-card" href="#/registrar-negocio"><span>🏪</span><b>Registrar negocio</b><small>Disponible cuando el correo esté verificado.</small></a></div></div>`;
     }else{
@@ -126,7 +128,6 @@
 
   routes.perfil=async function(){
     if(!ME){location.hash='#/login';return;}
-    const {comunas=[]}=await api('/comunas');
     const isAdmin=ME.role==='admin'||ME.account_type==='admin';
     const isBusiness=!isAdmin&&ME.account_type==='business';
     const businesses=isBusiness?(await api('/businesses/mine').catch(()=>({businesses:[]}))).businesses||[]:[];
