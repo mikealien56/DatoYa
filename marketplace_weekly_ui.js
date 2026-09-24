@@ -55,7 +55,19 @@
   routes['impulso-semanal-nuevo']=async function(businessId,impulseId){
     if(!ME){location.hash='#/login';return;}
     const bid=Number(businessId||0),iid=Number(impulseId||0);
-    const [{businesses=[]},{impulses=[]}]=await Promise.all([api('/businesses/mine'),api('/weekly-impulses/mine').catch(()=>({impulses:[]}))]);
+    view.innerHTML='<div class="dy-weekly-page"><div class="dy-weekly-form-card"><span class="dy-weekly-kicker">⭐ IMPULSO DE LA SEMANA</span><h1>Cargando…</h1><p>Estamos preparando esta sección.</p></div></div>';
+    let loaded;
+    try{
+      loaded=await Promise.race([
+        Promise.all([api('/businesses/mine'),api('/weekly-impulses/mine')]),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('La sección demoró demasiado en cargar.')),12000))
+      ]);
+    }catch(err){
+      const msg=h(err?.message||'No pudimos cargar Impulso de la semana.');
+      view.innerHTML='<div class="dy-weekly-page"><div class="dy-weekly-form-card"><span class="dy-weekly-kicker">⭐ IMPULSO DE LA SEMANA</span><h1>No pudimos cargar esta sección</h1><p>'+msg+'</p><button class="btn btn-primary" onclick="route()">Reintentar</button><a class="btn btn-outline" href="#/mi-negocio/'+bid+'">Volver a Mi Negocio</a></div></div>';
+      return;
+    }
+    const [{businesses=[]},{impulses=[]}]=loaded;
     const business=businesses.find(b=>Number(b.id)===bid);
     if(!business){view.innerHTML='<div class="empty">No encontramos ese negocio.</div>';return;}
     const editing=iid?impulses.find(x=>Number(x.id)===iid):null;
