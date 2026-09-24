@@ -17,6 +17,10 @@
  window.openDatoYaAdminMenu=function(){openModal(menuHtml());};
  function normalizeAdminNavigation(){
   if(!currentHash().startsWith('#/admin')||!window.ME||ME.role!=='admin'||!window.view)return;
+  if(view.querySelector('.dy-admin-v2')){
+    view.querySelectorAll('.admin-tabs,.admin-menu-organized,[data-admin-compact-nav],[data-admin-unified-nav]').forEach(node=>node.remove());
+    return;
+  }
   view.querySelectorAll('.admin-tabs,.admin-menu-organized,[data-admin-compact-nav]').forEach(node=>node.remove());
   view.querySelectorAll('[data-admin-unified-nav]').forEach((node,index)=>{if(index)node.remove();});
   if(currentHash()==='#/admin'||currentHash()==='#/admin/resumen')return;
