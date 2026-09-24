@@ -1,1 +1,89 @@
 .dy-hours-card{margin-top:18px}.dy-hours-pill{display:inline-flex;align-items:center;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:900;white-space:nowrap}.dy-hours-pill.open{background:#e9fbf5;color:#087456;border:1px solid #bdeedc}.dy-hours-pill.closed{background:#f1f4f8;color:#5c6878;border:1px solid #dfe5ec}.dy-hours-pill.unknown{background:#fff7e8;color:#865d09;border:1px solid #f4dfae}.dy-hours-order-note{display:block;margin-top:7px;color:#6d7889;max-width:260px}.dy-hours-grid{display:grid;gap:8px}.dy-hours-row{display:grid;grid-template-columns:minmax(115px,1fr) 110px 18px 110px;gap:8px;align-items:center;padding:10px 12px;border:1px solid #e6ecf4;border-radius:14px;background:#fafbfd}.dy-hours-day{display:flex;align-items:center;gap:8px;font-weight:800;color:#1B2B48}.dy-hours-row input[type="time"]{width:100%;padding:9px;border:1px solid #dce4ee;border-radius:10px;background:#fff}.dy-hours-row input:disabled{opacity:.45}.dy-hours-accept{margin:14px 0}.dy-hours-accept span{display:flex;flex-direction:column}.dy-hours-accept small{font-weight:400;color:#728096;margin-top:2px}.dy-hours-public{margin:7px 0}.dy-hours-cart-note{margin-bottom:12px}@media(max-width:620px){.dy-hours-row{grid-template-columns:1fr 1fr 16px 1fr}.dy-hours-day{grid-column:1/-1}.dy-hours-card .dy-card-head{align-items:flex-start;gap:10px;flex-direction:column}.dy-hours-pill{white-space:normal}}
+
+/* ===== Horarios 2.0 — pantalla propia ===== */
+.dy-hours-page{max-width:980px;margin:0 auto;padding:8px 0 120px}
+.dy-hours-hero{
+  display:flex;justify-content:space-between;align-items:center;gap:18px;
+  padding:24px;border-radius:24px;
+  background:linear-gradient(135deg,#072B63,#0B3A82);
+  color:#fff;margin-bottom:16px;
+}
+.dy-hours-hero>div:first-child>span{font-size:11px;font-weight:900;letter-spacing:.12em;color:#4EDCCE}
+.dy-hours-hero h1{margin:6px 0 8px;font-size:clamp(26px,5vw,38px)}
+.dy-hours-hero p{margin:0;max-width:620px;opacity:.88;line-height:1.5}
+.dy-hours-now{flex:0 0 auto}
+.dy-hours-now .dy-hours-pill{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:#fff}
+.dy-hours-now .dy-hours-order-note{color:rgba(255,255,255,.78)}
+.dy-hours-main-card{
+  background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:20px;
+  box-shadow:0 12px 34px rgba(15,23,42,.055);
+}
+.dy-hours-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}
+.dy-hours-toolbar>div:first-child{display:grid;gap:2px}
+.dy-hours-toolbar b{color:#102a4c;font-size:17px}
+.dy-hours-toolbar small{color:#718096}
+.dy-hours-toolbar>div:last-child{display:flex;gap:8px;flex-wrap:wrap}
+.dy-hours-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dy-hours-day-card{
+  border:1px solid #e5ebf3;border-radius:17px;padding:14px;background:#fbfcfe;
+  transition:border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.dy-hours-day-card.open-day{border-color:#bfe9e2;background:#f7fffd;box-shadow:0 5px 18px rgba(25,198,180,.055)}
+.dy-hours-day-card.closed-day{background:#fafafa}
+.dy-hours-day-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.dy-hours-day-head>div{display:grid;gap:2px}
+.dy-hours-day-head b{font-size:15px;color:#1B2B48}
+.dy-hours-day-state{font-size:11px;font-weight:800;color:#718096}
+.open-day .dy-hours-day-state{color:#0f766e}
+.dy-switch{position:relative;width:44px;height:25px;flex:0 0 44px}
+.dy-switch input{position:absolute;opacity:0;pointer-events:none}
+.dy-switch span{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:.2s}
+.dy-switch span:after{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.22);transition:.2s}
+.dy-switch input:checked+span{background:#19C6B4}
+.dy-switch input:checked+span:after{transform:translateX(19px)}
+.dy-hours-times{display:grid;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);align-items:end;gap:8px}
+.dy-hours-times label{display:grid;gap:5px}
+.dy-hours-times label>span{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#718096}
+.dy-hours-times input[type="time"]{width:100%;min-width:0;box-sizing:border-box;padding:11px 10px;border:1px solid #dbe4ee;border-radius:11px;background:#fff;font-size:16px;color:#1B2B48}
+.dy-hours-times.disabled{opacity:.42}
+.dy-hours-arrow{align-self:center;text-align:center;color:#94a3b8;font-weight:900}
+.dy-hours-closed-orders{
+  display:flex;align-items:flex-start;gap:11px;margin:16px 0 0;padding:15px;
+  border:1px solid #dce7f3;border-radius:16px;background:#f8fbff;
+}
+.dy-hours-closed-orders input{margin-top:3px;width:18px;height:18px;flex:0 0 auto}
+.dy-hours-closed-orders>span{display:grid;gap:3px}
+.dy-hours-closed-orders b{color:#183153}
+.dy-hours-closed-orders small{color:#64748b;line-height:1.45}
+.dy-hours-savebar{
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  margin-top:16px;padding-top:16px;border-top:1px solid #e7edf4;
+}
+.dy-hours-savebar>div{display:grid;gap:2px}
+.dy-hours-savebar b{color:#1B2B48;font-size:13px}
+.dy-hours-savebar small{color:#718096}
+.dy-hours-loading,.dy-hours-error{
+  background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:28px;text-align:center;
+}
+.dy-hours-loading{display:grid;gap:5px}.dy-hours-loading small{color:#718096}
+.dy-hours-error>span{font-size:34px}.dy-hours-error h2{margin:8px 0}.dy-hours-error p{color:#64748b}
+
+@media(max-width:700px){
+  .dy-hours-page{padding:4px 0 110px}
+  .dy-hours-hero{flex-direction:column;align-items:stretch;padding:20px 16px;border-radius:20px}
+  .dy-hours-now{width:100%}
+  .dy-hours-now .dy-hours-pill{width:100%;box-sizing:border-box;justify-content:center}
+  .dy-hours-main-card{padding:14px 12px;border-radius:18px}
+  .dy-hours-toolbar{align-items:stretch;flex-direction:column}
+  .dy-hours-toolbar>div:last-child{display:grid;grid-template-columns:1fr 1fr}
+  .dy-hours-toolbar .btn{width:100%;white-space:normal}
+  .dy-hours-days{grid-template-columns:1fr}
+  .dy-hours-day-card{padding:14px 12px}
+  .dy-hours-savebar{align-items:stretch;flex-direction:column}
+  .dy-hours-savebar .btn{width:100%;min-height:48px}
+}
+@media(max-width:390px){
+  .dy-hours-toolbar>div:last-child{grid-template-columns:1fr}
+  .dy-hours-times{grid-template-columns:minmax(0,1fr) 16px minmax(0,1fr);gap:5px}
+  .dy-hours-times input[type="time"]{padding:10px 6px}
+}
