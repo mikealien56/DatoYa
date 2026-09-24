@@ -276,6 +276,87 @@
     await addHubFrame(id,'promos');
   }
 
+  async function renderPulse(id){
+    if(!requireBusiness())return;
+    id=Number(id||0);if(!id){location.hash='#/perfil';return;}
+    const plan=await getPlanAccess(id,true);
+    if(plan.plan!=='impulso')return renderPremiumLock(id,'pulse','Pulso Local','Revisa qué está buscando la gente en tu comuna con datos agregados y anónimos.');
+    let meta,data;
+    try{
+      [meta,data]=await Promise.all([getMeta(id,true),api('/businesses/'+id+'/local-pulse?days=7')]);
+    }catch(err){
+      view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-route-error"><span>⚠️</span><h2>No pudimos cargar Pulso Local</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><button class="btn btn-primary" onclick="routes['mi-negocio-pulso'](${id})">Reintentar</button></section></div>`;
+      await addHubFrame(id,'pulse');return;
+    }
+    const b=meta.business||{},terms=data.terms||[];
+    const variation=data.variation_percent==null?'—':(Number(data.variation_percent)>0?'+':'')+Number(data.variation_percent)+'%';
+    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
+      <section class="dy-business-dashboard-hero"><div><span>PULSO LOCAL</span><h1>Qué busca la gente cerca de ${h(b.name||'tu negocio')}</h1><p>Demanda agregada de los últimos ${Number(data.period_days||7)} días. No muestra búsquedas individuales.</p></div></section>
+      <section class="dy-dashboard-priority">
+        <div class="dy-clean-kpi"><span>🔎</span><strong>${Number(data.searches||0)}</strong><b>Búsquedas en tu zona</b><small>Últimos ${Number(data.period_days||7)} días</small></div>
+        <div class="dy-clean-kpi"><span>📈</span><strong>${h(variation)}</strong><b>Variación</b><small>Comparado con el período anterior</small></div>
+      </section>
+      <section class="dy-business-card"><div class="dy-card-head"><div><span>DEMANDA</span><h2>Términos más buscados</h2><p>Úsalos como señal para decidir qué productos publicar o destacar.</p></div></div>
+        ${terms.length?`<div class="dy-demand-list">${terms.map((x,i)=>`<article><span>${i+1}</span><div><b>${h(x.term)}</b><small>${Number(x.searches||0)} búsquedas · ${Number(x.no_results||0)} sin resultados</small></div></article>`).join('')}</div>`:'<div class="dy-empty-products"><span>📍</span><b>Aún no hay suficiente actividad</b><p>Cuando haya más búsquedas en tu zona, aparecerán aquí.</p></div>'}
+      </section>
+    </div>`;
+    await addHubFrame(id,'pulse');
+  }
+
+  async function renderRadar(id){
+    if(!requireBusiness())return;
+    id=Number(id||0);if(!id){location.hash='#/perfil';return;}
+    const plan=await getPlanAccess(id,true);
+    if(plan.plan!=='impulso')return renderPremiumLock(id,'radar','Radar de oportunidades','Detecta búsquedas con demanda reciente y poca oferta visible en tu zona.');
+    let meta,data;
+    try{
+      [meta,data]=await Promise.all([getMeta(id,true),api('/businesses/'+id+'/opportunity-radar')]);
+    }catch(err){
+      view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-route-error"><span>⚠️</span><h2>No pudimos cargar Radar</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><button class="btn btn-primary" onclick="routes['mi-negocio-radar'](${id})">Reintentar</button></section></div>`;
+      await addHubFrame(id,'radar');return;
+    }
+    const b=meta.business||{},items=data.opportunities||[];
+    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
+      <section class="dy-business-dashboard-hero"><div><span>RADAR DE OPORTUNIDADES</span><h1>Señales para ${h(b.name||'tu negocio')}</h1><p>DatoYa compara demanda reciente con la oferta visible de tu comuna.</p></div></section>
+      <section class="dy-business-card"><div class="dy-card-head"><div><span>OPORTUNIDADES</span><h2>Qué podrías ofrecer</h2><p>Son señales de demanda, no ventas garantizadas.</p></div></div>
+        ${items.length?`<div class="dy-radar-list">${items.map(x=>`<article><div class="dy-radar-title"><span>🎯</span><div><b>${h(x.term)}</b><small>${h(x.reason||'Demanda local')}</small></div></div><div class="dy-radar-metrics"><span><b>${Number(x.demand||0)}</b><small>demanda</small></span><span><b>${Number(x.unmet||0)}</b><small>sin resultado</small></span><span><b>${Number(x.supply||0)}</b><small>oferta</small></span></div><a class="btn btn-outline btn-sm" href="#/mi-negocio-productos/${id}">Revisar productos</a></article>`).join('')}</div>`:`<div class="dy-empty-products"><span>🎯</span><b>Sin señales suficientes todavía</b><p>${h(data.message||'Cuando haya más actividad local, Radar mostrará oportunidades aquí.')}</p></div>`}
+      </section>
+    </div>`;
+    await addHubFrame(id,'radar');
+  }
+
+  async function renderWanted(id){
+    if(!requireBusiness())return;
+    id=Number(id||0);if(!id){location.hash='#/perfil';return;}
+    let data;
+    try{data=await api('/businesses/'+id+'/wanted');}
+    catch(err){
+      view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-route-error"><span>⚠️</span><h2>Lo Busco Ya no está disponible</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><a class="btn btn-outline" href="#/mi-negocio/${id}">Volver</a></section></div>`;
+      await addHubFrame(id,'wanted');return;
+    }
+    const requests=data.requests||[],products=data.products||[],stats=data.stats||{};
+    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
+      <section class="dy-business-dashboard-hero"><div><span>LO BUSCO YA</span><h1>Solicitudes cercanas</h1><p>Personas de tu zona que están buscando algo relacionado con las categorías de tu negocio.</p></div></section>
+      <section class="dy-dashboard-priority">
+        <div class="dy-clean-kpi"><span>🙋</span><strong>${Number(stats.pending||0)}</strong><b>Por responder</b><small>Solicitudes compatibles</small></div>
+        <div class="dy-clean-kpi"><span>✅</span><strong>${Number(stats.responded||0)}</strong><b>Respondidas</b><small>Ya tienen respuesta de tu negocio</small></div>
+      </section>
+      <section class="dy-business-card"><div class="dy-card-head"><div><span>SOLICITUDES</span><h2>Oportunidades de contacto</h2><p>${h(data.privacy||'Los datos privados del cliente no se muestran aquí.')}</p></div></div>
+        ${requests.length?`<div class="dy-wanted-list">${requests.map(q=>`<article class="${q.response_id?'answered':''}"><div class="dy-wanted-copy"><div class="dy-wanted-title"><span>${h(q.category_icon||'🙋')}</span><div><b>${h(q.title)}</b><small>${h(q.category_name||'Sin categoría')}${q.budget?' · Presupuesto '+money(q.budget):''}</small></div></div><p>${h(q.description||'')}</p>${q.needed_at?`<small>📅 Necesita: ${h(String(q.needed_at).slice(0,10))}</small>`:''}</div>${q.response_id?`<div class="dy-wanted-answer"><b>✓ Ya respondiste</b><p>${h(q.response_message||'')}</p></div>`:`<form class="dy-wanted-form" onsubmit="dyReplyWanted(event,${Number(q.id)},${id})"><textarea name="message" rows="2" maxlength="1000" placeholder="Cuéntale qué puedes ofrecer" required></textarea><div class="dy-wanted-form-row"><select name="product_id"><option value="">Producto opcional</option>${products.map(p=>`<option value="${Number(p.id)}">${h(p.name)}</option>`).join('')}</select><input name="reference_price" type="number" min="1" placeholder="Precio ref."></div><input name="availability" maxlength="200" placeholder="Disponibilidad, ej. hoy hasta las 19:00"><button class="btn btn-primary" type="submit">Responder</button></form>`}</article>`).join('')}</div>`:'<div class="dy-empty-products"><span>🙋</span><b>No hay solicitudes compatibles ahora</b><p>Cuando aparezca una búsqueda compatible en tu zona, la verás aquí.</p></div>'}
+      </section>
+    </div>`;
+    await addHubFrame(id,'wanted');
+  }
+
+  window.dyReplyWanted=async function(ev,requestId,businessId){
+    ev.preventDefault();const form=ev.currentTarget,btn=form.querySelector('button[type="submit"]');
+    btn.disabled=true;btn.textContent='Enviando…';
+    try{
+      await api('/wanted/'+Number(requestId)+'/responses',{method:'POST',body:{business_id:Number(businessId),message:form.message.value.trim(),product_id:Number(form.product_id.value||0)||null,reference_price:Number(form.reference_price.value||0)||null,availability:form.availability.value.trim()||null}});
+      toast?.('Respuesta enviada','ok');routes['mi-negocio-lo-busco-ya'](Number(businessId));
+    }catch(err){btn.disabled=false;btn.textContent='Responder';toast?.(err.message||'No pudimos enviar la respuesta','err');}
+  };
+
   async function renderStats(id){
     if(!requireBusiness())return;
     id=Number(id||0);
@@ -305,6 +386,9 @@
   routes['mi-negocio-productos']=id=>renderLegacySection(id,'products');
   routes['mi-negocio-configuracion']=id=>renderLegacySection(id,'config');
   routes['mi-negocio-pagos']=id=>renderPayments(id);
+  routes['mi-negocio-pulso']=id=>renderPulse(id);
+  routes['mi-negocio-radar']=id=>renderRadar(id);
+  routes['mi-negocio-lo-busco-ya']=id=>renderWanted(id);
   routes['mi-negocio-promociones']=id=>renderPromotions(id);
   routes['mi-negocio-estadisticas']=id=>renderStats(id);
 
