@@ -34,8 +34,8 @@
       <h2>7. Retiro, despacho y dirección</h2>
       <p>Cada negocio define si ofrece retiro, despacho propio o ambas modalidades. En emprendimientos desde casa, DatoYa protege por defecto la dirección residencial exacta y puede mostrar públicamente solo comuna, sector aproximado o distancia. La dirección exacta podrá revelarse únicamente cuando el negocio lo autorice o cuando sea necesaria para una operación confirmada.</p>
 
-      <h2>8. Pagos y Mercado Pago</h2>
-      <p>Cuando el pago electrónico esté habilitado, podrá ser procesado por proveedores externos como Mercado Pago. El comercio puede requerir la vinculación de su propia cuenta del proveedor para recibir pagos en un esquema de marketplace. Los datos financieros sensibles que gestione directamente el proveedor se rigen además por sus propios términos y políticas.</p>
+      <h2>8. Pagos y Khipu</h2>
+      <p>Cuando el pago electrónico esté habilitado, será procesado mediante Khipu según la modalidad disponible para DatoYa. Los datos financieros sensibles que gestione directamente Khipu se rigen además por sus propios términos y políticas.</p>
       <p>DatoYa puede cobrar comisiones, suscripciones o cargos por funciones comerciales. El porcentaje, monto o condición aplicable debe mostrarse antes de confirmar la operación correspondiente. DatoYa no se presenta como banco, aseguradora ni custodio de fondos.</p>
 
       <h2>9. Cancelaciones, devoluciones y derechos del consumidor</h2>
@@ -103,7 +103,7 @@
       <p>Para gestionar un pedido, DatoYa puede compartir con el negocio la información necesaria de la persona compradora, como nombre, teléfono, modalidad de entrega, dirección de despacho cuando corresponda, productos y observaciones del pedido. El cliente puede recibir información del negocio necesaria para retiro, seguimiento o contacto.</p>
 
       <h2>6. Pagos</h2>
-      <p>Cuando se habiliten pagos electrónicos, proveedores externos como Mercado Pago podrán tratar los datos necesarios para autorizar, procesar, conciliar y prevenir fraude. DatoYa procura no almacenar datos completos de tarjetas cuando el proveedor puede procesarlos directamente fuera de la infraestructura de DatoYa.</p>
+      <p>Cuando se habiliten pagos electrónicos, Khipu podrá tratar los datos necesarios para autorizar, procesar, conciliar y prevenir fraude. DatoYa procura no almacenar credenciales bancarias ni otros datos financieros sensibles que Khipu procese directamente fuera de la infraestructura de DatoYa.</p>
 
       <h2>7. Fotografías y contenido comercial</h2>
       <p>Los negocios pueden subir fotografías, logotipos y otros contenidos. Quien publica debe contar con autorización suficiente y evitar incluir datos personales de terceros que no sean necesarios. Cuando se prepare una pieza gráfica DatoYa para una promoción, la imagen original y la versión adaptada pueden conservarse mientras sean necesarias para esa publicación y su historial.</p>
