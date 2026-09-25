@@ -17,7 +17,7 @@
           <h1>Haz que tu negocio aparezca cuando alguien cerca <em>está buscando lo que vendes.</em></h1>
           <p>DatoYa conecta personas con negocios y emprendimientos de su zona. Tu negocio puede mostrar productos, promociones, stock, retiro o despacho y activar ofertas por tiempo real con <b>⚡ Impulso Ahora</b>.</p>
           <div class="dy-about-actions"><a class="btn btn-primary" href="#/registrar-negocio">Quiero ser negocio fundador</a><a class="btn btn-outline" href="#/">Ver DatoYa funcionando</a></div>
-          <div class="dy-about-proof"><span>📍 Descubrimiento local</span><span>📦 Catálogo propio</span><span>🛒 Pedidos</span><span>💳 Mercado Pago</span></div>
+          <div class="dy-about-proof"><span>📍 Descubrimiento local</span><span>📦 Catálogo propio</span><span>🛒 Pedidos</span><span>🏦 Khipu</span></div>
         </div>
         <div class="dy-about-phone" aria-label="Ejemplo de DatoYa">
           <div class="dy-about-phone-top"><span>DatoYa</span><i>Lo que buscas, cerca de ti</i></div>
@@ -37,7 +37,7 @@
           <article><i>⚡</i><h3>Impulso Ahora</h3><p>Publica lo que necesitas vender hoy con horario y stock real. Ideal para productos frescos, últimas unidades y liquidaciones.</p></article>
           <article><i>⭐</i><h3>Impulso de la semana</h3><p>Una oferta destacada revisada por DatoYa, con versión gráfica uniforme para presentarla mejor.</p></article>
           <article><i>🛒</i><h3>Pedidos</h3><p>El cliente arma su carrito en un solo negocio y el comercio gestiona el pedido desde nuevo hasta completado.</p></article>
-          <article><i>💳</i><h3>Pago online</h3><p>Cuando el comercio conecta Mercado Pago, DatoYa puede dirigir el cobro del pedido por la integración habilitada.</p></article>
+          <article><i>💳</i><h3>Pago online</h3><p>DatoYa procesa los pagos electrónicos mediante Khipu cuando el cobro está habilitado para el pedido.</p></article>
         </div>
       </section>
 
