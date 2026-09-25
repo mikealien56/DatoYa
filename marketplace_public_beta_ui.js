@@ -71,6 +71,32 @@
   const productPhoto=p=>p.image_data?`<img src="${p.image_data}" alt="${h(p.name)}" loading="lazy">`:'<div class="dy-real-placeholder">📦</div>';
   const businessPhoto=(b,products)=>{const p=products.find(x=>Number(x.business_id)===Number(b.id)&&x.image_data);return p?`<img src="${p.image_data}" alt="${h(b.name)}" loading="lazy">`:'<div class="dy-real-placeholder">🏪</div>';};
   const categoryText=b=>(b.categories||[]).map(c=>`${c.icon||''} ${c.name}`).join(' · ')||'Negocio local';
+  const searchNormalize=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').replace(/[^a-z0-9]+/g,' ').trim();
+  const SEARCH_STOP=new Set(['necesito','busco','buscar','quiero','una','uno','un','de','del','la','el','los','las','para','por','favor','cerca','cercano','cercana','ahora','hoy','abierto','abierta','abiertos','abiertas']);
+  const SEARCH_ALIASES={
+    cerrajero:['cerrajeria','cerradura','cerraduras','llave','llaves'],
+    cerrajeria:['cerrajero','cerradura','cerraduras','llave','llaves'],
+    fotocopia:['fotocopias','copia','copias','impresion','impresiones','libreria'],
+    fotocopias:['fotocopia','copias','impresiones','libreria'],
+    sushi:['roll','rolls','japones','japonesa','comida japonesa'],
+    veterinaria:['veterinario','veterinarios','mascota','mascotas','pet'],
+    veterinario:['veterinaria','mascota','mascotas','pet'],
+    farmacia:['farmacias','medicamento','medicamentos','remedio','remedios'],
+    optica:['lentes','anteojos','marcos'],
+    lentes:['optica','anteojos','marcos'],
+    pan:['panaderia','amasanderia'],
+    torta:['tortas','pasteleria','reposteria'],
+    almuerzo:['menu','menus','colacion','colaciones','restaurant','restaurante'],
+    ferreteria:['herramienta','herramientas','materiales'],
+    '24h':['24 horas','24hrs','24 h','24']
+  };
+  function searchMatches(query,text){
+    if(!query)return true;
+    const hay=searchNormalize(text);
+    const tokens=searchNormalize(query).split(' ').filter(t=>t.length>1&&!SEARCH_STOP.has(t));
+    if(!tokens.length)return true;
+    return tokens.every(token=>[token,...(SEARCH_ALIASES[token]||[])].map(searchNormalize).filter(Boolean).some(v=>hay.includes(v)));
+  }
 
   function businessCard(b,products){
     const dist=fmtDistance(b.distance_km);
@@ -106,7 +132,7 @@
       const productCount=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).length;
       view.innerHTML=`<div class="dy-home">
         <div class="dy-mobile-location"><div><span>📍 Tu ubicación</span><b data-dy-location-label>${h(loc.label)}</b></div><button type="button" data-dy-locate>Cambiar</button></div>
-        <section class="dy-hero"><div class="dy-hero-copy"><div class="dy-kicker">📍 Descubre lo mejor de tu zona</div><h1>Negocios locales <span>cerca de ti</span></h1><p>Explora negocios y productos publicados realmente en DatoYa. Sin resultados inventados.</p><form class="dy-search" id="dy-beta-search"><label class="dy-search-field"><span class="dy-search-icon">⌕</span><input name="q" autocomplete="off" placeholder="¿Qué buscas hoy? Ej: empanadas, farmacia"></label><div class="dy-location-field"><span class="dy-location-icon">📍</span><button type="button" class="dy-location-button" data-dy-locate><span data-dy-location-label>${h(loc.label)}</span></button></div><button class="dy-search-submit" type="submit">Buscar</button></form><div class="dy-trust-row"><span>✓ Negocios aprobados</span><span>📦 ${productCount} productos disponibles</span><span>♡ Compra local</span></div></div><div class="dy-hero-visual" aria-hidden="true"><div class="dy-visual-card"><div class="dy-visual-image"></div><div class="dy-visual-overlay"><span class="dy-live-pill"><i class="dy-live-dot"></i> DatoYa Beta</span><h3>${businesses.length?`${businesses.length} negocios en esta vista`:'Sé de los primeros'}</h3><p>${businesses.length?'Contenido real publicado por comercios.':'Invita a un negocio local a registrarse.'}</p></div></div></div></section>
+        <section class="dy-hero"><div class="dy-hero-copy"><div class="dy-kicker">📍 Descubre lo mejor de tu zona</div><h1>Negocios locales <span>cerca de ti</span></h1><p>Explora negocios y productos publicados realmente en DatoYa. Sin resultados inventados.</p><form class="dy-search" id="dy-beta-search"><label class="dy-search-field"><span class="dy-search-icon">⌕</span><input name="q" autocomplete="off" placeholder="¿Qué necesitas? Ej: cerrajero, sushi, veterinaria 24h"></label><div class="dy-location-field"><span class="dy-location-icon">📍</span><button type="button" class="dy-location-button" data-dy-locate><span data-dy-location-label>${h(loc.label)}</span></button></div><button class="dy-search-submit" type="submit">Buscar</button></form><div class="dy-trust-row"><span>✓ Negocios aprobados</span><span>📦 ${productCount} productos disponibles</span><span>♡ Compra local</span></div></div><div class="dy-hero-visual" aria-hidden="true"><div class="dy-visual-card"><div class="dy-visual-image"></div><div class="dy-visual-overlay"><span class="dy-live-pill"><i class="dy-live-dot"></i> DatoYa Beta</span><h3>${businesses.length?`${businesses.length} negocios en esta vista`:'Sé de los primeros'}</h3><p>${businesses.length?'Contenido real publicado por comercios.':'Invita a un negocio local a registrarse.'}</p></div></div></div></section>
         <section class="dy-section" id="local-categories"><div class="dy-section-head"><div><h2>¿Qué necesitas hoy?</h2><p>Categorías reales usadas por los negocios de DatoYa.</p></div><button class="dy-see-all" type="button" id="dy-beta-all">Ver todo →</button></div><div class="dy-category-strip">${categories.map(c=>`<button class="dy-category" type="button" data-dy-beta-category="${Number(c.id)}"><span class="dy-category-icon">${h(c.icon)}</span><b>${h(c.name)}</b></button>`).join('')}</div></section>
         <section class="dy-section dy-live-section" id="impulso-ahora"><div class="dy-section-head"><div><h2>⚡ Impulso Ahora</h2><p>Ventas por tiempo y stock aparecerán aquí cuando un negocio publique un Impulso Ahora.</p></div></div>${emptyBlock('⚡','Sin Impulsos Ahora activos en esta zona','No mostramos ofertas ficticias. Este espacio se llenará solo con publicaciones reales.')}</section>
         <section class="dy-section" id="promociones"><div class="dy-section-head"><div><h2>🔥 Promociones cerca de ti</h2><p>Precios promocionales creados por negocios aprobados.</p></div></div><div class="dy-live-grid" id="dy-beta-promos">${promos.length?promos.map(p=>productCard(p,businesses,'promo')).join(''):emptyBlock('🏷️','Aún no hay promociones reales','Cuando un negocio publique un precio oferta, aparecerá aquí.')}</div></section>
@@ -146,15 +172,17 @@
     try{
       const {categories,businesses,products}=await loadMarketplace(true);
       await loadSavedState(true);
-      const nq=q.toLocaleLowerCase('es');
       const allowedBusinesses=businesses.filter(b=>{
         const catOk=!categoryId||(b.categories||[]).some(c=>Number(c.id)===categoryId);
-        const text=(b.name+' '+(b.description||'')+' '+categoryText(b)).toLocaleLowerCase('es');return catOk&&(!nq||text.includes(nq));
+        const related=products.filter(p=>Number(p.business_id)===Number(b.id)).map(p=>[p.name,p.description,p.category_name].filter(Boolean).join(' ')).join(' ');
+        const text=[b.name,b.description,categoryText(b),b.opening_hours,related].filter(Boolean).join(' ');
+        return catOk&&searchMatches(q,text);
       });
       const allowedIds=new Set(allowedBusinesses.map(b=>Number(b.id)));
       const matchedProducts=products.filter(p=>{
         const catOk=!categoryId||Number(p.category_id)===categoryId||allowedIds.has(Number(p.business_id));
-        const text=(p.name+' '+(p.description||'')+' '+(p.business_name||'')).toLocaleLowerCase('es');return catOk&&(!nq||text.includes(nq));
+        const text=[p.name,p.description,p.business_name,p.category_name].filter(Boolean).join(' ');
+        return catOk&&searchMatches(q,text);
       });
       const selectedCategory=categories.find(c=>Number(c.id)===categoryId),trackedTerm=q||(selectedCategory&&selectedCategory.name)||'';
       if(trackedTerm)trackSearch(trackedTerm,categoryId,allowedBusinesses.length+matchedProducts.length);

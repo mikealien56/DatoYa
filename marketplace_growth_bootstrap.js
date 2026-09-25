@@ -57,7 +57,7 @@ app.get('/api/market/business/:identifier',(req,res)=>{
 });
 app.post('/api/market/events',(req,res)=>{
   const x=req.body||{},businessId=Number(x.business_id||0),type=String(x.event_type||'');
-  const allowed=new Set(['profile_view','product_view','whatsapp_click','share_business','share_product','add_cart','impulse_view','impulse_click','weekly_view','weekly_click']);
+  const allowed=new Set(['profile_view','product_view','whatsapp_click','call_click','map_click','share_business','share_product','add_cart','impulse_view','impulse_click','weekly_view','weekly_click']);
   if(!businessId||!allowed.has(type))return res.status(400).json({error:'Evento inválido'});
   const business=db.prepare("SELECT id FROM businesses WHERE id=? AND status='active'").get(businessId);
   if(!business)return res.status(404).json({error:'Negocio no disponible'});
@@ -81,7 +81,7 @@ app.get('/api/businesses/:id/analytics',auth,(req,res)=>{
   const requested=Number(req.query.days||30),days=[7,30,0].includes(requested)?requested:30,since=days?Date.now()-days*86400000:0;
   const inRange=v=>{if(!days)return true;const t=new Date(String(v||'').replace(' ','T')).getTime();return Number.isFinite(t)&&t>=since;};
   const events=db.prepare('SELECT event_type,product_id,impulse_id,created_at FROM business_events WHERE business_id=? ORDER BY id DESC LIMIT 10000').all(id).filter(e=>inRange(e.created_at));
-  const counts={profile_view:0,product_view:0,whatsapp_click:0,share_business:0,share_product:0,add_cart:0,impulse_view:0,impulse_click:0,weekly_view:0,weekly_click:0};
+  const counts={profile_view:0,product_view:0,whatsapp_click:0,call_click:0,map_click:0,share_business:0,share_product:0,add_cart:0,impulse_view:0,impulse_click:0,weekly_view:0,weekly_click:0};
   for(const e of events)if(Object.prototype.hasOwnProperty.call(counts,e.event_type))counts[e.event_type]++;
   let orders=[];try{orders=db.prepare('SELECT status,total,created_at FROM commerce_orders WHERE business_id=? ORDER BY id DESC LIMIT 5000').all(id).filter(o=>inRange(o.created_at));}catch(_){}
   const completed=orders.filter(o=>String(o.status)==='completed');
