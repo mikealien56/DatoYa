@@ -1,7 +1,5 @@
 const fs=require('fs'),path=require('path');
 const root=__dirname,pub=path.join(root,'public');fs.mkdirSync(pub,{recursive:true});
-const stalePaymentAssets=['marketplace_payments_ui.js','mercadopago_ui.js','mercadopago_fee_policy_ui.js','hybrid_payment_ui.js'];
-for(const name of stalePaymentAssets){try{fs.rmSync(path.join(pub,name),{force:true});}catch(_){}}
 for(const name of ['marketplace_commerce.css','marketplace_commerce_ui.js','marketplace_impulse_home.js','marketplace_commerce_admin_ui.js','khipu_payments_ui.js']){
   const src=path.join(root,name),dst=path.join(pub,name);if(fs.existsSync(src))fs.copyFileSync(src,dst);
 }
@@ -12,7 +10,6 @@ if(fs.existsSync(idx)){
   html=html.replace(/<script[^>]+src="\/marketplace_commerce_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_impulse_home\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_commerce_admin_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
-  for(const old of stalePaymentAssets){html=html.split('<script src="/'+old+'"></script>').join('');html=html.replace(new RegExp('<script[^>]+src="\\/'+old.replace(/\\./g,'\\\\.')+'[^\"]*"[^>]*><\\/script>\\s*','g'),'');}
   html=html.replace(/<script[^>]+src="\/khipu_payments_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_commerce.css?v=20260918-6">\n</head>');
   html=html.replace('</body>','<script src="/marketplace_commerce_ui.js?v=20260925-1"></script>\n<script src="/marketplace_impulse_home.js?v=20260917-2"></script>\n<script src="/marketplace_commerce_admin_ui.js?v=20260917-1"></script>\n<script src="/khipu_payments_ui.js?v=20260925-1"></script>\n</body>');
