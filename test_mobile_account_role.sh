@@ -25,6 +25,14 @@ grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_public_beta_ui.js || 
 grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_growth_ui.js || fail "Ficha growth no identifica productos por ID"
 grep -q "productById=new Map" marketplace_commerce_ui.js || fail "Carrito sigue dependiendo del orden visual de productos"
 grep -q "el.dataset.productId" marketplace_commerce_ui.js || fail "Carrito no enlaza botón con ID de producto"
-grep -q "datoya-shell-v63" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+grep -q "datoya-shell-v64" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+
+grep -q "\['Mis pedidos','#/pedidos'" marketplace_topnav_fix.js || fail "Cliente no tiene acceso directo a Mis pedidos"
+grep -q 'data-nav="pedidos"' marketplace_topnav_fix.js || fail "Barra móvil Cliente no incluye Pedidos"
+grep -q "dy-order-progress" marketplace_commerce_ui.js || fail "Mis pedidos no muestra progreso del pedido"
+grep -q "dy-order-focus" marketplace_commerce_ui.js || fail "Notificación no puede destacar el pedido exacto"
+grep -q "'#/pedidos/'+o.id" marketplace_commerce_bootstrap.js || fail "Cambio de estado no enlaza al pedido exacto"
+grep -q "Pago registrado para tu pedido" marketplace_commerce_bootstrap.js || fail "Pago manual no notifica al Cliente"
+
 
 echo "Mobile account-role QA suite OK"

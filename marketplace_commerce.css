@@ -4,3 +4,19 @@
 .dy-mp-test-banner,.dy-mp-live-blocked{display:flex;flex-direction:column;gap:4px;border-radius:18px;padding:14px 16px;margin:4px 0 18px}.dy-mp-test-banner{background:#eefaf8;border:1px solid #bfeee6;color:#0a766a}.dy-mp-live-blocked{background:#fff4e8;border:1px solid #f4d4ad;color:#8f5500}.dy-mp-test-banner b,.dy-mp-live-blocked b{font-size:13px;letter-spacing:.04em}.dy-mp-test-banner span,.dy-mp-live-blocked span{font-size:13px;line-height:1.45}.dy-mp-test-guide{border-style:dashed}.dy-mp-test-kicker{font-size:11px;font-weight:900;letter-spacing:.12em;color:#19a99a}.dy-mp-test-steps{display:grid;gap:10px;margin-top:12px}.dy-mp-test-steps>div{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:start;padding:11px 12px;border:1px solid #e6ecf4;border-radius:13px;background:#fafbfd}.dy-mp-test-steps b{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0B3A82;color:#fff}.dy-mp-test-steps span{color:#56657d;line-height:1.45}.dy-mp-test-warning{margin:14px 0 0!important;color:#8d5a00!important;font-weight:700}
 
 .dy-mp-switch-note{margin-top:12px;background:#fff7e8;border-color:#f0d3a2}.dy-mp-switch-note b{color:#8c5700}#dy-disconnect-mp{margin-top:12px;width:100%}
+
+/* ===== Seguimiento de pedidos Cliente ===== */
+.dy-order-alert-note{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:#eefaf8;border:1px solid #c8eee7;border-radius:18px;padding:14px 16px;margin:0 0 16px;color:#33556a}
+.dy-order-alert-note>span{font-size:24px}.dy-order-alert-note b{display:block;color:#0B3A82}.dy-order-alert-note small{display:block;margin-top:3px;line-height:1.45;color:#60708b}.dy-order-alert-note a{font-weight:800;color:#0B3A82;white-space:nowrap}
+.dy-order-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;margin:16px 0 10px;padding:12px 6px 4px;border-top:1px solid #eef2f6;border-bottom:1px solid #eef2f6}
+.dy-order-progress>div{position:relative;text-align:center;min-width:0;color:#8a96a8;font-size:10.5px;font-weight:700}
+.dy-order-progress>div:not(:last-child)::after{content:"";position:absolute;top:13px;left:58%;width:84%;height:2px;background:#dbe3ec;z-index:0}
+.dy-order-progress i{position:relative;z-index:1;width:28px;height:28px;margin:0 auto 6px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eef2f6;color:#6c788a;font-style:normal;font-size:11px;font-weight:900}
+.dy-order-progress .done i,.dy-order-progress .current i{background:#19C6B4;color:#fff}.dy-order-progress .done:not(:last-child)::after{background:#19C6B4}
+.dy-order-progress .current span{color:#0B3A82}.dy-order-progress span{display:block;line-height:1.25}
+.dy-order-cancelled-progress{margin:14px 0 10px;padding:10px 12px;border-radius:12px;background:#f4f5f7;color:#727b89;font-weight:800;text-align:center}
+.dy-order-card.dy-order-focus{outline:3px solid rgba(25,198,180,.35);box-shadow:0 12px 32px rgba(11,58,130,.12)}
+@media(max-width:800px){
+  .dy-order-alert-note{grid-template-columns:auto 1fr}.dy-order-alert-note a{grid-column:2}
+  .dy-order-progress{overflow-x:auto;grid-template-columns:repeat(5,minmax(72px,1fr));padding-bottom:8px}
+}
