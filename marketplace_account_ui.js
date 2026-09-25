@@ -158,7 +158,8 @@
     const field=(name)=>document.querySelector(`[name="${name}"]`);
     function collect(){
       document.querySelectorAll('[data-business-field]').forEach(el=>{if(el.type==='checkbox'){if(el.name==='category_ids')return;draft[el.name]=!!el.checked;}else draft[el.name]=el.value;});
-      draft.category_ids=[...document.querySelectorAll('input[name="category_ids"]:checked')].map(x=>Number(x.value)).slice(0,3);
+      const categoryBoxes=[...document.querySelectorAll('input[name="category_ids"]')];
+      if(categoryBoxes.length)draft.category_ids=categoryBoxes.filter(x=>x.checked).map(x=>Number(x.value)).slice(0,3);
       draft.comuna_id=Number(draft.comuna_id||0); save();
     }
     function render(){

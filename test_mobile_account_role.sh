@@ -26,6 +26,8 @@ grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_growth_ui.js || fail 
 grep -q "productById=new Map" marketplace_commerce_ui.js || fail "Carrito sigue dependiendo del orden visual de productos"
 grep -q "el.dataset.productId" marketplace_commerce_ui.js || fail "Carrito no enlaza botón con ID de producto"
 grep -q "datoya-shell-v64" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+grep -q "if(categoryBoxes.length)draft.category_ids" marketplace_account_ui.js || fail "El paso final del registro borra categorías elegidas"
+
 
 grep -q "\['Mis pedidos','#/pedidos'" marketplace_topnav_fix.js || fail "Cliente no tiene acceso directo a Mis pedidos"
 grep -q 'data-nav="pedidos"' marketplace_topnav_fix.js || fail "Barra móvil Cliente no incluye Pedidos"
