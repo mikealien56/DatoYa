@@ -27,7 +27,7 @@
       if(realCount>=6){existing?.remove();return;}
       if(existing)return;
       const section=document.createElement('section');section.id='dy-demo-showcase';section.className='dy-section dy-demo-showcase';
-      section.innerHTML=`<div class="dy-demo-intro"><div><span class="dy-demo-eyebrow">MODO PRESENTACIÓN · EJEMPLOS</span><h2>Así se ve DatoYa cuando hay negocios activos</h2><p>Estos comercios son <b>ejemplos DEMO</b> creados para mostrar el funcionamiento de la plataforma mientras llegan los primeros negocios reales. No aceptan pedidos ni pagos reales.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Quiero aparecer en DatoYa</a></div><div class="dy-demo-grid">${demos.map(demoCard).join('')}</div><div class="dy-demo-legend"><span>🏪 Perfil de negocio</span><span>📦 Catálogo</span><span>🔥 Promociones</span><span>⚡ Impulso Ahora</span><span>🛒 Carrito y pedidos</span><span>💳 Mercado Pago</span></div>`;
+      section.innerHTML=`<div class="dy-demo-intro"><div><span class="dy-demo-eyebrow">MODO PRESENTACIÓN · EJEMPLOS</span><h2>Así se ve DatoYa cuando hay negocios activos</h2><p>Estos comercios son <b>ejemplos DEMO</b> creados para mostrar el funcionamiento de la plataforma mientras llegan los primeros negocios reales. No aceptan pedidos ni pagos reales.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Quiero aparecer en DatoYa</a></div><div class="dy-demo-grid">${demos.map(demoCard).join('')}</div><div class="dy-demo-legend"><span>🏪 Perfil de negocio</span><span>📦 Catálogo</span><span>🔥 Promociones</span><span>⚡ Impulso Ahora</span><span>🛒 Carrito y pedidos</span><span>🏦 Khipu</span></div>`;
       anchor.insertAdjacentElement('afterend',section);
     }
   }
