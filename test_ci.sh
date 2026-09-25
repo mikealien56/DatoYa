@@ -8,6 +8,12 @@ echo "✅ Dependencias de producción sin vulnerabilidades altas/críticas"
 grep -q "legal_consent_recorded" account_security_bootstrap.js || { echo "Registro no persiste consentimiento legal"; exit 1; }
 grep -q "LEGAL_ENFORCEMENT || 'true'" account_security_bootstrap.js || { echo "Enforcement legal no queda activo por defecto"; exit 1; }
 echo "✅ Consentimiento legal integrado al registro"
+grep -q "Versión: 25 de septiembre de 2026" legal_final_ui.js || { echo "Textos legales no están versionados al 25-09-2026"; exit 1; }
+grep -q "Khipu" legal_final_ui.js || { echo "Textos legales no reflejan Khipu"; exit 1; }
+grep -q "1 de diciembre de 2026" legal_final_ui.js || { echo "Política de privacidad no contempla transición Ley 21.719"; exit 1; }
+if grep -Eqi 'mercadopago|Mercado Pago' legal_final_ui.js account_security_bootstrap.js; then echo "Quedó una referencia legal/seguridad a Mercado Pago"; exit 1; fi
+grep -q "2026-09-25-marketplace2" marketplace_legal_version_fix.js || { echo "Falta nueva versión de consentimiento legal"; exit 1; }
+echo "✅ Textos legales 25-09-2026 alineados con Khipu"
 grep -q "current_legal_consent_enforcement_bootstrap" production_start.js || { echo "Guard de consentimiento vigente no montado"; exit 1; }
 grep -q "LEGAL_CONSENT_REQUIRED" app.js || { echo "Frontend no maneja reaceptación legal"; exit 1; }
 echo "✅ Reaceptación de versión legal vigente protegida"
