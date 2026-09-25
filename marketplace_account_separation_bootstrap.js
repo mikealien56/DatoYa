@@ -69,8 +69,8 @@ function __dyRequireCustomerAccount(req,res,next){
   // La cuenta de negocio tampoco se mezcla con el flujo comprador.
   src=src.replace("app.post('/api/orders',auth,__dyRequireVerifiedEmail,(req,res)=>","app.post('/api/orders',auth,__dyRequireCustomerAccount,__dyRequireVerifiedEmail,(req,res)=>");
   src=src.replace("app.post('/api/orders',auth,(req,res)=>","app.post('/api/orders',auth,__dyRequireCustomerAccount,(req,res)=>");
-  src=src.replace("app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireVerifiedEmail,async(req,res)=>","app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireCustomerAccount,__dyRequireVerifiedEmail,async(req,res)=>");
-  src=src.replace("app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>","app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireCustomerAccount,async(req,res)=>");
+  src=src.replace("app.post('/api/orders/:id/khipu/checkout',auth,__dyRequireVerifiedEmail,async(req,res)=>","app.post('/api/orders/:id/khipu/checkout',auth,__dyRequireCustomerAccount,__dyRequireVerifiedEmail,async(req,res)=>");
+  src=src.replace("app.post('/api/orders/:id/khipu/checkout',auth,async(req,res)=>","app.post('/api/orders/:id/khipu/checkout',auth,__dyRequireCustomerAccount,async(req,res)=>");
 
   fs.writeFileSync(serverFile,src);
 }

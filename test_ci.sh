@@ -15,7 +15,6 @@ bash test_beta_private_ui.sh
 bash test_mobile_account_role.sh
 bash test_mobile_notifications.sh
 bash test_password_reset_links.sh
-bash test_mp_test_redirect.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
 node --check push_notifications_bootstrap.js
@@ -118,14 +117,13 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js marketplace_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_promo_analytics_ui.js marketplace_integrations_ui.js support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_promo_analytics_ui.js marketplace_integrations_ui.js support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
 grep -q "href=\"#/admin\"" marketplace_account_ui.js || { echo "Mi DatoYa admin no enlaza al panel administrativo"; exit 1; }
 grep -q 'dy-pwa-register' public/index.html || { echo "Falta registro del Service Worker PWA"; exit 1; }
 grep -q 'serviceWorker.register("/service-worker.js"' public/index.html || { echo "Registro PWA no apunta al Service Worker de DatoYa"; exit 1; }
-grep -q 'mi-negocio-pagos' marketplace_business_ui.js || { echo "Falta acceso permanente a Mercado Pago en Mi negocio"; exit 1; }
 grep -q "routes\['mi-negocio-productos'\]" business_hub_ui.js || { echo "Falta área Productos del Panel Negocio 2.0"; exit 1; }
 grep -q "routes\['mi-negocio-promociones'\]" business_hub_ui.js || { echo "Falta área Promociones del Panel Negocio 2.0"; exit 1; }
 grep -q "routes\['mi-negocio-estadisticas'\]" business_hub_ui.js || { echo "Falta área Estadísticas del Panel Negocio 2.0"; exit 1; }
@@ -137,7 +135,7 @@ grep -q "Gratis vs DatoYa Impulso" business_impulse_plan_ui.js || { echo "Falta 
 grep -q "Hasta '+freeLimit" business_impulse_plan_ui.js || { echo "Falta mostrar límite del catálogo Gratis"; exit 1; }
 grep -q "impulso_paid_catalog_limit" marketplace_admin_v2_ui.js || { echo "Admin no puede configurar límite catálogo Impulso"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const plan=s.indexOf("business_impulse_plan_assets");const hub=s.indexOf("business_hub_assets");if(plan<0||hub<0||hub<plan){throw new Error("Panel Negocio 2.0 no carga al final de los módulos comerciales")}'
-echo "✅ Acceso Mercado Pago permanente"
+echo "✅ Khipu es el único flujo de pago publicado"
 echo "✅ Frontend comercial publicado"
 
 # Legacy visual scripts must not ship in the final generated HTML.
@@ -158,11 +156,9 @@ done
 echo "✅ HTML público sin interfaces legacy"
 
 # 7) Marcadores críticos del backend nuevo.
-for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA COMMERCE MERCADOPAGO V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA_SUPPORT_CENTER_V2" "DATOYA WEB PUSH V1"; do
+for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA KHIPU PAYMENTS V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA_SUPPORT_CENTER_V2" "DATOYA WEB PUSH V1"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
-grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_payments_bootstrap.js || { echo "Falta candado de pagos reales Mercado Pago"; exit 1; }
-grep -q "mercadopago/disconnect" marketplace_payments_bootstrap.js || { echo "Falta desconexión segura de Mercado Pago"; exit 1; }
 grep -q "support_cases" support_center_bootstrap.js || { echo "Falta persistencia de casos de soporte"; exit 1; }
 grep -q "api/admin/support-cases" support_center_bootstrap.js || { echo "Falta API admin de soporte"; exit 1; }
 grep -q "api/businesses/:businessId/support-cases" support_center_bootstrap.js || { echo "Falta API privada de soporte para negocios"; exit 1; }
@@ -173,26 +169,24 @@ grep -q "routes\['mi-negocio-soporte-caso'\]" business_support_ui.js || { echo "
 grep -q "routes.admin" admin_support_cases_ui.js || { echo "Falta panel admin de soporte"; exit 1; }
 grep -q "DATOYA_MARKETPLACE_ADMIN_V2" marketplace_admin_v2_bootstrap.js || { echo "Falta backend Admin marketplace V2"; exit 1; }
 grep -q "business_impulse_memberships" marketplace_admin_v2_bootstrap.js || { echo "Falta membresía DatoYa Impulso"; exit 1; }
-grep -q "DATOYA_IMPULSO_CHECKOUT_ENABLED" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de checkout Impulso"; exit 1; }
+grep -q "checkout_enabled:typeof __khConfigured" marketplace_admin_v2_bootstrap.js || { echo "Falta control de checkout Khipu para Impulso"; exit 1; }
 grep -q "api/businesses/:id/plan-access" marketplace_admin_v2_bootstrap.js || { echo "Falta API de permisos por plan"; exit 1; }
 grep -q "CATALOG_LIMIT_REACHED" marketplace_products_bootstrap.js || { echo "Falta límite real de productos por plan"; exit 1; }
 grep -q "IMPULSO_PLAN_REQUIRED" marketplace_commerce_bootstrap.js || { echo "Impulso Ahora no está protegido por membresía"; exit 1; }
 grep -q "advanced||''" marketplace_growth_bootstrap.js || { echo "Falta candado de estadísticas avanzadas"; exit 1; }
 grep -q "advanced||''" marketplace_promo_analytics_bootstrap.js || { echo "Falta candado de analítica promocional"; exit 1; }
-grep -q "DATOYA_ALLOW_LIVE_PAYMENTS" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de pagos reales en Impulso"; exit 1; }
+grep -q "KHIPU_LIVE_BLOCKED" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de pagos Khipu reales en Impulso"; exit 1; }
 grep -q "routes\['mi-negocio-plan'\]" business_impulse_plan_ui.js || { echo "Falta página de plan Impulso para negocio"; exit 1; }
 grep -q "admin/marketplace-v2/impulso/gift" marketplace_admin_v2_ui.js || { echo "Falta gestión de cortesías Impulso en Admin"; exit 1; }
 grep -q "'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 meses en DatoYa Impulso"; exit 1; }
 grep -q "AHORRA" business_impulse_plan_ui.js || { echo "Falta mostrar ahorro del plan trimestral"; exit 1; }
-grep -q "ready_for_test:c.oauthConfigured&&c.webhookConfigured" mercadopago_source_bootstrap.js || { echo "La disponibilidad TEST de Mercado Pago depende incorrectamente de un token legacy"; exit 1; }
-grep -q "mpHttp('POST','/checkout/preferences'" marketplace_payments_bootstrap.js || { echo "Checkout Pro marketplace TEST no usa Preferences API"; exit 1; }
-grep -q "marketplace_fee:fee" marketplace_payments_bootstrap.js || { echo "Falta marketplace_fee en Checkout Pro marketplace"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const growth=s.indexOf("marketplace_growth_assets");const commerce=s.indexOf("marketplace_commerce_assets");if(growth<0||commerce<0||growth>commerce){throw new Error("El módulo de crecimiento vuelve a reemplazar la ruta del carrito")}'
-grep -q "La cuenta no está verificada como vendedor TEST" marketplace_payments_bootstrap.js || { echo "Falta candado de vendedor TEST antes de checkout"; exit 1; }
-grep -q "receivedAmount===expectedAmount" marketplace_payments_bootstrap.js || { echo "Falta validar el monto del pago Mercado Pago"; exit 1; }
-grep -q "collectorId===String(conn.mp_user_id" marketplace_payments_bootstrap.js || { echo "Falta validar el vendedor receptor de Mercado Pago"; exit 1; }
-grep -q "payment_status<>'paid'" marketplace_payments_bootstrap.js || { echo "Falta transición idempotente a pago aprobado"; exit 1; }
-echo "✅ Mercado Pago mantiene pagos reales bloqueados por defecto"
+grep -q "app.post('/api/orders/:id/khipu/checkout'" server.js || { echo "Falta checkout Khipu para pedidos"; exit 1; }
+grep -q "app.post('/api/khipu/webhook'" server.js || { echo "Falta webhook Khipu"; exit 1; }
+grep -q "payment_method='khipu'" server.js || { echo "Falta persistencia del método Khipu"; exit 1; }
+grep -q "khipu_payments_ui.js" marketplace_commerce_assets.js || { echo "Khipu no se publica en el frontend comercial"; exit 1; }
+if grep -Eqi 'mercadopago|marketplace_payments_ui' public/index.html; then echo "El HTML público todavía referencia un proveedor de pago retirado"; exit 1; fi
+echo "✅ Checkout y publicación Khipu protegidos"
 echo "✅ Backend marketplace montado"
 
 # 8) Regresiones de seguridad que siguen siendo compartidas por la plataforma.
