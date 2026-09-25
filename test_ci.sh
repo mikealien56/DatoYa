@@ -169,7 +169,7 @@ grep -q "routes\['mi-negocio-soporte-caso'\]" business_support_ui.js || { echo "
 grep -q "routes.admin" admin_support_cases_ui.js || { echo "Falta panel admin de soporte"; exit 1; }
 grep -q "DATOYA_MARKETPLACE_ADMIN_V2" marketplace_admin_v2_bootstrap.js || { echo "Falta backend Admin marketplace V2"; exit 1; }
 grep -q "business_impulse_memberships" marketplace_admin_v2_bootstrap.js || { echo "Falta membresía DatoYa Impulso"; exit 1; }
-grep -q "DATOYA_IMPULSO_CHECKOUT_ENABLED" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de checkout Impulso"; exit 1; }
+grep -q "checkout_enabled:typeof __khConfigured" marketplace_admin_v2_bootstrap.js || { echo "Falta control de checkout Khipu para Impulso"; exit 1; }
 grep -q "api/businesses/:id/plan-access" marketplace_admin_v2_bootstrap.js || { echo "Falta API de permisos por plan"; exit 1; }
 grep -q "CATALOG_LIMIT_REACHED" marketplace_products_bootstrap.js || { echo "Falta límite real de productos por plan"; exit 1; }
 grep -q "IMPULSO_PLAN_REQUIRED" marketplace_commerce_bootstrap.js || { echo "Impulso Ahora no está protegido por membresía"; exit 1; }
