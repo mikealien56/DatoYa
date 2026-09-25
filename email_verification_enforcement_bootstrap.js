@@ -40,7 +40,7 @@ function __dyRequireVerifiedEmail(req,res,next){
   // Acciones críticas: crear negocio, crear pedido y comenzar checkout.
   src=src.replace("app.post('/api/businesses',auth,(req,res)=>","app.post('/api/businesses',auth,__dyRequireVerifiedEmail,(req,res)=>");
   src=src.replace("app.post('/api/orders',auth,(req,res)=>","app.post('/api/orders',auth,__dyRequireVerifiedEmail,(req,res)=>");
-  src=src.replace("app.post('/api/orders/:id/mercadopago/checkout',auth,async(req,res)=>","app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireVerifiedEmail,async(req,res)=>");
+  src=src.replace("app.post('/api/orders/:id/khipu/checkout',auth,async(req,res)=>","app.post('/api/orders/:id/khipu/checkout',auth,__dyRequireVerifiedEmail,async(req,res)=>");
 
   fs.writeFileSync(serverFile,src);
 }
