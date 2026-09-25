@@ -25,7 +25,14 @@ grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_public_beta_ui.js || 
 grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_growth_ui.js || fail "Ficha growth no identifica productos por ID"
 grep -q "productById=new Map" marketplace_commerce_ui.js || fail "Carrito sigue dependiendo del orden visual de productos"
 grep -q "el.dataset.productId" marketplace_commerce_ui.js || fail "Carrito no enlaza botón con ID de producto"
-grep -q "datoya-shell-v64" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+grep -q "datoya-shell-v65" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+grep -q "data-signup-hour-day" marketplace_account_ui.js || fail "Registro no muestra horarios semanales"
+grep -q "accept_orders_when_closed" marketplace_account_ui.js || fail "Registro no permite definir pedidos fuera de horario"
+grep -q "hours_schedule" marketplace_account_bootstrap_v2.js || fail "Registro no persiste horarios estructurados"
+grep -q "Activa al menos un día de atención" marketplace_account_ui.js || fail "Registro no exige al menos un día abierto"
+grep -q "mi-negocio-horarios" business_hub_ui.js || fail "Panel Negocio no expone editor de horarios"
+grep -q "dy-hours-weekdays-default" marketplace_hours_ui.js || fail "Editor de horarios no tiene atajo Lun–Vie"
+
 grep -q "if(categoryBoxes.length)draft.category_ids" marketplace_account_ui.js || fail "El paso final del registro borra categorías elegidas"
 
 
