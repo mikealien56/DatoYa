@@ -1,6 +1,6 @@
 // DatoYa — flujo híbrido de pago protegido (TEST).
 // Trabajos cortos: garantía previa simulada en TEST; trabajos largos: pago al finalizar.
-// No mueve dinero real. La captura/autorización real de Mercado Pago se habilitará solo
+// No mueve dinero real. La captura/autorización real de proveedor externo se habilitará solo
 // cuando la modalidad comercial y la distribución de costos estén confirmadas.
 const fs = require('fs');
 const path = require('path');
@@ -49,15 +49,15 @@ function dyHybridParseDurationDays(value) {
   return null;
 }
 function dyHybridThresholdDays() {
-  const n = Number(process.env.MP_PREAUTH_MAX_DAYS || 5);
+  const n = Number(process.env.DATOYA_PREAUTH_MAX_DAYS || 5);
   return Number.isFinite(n) && n > 0 ? Math.min(7, Math.floor(n)) : 5;
 }
 function dyHybridAuthDays() {
-  const n = Number(process.env.MP_PREAUTH_AUTH_DAYS || 7);
+  const n = Number(process.env.DATOYA_PREAUTH_AUTH_DAYS || 7);
   return Number.isFinite(n) && n > 0 ? Math.min(7, Math.floor(n)) : 7;
 }
 function dyHybridEnforced() {
-  return ['1','true','yes','on'].includes(String(process.env.MP_HYBRID_ENFORCE || '').toLowerCase());
+  return ['1','true','yes','on'].includes(String(process.env.DATOYA_HYBRID_ENFORCE || '').toLowerCase());
 }
 function dyHybridFlow(jobId) {
   return db.prepare('SELECT * FROM job_payment_workflows WHERE job_id=?').get(jobId);
@@ -113,7 +113,7 @@ app.use('/api/quotes/:id/accept', auth, (req,res,next) => {
 });
 
 // Opcionalmente impide iniciar un trabajo corto sin garantía previa.
-// Se activa en Render con MP_HYBRID_ENFORCE=1; CI/legacy permanece compatible por defecto.
+// Se activa en Render con DATOYA_HYBRID_ENFORCE=1; CI/legacy permanece compatible por defecto.
 app.use('/api/jobs/:id/status', auth, (req,res,next) => {
   if (String((req.body || {}).status || '') !== 'EN_PROCESO' || !dyHybridEnforced()) return next();
   const job = db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id);
@@ -142,7 +142,7 @@ app.get('/api/jobs/:id/payment-flow', auth, (req,res) => {
   });
 });
 
-// Simula en TEST la autorización de un trabajo corto. No llama a Mercado Pago.
+// Simula en TEST la autorización de un trabajo corto. No llama a proveedor externo.
 app.post('/api/jobs/:id/payment-flow/authorize-test', auth, (req,res) => {
   const job = db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id);
   if (!job) return res.status(404).json({error:'Trabajo no encontrado'});
@@ -218,7 +218,7 @@ app.post('/api/jobs/:id/payment-flow/approve-test', auth, (req,res) => {
     db.prepare("UPDATE jobs SET status='FINALIZADO',worker_amount=?,updated_at=datetime('now') WHERE id=?").run(workerAmount,job.id);
     db.prepare('INSERT INTO job_status_history(job_id,status,changed_by) VALUES(?,?,?)').run(job.id,'FINALIZADO',req.user.id);
     if (!db.prepare('SELECT id FROM payments WHERE job_id=?').get(job.id)) {
-      db.prepare("INSERT INTO payments(job_id,amount,commission,worker_amount,method,provider,status) VALUES(?,?,?,?,'mercadopago_test','TEST_HYBRID','test_paid_after_approval')").run(job.id,job.price,commission,workerAmount);
+      db.prepare("INSERT INTO payments(job_id,amount,commission,worker_amount,method,provider,status) VALUES(?,?,?,?,'datoya_test','TEST_HYBRID','test_paid_after_approval')").run(job.id,job.price,commission,workerAmount);
     }
     if (!db.prepare('SELECT id FROM commissions WHERE job_id=?').get(job.id)) {
       db.prepare('INSERT INTO commissions(job_id,pct,amount) VALUES(?,?,?)').run(job.id,job.commission_pct,commission);
