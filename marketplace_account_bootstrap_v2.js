@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS business_category_links (
 const businessColumns=db.prepare('PRAGMA table_info(businesses)').all().map(x=>x.name);
 if(!businessColumns.includes('province_id'))db.exec('ALTER TABLE businesses ADD COLUMN province_id INTEGER');
 if(!businessColumns.includes('location_source'))db.exec("ALTER TABLE businesses ADD COLUMN location_source TEXT NOT NULL DEFAULT 'manual'");
+if(!businessColumns.includes('hours_schedule'))db.exec("ALTER TABLE businesses ADD COLUMN hours_schedule TEXT");
+if(!businessColumns.includes('accept_orders_when_closed'))db.exec("ALTER TABLE businesses ADD COLUMN accept_orders_when_closed INTEGER NOT NULL DEFAULT 0");
 
 const marketCategories=[
   ['comida','Restaurantes','🍽️',10],['comida-rapida','Comida rápida','🍔',20],['cafeterias','Cafeterías','☕',30],
@@ -70,7 +72,23 @@ if(!source.includes('DATOYA MARKETPLACE ACCOUNT V2')){
 const injection=`
 // ============ DATOYA MARKETPLACE ACCOUNT V2 ============
 function __marketSlug(value){return String(value||'negocio').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'negocio';}
-function __marketBusinessRow(row){
+
+function __marketNormalizeHours(raw){
+  const keys=['sun','mon','tue','wed','thu','fri','sat'];let value=raw;
+  if(typeof value==='string'){try{value=JSON.parse(value)}catch(_){value={}}}
+  if(!value||typeof value!=='object')value={};const out={};
+  for(const k of keys){
+    const arr=Array.isArray(value[k])?value[k]:[];
+    out[k]=arr.slice(0,2).map(x=>({open:String(x?.open||'').slice(0,5),close:String(x?.close||'').slice(0,5)}))
+      .filter(x=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(x.open)&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(x.close)&&x.open<x.close);
+  }
+  return out;
+}
+function __marketHoursSummary(raw){
+  const s=__marketNormalizeHours(raw),lab={mon:'Lun',tue:'Mar',wed:'Mié',thu:'Jue',fri:'Vie',sat:'Sáb',sun:'Dom'},out=[];
+  for(const k of ['mon','tue','wed','thu','fri','sat','sun'])if(s[k]?.length)out.push(lab[k]+' '+s[k].map(x=>x.open+'–'+x.close).join(' / '));
+  return out.join(' · ').slice(0,800)||null;
+}function __marketBusinessRow(row){
   if(!row)return row;
   row.pickup_enabled=!!row.pickup_enabled;row.delivery_enabled=!!row.delivery_enabled;row.verified=!!row.verified;
   row.categories=db.prepare('SELECT mc.id,mc.slug,mc.name,mc.icon,bcl.is_primary FROM business_category_links bcl JOIN market_categories mc ON mc.id=bcl.category_id WHERE bcl.business_id=? ORDER BY bcl.is_primary DESC,mc.sort_order,mc.name').all(row.id);
@@ -99,15 +117,16 @@ app.post('/api/businesses',auth,(req,res)=>{
   const hasCoords=Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
   const locationSource=hasCoords&&String(body.location_source)==='gps'?'gps':'manual';
   const publicMode=businessType==='home_business'?'approximate':(['exact','approximate','hidden'].includes(body.public_address_mode)?body.public_address_mode:'approximate');
+  const hoursSchedule=__marketNormalizeHours(body.hours_schedule),hoursSummary=__marketHoursSummary(hoursSchedule),acceptClosed=!!body.accept_orders_when_closed;
+  if(!Object.values(hoursSchedule).some(x=>x.length))return res.status(400).json({error:'Configura al menos un día de atención'});
   const slug=__marketSlug(name)+'-'+crypto.randomBytes(3).toString('hex');
   const tx=db.transaction(()=>{
-    db.prepare("INSERT INTO businesses(owner_user_id,name,slug,description,business_type,comuna_id,province_id,latitude,longitude,location_accuracy,location_source,sector,address,public_address_mode,phone,whatsapp,opening_hours,pickup_enabled,delivery_enabled,status,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_review',datetime('now'))").run(
+    db.prepare("INSERT INTO businesses(owner_user_id,name,slug,description,business_type,comuna_id,province_id,latitude,longitude,location_accuracy,location_source,sector,address,public_address_mode,phone,whatsapp,opening_hours,hours_schedule,accept_orders_when_closed,pickup_enabled,delivery_enabled,status,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_review',datetime('now'))").run(
       req.user.id,name,slug,description,businessType,comunaId,null,hasCoords?lat:null,hasCoords?lng:null,Number.isFinite(accuracy)?accuracy:null,locationSource,
       String(body.sector||'').trim().slice(0,120)||null,String(body.address||'').trim().slice(0,220)||null,publicMode,
-      String(body.phone||'').trim().slice(0,40)||null,String(body.whatsapp||'').trim().slice(0,40)||null,String(body.opening_hours||'').trim().slice(0,800)||null,
+      String(body.phone||'').trim().slice(0,40)||null,String(body.whatsapp||'').trim().slice(0,40)||null,hoursSummary,JSON.stringify(hoursSchedule),acceptClosed?1:0,
       body.pickup_enabled===false?0:1,body.delivery_enabled?1:0
-    );
-    const created=db.prepare('SELECT id FROM businesses WHERE slug=?').get(slug);
+    );    const created=db.prepare('SELECT id FROM businesses WHERE slug=?').get(slug);
     const id=Number(created&&created.id);
     if(!id)throw new Error('No se pudo identificar el negocio creado');
     for(let i=0;i<categoryIds.length;i++)db.prepare('INSERT INTO business_category_links(business_id,category_id,is_primary) VALUES(?,?,?)').run(id,categoryIds[i],i===0?1:0);
