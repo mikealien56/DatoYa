@@ -2,7 +2,6 @@
 const Module=require('module'),path=require('path');
 const usePostgres=String(process.env.DB_DRIVER||'').toLowerCase()==='postgres',originalLoad=Module._load,dbFile=path.resolve(__dirname,'db.js'),blocked=new Set([path.resolve(__dirname,'demo_admin_seed.js'),path.resolve(__dirname,'demo_runtime_seed.js'),path.resolve(__dirname,'demo_compat_fix.js'),path.resolve(__dirname,'worker_category_repair.js')]);let pgModule=null;
 Module._load=function(request,parent,isMain){try{const resolved=Module._resolveFilename(request,parent,isMain),absolute=path.resolve(resolved);if(blocked.has(absolute))return{};if(usePostgres&&absolute===dbFile){if(!pgModule)pgModule=originalLoad.call(this,path.resolve(__dirname,'db_pg.js'),parent,isMain);return pgModule;}}catch(_){}return originalLoad.apply(this,arguments);};
-require('./db_password_rotation_gate');
 if(process.env.DATOYA_MIGRATION_TARGET_URL){
   const {execFileSync}=require('child_process');
   execFileSync(process.execPath,[path.join(__dirname,'scripts','migrate_render_to_neon.js')],{stdio:'inherit',env:process.env});
