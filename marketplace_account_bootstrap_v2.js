@@ -118,7 +118,6 @@ app.post('/api/businesses',auth,(req,res)=>{
   const locationSource=hasCoords&&String(body.location_source)==='gps'?'gps':'manual';
   const publicMode=businessType==='home_business'?'approximate':(['exact','approximate','hidden'].includes(body.public_address_mode)?body.public_address_mode:'approximate');
   const hoursSchedule=__marketNormalizeHours(body.hours_schedule),hoursSummary=__marketHoursSummary(hoursSchedule),acceptClosed=!!body.accept_orders_when_closed;
-  if(!Object.values(hoursSchedule).some(x=>x.length))return res.status(400).json({error:'Configura al menos un día de atención'});
   const slug=__marketSlug(name)+'-'+crypto.randomBytes(3).toString('hex');
   const tx=db.transaction(()=>{
     db.prepare("INSERT INTO businesses(owner_user_id,name,slug,description,business_type,comuna_id,province_id,latitude,longitude,location_accuracy,location_source,sector,address,public_address_mode,phone,whatsapp,opening_hours,hours_schedule,accept_orders_when_closed,pickup_enabled,delivery_enabled,status,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_review',datetime('now'))").run(
