@@ -97,6 +97,30 @@
     if(!tokens.length)return true;
     return tokens.every(token=>[token,...(SEARCH_ALIASES[token]||[])].map(searchNormalize).filter(Boolean).some(v=>hay.includes(v)));
   }
+  const activePromo=p=>!!p.promo_price&&p.promo_is_active!==false;
+  const timedPromo=p=>activePromo(p)&&!!p.promo_starts_at&&!!p.promo_ends_at;
+  let promoCountdownTimer=null;
+  function countdownText(endValue){
+    const diff=new Date(endValue).getTime()-Date.now();
+    if(!Number.isFinite(diff)||diff<=0)return 'Finalizó';
+    const mins=Math.ceil(diff/60000),hours=Math.floor(mins/60),rest=mins%60;
+    if(hours>=24){const days=Math.floor(hours/24);return `Termina en ${days} d ${hours%24} h`;}
+    return hours?`Termina en ${hours} h ${rest} min`:`Termina en ${Math.max(1,rest)} min`;
+  }
+  function bindPromoCountdowns(){
+    if(promoCountdownTimer){clearInterval(promoCountdownTimer);promoCountdownTimer=null;}
+    const tick=()=>{
+      let expired=false;
+      document.querySelectorAll('[data-dy-promo-end]').forEach(el=>{
+        const value=countdownText(el.dataset.dyPromoEnd);
+        el.textContent=value;
+        if(value==='Finalizó'&&!el.dataset.dyExpired){el.dataset.dyExpired='1';expired=true;}
+      });
+      if(expired){cache.at=0;setTimeout(()=>{if(typeof route==='function')route();},250);}
+    };
+    tick();
+    promoCountdownTimer=setInterval(tick,30000);
+  }
 
   function businessCard(b,products){
     const dist=fmtDistance(b.distance_km);
@@ -108,11 +132,10 @@
 
   function productCard(p,businesses,kind='product'){
     const b=businesses.find(x=>Number(x.id)===Number(p.business_id));
-    const price=p.promo_price||p.price;
-    const badge=kind==='promo'?'🔥 OFERTA':'DISPONIBLE';
+    const promo=activePromo(p)?p.promo_price:null,price=promo||p.price,timed=timedPromo(p),badge=kind==='promo'?(timed?'🔥 PROMO HOY':'🔥 OFERTA'):'DISPONIBLE';
     return `<article class="dy-live-card dy-real-product">
       <div class="dy-live-image dy-real-product-photo">${productPhoto(p)}<span class="dy-live-badge">${badge}</span>${p.stock_tracking?`<span class="dy-stock-badge">${Number(p.stock||0)>0?`Quedan ${Number(p.stock)}`:'Sin stock'}</span>`:''}${savedButton('product',p.id)}</div>
-      <div class="dy-live-body"><h3>${h(p.name)}</h3><p>${h(p.business_name||b?.name||'')} ${p.distance_km!=null?`· 📍 ${h(fmtDistance(p.distance_km))}`:''}</p><div class="dy-live-price-row"><div class="dy-live-price"><strong>${money(price)}</strong>${p.promo_price?`<span class="dy-old-price">${money(p.price)}</span>`:''}</div><a class="dy-beta-link" href="#/negocio/${Number(p.business_id)}">Ver →</a></div></div>
+      <div class="dy-live-body"><h3>${h(p.name)}</h3><p>${h(p.business_name||b?.name||'')} ${p.distance_km!=null?`· 📍 ${h(fmtDistance(p.distance_km))}`:''}</p>${timed?`<div class="dy-promo-countdown" data-dy-promo-end="${h(p.promo_ends_at)}">${h(countdownText(p.promo_ends_at))}</div>`:''}<div class="dy-live-price-row"><div class="dy-live-price"><strong>${money(price)}</strong>${promo?`<span class="dy-old-price">${money(p.price)}</span>`:''}</div><a class="dy-beta-link" href="#/negocio/${Number(p.business_id)}">Ver →</a></div></div>
     </article>`;
   }
 
@@ -127,7 +150,7 @@
     try{
       const {categories,businesses,products}=await loadMarketplace();
       await loadSavedState();
-      const promos=products.filter(p=>p.promo_price&&(!p.stock_tracking||Number(p.stock)>0)).slice(0,6);
+      const activePromos=products.filter(p=>activePromo(p)&&(!p.stock_tracking||Number(p.stock)>0)),todayPromos=activePromos.filter(timedPromo).slice(0,6),promos=todayPromos.length?todayPromos:activePromos.slice(0,6),promoHeading=todayPromos.length?'🔥 Promos de hoy':'🔥 Promociones cerca de ti',promoCopy=todayPromos.length?'Ofertas con tiempo limitado activas ahora en tu zona.':'Precios promocionales creados por negocios aprobados.';
       const visibleBusinesses=businesses.slice(0,8);
       const productCount=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).length;
       view.innerHTML=`<div class="dy-home">
@@ -135,12 +158,13 @@
         <section class="dy-hero"><div class="dy-hero-copy"><div class="dy-kicker">📍 Descubre lo mejor de tu zona</div><h1>Negocios locales <span>cerca de ti</span></h1><p>Explora negocios y productos publicados realmente en DatoYa. Sin resultados inventados.</p><form class="dy-search" id="dy-beta-search"><label class="dy-search-field"><span class="dy-search-icon">⌕</span><input name="q" autocomplete="off" placeholder="¿Qué necesitas? Ej: cerrajero, sushi, veterinaria 24h"></label><div class="dy-location-field"><span class="dy-location-icon">📍</span><button type="button" class="dy-location-button" data-dy-locate><span data-dy-location-label>${h(loc.label)}</span></button></div><button class="dy-search-submit" type="submit">Buscar</button></form><div class="dy-trust-row"><span>✓ Negocios aprobados</span><span>📦 ${productCount} productos disponibles</span><span>♡ Compra local</span></div></div><div class="dy-hero-visual" aria-hidden="true"><div class="dy-visual-card"><div class="dy-visual-image"></div><div class="dy-visual-overlay"><span class="dy-live-pill"><i class="dy-live-dot"></i> DatoYa Beta</span><h3>${businesses.length?`${businesses.length} negocios en esta vista`:'Sé de los primeros'}</h3><p>${businesses.length?'Contenido real publicado por comercios.':'Invita a un negocio local a registrarse.'}</p></div></div></div></section>
         <section class="dy-section" id="local-categories"><div class="dy-section-head"><div><h2>¿Qué necesitas hoy?</h2><p>Categorías reales usadas por los negocios de DatoYa.</p></div><button class="dy-see-all" type="button" id="dy-beta-all">Ver todo →</button></div><div class="dy-category-strip">${categories.map(c=>`<button class="dy-category" type="button" data-dy-beta-category="${Number(c.id)}"><span class="dy-category-icon">${h(c.icon)}</span><b>${h(c.name)}</b></button>`).join('')}</div></section>
         <section class="dy-section dy-live-section" id="impulso-ahora"><div class="dy-section-head"><div><h2>⚡ Impulso Ahora</h2><p>Ventas por tiempo y stock aparecerán aquí cuando un negocio publique un Impulso Ahora.</p></div></div>${emptyBlock('⚡','Sin Impulsos Ahora activos en esta zona','No mostramos ofertas ficticias. Este espacio se llenará solo con publicaciones reales.')}</section>
-        <section class="dy-section" id="promociones"><div class="dy-section-head"><div><h2>🔥 Promociones cerca de ti</h2><p>Precios promocionales creados por negocios aprobados.</p></div></div><div class="dy-live-grid" id="dy-beta-promos">${promos.length?promos.map(p=>productCard(p,businesses,'promo')).join(''):emptyBlock('🏷️','Aún no hay promociones reales','Cuando un negocio publique un precio oferta, aparecerá aquí.')}</div></section>
+        <section class="dy-section" id="promociones"><div class="dy-section-head"><div><h2>${promoHeading}</h2><p>${promoCopy}</p></div></div><div class="dy-live-grid" id="dy-beta-promos">${promos.length?promos.map(p=>productCard(p,businesses,'promo')).join(''):emptyBlock('🏷️','Aún no hay promociones reales','Cuando un negocio publique un precio oferta, aparecerá aquí.')}</div></section>
         <section class="dy-section" id="negocios-cerca"><div class="dy-section-head"><div><h2>📍 Negocios cerca de ti</h2><p>${loc.comunaId||loc.lat!=null?'Resultados según tu zona guardada.':'Elige tu ubicación para ver resultados de tu zona.'}</p></div><label class="dy-radius-control">Radio <select id="dy-radius-select" aria-label="Radio de búsqueda">${[1,3,5,10].map(km=>`<option value="${km}" ${loc.radius===km?'selected':''}>${km} km</option>`).join('')}</select></label></div><div class="dy-card-grid" id="dy-beta-businesses">${visibleBusinesses.length?visibleBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Todavía no hay negocios aprobados en esta zona','Puedes registrar uno para comenzar la prueba.',`<a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>`)}</div></section>
         <section class="dy-local-banner"><div><h2>❤️ Lo local también es grande</h2><p>¿Tienes un negocio? Regístralo, carga tus productos y después de la revisión aparecerá públicamente aquí.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio</a></section>
       </div>`;
       bindHome(categories,businesses,products);
       bindSavedActions();
+      bindPromoCountdowns();
       window.dispatchEvent(new CustomEvent('datoya:market-home-rendered'));
     }catch(err){
       view.innerHTML=`<div class="dy-home">${emptyBlock('⚠️','No pudimos cargar el marketplace',err.message||'Intenta nuevamente.',`<button class="btn btn-primary" onclick="location.reload()">Reintentar</button>`)}</div>`;
@@ -160,7 +184,7 @@
       const matchingBusinessIds=new Set(businesses.filter(b=>(b.categories||[]).some(c=>Number(c.id)===id)).map(b=>Number(b.id)));
       const matchingProducts=products.filter(p=>Number(p.category_id)===id||matchingBusinessIds.has(Number(p.business_id)));
       document.querySelectorAll('#dy-beta-businesses [data-beta-business]').forEach(el=>el.style.display=matchingBusinessIds.has(Number(el.dataset.betaBusiness))?'':'none');
-      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){promoGrid.innerHTML=matchingProducts.filter(p=>p.promo_price).slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin promociones en esta categoría','Sí puede haber negocios disponibles más abajo.');bindSavedActions();}
+      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){const active=matchingProducts.filter(activePromo),timed=active.filter(timedPromo);promoGrid.innerHTML=(timed.length?timed:active).slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin promociones en esta categoría','Sí puede haber negocios disponibles más abajo.');bindSavedActions();bindPromoCountdowns();}
       const category=categories.find(c=>Number(c.id)===id);if(category)trackSearch(category.name,id,matchingBusinessIds.size+matchingProducts.length);
       document.getElementById('negocios-cerca')?.scrollIntoView({behavior:'smooth',block:'start'});
     }));
@@ -186,9 +210,10 @@
       });
       const selectedCategory=categories.find(c=>Number(c.id)===categoryId),trackedTerm=q||(selectedCategory&&selectedCategory.name)||'';
       if(trackedTerm)trackSearch(trackedTerm,categoryId,allowedBusinesses.length+matchedProducts.length);
-      view.innerHTML=`<div class="dy-public-page"><a class="dy-public-back" href="#/">← Inicio</a><div class="dy-public-head"><span>BÚSQUEDA LOCAL</span><h1>${q?`Resultados para “${h(q)}”`:'Explorar DatoYa'}</h1><form id="dy-beta-search-page"><input name="q" value="${h(q)}" placeholder="Buscar producto o negocio"><select name="category"><option value="0">Todas las categorías</option>${categories.map(c=>`<option value="${c.id}" ${Number(c.id)===categoryId?'selected':''}>${h(c.icon)} ${h(c.name)}</option>`).join('')}</select><button class="btn btn-primary">Buscar</button></form></div><section><h2>Negocios (${allowedBusinesses.length})</h2><div class="dy-card-grid">${allowedBusinesses.length?allowedBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Sin negocios coincidentes','Prueba otra búsqueda o cambia tu zona.')}</div></section><section><h2>Productos (${matchedProducts.length})</h2><div class="dy-live-grid">${matchedProducts.length?matchedProducts.slice(0,24).map(p=>productCard(p,businesses,p.promo_price?'promo':'product')).join(''):emptyBlock('📦','Sin productos coincidentes','Los negocios pueden seguir cargando productos durante la beta.')}</div></section></div>`;
+      view.innerHTML=`<div class="dy-public-page"><a class="dy-public-back" href="#/">← Inicio</a><div class="dy-public-head"><span>BÚSQUEDA LOCAL</span><h1>${q?`Resultados para “${h(q)}”`:'Explorar DatoYa'}</h1><form id="dy-beta-search-page"><input name="q" value="${h(q)}" placeholder="Buscar producto o negocio"><select name="category"><option value="0">Todas las categorías</option>${categories.map(c=>`<option value="${c.id}" ${Number(c.id)===categoryId?'selected':''}>${h(c.icon)} ${h(c.name)}</option>`).join('')}</select><button class="btn btn-primary">Buscar</button></form></div><section><h2>Negocios (${allowedBusinesses.length})</h2><div class="dy-card-grid">${allowedBusinesses.length?allowedBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Sin negocios coincidentes','Prueba otra búsqueda o cambia tu zona.')}</div></section><section><h2>Productos (${matchedProducts.length})</h2><div class="dy-live-grid">${matchedProducts.length?matchedProducts.slice(0,24).map(p=>productCard(p,businesses,activePromo(p)?'promo':'product')).join(''):emptyBlock('📦','Sin productos coincidentes','Los negocios pueden seguir cargando productos durante la beta.')}</div></section></div>`;
       document.getElementById('dy-beta-search-page')?.addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;location.hash='#/buscar/'+encodeURIComponent(f.q.value.trim()||'_')+'/'+Number(f.category.value||0);});
       bindSavedActions();
+      bindPromoCountdowns();
     }catch(err){view.innerHTML=`<div class="dy-public-page">${emptyBlock('⚠️','No pudimos buscar',err.message||'Intenta otra vez.')}</div>`;}
   };
 
