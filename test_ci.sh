@@ -117,6 +117,9 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/admin/m
 [ "$code" = "401" ] || { echo "Admin marketplace no está protegido HTTP $code"; exit 1; }
 echo "✅ Autorización base"
 
+echo "=== E2E Cliente + Negocio ==="
+bash test_two_accounts_flow.sh
+
 # Centro de soporte público: debe validar datos antes de intentar enviar correo.
 SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST "http://localhost:3000/api/support/contact" -H 'Content-Type: application/json' -d '{"name":"Prueba","email":"correo-invalido","subject":"Ayuda","message":"Necesito ayuda con DatoYa"}')
 [ "$SUPPORT_CODE" = "400" ] || { echo "Validación soporte incorrecta HTTP $SUPPORT_CODE"; cat /tmp/dy_support_invalid.json; exit 1; }
