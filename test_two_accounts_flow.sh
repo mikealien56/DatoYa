@@ -83,6 +83,7 @@ echo "7/10 Cuenta Negocio no puede comprar"
 CODE="$(curl -s -o "$TMP/business_order.json" -w '%{http_code}' -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" \
   -d "{\"business_id\":$BIZ_ID,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Negocio QA\",\"customer_phone\":\"+56922223333\",\"items\":[{\"product_id\":$PRODUCT_ID,\"quantity\":1}]}")"
 [ "$CODE" = "403" ] || fail "Cuenta Negocio pudo comprar (HTTP $CODE)"
+echo "Respuesta bloqueo Negocio→compra: $(cat "$TMP/business_order.json")"
 python3 -c 'import json; d=json.load(open("'"$TMP/business_order.json"'")); assert d.get("code")=="CUSTOMER_ACCOUNT_REQUIRED"'
 
 echo "8/10 Cliente crea pedido real de prueba y baja stock una sola vez"
