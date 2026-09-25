@@ -51,7 +51,7 @@
       <section class="dy-hours-main-card">
         <div class="dy-hours-toolbar">
           <div><b>Semana</b><small>Activa solo los días en que atiendes.</small></div>
-          <div><button type="button" class="btn btn-outline btn-sm" id="dy-copy-weekdays">Copiar lunes a Lun–Vie</button><button type="button" class="btn btn-outline btn-sm" id="dy-close-weekend">Cerrar fin de semana</button></div>
+          <div><button type="button" class="btn btn-outline btn-sm" id="dy-hours-weekdays-default">Lun–Vie 09:00–18:00</button><button type="button" class="btn btn-outline btn-sm" id="dy-copy-weekdays">Copiar lunes a Lun–Vie</button><button type="button" class="btn btn-outline btn-sm" id="dy-close-weekend">Cerrar fin de semana</button></div>
         </div>
         <form id="dy-hours-form">
           <div class="dy-hours-days">${dayCards}</div>
@@ -76,6 +76,16 @@
     }
     days.forEach(([key])=>form.elements[key+'_enabled']?.addEventListener('change',()=>syncDay(key)));
 
+    document.getElementById('dy-hours-weekdays-default')?.addEventListener('click',()=>{
+      for(const [key] of days){
+        const weekday=['mon','tue','wed','thu','fri'].includes(key);
+        form.elements[key+'_enabled'].checked=weekday;
+        form.elements[key+'_open'].value='09:00';
+        form.elements[key+'_close'].value='18:00';
+        syncDay(key);
+      }
+      toast?.('Horario Lun–Vie 09:00–18:00 aplicado','ok');
+    });
     document.getElementById('dy-copy-weekdays')?.addEventListener('click',()=>{
       const open=form.elements.mon_open.value||'09:00',close=form.elements.mon_close.value||'18:00';
       for(const key of ['mon','tue','wed','thu','fri']){
@@ -93,7 +103,7 @@
         if(form.elements[key+'_enabled'].checked){
           const open=form.elements[key+'_open'].value,close=form.elements[key+'_close'].value;
           if(!open||!close)return toast?.('Completa apertura y cierre de '+days.find(x=>x[0]===key)[1],'err');
-          if(open===close)return toast?.('La hora de apertura y cierre no puede ser igual','err');
+          if(open>=close)return toast?.('La hora de cierre debe ser posterior a la apertura','err');
           s[key]=[{open,close}];
         }else s[key]=[];
       }
