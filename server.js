@@ -222,7 +222,7 @@ async function __khSyncPayment(row,order){
   if(paid){
     const changed=db.prepare("UPDATE commerce_orders SET payment_method='khipu',payment_status='paid',updated_at=? WHERE id=? AND payment_status<>'paid'").run(new Date().toISOString(),order.id);
     if(Number(changed.changes||0)>0){
-      notify(order.user_id,'pago','Pago Khipu aprobado para el pedido '+order.reference+'.','#/pedidos');
+      notify(order.user_id,'pago','Pago Khipu aprobado para el pedido '+order.reference+'.','#/pedidos/'+order.id);
       if(order.owner_user_id)notify(order.owner_user_id,'pago','Pago Khipu recibido para '+order.reference+'.','#/mi-negocio-pedidos/'+order.business_id);
     }
   }
