@@ -1,11 +1,11 @@
 # DatoYa — Puerta de beta comercial controlada
 
-## Estado verificado · 18 septiembre 2026
+## Estado verificado · 25 septiembre 2026
 - ✅ Render LIVE y autoDeploy activo.
 - ✅ Seis suites GitHub Actions en verde.
 - ✅ PostgreSQL marketplace operativo.
 - ✅ Resend configurado en Render; falta confirmar entrega real con el botón Admin → Integraciones.
-- ✅ Mercado Pago OAuth y webhook configurados; falta conectar un vendedor TEST y completar el pago sandbox punta a punta.
+- ✅ Khipu integrado para pedidos y DatoYa Impulso en modo desarrollo; los pagos reales permanecen bloqueados.
 - ✅ Despacho avanzado probado automáticamente: costo, mínimo, gratis desde monto y radio.
 - ✅ Métricas reales de ⚡ Impulso Ahora y ⭐ Impulso de la semana probadas con pedidos TEST atribuidos.
 - ⚠️ Web Service Render sigue en plan Free.
@@ -27,7 +27,7 @@ DatoYa puede mostrarse a comercios reales durante una beta cerrada, pero no debe
 - GPS/comuna y búsqueda por cercanía funcionan con fallback territorial.
 - ⚡ Impulso Ahora valida horario, stock y estados.
 - ⭐ Impulso de la semana solo publica ofertas aprobadas.
-- Mercado Pago TEST no permite checkout sin conexión válida del comercio.
+- Khipu desarrollo no habilita checkout si la configuración segura del cobrador no está disponible.
 - Sello Negocio Fundador solo puede asignarlo Admin.
 - Estadísticas privadas solo son visibles por el dueño del negocio.
 
@@ -36,7 +36,7 @@ DatoYa puede mostrarse a comercios reales durante una beta cerrada, pero no debe
 - Remitente/dominio de correo verificado.
 - Recuperación de contraseña y verificación de correo probadas con correo real.
 - Copia de seguridad y restauración de PostgreSQL comprobadas en una base NO productiva. El script de backup ya está preparado.
-- Mercado Pago probado de punta a punta con usuarios/credenciales TEST.
+- Khipu probado de punta a punta en modo desarrollo, incluyendo retorno, webhook y actualización de estado.
 - Revisión legal/tributaria final antes de escalar cobros y comisiones.
 
 ## Prueba humana móvil
@@ -69,8 +69,8 @@ Probar idealmente con dos cuentas distintas: comerciante y comprador.
 ## Alcance inicial recomendado
 - Beta cerrada por invitación.
 - Pocos comercios reales al comienzo.
-- Usar Mercado Pago TEST hasta validar OAuth, checkout, webhook, estados e idempotencia.
+- Usar Khipu en modo desarrollo hasta validar checkout, webhook, estados e idempotencia.
 - Revisar errores y soporte antes de aumentar usuarios.
 
 ## Criterio de salida
-La beta puede ampliarse cuando no existan bloqueantes críticos abiertos y el recorrido cuenta → negocio → aprobación → catálogo → descubrimiento → pedido → stock → pago TEST haya sido comprobado automáticamente y por una prueba humana móvil.
+La beta puede ampliarse cuando no existan bloqueantes críticos abiertos y el recorrido cuenta → negocio → aprobación → catálogo → descubrimiento → pedido → stock → pago Khipu de desarrollo haya sido comprobado automáticamente y por una prueba humana móvil.
