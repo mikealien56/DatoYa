@@ -36,7 +36,7 @@ grep -q 'arr.length>=20' chat_security_guard.js || fail 'Falta rate limit de cha
 grep -q 'DATOYA_EMAIL_VERIFICATION_REQUIRED_V1' email_verification_enforcement_bootstrap.js || fail 'Falta guard de verificación de correo'
 grep -q "app.post('/api/businesses',auth,__dyRequireVerifiedEmail" email_verification_enforcement_bootstrap.js || fail 'Crear negocio no exige correo verificado'
 grep -q "app.post('/api/orders',auth,__dyRequireVerifiedEmail" email_verification_enforcement_bootstrap.js || fail 'Crear pedido no exige correo verificado'
-grep -q "app.post('/api/orders/:id/mercadopago/checkout',auth,__dyRequireVerifiedEmail" email_verification_enforcement_bootstrap.js || fail 'Checkout no exige correo verificado'
+grep -q "app.post('/api/orders/:id/khipu/checkout',auth,__dyRequireVerifiedEmail" email_verification_enforcement_bootstrap.js || fail 'Checkout no exige correo verificado'
 grep -q 'Verifica tu cuenta DatoYa' email_verification_enforcement_bootstrap.js || fail 'Registro no prepara correo de verificación'
 # Separación cliente/negocio: una cuenta cliente no puede administrar comercios.
 grep -q 'DATOYA_MARKET_ACCOUNT_SEPARATION_V1' marketplace_account_separation_bootstrap.js || fail 'Falta separación de cuenta cliente y negocio'
@@ -57,7 +57,8 @@ grep -q '__dyCommercialLegalRoute' current_legal_consent_enforcement_bootstrap.j
 grep -q "route==='/api/orders'" current_legal_consent_enforcement_bootstrap.js || fail 'Crear pedido no está cubierto por puerta legal'
 grep -q "products" current_legal_consent_enforcement_bootstrap.js || fail 'Publicar producto no está cubierto por puerta legal'
 grep -q "weekly-impulses" current_legal_consent_enforcement_bootstrap.js || fail 'Impulso semanal no está cubierto por puerta legal'
-grep -q "mercadopago.*checkout" current_legal_consent_enforcement_bootstrap.js || fail 'Checkout no está cubierto por puerta legal'
+grep -q "khipu.*checkout" current_legal_consent_enforcement_bootstrap.js || fail 'Checkout Khipu no está cubierto por puerta legal'
+if grep -Eqi 'mercadopago|marketplace_payments' current_legal_consent_enforcement_bootstrap.js email_verification_enforcement_bootstrap.js; then fail 'Guardas legales todavía mencionan Mercado Pago'; fi
 # Beta privada: RBAC, propiedad e IDOR deben seguir protegidos en backend.
 grep -Fq "app.get('/api/admin/private-beta',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Admin beta privada no exige rol admin'
 grep -Fq "app.post('/api/admin/private-beta/run-matching',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Matching manual no exige rol admin'
