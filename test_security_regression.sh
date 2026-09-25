@@ -59,6 +59,9 @@ grep -q "products" current_legal_consent_enforcement_bootstrap.js || fail 'Publi
 grep -q "weekly-impulses" current_legal_consent_enforcement_bootstrap.js || fail 'Impulso semanal no está cubierto por puerta legal'
 grep -q "khipu.*checkout" current_legal_consent_enforcement_bootstrap.js || fail 'Checkout Khipu no está cubierto por puerta legal'
 if grep -Eqi 'mercadopago|marketplace_payments' current_legal_consent_enforcement_bootstrap.js email_verification_enforcement_bootstrap.js; then fail 'Guardas legales todavía mencionan Mercado Pago'; fi
+if grep -Eqi 'mercadopago|Mercado Pago' legal_final_ui.js account_security_bootstrap.js; then fail 'Textos legales o seguridad todavía mencionan Mercado Pago'; fi
+grep -q "2026-09-25-marketplace2" marketplace_legal_version_fix.js || fail 'Versión legal vigente no corresponde al 25-09-2026'
+grep -q "if(req.path==='/khipu/webhook') return next();" account_security_bootstrap.js || fail 'Origin guard no reconoce webhook Khipu'
 # Beta privada: RBAC, propiedad e IDOR deben seguir protegidos en backend.
 grep -Fq "app.get('/api/admin/private-beta',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Admin beta privada no exige rol admin'
 grep -Fq "app.post('/api/admin/private-beta/run-matching',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Matching manual no exige rol admin'
