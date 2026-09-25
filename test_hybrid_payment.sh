@@ -7,7 +7,7 @@ HYBRID_PORT=${HYBRID_PORT:-3101}
 HYBRID_DB_DRIVER=${HYBRID_DB_DRIVER:-}
 if [ "$HYBRID_DEMO_MODE" = "true" ]; then rm -f datoya.db datoya.db-shm datoya.db-wal; fi
 
-PORT="$HYBRID_PORT" DEMO_MODE="$HYBRID_DEMO_MODE" DB_DRIVER="$HYBRID_DB_DRIVER" AUTH_TEST_MODE=true MP_HYBRID_ENFORCE=0 npm start >/tmp/datoya-hybrid.log 2>&1 &
+PORT="$HYBRID_PORT" DEMO_MODE="$HYBRID_DEMO_MODE" DB_DRIVER="$HYBRID_DB_DRIVER" AUTH_TEST_MODE=true DATOYA_HYBRID_ENFORCE=0 npm start >/tmp/datoya-hybrid.log 2>&1 &
 PID=$!
 cleanup(){ kill "$PID" >/dev/null 2>&1 || true; wait "$PID" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
