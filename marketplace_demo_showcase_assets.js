@@ -9,6 +9,6 @@ if(fs.existsSync(idx)){
   for(const css of ['marketplace_demo_showcase','marketplace_demo_pitch'])html=html.replace(new RegExp('<link[^>]+href="\\/'+css+'\\.css[^\"]*"[^>]*>\\s*','g'),'');
   for(const js of ['marketplace_demo_showcase_ui','marketplace_demo_pitch_ui'])html=html.replace(new RegExp('<script[^>]+src="\\/'+js+'\\.js[^\"]*"[^>]*><\\/script>\\s*','g'),'');
   html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_demo_showcase.css?v=20260917-2">\n<link rel="stylesheet" href="/marketplace_demo_pitch.css?v=20260917-1">\n</head>');
-  html=html.replace('</body>','<script src="/marketplace_demo_showcase_ui.js?v=20260917-2"></script>\n<script src="/marketplace_demo_pitch_ui.js?v=20260917-1"></script>\n</body>');
+  html=html.replace('</body>','<script src="/marketplace_demo_showcase_ui.js?v=20260925-1"></script>\n<script src="/marketplace_demo_pitch_ui.js?v=20260917-1"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
