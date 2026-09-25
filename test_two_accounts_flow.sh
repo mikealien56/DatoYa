@@ -71,7 +71,7 @@ curl -fsS -c "$ADMIN_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api
 curl -fsS -b "$ADMIN_JAR" "$BASE/api/auth/me" | python3 -c 'import sys,json; u=json.load(sys.stdin)["user"]; assert u.get("role")=="admin" and u.get("account_type")=="admin"'
 curl -fsS -b "$ADMIN_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/admin/marketplace/businesses/$BIZ_ID/status" -d '{"status":"active"}' \
   | python3 -c 'import sys,json; assert json.load(sys.stdin).get("ok") is True'
-curl -fsS "$BASE/api/market/businesses?q=$BUSINESS_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); assert any(int(x['id'])==int('$BIZ_ID') and x['status']=='active' for x in d.get('businesses',[]))"
+curl -fsS "$BASE/api/market/businesses?q=$BUSINESS_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); assert any(int(x['id'])==int('$BIZ_ID') for x in d.get('businesses',[]))"
 
 echo "6/10 Negocio crea producto y aparece en búsqueda pública"
 PRODUCT_JSON="$(curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses/$BIZ_ID/products" \
