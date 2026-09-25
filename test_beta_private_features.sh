@@ -28,7 +28,7 @@ grep -q "order_cancelled" beta_private_features_bootstrap.js
 if grep -q "b.logo_data" beta_private_features_bootstrap.js; then echo "Favorites consulta una columna inexistente en businesses"; exit 1; fi
 grep -q "api/admin/private-beta" beta_private_features_bootstrap.js
 grep -q "commerce/favorites/details" beta_private_features_bootstrap.js
-grep -q "__dyRequireCustomerAccount" beta_private_features_bootstrap.js || { echo "Favoritos no validan account_type Cliente"; exit 1; }
+grep -q "__dyRequireBetaCustomerAccount" beta_private_features_bootstrap.js || { echo "Favoritos no validan account_type Cliente"; exit 1; }
 grep -q "follow/notifications" beta_private_features_bootstrap.js || { echo "Falta control de avisos de negocios seguidos"; exit 1; }
 grep -q "followed_promotion" beta_private_features_bootstrap.js || { echo "Falta notificación de promoción de negocio seguido"; exit 1; }
 grep -q "followed_impulse" beta_private_features_bootstrap.js || { echo "Falta notificación de Impulso de negocio seguido"; exit 1; }
