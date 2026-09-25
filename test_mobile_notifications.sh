@@ -14,7 +14,7 @@ grep -q "dy-push-retry" beta_private_ui.js || fail "Falta feedback/reintento cua
 grep -q "dy-bell-icon" beta_private_ui.js || fail "Campana no usa icono centrable"
 grep -q "display:inline-flex" beta_private_ui.css || fail "Campana no usa centrado flex"
 grep -q "dy-push-help" beta_private_ui.css || fail "Falta estilo de ayuda Push"
-grep -q "datoya-shell-v64" service-worker.js || fail "Falta refresco de caché PWA"
+grep -q "datoya-shell-v65" service-worker.js || fail "Falta refresco de caché PWA"
 
 node <<'NODE'
 const fs=require('fs');
