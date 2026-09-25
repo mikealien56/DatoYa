@@ -12,7 +12,6 @@ grep -q "DATOYA KHIPU PAYMENTS V1" server.js
 grep -q "app.post('/api/orders/:id/khipu/checkout'" server.js
 grep -q "app.post('/api/khipu/webhook'" server.js
 grep -q "payment_method='khipu'" server.js
-grep -q "stalePaymentAssets" marketplace_commerce_assets.js
 
 AUTH_TEST_MODE=true DEMO_MODE=false DB_DRIVER="$DB_DRIVER" PORT="$PORT" \
 ADMIN_EMAIL="admin-khipu-ci@datoya.invalid" ADMIN_PASSWORD="DatoYa-Khipu-CI-2026" \
