@@ -45,7 +45,7 @@ function __dyCommercialLegalRoute(req){
   if(method==='POST' && /^\\/api\\/orders\\/\\d+\\/cancel$/.test(route)) return true;
   if(method==='PUT' && /^\\/api\\/businesses\\/\\d+\\/orders\\/\\d+\\/status$/.test(route)) return true;
   if(method==='PUT' && /^\\/api\\/businesses\\/\\d+\\/orders\\/\\d+\\/payment$/.test(route)) return true;
-  if(method==='POST' && /^\\/api\\/orders\\/\\d+\\/mercadopago\\/checkout$/.test(route)) return true;
+  if(method==='POST' && /^\\/api\\/orders\\/\\d+\\/khipu\\/checkout$/.test(route)) return true;
 
   return false;
 }
