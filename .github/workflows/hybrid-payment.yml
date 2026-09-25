@@ -1,4 +1,4 @@
-name: DatoYa hybrid payments
+name: DatoYa Khipu payments
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  sqlite-hybrid:
+  sqlite-khipu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,15 +17,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm install
-      - name: Syntax marketplace payment
-        run: |
-          node --check marketplace_payments_bootstrap.js
-          node --check marketplace_payments_ui.js
-          bash -n test_marketplace_payment.sh
-      - name: Marketplace payment E2E SQLite real mode
-        run: MARKET_PORT=3101 bash test_marketplace_payment.sh
+      - name: Khipu runtime smoke test
+        run: KHIPU_TEST_PORT=3101 bash test_khipu_runtime.sh
 
-  postgres-hybrid:
+  postgres-khipu:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -33,16 +28,16 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: datoya_hybrid
+          POSTGRES_DB: datoya_khipu
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d datoya_hybrid"
+          --health-cmd "pg_isready -U postgres -d datoya_khipu"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/datoya_hybrid
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/datoya_khipu
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,5 +45,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm install
-      - name: Marketplace payment E2E PostgreSQL real mode
-        run: MARKET_DB_DRIVER=postgres MARKET_PORT=3102 bash test_marketplace_payment.sh
+      - name: Khipu runtime smoke test on PostgreSQL
+        run: KHIPU_TEST_DB_DRIVER=postgres KHIPU_TEST_PORT=3102 bash test_khipu_runtime.sh
