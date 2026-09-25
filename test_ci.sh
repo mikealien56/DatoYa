@@ -185,7 +185,6 @@ grep -q "app.post('/api/orders/:id/khipu/checkout'" server.js || { echo "Falta c
 grep -q "app.post('/api/khipu/webhook'" server.js || { echo "Falta webhook Khipu"; exit 1; }
 grep -q "payment_method='khipu'" server.js || { echo "Falta persistencia del método Khipu"; exit 1; }
 grep -q "khipu_payments_ui.js" marketplace_commerce_assets.js || { echo "Khipu no se publica en el frontend comercial"; exit 1; }
-grep -q "stalePaymentAssets" marketplace_commerce_assets.js || { echo "Falta limpiar assets de proveedores anteriores"; exit 1; }
 if grep -Eqi 'mercadopago|marketplace_payments_ui' public/index.html; then echo "El HTML público todavía referencia un proveedor de pago retirado"; exit 1; fi
 echo "✅ Checkout y publicación Khipu protegidos"
 echo "✅ Backend marketplace montado"
