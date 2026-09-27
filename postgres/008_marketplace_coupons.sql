@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS coupon_redemptions (
   reversed_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_coupon_user ON coupon_redemptions(coupon_id,user_id,status);
-DO $
+DO $coupon$
 BEGIN
   IF to_regclass('public.commerce_orders') IS NOT NULL THEN
     ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS coupon_id BIGINT;
@@ -48,4 +48,4 @@ BEGIN
     ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_base BIGINT;
     ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS datoya_commission_estimate BIGINT;
   END IF;
-END $;
+END; $coupon$;
