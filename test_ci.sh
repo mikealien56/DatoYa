@@ -45,6 +45,10 @@ grep -q "CREATE TABLE IF NOT EXISTS business_category_links" postgres/001_market
 grep -q "CREATE TABLE IF NOT EXISTS market_account_types" postgres/002_market_account_types.sql
 grep -q "ON CONFLICT (user_id) DO NOTHING" postgres/002_market_account_types.sql
 grep -q "Falta tabla PostgreSQL: market_account_types" postgres_migrate.js
+grep -q "CREATE TABLE IF NOT EXISTS market_coupons" postgres/008_marketplace_coupons.sql
+grep -q "CREATE TABLE IF NOT EXISTS coupon_redemptions" postgres/008_marketplace_coupons.sql
+grep -q "Falta tabla PostgreSQL: market_coupons" postgres_migrate.js
+grep -q "Falta tabla PostgreSQL: coupon_redemptions" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS support_cases" postgres/003_support_cases.sql
 grep -q "Falta tabla PostgreSQL: support_cases" postgres_migrate.js
 grep -q "ADD COLUMN IF NOT EXISTS business_id" postgres/006_business_support_threads.sql
@@ -123,6 +127,8 @@ echo "=== E2E Cliente + Negocio ==="
 bash test_two_accounts_flow.sh
 echo "=== E2E integridad de pedidos ==="
 bash test_order_integrity_flow.sh
+echo "=== E2E cupones ==="
+bash test_coupons_flow.sh
 echo "=== E2E recuperación + verificación ==="
 bash test_auth_recovery_flow.sh
 echo "=== QA Admin Marketplace V2 ==="
@@ -134,7 +140,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_integrations_ui.js support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
@@ -199,6 +205,8 @@ grep -q "'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 
 grep -q "AHORRA" business_impulse_plan_ui.js || { echo "Falta mostrar ahorro del plan trimestral"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const growth=s.indexOf("marketplace_growth_assets");const commerce=s.indexOf("marketplace_commerce_assets");if(growth<0||commerce<0||growth>commerce){throw new Error("El módulo de crecimiento vuelve a reemplazar la ruta del carrito")}'
 grep -q "marketplace_order_integrity_bootstrap" production_start.js || { echo "Integridad de pedidos no está montada"; exit 1; }
+grep -q "marketplace_coupons_bootstrap" production_start.js || { echo "Cupones no están montados"; exit 1; }
+grep -q "DATOYA MARKET COUPONS V1" server.js || { echo "Runtime de cupones no está montado"; exit 1; }
 grep -q "client_request_id" marketplace_order_integrity_bootstrap.js || { echo "Falta idempotencia de pedidos"; exit 1; }
 grep -q "deliveryFee=0" marketplace_order_integrity_bootstrap.js || { echo "Despacho no se calcula en servidor"; exit 1; }
 grep -q "deliveryDistanceKm>radius" marketplace_order_integrity_bootstrap.js || { echo "Radio de despacho no se valida cuando hay GPS"; exit 1; }

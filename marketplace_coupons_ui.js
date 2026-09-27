@@ -1,0 +1,92 @@
+/* DatoYa — cupones financiados por el negocio. */
+(()=>{
+  if(typeof routes==='undefined'||typeof api!=='function'||typeof view==='undefined')return;
+  const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money=n=>'$'+Number(n||0).toLocaleString('es-CL');
+  const dt=v=>{if(!v)return 'Sin fecha';try{return new Date(v).toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'})}catch(_){return String(v)}};
+  const couponCost=c=>{const cap=String(c.discount_type)==='percent'?Number(c.max_discount||0):Number(c.discount_value||0);return cap*Math.max(0,Number(c.max_uses||0));};
+
+  routes['mi-negocio-cupones']=async function(id){
+    if(!ME){location.hash='#/login';return;}
+    if(ME.account_type!=='business'){toast?.('Esta sección pertenece a una cuenta de negocio','err');location.hash='#/perfil';return;}
+    const businessId=Number(id||0);if(!businessId){location.hash='#/perfil';return;}
+    let data,meta;
+    try{[data,meta]=await Promise.all([api('/businesses/'+businessId+'/coupons'),api('/businesses/'+businessId+'/manage')]);}
+    catch(err){view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card"><h2>No pudimos cargar Cupones</h2><p>'+h(err.message||'Intenta nuevamente.')+'</p></section></div>';await window.__datoyaBusinessHubFrame?.(businessId,'coupons');return;}
+    const coupons=data.coupons||[],plan=data.plan||{},b=meta.business||{};
+    const active=Number(plan.active_count||0),limit=Number(plan.active_limit||1),paid=plan.plan==='impulso';
+    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage dy-coupons-page">
+      <section class="dy-business-dashboard-hero"><div><span>CUPONES</span><h1>Descuentos de ${h(b.name||'tu negocio')}</h1><p>El descuento lo financia el negocio. La comisión DatoYa se mantiene protegida y nunca se descuenta por defecto para financiar un cupón.</p></div></section>
+      <section class="dy-coupon-policy"><div><span>🏪</span><b>Financia el negocio</b><small>100% del descuento se imputa al negocio.</small></div><div><span>🛡️</span><b>DatoYa protegido</b><small>Los cupones DatoYa están desactivados.</small></div><div><span>${paid?'⚡':'○'}</span><b>${paid?'DatoYa Impulso':'Plan Gratis'}</b><small>${active}/${limit} cupones activos.</small></div></section>
+      <div class="dy-dashboard-grid">
+        <section class="dy-business-card"><div class="dy-card-head"><div><span>NUEVO CUPÓN</span><h2>Crea una campaña con tope</h2><p>Siempre definimos máximo de usos y descuento máximo para que conozcas el costo máximo.</p></div></div>
+          <form id="dy-coupon-form" class="dy-account-form">
+            <div class="dy-two-fields"><div class="field"><label>Código</label><input name="code" maxlength="24" placeholder="PRIMERA10" required></div><div class="field"><label>Nombre interno</label><input name="name" maxlength="100" placeholder="Primera compra"></div></div>
+            <div class="dy-two-fields"><div class="field"><label>Tipo</label><select name="discount_type"><option value="percent">Porcentaje</option><option value="fixed">Monto fijo</option></select></div><div class="field"><label>Descuento</label><input name="discount_value" type="number" min="1" value="10" required><small data-coupon-value-help>Porcentaje entre 1% y 50%.</small></div></div>
+            <div class="dy-two-fields"><div class="field"><label>Compra mínima</label><input name="min_order" type="number" min="0" value="10000"></div><div class="field" data-max-discount><label>Descuento máximo por compra</label><input name="max_discount" type="number" min="1" value="3000" required></div></div>
+            <div class="dy-two-fields"><div class="field"><label>Máximo de usos</label><input name="max_uses" type="number" min="1" max="10000" value="50" required></div><div class="field"><label>Usos por cliente</label><input name="per_user_limit" type="number" min="1" max="20" value="1" required></div></div>
+            <div class="dy-two-fields"><div class="field"><label>Comienza <small>(opcional)</small></label><input name="starts_at" type="datetime-local"></div><div class="field"><label>Termina <small>(opcional)</small></label><input name="ends_at" type="datetime-local"></div></div>
+            <label class="dy-check"><input name="first_order_only" type="checkbox"><span>Solo primera compra de ese cliente en mi negocio</span></label>
+            <div class="dy-coupon-budget" data-coupon-budget><span>💰</span><div><small>Costo máximo estimado para el negocio</small><b>$150.000</b></div></div>
+            <button class="btn btn-primary btn-block" type="submit" ${active>=limit?'disabled':''}>${active>=limit?(paid?'Límite de cupones activos alcanzado':'🔒 Ya tienes 1 cupón activo'):'Crear cupón'}</button>
+            ${!paid&&active>=limit?`<a class="btn btn-outline btn-block" href="#/mi-negocio-plan/${businessId}">Ver DatoYa Impulso · hasta 10 activos</a>`:''}
+          </form>
+        </section>
+        <section class="dy-business-card"><div class="dy-card-head"><div><span>REGLAS</span><h2>Cómo protege tu presupuesto</h2></div></div><div class="dy-coupon-rules"><p>✓ El cupón solo descuenta productos; no el despacho.</p><p>✓ Máximo 50% si es porcentual.</p><p>✓ Todo porcentaje exige un tope máximo en pesos.</p><p>✓ Cada campaña tiene máximo de usos.</p><p>✓ DatoYa no financia descuentos automáticamente.</p><p>✓ Si el pedido se cancela antes de completarse, el uso del cupón vuelve a quedar disponible.</p></div></section>
+      </div>
+      <section class="dy-business-card"><div class="dy-card-head"><div><span>MIS CUPONES</span><h2>${coupons.length?coupons.length+' campaña(s)':'Aún no tienes cupones'}</h2></div></div>
+        <div class="dy-coupon-list">${coupons.length?coupons.map(c=>{const isActive=Number(c.active)===1,used=Number(c.used_count||0),max=Number(c.max_uses||0),cap=String(c.discount_type)==='percent'?Number(c.max_discount||0):Number(c.discount_value||0);return `<article class="${isActive?'active':'paused'}"><div class="dy-coupon-code"><span>${isActive?'●':'○'}</span><div><b>${h(c.code)}</b><small>${h(c.name||'Cupón del negocio')}</small></div></div><div class="dy-coupon-value"><b>${c.discount_type==='percent'?Number(c.discount_value)+'%':money(c.discount_value)}</b><small>${c.discount_type==='percent'?'máx. '+money(c.max_discount):'por compra'}</small></div><div class="dy-coupon-usage"><b>${used}/${max}</b><small>usos · ${money(c.discount_used||0)} entregado</small></div><div class="dy-coupon-budget-small"><b>${money(couponCost(c))}</b><small>costo máximo campaña</small></div><div class="dy-coupon-actions"><button class="btn btn-outline btn-sm" onclick="dyCouponToggle(${businessId},${Number(c.id)},${isActive?'false':'true'},this)">${isActive?'Pausar':'Activar'}</button></div><div class="dy-coupon-detail"><span>Compra mínima ${money(c.min_order||0)}</span><span>${Number(c.first_order_only)?'Solo primera compra':'Todos los clientes'}</span><span>${c.ends_at?'Hasta '+dt(c.ends_at):'Sin vencimiento'}</span><span>Financia: negocio</span></div></article>`}).join(''):'<div class="dy-empty-products"><span>🎟️</span><b>Crea tu primer cupón</b><p>Define un límite y sabrás desde el inicio cuánto puede costar como máximo.</p></div>'}</div>
+      </section>
+    </div>`;
+    await window.__datoyaBusinessHubFrame?.(businessId,'coupons');
+
+    const form=document.getElementById('dy-coupon-form');
+    if(form){
+      const type=form.discount_type,maxBox=form.querySelector('[data-max-discount]'),help=form.querySelector('[data-coupon-value-help]'),budget=form.querySelector('[data-coupon-budget] b');
+      const update=()=>{const fixed=type.value==='fixed';maxBox.style.display=fixed?'none':'';form.max_discount.required=!fixed;help.textContent=fixed?'Monto fijo en pesos.':'Porcentaje entre 1% y 50%.';const per=fixed?Number(form.discount_value.value||0):Number(form.max_discount.value||0),uses=Number(form.max_uses.value||0);budget.textContent=money(Math.max(0,per)*Math.max(0,uses));};
+      ['change','input'].forEach(ev=>form.addEventListener(ev,update));update();
+      form.addEventListener('submit',async e=>{e.preventDefault();const btn=form.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Creando…';try{await api('/businesses/'+businessId+'/coupons',{method:'POST',body:{code:form.code.value,name:form.name.value,discount_type:form.discount_type.value,discount_value:Number(form.discount_value.value),max_discount:form.discount_type.value==='fixed'?Number(form.discount_value.value):Number(form.max_discount.value),min_order:Number(form.min_order.value||0),max_uses:Number(form.max_uses.value||50),per_user_limit:Number(form.per_user_limit.value||1),first_order_only:form.first_order_only.checked,starts_at:form.starts_at.value?new Date(form.starts_at.value).toISOString():null,ends_at:form.ends_at.value?new Date(form.ends_at.value).toISOString():null}});toast?.('Cupón creado','ok');routes['mi-negocio-cupones'](businessId);}catch(err){btn.disabled=false;btn.textContent='Crear cupón';toast?.(err.message,'err')}});
+    }
+  };
+  window.dyCouponToggle=async(bid,id,active,btn)=>{if(btn)btn.disabled=true;try{await api('/businesses/'+bid+'/coupons/'+id+'/toggle',{method:'POST',body:{active:!!active}});toast?.(active?'Cupón activado':'Cupón pausado','ok');routes['mi-negocio-cupones'](bid);}catch(err){if(btn)btn.disabled=false;toast?.(err.message,'err')}};
+
+  const previousCart=routes.carrito;
+  if(previousCart)routes.carrito=async function(){
+    await previousCart.apply(this,arguments);
+    if(!ME||ME.account_type==='business'||ME.role==='admin')return;
+    const oldForm=document.getElementById('dy-checkout-form');if(!oldForm)return;
+    let cart;try{cart=JSON.parse(localStorage.getItem('datoya_cart_v1')||'null')}catch(_){cart=null}
+    if(!cart||!Array.isArray(cart.items)||!cart.items.length||!cart.business_id)return;
+    const subtotal=cart.items.reduce((sum,x)=>sum+Number(x.price||0)*Number(x.quantity||0),0);
+    const form=oldForm.cloneNode(true);oldForm.replaceWith(form);
+    const note=form.querySelector('.dy-commerce-note');
+    const box=document.createElement('div');box.className='dy-cart-coupon';box.innerHTML='<label><b>🎟️ ¿Tienes un cupón?</b></label><div class="dy-cart-coupon-row"><input id="dy-cart-coupon-code" maxlength="24" placeholder="Ej: PRIMERA10" autocomplete="off"><button class="btn btn-outline btn-sm" id="dy-cart-coupon-apply" type="button">Aplicar</button></div><div id="dy-cart-coupon-result" class="dy-cart-coupon-result"></div>';
+    note?form.insertBefore(box,note):form.prepend(box);
+    const codeInput=box.querySelector('#dy-cart-coupon-code'),result=box.querySelector('#dy-cart-coupon-result'),apply=box.querySelector('#dy-cart-coupon-apply'),submit=form.querySelector('button[type="submit"]'),delivery=document.getElementById('dy-delivery-address');
+    let applied=null;
+    const showTotal=()=>{if(!submit)return;const discount=Number(applied?.discount_amount||0);submit.textContent='Enviar pedido · '+money(Math.max(0,subtotal-discount));};
+    apply.addEventListener('click',async()=>{const code=String(codeInput.value||'').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,24);codeInput.value=code;if(code.length<4){applied=null;result.className='dy-cart-coupon-result err';result.textContent='Ingresa un código válido.';showTotal();return;}apply.disabled=true;apply.textContent='Revisando…';try{const q=await api('/coupons/validate',{method:'POST',body:{business_id:Number(cart.business_id),code,subtotal}});applied=q;result.className='dy-cart-coupon-result ok';result.innerHTML='✓ <b>'+h(q.coupon.code)+'</b> · descuento '+money(q.discount_amount)+' · financia el negocio. Total productos: <b>'+money(q.subtotal_after_discount)+'</b>';showTotal();}catch(err){applied=null;result.className='dy-cart-coupon-result err';result.textContent=err.message||'Cupón no válido';showTotal();}finally{apply.disabled=false;apply.textContent='Aplicar';}});
+    const toggle=()=>{if(delivery)delivery.style.display=form.fulfillment_method?.value==='delivery'?'block':'none'};form.fulfillment_method?.addEventListener('change',toggle);toggle();showTotal();
+    form.addEventListener('submit',async e=>{e.preventDefault();if(submit?.disabled)return;if(submit){submit.disabled=true;submit.textContent='Enviando pedido…';}try{let requestId=String(cart.checkout_request_id||'');if(!requestId){requestId=(globalThis.crypto?.randomUUID?.()||('dy-'+Date.now()+'-'+Math.random().toString(36).slice(2))).slice(0,100);cart.checkout_request_id=requestId;localStorage.setItem('datoya_cart_v1',JSON.stringify(cart));}const body={business_id:Number(cart.business_id),fulfillment_method:form.fulfillment_method.value,customer_name:form.customer_name.value.trim(),customer_phone:form.customer_phone.value.trim(),delivery_address:form.delivery_address.value.trim(),notes:form.notes.value.trim(),items:cart.items.map(x=>({product_id:x.product_id,impulse_id:x.impulse_id,quantity:x.quantity})),source_weekly_id:cart.source_weekly_id||null,client_request_id:requestId,coupon_code:applied?.coupon?.code||''};const r=await api('/orders',{method:'POST',body});localStorage.removeItem('datoya_cart_v1');document.getElementById('dy-cart-bubble')?.remove();toast?.('Pedido '+r.order.reference+' enviado'+(Number(r.order.coupon_discount||0)>0?' con cupón aplicado':''),'ok');location.hash='#/pedidos';}catch(err){if(submit){submit.disabled=false;showTotal();}toast?.(err.message,'err')}});
+  };
+
+  const previousOrders=routes.pedidos;
+  if(previousOrders)routes.pedidos=async function(){
+    await previousOrders.apply(this,arguments);
+    if(!ME||ME.account_type==='business'||ME.role==='admin')return;
+    try{const {orders=[]}=await api('/orders/mine');for(const o of orders){if(Number(o.coupon_discount||0)<1)continue;const card=document.getElementById('dy-order-'+Number(o.id));if(!card||card.querySelector('.dy-order-coupon'))continue;const note=document.createElement('div');note.className='dy-commerce-note dy-order-coupon';note.innerHTML='<b>🎟️ Cupón '+h(o.coupon_code||'')+'</b><p>Descuento del negocio: <b>-'+money(o.coupon_discount)+'</b> · subtotal original '+money(o.subtotal)+'.</p>';const meta=card.querySelector('.dy-order-meta');meta?meta.insertAdjacentElement('afterend',note):card.appendChild(note);}}
+    catch(_){}
+  };
+
+  const previousAdmin=routes.admin;
+  if(previousAdmin)routes.admin=async function(tab='dashboard'){
+    if(tab!=='cupones')return previousAdmin.apply(this,arguments);
+    if(!ME||ME.role!=='admin'){view.innerHTML='<div class="empty"><b>🛡️</b>Acceso solo para administradores.</div>';return;}
+    try{
+      const {coupons=[],summary={},datoya_funded_enabled}=await api('/admin/marketplace-v2/coupons');
+      const shell=window.__datoyaAdminV2Shell;if(typeof shell!=='function')return previousAdmin.apply(this,arguments);
+      shell('Cupones','Controla las campañas creadas por los negocios y verifica quién financia cada descuento.',`<div class="dy-admin-kpis"><div><strong>${Number(summary.coupons||0)}</strong><span>Cupones</span><small>${Number(summary.active||0)} activos</small></div><div><strong>${money(summary.business_funded||0)}</strong><span>Descuento negocios</span><small>Financiado por comercios</small></div><div><strong>${money(summary.datoya_funded||0)}</strong><span>Descuento DatoYa</span><small>${datoya_funded_enabled?'Habilitado':'Debe permanecer $0'}</small></div></div><div class="dy-admin-coupon-guard"><span>🛡️</span><div><b>Protección de presupuesto DatoYa</b><p>Los negocios financian sus cupones. No existe cupón financiado por DatoYa habilitado en producción.</p></div></div><div class="dy-admin-list">${coupons.length?coupons.map(c=>`<article class="card dy-admin-row"><div><b>🎟️ ${h(c.code)} · ${h(c.business_name)}</b><div class="small muted">${h(c.owner_email||'')} · ${c.discount_type==='percent'?Number(c.discount_value)+'% máx. '+money(c.max_discount):money(c.discount_value)} · compra mín. ${money(c.min_order)}</div><div class="dy-admin-tags"><span class="dy-admin-badge ${Number(c.active)?'ok':'warn'}">${Number(c.active)?'Activo':'Pausado'}</span><span class="dy-admin-badge">${Number(c.redemption_count||0)}/${Number(c.max_uses||0)} usos</span><span class="dy-admin-badge">Negocio financia ${money(c.discount_used||0)}</span><span class="dy-admin-badge ok">DatoYa $0</span></div></div><div class="dy-admin-row-actions"><button class="btn btn-outline btn-sm" onclick="dyAdminCouponToggle(${Number(c.id)},${Number(c.active)?'false':'true'},this)">${Number(c.active)?'Pausar':'Activar'}</button></div></article>`).join(''):'<div class="card"><p>Aún no existen cupones.</p></div>'}</div>`);
+    }catch(err){window.__datoyaAdminV2Shell?.('Cupones','No pudimos cargar las campañas.','<div class="card"><p>'+h(err.message||'Intenta nuevamente.')+'</p></div>');}
+  };
+  window.dyAdminCouponToggle=async(id,active,btn)=>{if(btn)btn.disabled=true;try{await api('/admin/marketplace-v2/coupons/'+id+'/active',{method:'PUT',body:{active:!!active}});toast?.(active?'Cupón activado':'Cupón pausado','ok');routes.admin('cupones');}catch(err){if(btn)btn.disabled=false;toast?.(err.message,'err')}};
+})();

@@ -62,6 +62,7 @@
       ['payments','#/mi-negocio-pagos/'+id,'💳','Pagos',false],
       ['hours','#/mi-negocio-horarios/'+id,'🕒','Horarios',false],
       ['promos','#/mi-negocio-promociones/'+id,'🏷️','Promociones',false],
+      ['coupons','#/mi-negocio-cupones/'+id,'🎟️','Cupones',false],
       ['impulse','#/impulso-ahora/'+id,'⚡','Impulso',!paid],
       ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
       ['pulse',paid?'#/mi-negocio-pulso/'+id:'#/mi-negocio-plan/'+id,'📍','Pulso Local',!paid],
@@ -78,6 +79,7 @@
     root.prepend(shell);
   }
 
+  window.__datoyaBusinessHubFrame=addHubFrame;
   async function renderDashboard(id){
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}

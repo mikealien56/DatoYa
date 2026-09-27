@@ -14,7 +14,7 @@
       ['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos'],['#/admin/pedidos','🧾','Pedidos'],['#/admin/soporte','📨','Soporte']
     ]],
     ['Crecimiento',[
-      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/impulso-semanal','⭐','Impulso semanal'],['#/admin/analitica','📈','Analítica']
+      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso semanal'],['#/admin/analitica','📈','Analítica']
     ]],
     ['Sistema',[
       ['#/admin/usuarios','👥','Usuarios'],['#/admin/finanzas','💰','Finanzas'],['#/admin/configuracion','⚙️','Configuración']
