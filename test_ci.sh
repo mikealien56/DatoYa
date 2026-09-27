@@ -196,6 +196,15 @@ grep -q "admin/marketplace-v2/impulso/gift" marketplace_admin_v2_ui.js || { echo
 grep -q "'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 meses en DatoYa Impulso"; exit 1; }
 grep -q "AHORRA" business_impulse_plan_ui.js || { echo "Falta mostrar ahorro del plan trimestral"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const growth=s.indexOf("marketplace_growth_assets");const commerce=s.indexOf("marketplace_commerce_assets");if(growth<0||commerce<0||growth>commerce){throw new Error("El módulo de crecimiento vuelve a reemplazar la ruta del carrito")}'
+grep -q "marketplace_order_integrity_bootstrap" production_start.js || { echo "Integridad de pedidos no está montada"; exit 1; }
+grep -q "client_request_id" marketplace_order_integrity_bootstrap.js || { echo "Falta idempotencia de pedidos"; exit 1; }
+grep -q "deliveryFee=0" marketplace_order_integrity_bootstrap.js || { echo "Despacho no se calcula en servidor"; exit 1; }
+grep -q "deliveryDistance>radius" marketplace_order_integrity_bootstrap.js || { echo "Radio de despacho no se valida cuando hay GPS"; exit 1; }
+grep -q "pickup-qr.svg" marketplace_order_integrity_bootstrap.js || { echo "Falta QR de retiro"; exit 1; }
+grep -q "pickup/verify" marketplace_order_integrity_bootstrap.js || { echo "Falta verificación de retiro"; exit 1; }
+grep -q "Valida el código o QR de retiro" marketplace_order_integrity_bootstrap.js || { echo "Pedido retiro puede completarse sin validar"; exit 1; }
+grep -q "ensureCheckoutRequestId" marketplace_commerce_ui.js || { echo "Frontend no conserva idempotencia del checkout"; exit 1; }
+grep -q "routes.retiro" marketplace_commerce_ui.js || { echo "Falta ruta de escaneo QR"; exit 1; }
 grep -q "app.post('/api/orders/:id/khipu/checkout'" server.js || { echo "Falta checkout Khipu para pedidos"; exit 1; }
 grep -q "app.post('/api/khipu/webhook'" server.js || { echo "Falta webhook Khipu"; exit 1; }
 grep -q "payment_method='khipu'" server.js || { echo "Falta persistencia del método Khipu"; exit 1; }
