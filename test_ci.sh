@@ -56,6 +56,8 @@ grep -q "Falta tabla PostgreSQL: market_coupon_categories" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS founder_invites" postgres/010_marketplace_growth_program.sql
 grep -q "CREATE TABLE IF NOT EXISTS business_growth_profiles" postgres/010_marketplace_growth_program.sql
 grep -q "CREATE TABLE IF NOT EXISTS business_referrals" postgres/010_marketplace_growth_program.sql
+grep -q "ADD COLUMN IF NOT EXISTS invitee_email" postgres/013_unique_founder_invites.sql
+grep -q "ADD COLUMN IF NOT EXISTS used_by_user_id" postgres/013_unique_founder_invites.sql
 grep -q "Falta tabla PostgreSQL: founder_invites" postgres_migrate.js
 grep -q "Falta tabla PostgreSQL: business_growth_profiles" postgres_migrate.js
 grep -q "Falta tabla PostgreSQL: business_referrals" postgres_migrate.js
@@ -261,6 +263,11 @@ grep -q "commission_impulso_pct','3.9" marketplace_growth_program_bootstrap.js |
 grep -q "commission_exclusive_impulso_pct','2.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión exclusiva Impulso 2,9%"; exit 1; }
 grep -q "__dyGrowthOnOrderCompleted" marketplace_growth_program_bootstrap.js || { echo "Referidos no reaccionan a pedidos completados"; exit 1; }
 grep -q "invitation_code" marketplace_account_ui.js || { echo "Registro no permite código Fundador"; exit 1; }
+grep -q "routes\['registro-fundador'\]" marketplace_account_ui.js || { echo "Falta enlace personal de Fundador"; exit 1; }
+grep -q "check-email" marketplace_growth_program_bootstrap.js || { echo "Invitación Fundador no valida correo"; exit 1; }
+grep -q "invitee_email" marketplace_growth_program_bootstrap.js || { echo "Invitación Fundador no está ligada al correo"; exit 1; }
+grep -q "status='used'" marketplace_growth_program_bootstrap.js || { echo "Invitación Fundador no se consume"; exit 1; }
+grep -q "dyShareFounderInvite" marketplace_admin_v2_ui.js || { echo "Admin no puede compartir invitación Fundador"; exit 1; }
 grep -q "Solo en DatoYa" marketplace_business_ui.js || { echo "Negocio no puede marcar promoción exclusiva"; exit 1; }
 grep -q "admin/fundadores" marketplace_admin_v2_ui.js || { echo "Admin no expone Fundadores"; exit 1; }
 grep -q "commissionBase=Math.max(0,subtotal-couponDiscount)" marketplace_coupons_bootstrap.js || { echo "Comisión no usa venta neta"; exit 1; }

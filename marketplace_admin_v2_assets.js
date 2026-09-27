@@ -5,5 +5,5 @@ const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){let h=fs.readFileSync(idx,'utf8');
 h=h.replace(/<link[^>]+href="\/marketplace_admin_v2\.css[^"]*"[^>]*>\s*/g,'').replace(/<script[^>]+src="\/marketplace_admin_v2_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
 h=h.replace('</head>','<link rel="stylesheet" href="/marketplace_admin_v2.css?v=20260923-4">\n</head>');
-h=h.replace('</body>','<script src="/marketplace_admin_v2_ui.js?v=20260927-1"></script>\n</body>');
+h=h.replace('</body>','<script src="/marketplace_admin_v2_ui.js?v=20260927-2"></script>\n</body>');
 fs.writeFileSync(idx,h);}

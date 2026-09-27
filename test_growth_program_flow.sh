@@ -21,17 +21,25 @@ register(){
   curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/auth/email-verification/confirm" -d "{\"token\":\"$token\"}" >/dev/null
 }
 
-register "$C" "growth-client-$STAMP@datoya.test" customer "Cliente Growth"
-register "$F" "growth-founder-$STAMP@datoya.test" business "Fundador Growth"
-register "$R" "growth-referred-$STAMP@datoya.test" business "Referido Growth"
+C_EMAIL="growth-client-$STAMP@datoya.test"
+F_EMAIL="growth-founder-$STAMP@datoya.test"
+R_EMAIL="growth-referred-$STAMP@datoya.test"
+register "$C" "$C_EMAIL" customer "Cliente Growth"
+register "$F" "$F_EMAIL" business "Fundador Growth"
+register "$R" "$R_EMAIL" business "Referido Growth"
 
 : "${ADMIN_EMAIL:?}" "${ADMIN_PASSWORD:?}"
 curl -fsS -c "$A" -H 'Content-Type: application/json' -X POST "$BASE/api/auth/login" -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" >/dev/null
 
-echo "1/9 Admin crea invitación Fundador"
-INVITE="FUNDADOR-$(echo "$STAMP"|tr -cd '[:alnum:]'|cut -c1-16)"
-curl -fsS -b "$A" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/marketplace-v2/founder-invites" -d "{\"code\":\"$INVITE\",\"label\":\"Fundador QA\",\"max_uses\":1}" | python3 -c "import sys,json;d=json.load(sys.stdin);assert d['invite']['code']=='$INVITE'"
-
+echo "1/9 Admin crea invitación Fundador única y ligada al correo"
+INVITE_JSON="$(curl -fsS -b "$A" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/marketplace-v2/founder-invites" -d "{\"business_name\":\"Fundador QA\",\"email\":\"$F_EMAIL\"}")"
+INVITE="$(printf '%s' "$INVITE_JSON"|python3 -c 'import sys,json;d=json.load(sys.stdin);i=d["invite"];assert int(i["max_uses"])==1 and i["invitee_email"];print(i["code"])')"
+curl -fsS "$BASE/api/founder-invites/$INVITE" | python3 -c 'import sys,json;d=json.load(sys.stdin)["invite"];assert d["business_name"]=="Fundador QA" and "***" in d["email_masked"]'
+curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/founder-invites/$INVITE/check-email" -d "{\"email\":\"$R_EMAIL\"}" | python3 -c 'import sys,json;assert json.load(sys.stdin)["ok"] is False'
+curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/founder-invites/$INVITE/check-email" -d "{\"email\":\"$F_EMAIL\"}" | python3 -c 'import sys,json;assert json.load(sys.stdin)["ok"] is True'
+BAD_CODE="$(curl -s -o "$TMP/wrong-founder-email" -w '%{http_code}' -b "$R" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" -d "{\"name\":\"NoDebeSerFundador$STAMP\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"address\":\"QA Wrong\",\"pickup_enabled\":true,\"invitation_code\":\"$INVITE\"}")"
+[ "$BAD_CODE" = "400" ] || fail "otro correo pudo usar invitación Fundador (HTTP $BAD_CODE)"
+python3 -c 'import json;d=json.load(open("'"$TMP/wrong-founder-email"'"));assert "otro correo" in d.get("error","").lower()'
 echo "2/9 Negocio entra con invitación y queda marcado como Fundador"
 FJSON="$(curl -fsS -b "$F" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" -d "{\"name\":\"Fundador$STAMP\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"address\":\"QA 100\",\"public_address_mode\":\"approximate\",\"phone\":\"+56922220001\",\"whatsapp\":\"+56922220001\",\"pickup_enabled\":true,\"delivery_enabled\":false,\"invitation_code\":\"$INVITE\"}")"
 FBIZ="$(printf '%s' "$FJSON"|python3 -c 'import sys,json;print(json.load(sys.stdin)["business"]["id"])')"
@@ -39,6 +47,7 @@ curl -fsS -b "$A" -H 'Content-Type: application/json' -X PUT "$BASE/api/admin/ma
 FOUNDERS="$(curl -fsS -b "$A" "$BASE/api/admin/marketplace-v2/founders")"
 FCODE="$(printf '%s' "$FOUNDERS"|python3 -c "import sys,json;d=json.load(sys.stdin);f=next(x for x in d['founders'] if int(x['business_id'])==int('$FBIZ'));assert int(f['is_founder'])==1;print(f['founder_code'])")"
 [ -n "$FCODE" ] || fail "Fundador quedó sin código personal"
+curl -fsS -b "$A" "$BASE/api/admin/marketplace-v2/founders" | python3 -c "import sys,json;d=json.load(sys.stdin);i=next(x for x in d['invites'] if x['code']=='$INVITE');assert i['status']=='used' and int(i['used_count'])==1 and i['invitee_email']=='$F_EMAIL'"
 curl -fsS -b "$F" "$BASE/api/businesses/$FBIZ/impulso-plan" | python3 -c 'import sys,json;d=json.load(sys.stdin);m=d["membership"];assert m and int(m["days_granted"])==30'
 
 echo "3/9 Fundador crea promo exclusiva Solo en DatoYa"
