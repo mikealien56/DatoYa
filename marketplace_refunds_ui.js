@@ -33,9 +33,7 @@
   window.dyRefundCancel=async id=>{if(!confirm('¿Cancelar esta solicitud de devolución?'))return;try{await api('/orders/refunds/'+id+'/cancel',{method:'POST'});toast?.('Solicitud cancelada','ok');routes.pedidos()}catch(e){toast?.(e.message,'err')}};
   window.dyRefundEscalate=async id=>{const note=prompt('¿Qué necesita revisar DatoYa?','')||'';try{await api('/orders/refunds/'+id+'/escalate',{method:'POST',body:{note}});toast?.('Caso enviado a DatoYa','ok');routes.pedidos()}catch(e){toast?.(e.message,'err')}};
 
-  const previousOrders=routes.pedidos;
-  if(previousOrders)routes.pedidos=async function(){
-    await previousOrders.apply(this,arguments);
+  async function decorateCustomerRefunds(){
     try{
       const [{orders=[]},{refunds=[]}]=await Promise.all([api('/orders/mine'),api('/orders/refunds/mine')]);
       const refundedByOrder=new Map();for(const r of refunds)if(String(r.status)==='refunded')refundedByOrder.set(Number(r.order_id),(refundedByOrder.get(Number(r.order_id))||0)+Number(r.refunded_amount||0));
@@ -44,6 +42,7 @@
       const byOrder=new Map();for(const r of refunds)if(!byOrder.has(Number(r.order_id)))byOrder.set(Number(r.order_id),r);
       for(const o of orders){
         const card=document.getElementById('dy-order-'+Number(o.id));if(!card)continue;
+        card.querySelectorAll('.dy-refund-box,.dy-refund-start').forEach(n=>n.remove());
         const r=byOrder.get(Number(o.id));
         if(r)card.insertAdjacentHTML('beforeend',refundBox(r,'customer'));
         const refundable=['paid','partially_refunded'].includes(String(o.payment_status));
@@ -52,7 +51,18 @@
         }
       }
     }catch(_){}
+  }
+  function scheduleCustomerRefundDecoration(){
+    [120,500,1200].forEach(ms=>setTimeout(()=>{if(String(location.hash||'').startsWith('#/pedidos'))decorateCustomerRefunds();},ms));
+  }
+  const previousOrders=routes.pedidos;
+  if(previousOrders)routes.pedidos=async function(){
+    await previousOrders.apply(this,arguments);
+    await decorateCustomerRefunds();
+    scheduleCustomerRefundDecoration();
   };
+  if(String(location.hash||'').startsWith('#/pedidos'))scheduleCustomerRefundDecoration();
+  window.addEventListener('hashchange',()=>{if(String(location.hash||'').startsWith('#/pedidos'))scheduleCustomerRefundDecoration();});
 
   function askNote(title,def=''){return prompt(title,def)||''}
   window.dyRefundApprove=async(bid,id,amount)=>{if(!confirm('¿Aprobar devolución por '+money(amount)+'?'))return;try{const r=await api('/businesses/'+bid+'/refunds/'+id+'/decision',{method:'POST',body:{action:'approve',amount}});toast?.(r.executed?'Devolución completada en modo de desarrollo':'Devolución aprobada','ok');routes['mi-negocio-pedidos'](bid)}catch(e){toast?.(e.message,'err')}};
@@ -61,16 +71,27 @@
   window.dyRefundBusinessEscalate=async(bid,id)=>{const note=askNote('¿Qué necesita revisar DatoYa?');try{await api('/businesses/'+bid+'/refunds/'+id+'/decision',{method:'POST',body:{action:'escalate',note}});toast?.('Caso escalado a DatoYa','ok');routes['mi-negocio-pedidos'](bid)}catch(e){toast?.(e.message,'err')}};
   window.dyRefundConfirmExternal=async(bid,id)=>{if(!confirm('Confirma esto solo si el dinero ya fue devuelto al cliente.'))return;const note=askNote('Referencia o nota de la devolución (opcional)');try{await api('/businesses/'+bid+'/refunds/'+id+'/confirm-external',{method:'POST',body:{note}});toast?.('Devolución registrada','ok');routes['mi-negocio-pedidos'](bid)}catch(e){toast?.(e.message,'err')}};
 
+  async function decorateBusinessRefunds(bid){
+    if(!bid)return;
+    try{
+      const [{orders=[]},{refunds=[]}]=await Promise.all([api('/businesses/'+bid+'/orders'),api('/businesses/'+bid+'/refunds')]);
+      const byOrder=new Map();for(const r of refunds)if(!byOrder.has(Number(r.order_id)))byOrder.set(Number(r.order_id),r);
+      for(const o of orders){
+        const card=document.querySelector('.dy-order-card[data-order-id="'+Number(o.id)+'"]');if(!card)continue;
+        card.querySelectorAll('.dy-refund-box').forEach(n=>n.remove());
+        const r=byOrder.get(Number(o.id));if(r)card.insertAdjacentHTML('beforeend',refundBox(r,'business'));
+      }
+    }catch(_){}
+  }
+  function scheduleBusinessRefundDecoration(bid){
+    [120,500,1200].forEach(ms=>setTimeout(()=>decorateBusinessRefunds(Number(bid)),ms));
+  }
   const prevBusinessOrders=routes['mi-negocio-pedidos'];
   if(prevBusinessOrders)routes['mi-negocio-pedidos']=async function(id){
     await prevBusinessOrders.apply(this,arguments);
     const bid=Number(id);if(!bid)return;
-    try{
-      const [{orders=[]},{refunds=[]}]=await Promise.all([api('/businesses/'+bid+'/orders'),api('/businesses/'+bid+'/refunds')]);
-      const byOrder=new Map();for(const r of refunds)if(!byOrder.has(Number(r.order_id)))byOrder.set(Number(r.order_id),r);
-      const cards=[...document.querySelectorAll('.dy-orders-list > .dy-order-card')];
-      orders.forEach((o,i)=>{const r=byOrder.get(Number(o.id));if(r&&cards[i])cards[i].insertAdjacentHTML('beforeend',refundBox(r,'business'));});
-    }catch(_){}
+    await decorateBusinessRefunds(bid);
+    scheduleBusinessRefundDecoration(bid);
   };
 
   const previousAdmin=routes.admin;
