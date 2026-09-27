@@ -24,7 +24,8 @@ for endpoint in \
   admin/marketplace-v2/finance \
   admin/marketplace-v2/impulso \
   admin/marketplace-v2/settings \
-  admin/support-cases; do
+  admin/support-cases \
+  admin/beta-launch; do
   code=$(curl -sS -b "$COOKIE" -o /tmp/dy_admin_marketplace_v2_response -w '%{http_code}' "$B/$endpoint")
   if [ "$code" != "200" ]; then
     echo "Admin Marketplace V2 falló /api/$endpoint HTTP $code"
