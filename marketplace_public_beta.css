@@ -15,3 +15,5 @@
 @media(max-width:700px){.dy-save-button{top:8px;right:8px;min-width:36px;height:36px;padding:0 9px}.dy-store-social-actions{display:grid;grid-template-columns:1fr 1fr}.dy-store-social-actions .dy-save-button,.dy-store-social-actions .dy-follow-button{width:100%;justify-content:center}}
 
 .dy-promo-countdown{display:inline-flex;width:max-content;max-width:100%;margin:7px 0 2px;padding:5px 9px;border-radius:999px;background:#fff3e8;color:#b45309;font-size:11px;font-weight:900}.dy-inline-countdown{font-style:normal!important;background:#fff3e8!important;color:#b45309!important;padding:4px 8px!important;border-radius:999px!important;font-size:11px!important;font-weight:900!important}.dy-real-product:has(.dy-promo-countdown){border:1px solid rgba(255,138,31,.22)}
+
+.dy-exclusive-public{display:inline-flex!important;align-items:center;gap:4px;width:max-content;padding:4px 8px;border-radius:999px;background:#fff0d6;color:#a55a00;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
