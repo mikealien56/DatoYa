@@ -34,6 +34,23 @@ jobs:
       - run: npm install
       - name: Create DatoYa PostgreSQL schema
         run: npm run migrate:postgres
+      - name: Verify optional commerce tables receive additive migrations
+        run: |
+          PGPASSWORD=datoya_test psql -h localhost -U datoya -d datoya_test -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE TABLE products (id BIGSERIAL PRIMARY KEY);
+          CREATE TABLE commerce_orders (id BIGSERIAL PRIMARY KEY);
+          SQL
+          npm run migrate:postgres
+          npm run migrate:postgres
+          PGPASSWORD=datoya_test psql -h localhost -U datoya -d datoya_test -v ON_ERROR_STOP=1 <<'SQL'
+          DO $verify$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='products' AND column_name='datoya_exclusive')
+              OR (SELECT count(*) FROM information_schema.columns WHERE table_name='commerce_orders' AND column_name IN
+                ('commission_rate_effective','commission_cap','commission_tier','commission_waived_reason','exclusive_subtotal','launch_free_order')) <> 6
+            THEN RAISE EXCEPTION 'Growth migration columns missing'; END IF;
+          END; $verify$;
+          SQL
       - name: Verify critical tables and constraints
         run: |
           PGPASSWORD=datoya_test psql -h localhost -U datoya -d datoya_test -v ON_ERROR_STOP=1 <<'SQL'

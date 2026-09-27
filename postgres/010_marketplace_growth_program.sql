@@ -41,11 +41,20 @@ CREATE TABLE IF NOT EXISTS business_referrals (
 );
 CREATE INDEX IF NOT EXISTS idx_business_referrals_founder ON business_referrals(founder_business_id,status);
 
-ALTER TABLE products ADD COLUMN IF NOT EXISTS datoya_exclusive INTEGER NOT NULL DEFAULT 0;
-
-ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_rate_effective DOUBLE PRECISION;
-ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_cap BIGINT;
-ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_tier TEXT;
-ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_waived_reason TEXT;
-ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS exclusive_subtotal BIGINT NOT NULL DEFAULT 0;
-ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS launch_free_order INTEGER NOT NULL DEFAULT 0;
+-- Commerce tables are optional in the PostgreSQL core bootstrap. Apply these
+-- additions when present; migrations rerun on startup if commerce is installed
+-- later. Keep each table's changes together and idempotent.
+DO $growth$
+BEGIN
+  IF to_regclass('public.products') IS NOT NULL THEN
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS datoya_exclusive INTEGER NOT NULL DEFAULT 0;
+  END IF;
+  IF to_regclass('public.commerce_orders') IS NOT NULL THEN
+    ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_rate_effective DOUBLE PRECISION;
+    ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_cap BIGINT;
+    ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_tier TEXT;
+    ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS commission_waived_reason TEXT;
+    ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS exclusive_subtotal BIGINT NOT NULL DEFAULT 0;
+    ALTER TABLE commerce_orders ADD COLUMN IF NOT EXISTS launch_free_order INTEGER NOT NULL DEFAULT 0;
+  END IF;
+END; $growth$;
