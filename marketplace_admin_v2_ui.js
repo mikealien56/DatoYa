@@ -14,7 +14,7 @@
       ['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos'],['#/admin/pedidos','🧾','Pedidos'],['#/admin/soporte','📨','Soporte']
     ]],
     ['Crecimiento',[
-      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/fundadores','🏅','Fundadores'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso semanal'],['#/admin/analitica','📈','Analítica']
+      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/fundadores','🏅','Fundadores'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso semanal'],['#/admin/destacado','🏅','Negocio destacado'],['#/admin/analitica','📈','Analítica']
     ]],
     ['Sistema',[
       ['#/admin/usuarios','👥','Usuarios'],['#/admin/finanzas','💰','Finanzas'],['#/admin/configuracion','⚙️','Configuración']
@@ -57,9 +57,17 @@
 
   routes.admin=async function(tab='dashboard'){
     if(!ME||ME.role!=='admin'){view.innerHTML='<div class="empty"><b>🛡️</b>Acceso solo para administradores.</div>';return;}
-    const managed=['dashboard','resumen','usuarios','negocios','productos','pedidos','finanzas','impulso','fundadores','impulso-semanal','analitica','moderacion','configuracion'];
+    const managed=['dashboard','resumen','usuarios','negocios','productos','pedidos','finanzas','impulso','fundadores','impulso-semanal','destacado','analitica','moderacion','configuracion'];
     if(!managed.includes(tab))return previous.apply(this,arguments);
     try{
+      if(tab==='destacado'){
+        const [{placements=[],price},{businesses=[]}]=await Promise.all([api('/admin/featured-business'),api('/admin/marketplace-v2/businesses')]);
+        shell('Negocio destacado de la semana','Un cupo por comuna durante siete días. Los pagos se verifican en Khipu antes de aprobar.',`<section class="card"><h3>Precio semanal</h3><div class="row wrap"><input id="dy-featured-price" type="number" min="1000" max="100000" value="${Number(price)}" aria-label="Precio semanal en pesos"><button class="btn btn-primary" id="dy-featured-save">Guardar precio</button></div></section><section class="card"><h3>Cortesía para fundadores</h3><div class="row wrap"><select id="dy-featured-gift-business"><option value="">Elegir negocio</option>${businesses.filter(b=>b.status==='active').map(b=>`<option value="${Number(b.id)}">${h(b.name)}</option>`).join('')}</select><button class="btn btn-outline" id="dy-featured-gift">Regalar 7 días</button></div></section><section class="card"><h3>Solicitudes y destacados</h3><div class="dy-admin-list">${placements.map(p=>`<article class="dy-admin-row"><div><b>${h(p.business_name)}</b><div class="small muted">${h(p.comuna||'')} · ${h(p.status)} · ${h(p.source==='gifted'?'Cortesía':money(p.amount))}</div><div class="small muted">${p.starts_at?'Inicio '+dt(p.starts_at):''} ${p.ends_at?'· Fin '+dt(p.ends_at):''}</div></div>${p.status==='paid_pending_review'&&p.business_status==='active'?`<button class="btn btn-primary btn-sm" data-featured-activate="${Number(p.id)}">Publicar 7 días</button>`:''}</article>`).join('')||'<p>Aún no hay solicitudes.</p>'}</div></section>`);
+        document.getElementById('dy-featured-save')?.addEventListener('click',async()=>{try{await api('/admin/featured-business/price',{method:'PUT',body:{price:Number(document.getElementById('dy-featured-price').value)}});toast?.('Precio guardado','ok');}catch(e){toast?.(e.message,'err')}});
+        document.getElementById('dy-featured-gift')?.addEventListener('click',async()=>{const business_id=Number(document.getElementById('dy-featured-gift-business').value);if(!business_id)return;try{await api('/admin/featured-business/gift',{method:'POST',body:{business_id}});routes.admin('destacado');}catch(e){toast?.(e.message,'err')}});
+        document.querySelectorAll('[data-featured-activate]').forEach(button=>button.addEventListener('click',async()=>{try{await api('/admin/featured-business/'+Number(button.dataset.featuredActivate)+'/activate',{method:'POST',body:{}});routes.admin('destacado');}catch(e){toast?.(e.message,'err')}}));
+        return;
+      }
       if(tab==='dashboard'||tab==='resumen'){
         const [{summary:s},{cases=[]}]=await Promise.all([api('/admin/marketplace-v2/summary'),api('/admin/support-cases').catch(()=>({cases:[]}))]);
         const businessPending=Number(s.businesses?.pending_review||0);
