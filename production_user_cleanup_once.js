@@ -77,7 +77,24 @@ if(serviceId===SERVICE_ID && getSetting(MARKER,'')!=='done'){
   console.log('[DatoYa cleanup] Usuarios antes: '+totalBefore+'; usuarios después: '+remaining.length+'.');
   console.log('[DatoYa cleanup] Admin final: '+String(remaining[0].email||'').toLowerCase()+'.');
 }else if(serviceId===SERVICE_ID){
-  console.log('[DatoYa cleanup] Limpieza de cuentas de prueba ya aplicada; sin cambios.');
+  // If the cleanup already ran with an obsolete temporary ADMIN_EMAIL, keep the
+  // existing sole admin/password and only move that account to the final email.
+  const total=Number((db.prepare('SELECT COUNT(*) c FROM users').get()||{}).c||0);
+  const target=db.prepare("SELECT id,email,role FROM users WHERE lower(email)=lower(?) LIMIT 1").get(adminEmail);
+  if(!target && total===1){
+    const sole=db.prepare('SELECT id,email,role FROM users LIMIT 1').get();
+    if(sole && String(sole.role)==='admin'){
+      db.prepare('UPDATE users SET email=? WHERE id=?').run(adminEmail,sole.id);
+      try{db.prepare("INSERT INTO market_account_types(user_id,account_type) VALUES(?,'admin') ON CONFLICT(user_id) DO UPDATE SET account_type='admin',updated_at=CURRENT_TIMESTAMP").run(sole.id);}catch(_){}
+      console.log('[DatoYa cleanup] Email admin final actualizado conservando la contraseña existente: '+adminEmail+'.');
+    }else{
+      console.log('[DatoYa cleanup] No se pudo finalizar el email admin automáticamente; estado inesperado.');
+    }
+  }else if(target){
+    console.log('[DatoYa cleanup] Admin final confirmado: '+adminEmail+'.');
+  }else{
+    console.log('[DatoYa cleanup] Limpieza aplicada; quedan '+total+' usuarios y no se cambió el email admin.');
+  }
 }
 
 module.exports={marker:MARKER};
