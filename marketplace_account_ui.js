@@ -118,6 +118,8 @@
       try{sessionStorage.setItem('datoya_founder_invite',invite.code);sessionStorage.setItem('datoya_founder_business_name',invite.business_name||'');}catch(_){}
       if(ME){
         if(ME.account_type!=='business'){view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación necesita una cuenta de negocio. Cierra sesión y abre el enlace nuevamente.</div>';return;}
+        const check=await accountAuthApi('/founder-invites/'+encodeURIComponent(invite.code)+'/check-email',{method:'POST',body:{email:ME.email||''}},'La invitación Fundador');
+        if(!check.ok){view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación fue creada para otro correo. Inicia sesión con la cuenta invitada.</div>';return;}
         if(!ME.email_verified){location.hash='#/verifica-tu-cuenta';if(typeof route==='function')route();return;}
         location.hash='#/registrar-negocio';if(typeof route==='function')route();return;
       }
