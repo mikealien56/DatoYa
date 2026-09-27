@@ -2,6 +2,30 @@
 (() => {
   const e = value => String(value ?? '').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   const statusPill=(ok,yes,no)=>`<span class="pill" style="${ok?'background:#dcfce7;color:#166534':'background:#fff7ed;color:#9a3412'}">${ok?yes:no}</span>`;
+  // DATOYA_AUTH_UI_GUARD_V1
+  const AUTH_UI_TIMEOUT_MS=18000;
+  function authUiTimeout(promise,label='DatoYa'){
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+' tardó demasiado en responder. Revisa tu conexión y vuelve a intentar.')),AUTH_UI_TIMEOUT_MS);})
+    ]).finally(()=>clearTimeout(timer));
+  }
+  const authUiApi=(url,opts,label)=>authUiTimeout(api(url,opts),label);
+  async function authUiSession(){
+    try{
+      const r=await authUiApi('/auth/me',undefined,'La sesión');
+      ME=r.user;renderAuthArea();return ME;
+    }catch(err){
+      if(err?.status===401||err?.status===403){ME=null;renderAuthArea();return null;}
+      throw err;
+    }
+  }
+  function authButtonBusy(form,busy,label){
+    const btn=form?.querySelector('button[type="submit"]');if(!btn)return;
+    if(busy){if(!btn.dataset.dyLabel)btn.dataset.dyLabel=btn.textContent;btn.disabled=true;if(label)btn.textContent=label;}
+    else{btn.disabled=false;if(btn.dataset.dyLabel){btn.textContent=btn.dataset.dyLabel;delete btn.dataset.dyLabel;}}
+  }
 
   routes.login = async function(){
     view.innerHTML=`<div class="card" style="max-width:440px;margin:20px auto"><h2>Ingresar a DatoYa</h2><form onsubmit="doLogin(event)"><div class="field"><label>Correo electrónico</label><input name="email" type="email" autocomplete="email" required></div><div class="field"><label>Contraseña</label><input name="password" type="password" autocomplete="current-password" required></div><button class="btn btn-primary btn-block">Ingresar</button></form><div style="text-align:center;margin-top:12px"><a href="#/recuperar">¿Olvidaste tu contraseña?</a></div></div>`;
@@ -27,8 +51,12 @@
     view.innerHTML=`<div class="card" style="max-width:460px;margin:20px auto"><a href="#/login">← Volver</a><h2>Recuperar contraseña</h2><p>Escribe el correo de tu cuenta. Por seguridad, DatoYa no confirma si una dirección está registrada.</p>${!cfg.email_delivery_configured&&!cfg.test_mode?'<div class="lock-note">📧 El proveedor de correo todavía no está conectado en esta beta. La función ya está preparada, pero los correos reales no se enviarán hasta configurar el proveedor.</div>':''}<form onsubmit="requestDatoYaPasswordReset(event)"><div class="field"><label>Correo electrónico</label><input name="email" type="email" autocomplete="email" required></div><button class="btn btn-primary btn-block">Enviar instrucciones</button></form><div id="reset-result" style="margin-top:12px"></div></div>`;
   };
   window.requestDatoYaPasswordReset=async function(ev){
-    ev.preventDefault(); const box=document.getElementById('reset-result');
-    try{const r=await api('/auth/forgot-password',{method:'POST',body:{email:ev.target.email.value}}); box.innerHTML=`<div class="lock-note">${e(r.message)}</div>${r.test_token?`<a class="btn btn-outline btn-block" href="#/restablecer/${encodeURIComponent(r.test_token)}">Abrir enlace de prueba</a>`:''}`;}catch(err){toast(err.message,'err');}
+    ev.preventDefault(); const form=ev.target,box=document.getElementById('reset-result');authButtonBusy(form,true,'Enviando…');
+    try{
+      const r=await authUiApi('/auth/forgot-password',{method:'POST',body:{email:form.email.value}},'La recuperación de contraseña');
+      box.innerHTML=`<div class="lock-note">${e(r.message)}</div>${r.test_token?`<a class="btn btn-outline btn-block" href="#/restablecer/${encodeURIComponent(r.test_token)}">Abrir enlace de prueba</a>`:''}`;
+    }catch(err){toast(err.message,'err');}
+    finally{authButtonBusy(form,false);}
   };
 
   routes.restablecer=async function(token){
@@ -36,7 +64,16 @@
     const safe=decodeURIComponent(token||legacyToken||'');
     view.innerHTML=`<div class="card" style="max-width:460px;margin:20px auto"><h2>Nueva contraseña</h2>${safe?`<form onsubmit="completeDatoYaPasswordReset(event,'${e(safe)}')"><div class="field"><label>Nueva contraseña</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label>Repite la contraseña</label><input name="repeat" type="password" minlength="8" autocomplete="new-password" required></div><button class="btn btn-primary btn-block">Cambiar contraseña</button></form>`:'<div class="empty">El enlace de recuperación no es válido.</div>'}</div>`;
   };
-  window.completeDatoYaPasswordReset=async function(ev,token){ev.preventDefault();const f=ev.target;if(f.password.value!==f.repeat.value)return toast('Las contraseñas no coinciden','err');try{const r=await api('/auth/reset-password',{method:'POST',body:{token,password:f.password.value}});toast(r.message||'Contraseña actualizada','ok');location.hash='#/login';route();}catch(err){toast(err.message,'err');}};
+  window.completeDatoYaPasswordReset=async function(ev,token){
+    ev.preventDefault();const f=ev.target;if(f.password.value!==f.repeat.value)return toast('Las contraseñas no coinciden','err');
+    authButtonBusy(f,true,'Actualizando…');
+    try{
+      const r=await authUiApi('/auth/reset-password',{method:'POST',body:{token,password:f.password.value}},'El cambio de contraseña');
+      try{await authUiApi('/auth/logout',{method:'POST'},'El cierre de sesión');}catch(_){}
+      ME=null;renderAuthArea();try{sessionStorage.removeItem('datoya_after_auth');}catch(_){}
+      toast(r.message||'Contraseña actualizada','ok');location.hash='#/login';route();
+    }catch(err){authButtonBusy(f,false);toast(err.message,'err');}
+  };
 
   routes['verificar-correo']=async function(token){
     const legacyToken=new URLSearchParams((location.hash.split('?')[1]||'')).get('token')||'';
@@ -44,10 +81,15 @@
     view.innerHTML='<div class="card"><h2>Verificando correo…</h2></div>';
     if(!safe){view.innerHTML='<div class="empty">Enlace inválido.</div>';return;}
     try{
-      await api('/auth/email-verification/confirm',{method:'POST',body:{token:safe}});
-      await refreshMe();
-      const next=ME?(ME.account_type==='business'?'#/registrar-negocio':'#/'):'#/login';
-      const label=ME?(ME.account_type==='business'?'Crear mi negocio':'Entrar a DatoYa'):'Ingresar a DatoYa';
+      const confirmed=await authUiApi('/auth/email-verification/confirm',{method:'POST',body:{token:safe}},'La verificación del correo');
+      let current=null;
+      try{current=await authUiSession();}catch(_){current=null;}
+      if(current&&Number(current.id)!==Number(confirmed.verified_user_id)){
+        try{await authUiApi('/auth/logout',{method:'POST'},'El cierre de sesión');}catch(_){}
+        ME=null;renderAuthArea();current=null;
+      }
+      const next=current?(current.account_type==='business'?'#/registrar-negocio':'#/'):'#/login';
+      const label=current?(current.account_type==='business'?'Crear mi negocio':'Entrar a DatoYa'):'Ingresar a DatoYa';
       view.innerHTML='<div class="card" style="max-width:560px;margin:20px auto;text-align:center"><div style="font-size:44px">✅</div><h2>Cuenta verificada</h2><p>Tu correo quedó confirmado y tu cuenta DatoYa ya está activa.</p><a class="btn btn-primary btn-block" href="'+next+'">'+label+'</a></div>';
     }catch(err){view.innerHTML=`<div class="card"><h2>No pudimos verificar el correo</h2><p>${e(err.message)}</p><a href="#/verifica-tu-cuenta">Volver a verificación</a></div>`;}
   };
