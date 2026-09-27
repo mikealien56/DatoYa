@@ -49,6 +49,15 @@ jobs:
               OR (SELECT count(*) FROM information_schema.columns WHERE table_name='commerce_orders' AND column_name IN
                 ('commission_rate_effective','commission_cap','commission_tier','commission_waived_reason','exclusive_subtotal','launch_free_order')) <> 6
             THEN RAISE EXCEPTION 'Growth migration columns missing'; END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='commerce_refund_requests')
+              OR NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='commerce_refund_events')
+            THEN RAISE EXCEPTION 'Refund migration tables missing'; END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_constraint
+              WHERE conname='fk_commerce_refund_order'
+                AND conrelid='commerce_refund_requests'::regclass
+            )
+            THEN RAISE EXCEPTION 'Refund order FK missing after commerce_orders creation'; END IF;
           END; $verify$;
           SQL
       - name: Verify critical tables and constraints

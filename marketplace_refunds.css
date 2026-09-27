@@ -1,0 +1,23 @@
+/* DatoYa — devoluciones y reclamos comerciales. */
+.dy-refund-box{margin-top:14px;padding:14px;border:1px solid #dbe5f0;border-radius:16px;background:#f8fbff;color:#1b2b48}
+.dy-refund-box.requested{border-color:#ffd6a6;background:#fffaf4}
+.dy-refund-box.approved,.dy-refund-box.processing{border-color:#b8e9df;background:#f2fffc}
+.dy-refund-box.rejected{border-color:#f3c2c2;background:#fff7f7}
+.dy-refund-box.escalated{border-color:#cbd5ff;background:#f7f8ff}
+.dy-refund-box.refunded{border-color:#b9e4c8;background:#f4fff7}
+.dy-refund-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.dy-refund-head>div{min-width:0}.dy-refund-head small{display:block;color:#68748a;font-size:11px}.dy-refund-head b{display:block;color:#072b63;margin-top:2px}.dy-refund-head strong{color:#0b3a82;white-space:nowrap}
+.dy-refund-box p{font-size:12px;line-height:1.45;margin:6px 0;color:#4e5f78}
+.dy-refund-ok{color:#16734d!important;font-weight:700}
+.dy-refund-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.dy-refund-start{margin-top:12px;padding-top:12px;border-top:1px dashed #dbe5f0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dy-refund-start small{color:#68748a}
+.dy-refund-note{font-size:12px;line-height:1.45;background:#f2f7ff;border:1px solid #dfe9f7;border-radius:12px;padding:10px;margin:8px 0 14px;color:#40526d}
+.dy-refund-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.dy-refund-stats span{background:#fff;border:1px solid #e8edf4;border-radius:14px;padding:12px;color:#68748a;font-size:11px}
+.dy-refund-stats b{display:block;color:#0b3a82;font-size:18px;margin-bottom:3px}
+@media(max-width:640px){
+  .dy-refund-head{gap:8px}.dy-refund-head strong{font-size:14px}
+  .dy-refund-actions .btn{flex:1 1 140px}
+  .dy-refund-stats{grid-template-columns:1fr}
+}
