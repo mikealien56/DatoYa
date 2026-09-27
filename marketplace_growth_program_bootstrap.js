@@ -242,13 +242,8 @@ app.put('/api/businesses/:id/products/:productId/datoya-exclusive',auth,(req,res
 });
 app.get('/api/admin/marketplace-v2/founders',auth,requireRole('admin'),(req,res)=>{
   const businessIds=db.prepare('SELECT business_id FROM business_growth_profiles').all();for(const x of businessIds){try{__dyGrowthEnsureBenefits(x.business_id)}catch(_){}}
-  const founders=db.prepare(`SELECT gp.*,b.name business_name,b.status,u.name owner_name,u.email owner_email,
-    (SELECT COUNT(*) FROM business_referrals r WHERE r.founder_business_id=gp.business_id) referral_count,
-    (SELECT COUNT(*) FROM business_referrals r WHERE r.founder_business_id=gp.business_id AND r.status='rewarded') rewarded_referrals
-    FROM business_growth_profiles gp JOIN businesses b ON b.id=gp.business_id JOIN users u ON u.id=b.owner_user_id
-    WHERE gp.is_founder=1 ORDER BY b.created_at ASC`).all();
-  const referrals=db.prepare(`SELECT r.*,fb.name founder_name,rb.name referred_name,rb.status referred_status
-    FROM business_referrals r JOIN businesses fb ON fb.id=r.founder_business_id JOIN businesses rb ON rb.id=r.referred_business_id ORDER BY r.created_at DESC`).all();
+  const founders=db.prepare("SELECT gp.*,b.name business_name,b.status,u.name owner_name,u.email owner_email, (SELECT COUNT(*) FROM business_referrals r WHERE r.founder_business_id=gp.business_id) referral_count, (SELECT COUNT(*) FROM business_referrals r WHERE r.founder_business_id=gp.business_id AND r.status='rewarded') rewarded_referrals FROM business_growth_profiles gp JOIN businesses b ON b.id=gp.business_id JOIN users u ON u.id=b.owner_user_id WHERE gp.is_founder=1 ORDER BY b.created_at ASC").all();
+  const referrals=db.prepare("SELECT r.*,fb.name founder_name,rb.name referred_name,rb.status referred_status FROM business_referrals r JOIN businesses fb ON fb.id=r.founder_business_id JOIN businesses rb ON rb.id=r.referred_business_id ORDER BY r.created_at DESC").all();
   const invites=db.prepare('SELECT * FROM founder_invites ORDER BY created_at DESC,id DESC').all();
   res.json({founders,referrals,invites,config:{founder_days:__dyGrowthNum('founder_impulso_days',30),referred_days:__dyGrowthNum('referred_impulso_days',15),reward_days:__dyGrowthNum('referral_reward_days',15),reward_cap_days:__dyGrowthNum('referral_reward_cap_days',90),free_orders:__dyGrowthNum('launch_free_orders',5)}});
 });
