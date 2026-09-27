@@ -49,6 +49,10 @@ grep -q "CREATE TABLE IF NOT EXISTS market_coupons" postgres/008_marketplace_cou
 grep -q "CREATE TABLE IF NOT EXISTS coupon_redemptions" postgres/008_marketplace_coupons.sql
 grep -q "Falta tabla PostgreSQL: market_coupons" postgres_migrate.js
 grep -q "Falta tabla PostgreSQL: coupon_redemptions" postgres_migrate.js
+grep -q "CREATE TABLE IF NOT EXISTS market_coupon_products" postgres/009_marketplace_coupon_scopes.sql
+grep -q "CREATE TABLE IF NOT EXISTS market_coupon_categories" postgres/009_marketplace_coupon_scopes.sql
+grep -q "Falta tabla PostgreSQL: market_coupon_products" postgres_migrate.js
+grep -q "Falta tabla PostgreSQL: market_coupon_categories" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS support_cases" postgres/003_support_cases.sql
 grep -q "Falta tabla PostgreSQL: support_cases" postgres_migrate.js
 grep -q "ADD COLUMN IF NOT EXISTS business_id" postgres/006_business_support_threads.sql
@@ -207,6 +211,12 @@ node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const 
 grep -q "marketplace_order_integrity_bootstrap" production_start.js || { echo "Integridad de pedidos no está montada"; exit 1; }
 grep -q "marketplace_coupons_bootstrap" production_start.js || { echo "Cupones no están montados"; exit 1; }
 grep -q "DATOYA MARKET COUPONS V1" server.js || { echo "Runtime de cupones no está montado"; exit 1; }
+grep -q "DATOYA MARKET COUPONS V2" server.js || { echo "Runtime de cupones V2 no está montado"; exit 1; }
+grep -q "commissionBase=Math.max(0,subtotal-couponDiscount)" marketplace_coupons_bootstrap.js || { echo "Comisión no usa venta neta"; exit 1; }
+grep -q "market_coupon_products" marketplace_coupons_bootstrap.js || { echo "Falta alcance por producto"; exit 1; }
+grep -q "market_coupon_categories" marketplace_coupons_bootstrap.js || { echo "Falta alcance por categoría"; exit 1; }
+grep -q "sales_generated" marketplace_coupons_bootstrap.js || { echo "Faltan métricas de ventas por cupón"; exit 1; }
+grep -q "scope_mode" marketplace_coupons_ui.js || { echo "UI no permite elegir alcance del cupón"; exit 1; }
 grep -q "client_request_id" marketplace_order_integrity_bootstrap.js || { echo "Falta idempotencia de pedidos"; exit 1; }
 grep -q "deliveryFee=0" marketplace_order_integrity_bootstrap.js || { echo "Despacho no se calcula en servidor"; exit 1; }
 grep -q "deliveryDistanceKm>radius" marketplace_order_integrity_bootstrap.js || { echo "Radio de despacho no se valida cuando hay GPS"; exit 1; }
