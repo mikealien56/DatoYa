@@ -71,6 +71,8 @@ function __dyRequireCustomerAccount(req,res,next){
   src=src.replace("app.post('/api/orders',auth,(req,res)=>","app.post('/api/orders',auth,__dyRequireCustomerAccount,(req,res)=>");
   src=src.replace("app.post('/api/orders/:id/khipu/checkout',auth,__dyRequireVerifiedEmail,async(req,res)=>","app.post('/api/orders/:id/khipu/checkout',auth,__dyRequireCustomerAccount,__dyRequireVerifiedEmail,async(req,res)=>");
   src=src.replace("app.post('/api/orders/:id/khipu/checkout',auth,async(req,res)=>","app.post('/api/orders/:id/khipu/checkout',auth,__dyRequireCustomerAccount,async(req,res)=>");
+  src=src.replace("app.get('/api/orders/:id/pickup-qr.svg',auth,async(req,res)=>","app.get('/api/orders/:id/pickup-qr.svg',auth,__dyRequireCustomerAccount,async(req,res)=>");
+  src=src.replace("app.post('/api/orders/:id/pickup/verify',auth,(req,res)=>","app.post('/api/orders/:id/pickup/verify',auth,__dyRequireBusinessAccount,(req,res)=>");
 
   fs.writeFileSync(serverFile,src);
 }
