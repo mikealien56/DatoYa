@@ -8,6 +8,16 @@
   const metaCache=new Map();
   const planCache=new Map();
   const legacyManage=routes['mi-negocio'];
+  // DATOYA_HUB_API_TIMEOUT_V1 — ninguna vista del panel queda esperando indefinidamente.
+  const HUB_TIMEOUT_MS=18000;
+  function withHubTimeout(promise,label='esta sección'){
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('La consulta de '+label+' tardó demasiado. Revisa tu conexión y vuelve a intentar.')),HUB_TIMEOUT_MS);})
+    ]).finally(()=>clearTimeout(timer));
+  }
+  const hubApi=(url,opts)=>withHubTimeout(api(url,opts),'DatoYa');
 
   function requireBusiness(){
     if(!ME){location.hash='#/login';return false;}
@@ -17,14 +27,14 @@
   async function getMeta(id,force=false){
     id=Number(id||0);
     if(!force&&metaCache.has(id))return metaCache.get(id);
-    const data=await api('/businesses/'+id+'/manage');
+    const data=await hubApi('/businesses/'+id+'/manage');
     metaCache.set(id,data);
     return data;
   }
   async function getPlanAccess(id,force=false){
     id=Number(id||0);
     if(!force&&planCache.has(id))return planCache.get(id);
-    const data=await api('/businesses/'+id+'/plan-access');
+    const data=await hubApi('/businesses/'+id+'/plan-access');
     planCache.set(id,data);
     return data;
   }
@@ -73,13 +83,13 @@
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
     const [manage,ordersD,analyticsD,supportD,planD,khipuD,promoD,wantedD]=await Promise.all([
       getMeta(id,true),
-      api('/businesses/'+id+'/orders').catch(()=>({orders:[]})),
-      api('/businesses/'+id+'/analytics?days=30').catch(()=>({events:{},orders:0,completed_orders:0,sales_completed:0})),
-      api('/businesses/'+id+'/support-cases').catch(()=>({stats:{},cases:[]})),
-      api('/businesses/'+id+'/impulso-plan').catch(()=>({membership:null,config:{}})),
-      api('/khipu/status').catch(()=>({configured:false,mode:'blocked',live_payments_allowed:false})),
-      api('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})),
-      api('/businesses/'+id+'/wanted').catch(()=>({requests:[],stats:{}}))
+      hubApi('/businesses/'+id+'/orders').catch(()=>({orders:[]})),
+      hubApi('/businesses/'+id+'/analytics?days=30').catch(()=>({events:{},orders:0,completed_orders:0,sales_completed:0})),
+      hubApi('/businesses/'+id+'/support-cases').catch(()=>({stats:{},cases:[]})),
+      hubApi('/businesses/'+id+'/impulso-plan').catch(()=>({membership:null,config:{}})),
+      hubApi('/khipu/status').catch(()=>({configured:false,mode:'blocked',live_payments_allowed:false})),
+      hubApi('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})),
+      hubApi('/businesses/'+id+'/wanted').catch(()=>({requests:[],stats:{}}))
     ]);
     planCache.set(id,{plan:planD.membership?'impulso':'free',membership:planD.membership,usage:planD.usage||{},limits:{products:Number(planD.entitlements?.catalog_limit||planD.config?.free_catalog_limit||20),free_products:Number(planD.config?.free_catalog_limit||20),impulso_products:Number(planD.config?.paid_catalog_limit||200)},access:planD.entitlements||{}});
     const b=manage.business||{},products=manage.products||[],orders=ordersD.orders||[],events=analyticsD.events||{};
@@ -200,13 +210,13 @@
   async function renderPayments(id){
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
-    view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-loading"><b>💳 Cargando pagos…</b><small>Consultando Khipu y los pedidos del negocio.</small></section></div>';
+    view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-loading"><b>💳 Cargando pagos…</b><small>Consultando Khipu y los pedidos del negocio. Si la red falla, podrás reintentar sin perder datos.</small></section></div>';
     let meta={business:{}},khipu={},ordersD={orders:[]};
     try{
       [meta,khipu,ordersD]=await Promise.all([
         getMeta(id,true),
-        api('/khipu/status'),
-        api('/businesses/'+id+'/orders').catch(()=>({orders:[]}))
+        hubApi('/khipu/status'),
+        hubApi('/businesses/'+id+'/orders').catch(()=>({orders:[]}))
       ]);
     }catch(err){
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-error"><span>⚠️</span><h2>No pudimos cargar Pagos</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><button class="btn btn-primary" onclick="routes['mi-negocio-pagos'](${id})">Reintentar</button></section></div>`;
@@ -259,9 +269,9 @@
     const plan=await getPlanAccess(id,true),paid=plan.plan==='impulso';
     const [manage,promo,impulsesD,weeklyD]=await Promise.all([
       getMeta(id,true),
-      paid?api('/businesses/'+id+'/promotion-analytics?days=30&advanced=1').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})):Promise.resolve({impulse_now:{summary:{}},weekly:{summary:{}}}),
-      api('/businesses/'+id+'/impulses').catch(()=>({impulses:[]})),
-      api('/weekly-impulses/mine').catch(()=>({impulses:[]}))
+      paid?hubApi('/businesses/'+id+'/promotion-analytics?days=30&advanced=1').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})):Promise.resolve({impulse_now:{summary:{}},weekly:{summary:{}}}),
+      hubApi('/businesses/'+id+'/impulses').catch(()=>({impulses:[]})),
+      hubApi('/weekly-impulses/mine').catch(()=>({impulses:[]}))
     ]);
     const b=manage.business||{},now=promo.impulse_now?.summary||{},week=promo.weekly?.summary||{};
     const impulses=impulsesD.impulses||[],weekly=(weeklyD.impulses||[]).filter(x=>Number(x.business_id)===id);
@@ -283,7 +293,7 @@
     if(plan.plan!=='impulso')return renderPremiumLock(id,'pulse','Pulso Local','Revisa qué está buscando la gente en tu comuna con datos agregados y anónimos.');
     let meta,data;
     try{
-      [meta,data]=await Promise.all([getMeta(id,true),api('/businesses/'+id+'/local-pulse?days=7')]);
+      [meta,data]=await Promise.all([getMeta(id,true),hubApi('/businesses/'+id+'/local-pulse?days=7')]);
     }catch(err){
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-route-error"><span>⚠️</span><h2>No pudimos cargar Pulso Local</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><button class="btn btn-primary" onclick="routes['mi-negocio-pulso'](${id})">Reintentar</button></section></div>`;
       await addHubFrame(id,'pulse');return;
@@ -310,7 +320,7 @@
     if(plan.plan!=='impulso')return renderPremiumLock(id,'radar','Radar de oportunidades','Detecta búsquedas con demanda reciente y poca oferta visible en tu zona.');
     let meta,data;
     try{
-      [meta,data]=await Promise.all([getMeta(id,true),api('/businesses/'+id+'/opportunity-radar')]);
+      [meta,data]=await Promise.all([getMeta(id,true),hubApi('/businesses/'+id+'/opportunity-radar')]);
     }catch(err){
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-route-error"><span>⚠️</span><h2>No pudimos cargar Radar</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><button class="btn btn-primary" onclick="routes['mi-negocio-radar'](${id})">Reintentar</button></section></div>`;
       await addHubFrame(id,'radar');return;
@@ -329,7 +339,7 @@
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
     let data;
-    try{data=await api('/businesses/'+id+'/wanted');}
+    try{data=await hubApi('/businesses/'+id+'/wanted');}
     catch(err){
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-route-error"><span>⚠️</span><h2>Lo Busco Ya no está disponible</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><a class="btn btn-outline" href="#/mi-negocio/${id}">Volver</a></section></div>`;
       await addHubFrame(id,'wanted');return;
@@ -352,7 +362,7 @@
     ev.preventDefault();const form=ev.currentTarget,btn=form.querySelector('button[type="submit"]');
     btn.disabled=true;btn.textContent='Enviando…';
     try{
-      await api('/wanted/'+Number(requestId)+'/responses',{method:'POST',body:{business_id:Number(businessId),message:form.message.value.trim(),product_id:Number(form.product_id.value||0)||null,reference_price:Number(form.reference_price.value||0)||null,availability:form.availability.value.trim()||null}});
+      await hubApi('/wanted/'+Number(requestId)+'/responses',{method:'POST',body:{business_id:Number(businessId),message:form.message.value.trim(),product_id:Number(form.product_id.value||0)||null,reference_price:Number(form.reference_price.value||0)||null,availability:form.availability.value.trim()||null}});
       toast?.('Respuesta enviada','ok');routes['mi-negocio-lo-busco-ya'](Number(businessId));
     }catch(err){btn.disabled=false;btn.textContent='Responder';toast?.(err.message||'No pudimos enviar la respuesta','err');}
   };
@@ -364,8 +374,8 @@
     if(plan.plan!=='impulso')return renderPremiumLock(id,'stats','Estadísticas avanzadas','Analiza vistas, clics, conversiones, promociones y ventas para tomar mejores decisiones.');
     const [manage,a,p]=await Promise.all([
       getMeta(id,true),
-      api('/businesses/'+id+'/analytics?days=30&advanced=1').catch(()=>({events:{},orders:0,completed_orders:0,sales_completed:0})),
-      api('/businesses/'+id+'/promotion-analytics?days=30&advanced=1').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}}))
+      hubApi('/businesses/'+id+'/analytics?days=30&advanced=1').catch(()=>({events:{},orders:0,completed_orders:0,sales_completed:0})),
+      hubApi('/businesses/'+id+'/promotion-analytics?days=30&advanced=1').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}}))
     ]);
     const b=manage.business||{},e=a.events||{},pn=p.impulse_now?.summary||{},pw=p.weekly?.summary||{};
     const shares=Number(e.share_business||0)+Number(e.share_product||0);
