@@ -286,7 +286,9 @@ app.post('/api/founder-invites/:code/check-email',(req,res)=>{
   res.json({ok:!target||target===email});
 });
 app.put('/api/admin/marketplace-v2/founder-invites/:id/status',auth,requireRole('admin'),(req,res)=>{
-  const status=req.body&&req.body.active?'active':'paused';const r=db.prepare('UPDATE founder_invites SET status=?,updated_at=? WHERE id=?').run(status,new Date().toISOString(),Number(req.params.id));if(Number(r.changes||0)<1)return res.status(404).json({error:'Invitación no encontrada'});res.json({ok:true,status});
+  const current=db.prepare('SELECT * FROM founder_invites WHERE id=?').get(Number(req.params.id));if(!current)return res.status(404).json({error:'Invitación no encontrada'});
+  if(String(current.status)==='used'||Number(current.used_count||0)>=Number(current.max_uses||1))return res.status(409).json({error:'Una invitación ya utilizada no se puede reactivar'});
+  const status=req.body&&req.body.active?'active':'paused';db.prepare('UPDATE founder_invites SET status=?,updated_at=? WHERE id=?').run(status,new Date().toISOString(),current.id);res.json({ok:true,status});
 });
 app.get('/api/admin/marketplace-v2/growth-settings',auth,requireRole('admin'),(req,res)=>{
   const keys=['commission_free_pct','commission_exclusive_free_pct','commission_impulso_pct','commission_exclusive_impulso_pct','commission_free_cap','commission_impulso_cap','launch_free_orders','founder_impulso_days','referred_impulso_days','referral_reward_days','referral_reward_cap_days'];
