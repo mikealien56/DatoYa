@@ -57,7 +57,8 @@
   window.dyCartRemove=i=>{const c=cart();c.items.splice(Number(i),1);saveCart(c);routes.carrito()};
 
   const cleanTestLabel=v=>{const s=String(v??'');return /mercado pago/i.test(s)&&/test/i.test(s)?s.replace(/mercado pago/ig,'Khipu'):s};
-  const orderLabel=(s,o)=>({new:'Pedido recibido',confirmed:'Confirmado',preparing:'Preparando',ready:o?.fulfillment_method==='delivery'?'Listo para despacho':'Listo para retirar',completed:'Completado',cancelled:'Cancelado'})[s]||s;\n  const paymentLabel=s=>({paid:'✅ Pagado',pending:'⏳ Pendiente',refunded:'↩️ Devuelto',partially_refunded:'↩️ Devuelto parcial'})[String(s)]||String(s||'Pendiente');
+  const orderLabel=(s,o)=>({new:'Pedido recibido',confirmed:'Confirmado',preparing:'Preparando',ready:o?.fulfillment_method==='delivery'?'Listo para despacho':'Listo para retirar',completed:'Completado',cancelled:'Cancelado'})[s]||s;
+  const paymentLabel=s=>({paid:'✅ Pagado',pending:'⏳ Pendiente',refunded:'↩️ Devuelto',partially_refunded:'↩️ Devuelto parcial'})[String(s)]||String(s||'Pendiente');
   const orderProgress=o=>{
     if(o.status==='cancelled')return '<div class="dy-order-cancelled-progress">Pedido cancelado</div>';
     const steps=[
