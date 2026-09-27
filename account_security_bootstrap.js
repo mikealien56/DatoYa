@@ -56,7 +56,7 @@ let source = fs.readFileSync(serverPath, 'utf8');
 if (!source.includes('DATOYA SECURITY HEADERS V1')) {
   source = source.replace(
     "app.use(cookieParser());",
-    `app.use(cookieParser());\n// DATOYA SECURITY HEADERS V1\napp.set('trust proxy', 1);\napp.use((req,res,next)=>{\n  res.setHeader('X-Content-Type-Options','nosniff');\n  res.setHeader('X-Frame-Options','DENY');\n  res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');\n  res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=(self)');\n  next();\n});\napp.use('/api',(req,res,next)=>{\n  if(['GET','HEAD','OPTIONS'].includes(req.method)) return next();\n  if(req.path==='/khipu/webhook') return next();\n  const base=String(process.env.PUBLIC_BASE_URL||'').trim();\n  const origin=req.get('origin');\n  if(!base || !origin) return next();\n  try {\n    const baseOrigin=new URL(base).origin;\n    const incomingOrigin=new URL(origin).origin;\n    const allowed=new Set([baseOrigin]);\n    const extra=String(process.env.DATOYA_ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);\n    for(const value of extra){ try{ allowed.add(new URL(value).origin); }catch(_){} }\n    const baseUrl=new URL(baseOrigin);\n    if(baseUrl.hostname==='datoya.cl') allowed.add(baseUrl.protocol+'//www.datoya.cl');\n    if(baseUrl.hostname==='www.datoya.cl') allowed.add(baseUrl.protocol+'//datoya.cl');\n    if(!allowed.has(incomingOrigin)){console.warn('[DatoYa][Origin Guard] bloqueado',JSON.stringify({origin:incomingOrigin,host:String(req.get('host')||''),path:String(req.path||''),allowed:[...allowed]}));return res.status(403).json({error:'Origen no permitido'});}\n  } catch(_) { return res.status(403).json({error:'Origen no permitido'}); }\n  next();\n});`
+    `app.use(cookieParser());\n// DATOYA SECURITY HEADERS V1\napp.set('trust proxy', 1);\napp.use((req,res,next)=>{\n  res.setHeader('X-Content-Type-Options','nosniff');\n  res.setHeader('X-Frame-Options','DENY');\n  res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');\n  res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=(self)');\n  next();\n});\napp.use('/api',(req,res,next)=>{\n  if(['GET','HEAD','OPTIONS'].includes(req.method)) return next();\n  if(req.path==='/khipu/webhook') return next();\n  const base=String(process.env.PUBLIC_BASE_URL||process.env.AUTH_PUBLIC_BASE_URL||'https://datoya.cl').trim();\n  const origin=req.get('origin');\n  if(!origin) return next();\n  try {\n    const baseOrigin=new URL(base).origin;\n    const incomingOrigin=new URL(origin).origin;\n    const allowed=new Set([baseOrigin]);\n    const extra=String(process.env.DATOYA_ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);\n    for(const value of extra){ try{ allowed.add(new URL(value).origin); }catch(_){} }\n    const renderExternal=String(process.env.RENDER_EXTERNAL_URL||'').trim();\n    if(renderExternal){try{allowed.add(new URL(renderExternal).origin);}catch(_){}}\n    const baseUrl=new URL(baseOrigin);\n    if(baseUrl.hostname==='datoya.cl') allowed.add(baseUrl.protocol+'//www.datoya.cl');\n    if(baseUrl.hostname==='www.datoya.cl') allowed.add(baseUrl.protocol+'//datoya.cl');\n    if(!allowed.has(incomingOrigin)){console.warn('[DatoYa][Origin Guard] bloqueado',JSON.stringify({origin:incomingOrigin,host:String(req.get('host')||''),path:String(req.path||''),allowed:[...allowed]}));return res.status(403).json({error:'Origen no permitido'});}\n  } catch(_) { return res.status(403).json({error:'Origen no permitido'}); }\n  next();\n});`
   );
 }
 
@@ -68,7 +68,7 @@ const __termsVersion = String(process.env.LEGAL_TERMS_VERSION || '2026-09-25-mar
 const __privacyVersion = String(process.env.LEGAL_PRIVACY_VERSION || '2026-09-25-marketplace2');
 const __paymentTermsVersion = String(process.env.LEGAL_PAYMENT_VERSION || '2026-09-25-marketplace2');
 const __legalEnforcement = !['0','false','off','no'].includes(String(process.env.LEGAL_ENFORCEMENT || 'true').toLowerCase());
-const __publicBaseUrl = String(process.env.PUBLIC_BASE_URL || 'http://localhost:3000').replace(/\\/$/,'');
+const __publicBaseUrl = String(process.env.AUTH_PUBLIC_BASE_URL || 'https://datoya.cl').replace(/\\/$/,'');
 const __sha256 = value => crypto.createHash('sha256').update(String(value)).digest('hex');
 function __securityEvent(userId,type,detail){ try{ db.prepare('INSERT INTO security_events(user_id,event_type,detail) VALUES(?,?,?)').run(userId||null,type,String(detail||'').slice(0,500)); }catch(_){} }
 function __authRateLimit(req,res,next){
@@ -115,7 +115,7 @@ async function __sendAuthEmail(to,subject,html){
   const from=String(process.env.AUTH_EMAIL_FROM||process.env.DATOYA_EMAIL_FROM||'');
   if(!key || !from) return false;
   try{
-    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({from,to,subject,html})});
+    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({from,to,subject,html}),signal:AbortSignal.timeout(15000)});
     if(!r.ok) console.error('[DatoYa] Error enviando correo auth:',r.status,await r.text().catch(()=>''));
     return r.ok;
   }catch(e){ console.error('[DatoYa] Correo auth:',e.message); return false; }
@@ -194,9 +194,10 @@ app.post('/api/auth/email-verification/request',auth,async(req,res)=>{
   db.prepare('DELETE FROM auth_email_verifications WHERE user_id=? AND verified_at IS NULL').run(req.user.id);
   db.prepare('INSERT INTO auth_email_verifications(user_id,token_hash,expires_at) VALUES(?,?,?)').run(req.user.id,__sha256(token),expires);
   const link=__publicBaseUrl+'/#/verificar-correo/'+encodeURIComponent(token);
-  await __sendAuthEmail(req.user.email,'Verifica tu correo en DatoYa','<p>Hola '+String(req.user.name||'')+'.</p><p>Confirma tu correo con este enlace:</p><p><a href="'+link+'">Verificar correo</a></p><p>El enlace vence en 24 horas.</p>');
-  __securityEvent(req.user.id,'email_verification_requested','');
-  const out={ok:true,delivery_configured:configured}; if(__authTestMode) out.test_token=token; res.json(out);
+  const sent=await __sendAuthEmail(req.user.email,'Verifica tu correo en DatoYa','<p>Hola '+String(req.user.name||'')+'.</p><p>Confirma tu correo con este enlace:</p><p><a href="'+link+'">Verificar correo</a></p><p>El enlace vence en 24 horas.</p>');
+  __securityEvent(req.user.id,sent?'email_verification_requested':'email_verification_delivery_failed',sent?'manual_request':'provider_failed');
+  if(!sent&&configured&&!__authTestMode)return res.status(502).json({error:'No pudimos enviar el correo de verificación. Intenta nuevamente en unos minutos.'});
+  const out={ok:true,delivery_configured:configured,email_sent:sent}; if(__authTestMode) out.test_token=token; res.json(out);
 });
 app.post('/api/auth/email-verification/confirm',(req,res)=>{
   const token=String(req.body?.token||'');
@@ -204,7 +205,7 @@ app.post('/api/auth/email-verification/confirm',(req,res)=>{
   if(!row) return res.status(400).json({error:'El enlace de verificación venció o no es válido'});
   db.prepare("UPDATE auth_email_verifications SET verified_at=datetime('now') WHERE id=?").run(row.id);
   __securityEvent(row.user_id,'email_verified','');
-  res.json({ok:true});
+  res.json({ok:true,verified_user_id:Number(row.user_id)});
 });
 
 app.put('/api/auth/contact',auth,(req,res)=>{
