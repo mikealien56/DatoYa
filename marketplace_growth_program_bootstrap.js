@@ -77,6 +77,8 @@ for(const [key,value] of [
   db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING").run(key,value);
 }
 
+db.prepare("UPDATE settings SET value='5.9' WHERE key='commission_pct' AND value='10'").run();
+
 const serverPath=path.join(__dirname,'server.js');
 let source=fs.readFileSync(serverPath,'utf8');
 
