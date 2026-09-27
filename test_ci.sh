@@ -121,6 +121,8 @@ echo "✅ Autorización base"
 
 echo "=== E2E Cliente + Negocio ==="
 bash test_two_accounts_flow.sh
+echo "=== E2E recuperación + verificación ==="
+bash test_auth_recovery_flow.sh
 echo "=== QA Admin Marketplace V2 ==="
 bash test_admin_marketplace_v2.sh
 
