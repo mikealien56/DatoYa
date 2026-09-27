@@ -129,7 +129,7 @@ curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,j
 echo "✅ Healthcheck + categorías comerciales"
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine businesses/1/support-cases businesses/1/plan-access orders/mine admin/support-cases admin/marketplace-v2/summary push/config; do
+for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/readiness orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done
@@ -139,6 +139,8 @@ echo "✅ Autorización base"
 
 echo "=== E2E Cliente + Negocio ==="
 bash test_two_accounts_flow.sh
+echo "=== E2E readiness beta ==="
+bash test_beta_readiness_flow.sh
 echo "=== E2E integridad de pedidos ==="
 bash test_order_integrity_flow.sh
 echo "=== E2E cupones ==="
@@ -157,7 +159,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css beta_launch_ui.js beta_launch.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
@@ -210,7 +212,7 @@ done
 echo "✅ HTML público sin interfaces legacy"
 
 # 7) Marcadores críticos del backend nuevo.
-for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA KHIPU PAYMENTS V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA COMMERCE REFUNDS V1" "DATOYA_SUPPORT_CENTER_V2" "DATOYA WEB PUSH V1"; do
+for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA KHIPU PAYMENTS V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA COMMERCE REFUNDS V1" "DATOYA BETA LAUNCH READINESS V1" "DATOYA_SUPPORT_CENTER_V2" "DATOYA WEB PUSH V1"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
 grep -q "support_cases" support_center_bootstrap.js || { echo "Falta persistencia de casos de soporte"; exit 1; }
@@ -242,6 +244,12 @@ grep -q "DATOYA MARKET COUPONS V2" server.js || { echo "Runtime de cupones V2 no
 grep -q "marketplace_growth_program_bootstrap" production_start.js || { echo "Programa de Fundadores no está montado"; exit 1; }
 grep -q "marketplace_refunds_bootstrap" production_start.js || { echo "Devoluciones no están montadas"; exit 1; }
 grep -q "marketplace_refunds_assets" production_start.js || { echo "UI de devoluciones no está publicada"; exit 1; }
+grep -q "beta_launch_readiness_bootstrap" production_start.js || { echo "Readiness beta no está montado"; exit 1; }
+grep -q "beta_launch_assets" production_start.js || { echo "UI Control Beta no está publicada"; exit 1; }
+grep -q "api/businesses/:id/readiness" beta_launch_readiness_bootstrap.js || { echo "Falta readiness del Negocio"; exit 1; }
+grep -q "api/admin/beta-launch" beta_launch_readiness_bootstrap.js || { echo "Falta Control Beta Admin"; exit 1; }
+grep -q "Tu negocio está listo para recibir pedidos" beta_launch_ui.js || { echo "Falta estado Listo para vender"; exit 1; }
+grep -q "Negocio Fundador DatoYa" beta_launch_ui.js || { echo "Falta identificación de Fundador"; exit 1; }
 grep -q "api/orders/:id/refunds" marketplace_refunds_bootstrap.js || { echo "Falta solicitud de devolución Cliente"; exit 1; }
 grep -q "api/businesses/:id/refunds/:refundId/decision" marketplace_refunds_bootstrap.js || { echo "Falta gestión de devolución por Negocio"; exit 1; }
 grep -q "api/admin/refunds/:id/resolve" marketplace_refunds_bootstrap.js || { echo "Falta escalamiento de devolución a Admin"; exit 1; }
