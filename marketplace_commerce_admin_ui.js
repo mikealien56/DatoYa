@@ -4,7 +4,8 @@
   const previous=routes.admin;
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=n=>'$'+Number(n||0).toLocaleString('es-CL');
-  const orderLabel=s=>({new:'Nuevo',confirmed:'Confirmado',preparing:'Preparando',ready:'Listo',completed:'Completado',cancelled:'Cancelado'})[s]||s;\n  const paymentLabel=s=>({paid:'Pagado',pending:'Pago pendiente',refunded:'Devuelto',partially_refunded:'Devuelto parcial'})[String(s)]||String(s||'Pago pendiente');
+  const orderLabel=s=>({new:'Nuevo',confirmed:'Confirmado',preparing:'Preparando',ready:'Listo',completed:'Completado',cancelled:'Cancelado'})[s]||s;
+  const paymentLabel=s=>({paid:'Pagado',pending:'Pago pendiente',refunded:'Devuelto',partially_refunded:'Devuelto parcial'})[String(s)]||String(s||'Pago pendiente');
   const safe=async u=>{try{return await api(u)}catch(_){return {}}};
 
   routes.admin=async function(tab='dashboard'){
