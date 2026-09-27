@@ -110,7 +110,7 @@ WRONG_CODE="$(curl -s -o /dev/null -w '%{http_code}' -b "$BUSINESS_JAR" -H 'Cont
 curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER_ID/pickup/verify" -d "{\"code\":\"$PICKUP_CODE\"}" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d.get("ok") is True and d.get("status")=="completed"'
 curl -fsS -b "$CLIENT_JAR" "$BASE/api/orders/mine" | python3 -c "import sys,json; o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$ORDER_ID')); assert o['status']=='completed' and o.get('pickup_verified_at')"
 
-echo "11/12 Despacho cobra tarifa, valida mínimo e idempotencia"
+echo "11/12 Despacho cobra tarifa, genera QR/código y exige validación"
 curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$BIZ_ID/delivery" -d '{"enabled":true,"fee":1500,"min_order":7000,"free_from":12000,"radius_km":5}' >/dev/null
 DELIVERY_LOW="{\"business_id\":$BIZ_ID,\"fulfillment_method\":\"delivery\",\"customer_name\":\"Cliente QA\",\"customer_phone\":\"+56911112222\",\"delivery_address\":\"Dirección QA 456\",\"client_request_id\":\"qa-delivery-low-$STAMP\",\"items\":[{\"product_id\":$PRODUCT_ID,\"quantity\":1}]}"
 LOW_CODE="$(curl -s -o /dev/null -w '%{http_code}' -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "$DELIVERY_LOW")"
@@ -122,8 +122,20 @@ DELIVERY_JSON="$(curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' 
 DELIVERY_ID="$(printf '%s' "$DELIVERY_JSON" | python3 -c 'import sys,json; o=json.load(sys.stdin)["order"]; assert o["subtotal"]==5990 and o["delivery_fee"]==1500 and o["total"]==7490; print(o["id"])')"
 curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "$DELIVERY_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('idempotent') is True and int(d['order']['id'])==int('$DELIVERY_ID')"
 curl -fsS "$BASE/api/market/products?q=$PRODUCT_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); p=next(x for x in d['products'] if int(x['id'])==int('$PRODUCT_ID')); assert int(p['stock'])==3"
-curl -fsS -b "$CLIENT_JAR" -X POST "$BASE/api/orders/$DELIVERY_ID/cancel" >/dev/null
-curl -fsS "$BASE/api/market/products?q=$PRODUCT_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); p=next(x for x in d['products'] if int(x['id'])==int('$PRODUCT_ID')); assert int(p['stock'])==4"
+curl -fsS -b "$BUSINESS_JAR" "$BASE/api/businesses/$BIZ_ID/orders" | python3 -c "import sys,json; o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$DELIVERY_ID')); assert 'delivery_code' not in o"
+for state in confirmed preparing ready; do
+  curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$BIZ_ID/orders/$DELIVERY_ID/status" -d "{\"status\":\"$state\"}" >/dev/null
+done
+sleep 0.2
+DELIVERY_CODE="$(curl -fsS -b "$CLIENT_JAR" "$BASE/api/orders/mine" | python3 -c "import sys,json; o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$DELIVERY_ID')); c=str(o.get('delivery_code') or ''); assert len(c)==6 and c.isdigit(); assert o.get('fulfillment_email_status') in ('sending','failed','sent'); print(c)")"
+curl -fsS -b "$CLIENT_JAR" "$BASE/api/orders/$DELIVERY_ID/fulfillment-qr.svg" | grep -q '<svg' || fail "No se generó QR de despacho"
+DIRECT_DELIVERY_COMPLETE="$(curl -s -o /dev/null -w '%{http_code}' -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$BIZ_ID/orders/$DELIVERY_ID/status" -d '{"status":"completed"}')"
+[ "$DIRECT_DELIVERY_COMPLETE" = "400" ] || fail "Despacho se completó sin QR/código (HTTP $DIRECT_DELIVERY_COMPLETE)"
+WRONG_DELIVERY="$(curl -s -o /dev/null -w '%{http_code}' -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$DELIVERY_ID/delivery/verify" -d '{"code":"000000"}')"
+[ "$WRONG_DELIVERY" = "400" ] || fail "Código de despacho incorrecto no fue rechazado (HTTP $WRONG_DELIVERY)"
+curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$DELIVERY_ID/delivery/verify" -d "{\"code\":\"$DELIVERY_CODE\"}" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d.get("ok") is True and d.get("status")=="completed"'
+curl -fsS -b "$CLIENT_JAR" "$BASE/api/orders/mine" | python3 -c "import sys,json; o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$DELIVERY_ID')); assert o['status']=='completed' and o.get('delivery_verified_at')"
+curl -fsS "$BASE/api/market/products?q=$PRODUCT_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); p=next(x for x in d['products'] if int(x['id'])==int('$PRODUCT_ID')); assert int(p['stock'])==3"
 
 echo "12/12 Pedido pagado no se cancela silenciosamente"
 PAID_BODY="{\"business_id\":$BIZ_ID,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente QA\",\"customer_phone\":\"+56911112222\",\"client_request_id\":\"qa-paid-$STAMP\",\"items\":[{\"product_id\":$PRODUCT_ID,\"quantity\":1}]}"
@@ -135,4 +147,4 @@ PAID_CLIENT="$(curl -s -o /dev/null -w '%{http_code}' -b "$CLIENT_JAR" -X POST "
 PAID_BUSINESS="$(curl -s -o /dev/null -w '%{http_code}' -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$BIZ_ID/orders/$PAID_ID/status" -d '{"status":"cancelled"}')"
 [ "$PAID_BUSINESS" = "409" ] || fail "Negocio pudo cancelar pedido pagado (HTTP $PAID_BUSINESS)"
 
-echo "✅ ORDER INTEGRITY E2E OK: idempotencia + stock + despacho + retiro QR + cancelación pagada"
+echo "✅ ORDER INTEGRITY E2E OK: idempotencia + stock + retiro/despacho QR + correo + cancelación pagada"

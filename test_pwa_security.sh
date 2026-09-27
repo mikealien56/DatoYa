@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 node --check service-worker.js
-grep -q "datoya-shell-v69" service-worker.js
+grep -q "datoya-shell-v70" service-worker.js
 grep -q "url.pathname.startsWith('/api/')" service-worker.js
 grep -q "event.respondWith(fetch(event.request))" service-worker.js
 grep -q "response.ok&&!response.redirected" service-worker.js
