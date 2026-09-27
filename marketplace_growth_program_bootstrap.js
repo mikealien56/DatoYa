@@ -273,7 +273,7 @@ if(!source.includes(marker))throw new Error('No se encontró marcador MISC para 
 source=source.replace(marker,injection+'\n'+marker);
 
 // Registro de negocio: validar y asociar invitación dentro de la misma transacción.
-const businessStart="app.post('/api/businesses',auth,(req,res)=>{\n  const body=req.body||{};";
+const businessStart="app.post('/api/businesses',auth,__dyRequireBusinessAccount,__dyRequireVerifiedEmail,(req,res)=>{\n  const body=req.body||{};";
 if(!source.includes(businessStart))throw new Error('No se encontró alta de negocio para invitaciones');
 source=source.replace(businessStart,businessStart+"\n  const __growthRawCode=__dyGrowthCode(body.invitation_code||'');const __growthInvitation=__growthRawCode?__dyGrowthResolveInvitation(__growthRawCode):null;if(__growthRawCode&&!__growthInvitation)return res.status(400).json({error:'El código de invitación DatoYa no es válido o ya fue utilizado'});");
 
