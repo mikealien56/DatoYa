@@ -199,7 +199,7 @@ node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const 
 grep -q "marketplace_order_integrity_bootstrap" production_start.js || { echo "Integridad de pedidos no está montada"; exit 1; }
 grep -q "client_request_id" marketplace_order_integrity_bootstrap.js || { echo "Falta idempotencia de pedidos"; exit 1; }
 grep -q "deliveryFee=0" marketplace_order_integrity_bootstrap.js || { echo "Despacho no se calcula en servidor"; exit 1; }
-grep -q "deliveryDistance>radius" marketplace_order_integrity_bootstrap.js || { echo "Radio de despacho no se valida cuando hay GPS"; exit 1; }
+grep -q "deliveryDistanceKm>radius" marketplace_order_integrity_bootstrap.js || { echo "Radio de despacho no se valida cuando hay GPS"; exit 1; }
 grep -q "pickup-qr.svg" marketplace_order_integrity_bootstrap.js || { echo "Falta QR de retiro"; exit 1; }
 grep -q "pickup/verify" marketplace_order_integrity_bootstrap.js || { echo "Falta verificación de retiro"; exit 1; }
 grep -q "Valida el código o QR de retiro" marketplace_order_integrity_bootstrap.js || { echo "Pedido retiro puede completarse sin validar"; exit 1; }
