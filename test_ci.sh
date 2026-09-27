@@ -141,6 +141,7 @@ echo "=== E2E cupones ==="
 bash test_coupons_flow.sh
 echo "=== E2E Fundadores + crecimiento ==="
 bash test_growth_program_flow.sh
+bash test_featured_business_flow.sh
 echo "=== E2E recuperación + verificación ==="
 bash test_auth_recovery_flow.sh
 echo "=== QA Admin Marketplace V2 ==="
