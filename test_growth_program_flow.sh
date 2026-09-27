@@ -37,6 +37,9 @@ INVITE="$(printf '%s' "$INVITE_JSON"|python3 -c 'import sys,json;d=json.load(sys
 curl -fsS "$BASE/api/founder-invites/$INVITE" | python3 -c 'import sys,json;d=json.load(sys.stdin)["invite"];assert d["business_name"]=="Fundador QA" and "***" in d["email_masked"]'
 curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/founder-invites/$INVITE/check-email" -d "{\"email\":\"$R_EMAIL\"}" | python3 -c 'import sys,json;assert json.load(sys.stdin)["ok"] is False'
 curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/founder-invites/$INVITE/check-email" -d "{\"email\":\"$F_EMAIL\"}" | python3 -c 'import sys,json;assert json.load(sys.stdin)["ok"] is True'
+BAD_CODE="$(curl -s -o "$TMP/wrong-founder-email" -w '%{http_code}' -b "$R" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" -d "{\"name\":\"NoDebeSerFundador$STAMP\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"address\":\"QA Wrong\",\"pickup_enabled\":true,\"invitation_code\":\"$INVITE\"}")"
+[ "$BAD_CODE" = "400" ] || fail "otro correo pudo usar invitación Fundador (HTTP $BAD_CODE)"
+python3 -c 'import json;d=json.load(open("'"$TMP/wrong-founder-email"'"));assert "otro correo" in d.get("error","").lower()'
 echo "2/9 Negocio entra con invitación y queda marcado como Fundador"
 FJSON="$(curl -fsS -b "$F" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" -d "{\"name\":\"Fundador$STAMP\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"address\":\"QA 100\",\"public_address_mode\":\"approximate\",\"phone\":\"+56922220001\",\"whatsapp\":\"+56922220001\",\"pickup_enabled\":true,\"delivery_enabled\":false,\"invitation_code\":\"$INVITE\"}")"
 FBIZ="$(printf '%s' "$FJSON"|python3 -c 'import sys,json;print(json.load(sys.stdin)["business"]["id"])')"
