@@ -38,7 +38,7 @@ jobs:
           cat /tmp/datoya-visual.log
           exit 1
       - name: Run mobile refund visual flow
-        run: npx playwright test test_refunds_visual.spec.js --project=chromium --reporter=line
+        run: npx playwright test test_refunds_visual.spec.js --reporter=line
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
