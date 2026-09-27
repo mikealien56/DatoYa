@@ -243,7 +243,13 @@ grep -q "DATOYA MARKET COUPONS V1" server.js || { echo "Runtime de cupones no es
 grep -q "DATOYA MARKET COUPONS V2" server.js || { echo "Runtime de cupones V2 no está montado"; exit 1; }
 grep -q "marketplace_growth_program_bootstrap" production_start.js || { echo "Programa de Fundadores no está montado"; exit 1; }
 grep -q "marketplace_refunds_bootstrap" production_start.js || { echo "Devoluciones no están montadas"; exit 1; }
-grep -q "marketplace_refunds_assets" production_start.js || { echo "UI de devoluciones no está publicada"; exit 1; }\ngrep -q "beta_launch_readiness_bootstrap" production_start.js || { echo "Readiness beta no está montado"; exit 1; }\ngrep -q "beta_launch_assets" production_start.js || { echo "UI Control Beta no está publicada"; exit 1; }\ngrep -q "api/businesses/:id/readiness" beta_launch_readiness_bootstrap.js || { echo "Falta readiness del Negocio"; exit 1; }\ngrep -q "api/admin/beta-launch" beta_launch_readiness_bootstrap.js || { echo "Falta Control Beta Admin"; exit 1; }\ngrep -q "Tu negocio está listo para recibir pedidos" beta_launch_ui.js || { echo "Falta estado Listo para vender"; exit 1; }\ngrep -q "Negocio Fundador DatoYa" beta_launch_ui.js || { echo "Falta identificación de Fundador"; exit 1; }
+grep -q "marketplace_refunds_assets" production_start.js || { echo "UI de devoluciones no está publicada"; exit 1; }
+grep -q "beta_launch_readiness_bootstrap" production_start.js || { echo "Readiness beta no está montado"; exit 1; }
+grep -q "beta_launch_assets" production_start.js || { echo "UI Control Beta no está publicada"; exit 1; }
+grep -q "api/businesses/:id/readiness" beta_launch_readiness_bootstrap.js || { echo "Falta readiness del Negocio"; exit 1; }
+grep -q "api/admin/beta-launch" beta_launch_readiness_bootstrap.js || { echo "Falta Control Beta Admin"; exit 1; }
+grep -q "Tu negocio está listo para recibir pedidos" beta_launch_ui.js || { echo "Falta estado Listo para vender"; exit 1; }
+grep -q "Negocio Fundador DatoYa" beta_launch_ui.js || { echo "Falta identificación de Fundador"; exit 1; }
 grep -q "api/orders/:id/refunds" marketplace_refunds_bootstrap.js || { echo "Falta solicitud de devolución Cliente"; exit 1; }
 grep -q "api/businesses/:id/refunds/:refundId/decision" marketplace_refunds_bootstrap.js || { echo "Falta gestión de devolución por Negocio"; exit 1; }
 grep -q "api/admin/refunds/:id/resolve" marketplace_refunds_bootstrap.js || { echo "Falta escalamiento de devolución a Admin"; exit 1; }
