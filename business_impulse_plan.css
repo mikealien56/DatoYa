@@ -38,3 +38,22 @@
   .dy-plan-buy-actions{grid-template-columns:1fr}
   .dy-plan-buy-actions .btn{width:100%;min-height:54px}
 }
+
+/* ===== PLAN LOADING GUARD ===== */
+.dy-plan-loading,.dy-plan-error{
+  max-width:620px;
+  margin:36px auto;
+  text-align:center;
+  display:grid;
+  justify-items:center;
+  gap:8px;
+}
+.dy-plan-loading>span,.dy-plan-error>span{font-size:38px}
+.dy-plan-loading h2,.dy-plan-error h2{margin:0;color:#072B63}
+.dy-plan-loading p,.dy-plan-error p{margin:0;color:#64748b;line-height:1.55}
+.dy-plan-error-actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+@media(max-width:520px){
+  .dy-plan-loading,.dy-plan-error{margin:18px auto}
+  .dy-plan-error-actions{width:100%;display:grid}
+  .dy-plan-error-actions .btn{width:100%}
+}
