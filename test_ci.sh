@@ -21,6 +21,7 @@ bash test_beta_private_ui.sh
 bash test_mobile_account_role.sh
 bash test_mobile_notifications.sh
 bash test_password_reset_links.sh
+bash test_business_loading_guards.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
 node --check push_notifications_bootstrap.js

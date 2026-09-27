@@ -4,15 +4,56 @@
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=n=>'$'+Number(n||0).toLocaleString('es-CL');
   const date=v=>{try{return new Date(v).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'})}catch(_){return String(v||'')}};
+  // DATOYA_PLAN_LOADING_GUARD_V1
+  const PLAN_TIMEOUT_MS=18000;
+  let checkoutBusy=false,syncBusy=false;
+  function withPlanTimeout(promise,label='DatoYa Impulso'){
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+' tardó demasiado en responder. Puedes reintentar sin generar un cobro duplicado.')),PLAN_TIMEOUT_MS);})
+    ]).finally(()=>clearTimeout(timer));
+  }
+  const planApi=(url,opts,label)=>withPlanTimeout(api(url,opts),label);
+  function planLoading(text='Cargando DatoYa Impulso…'){
+    view.innerHTML='<div class="dy-plan-page"><section class="dy-plan-card dy-plan-loading" aria-live="polite"><span>⚡</span><h2>'+h(text)+'</h2><p>Estamos consultando tu plan y el estado de Khipu.</p></section></div>';
+  }
+  function planError(id,error){
+    const message=h(error?.message||'No pudimos cargar DatoYa Impulso.');
+    view.innerHTML='<div class="dy-plan-page"><section class="dy-plan-card dy-plan-error"><span>⚠️</span><h2>No pudimos cargar tu plan</h2><p>'+message+'</p><div class="dy-plan-error-actions"><button class="btn btn-primary" onclick="routes[\'mi-negocio-plan\']('+Number(id)+')">Reintentar</button><a class="btn btn-outline" href="#/mi-negocio/'+Number(id)+'">Volver a Mi negocio</a></div></section></div>';
+  }
+  function setPlanButtonsBusy(busy,text){
+    document.querySelectorAll('.dy-plan-page button').forEach(btn=>{
+      if(busy){
+        if(!btn.dataset.dyLabel)btn.dataset.dyLabel=btn.textContent;
+        if(btn.dataset.dyWasDisabled===undefined)btn.dataset.dyWasDisabled=btn.disabled?'1':'0';
+        btn.disabled=true;
+      }else{
+        btn.disabled=btn.dataset.dyWasDisabled==='1';
+        if(btn.dataset.dyLabel){btn.textContent=btn.dataset.dyLabel;delete btn.dataset.dyLabel;}
+        delete btn.dataset.dyWasDisabled;
+      }
+    });
+    if(busy&&text){
+      const first=[...document.querySelectorAll('.dy-plan-page button')].find(btn=>btn.dataset.dyWasDisabled==='0');
+      if(first)first.textContent=text;
+    }
+  }
 
   routes['mi-negocio-plan']=async function(id){
     if(!ME){location.hash='#/login';return;}
     if(ME.account_type!=='business'){location.hash='#/perfil';return;}
-    id=Number(id||0);
+    id=Number(id||0);if(!id){location.hash='#/perfil';return;}
+    planLoading();
     try{
-      let data=await api('/businesses/'+id+'/impulso-plan');
+      let data=await planApi('/businesses/'+id+'/impulso-plan',undefined,'El plan');
       if(data.pending_payment){
-        try{await api('/businesses/'+id+'/impulso-plan/sync',{method:'POST',body:{}});data=await api('/businesses/'+id+'/impulso-plan');}catch(_){}
+        try{
+          await planApi('/businesses/'+id+'/impulso-plan/sync',{method:'POST',body:{}},'La actualización del pago');
+          data=await planApi('/businesses/'+id+'/impulso-plan',undefined,'El plan');
+        }catch(syncError){
+          console.warn('[DatoYa][Impulso sync UI]',syncError?.message||syncError);
+        }
       }
       const m=data.membership,cfg=data.config||{},active=!!m,usage=data.usage||{};
       const freeLimit=Number(cfg.free_catalog_limit||20),paidLimit=Number(cfg.paid_catalog_limit||200);
@@ -91,22 +132,36 @@
 
         ${data.pending_payment?'<section class="dy-plan-card"><h3>Pago Khipu pendiente</h3><p>Si ya terminaste el pago en Khipu, puedes actualizar su estado. DatoYa activará el plan solo cuando Khipu confirme el pago.</p><button class="btn btn-outline" onclick="dySyncImpulsePayment('+id+')">Actualizar pago Khipu</button></section>':''}
       </div>`;
-    }catch(e){toast?.(e.message||'No se pudo cargar el plan DatoYa Impulso','err');}
+    }catch(e){
+      planError(id,e);
+      toast?.(e.message||'No se pudo cargar el plan DatoYa Impulso','err');
+    }
   };
 
   window.dyStartImpulseCheckout=async function(id,period){
+    if(checkoutBusy)return toast?.('Ya estamos preparando el pago con Khipu','info');
+    checkoutBusy=true;setPlanButtonsBusy(true,'Conectando con Khipu…');
     try{
-      const r=await api('/businesses/'+id+'/impulso-plan/checkout',{method:'POST',body:{billing_period:period}});
+      const r=await planApi('/businesses/'+id+'/impulso-plan/checkout',{method:'POST',body:{billing_period:period}},'Khipu');
       if(!r.checkout_url)throw new Error('Khipu no devolvió la URL de pago');
       location.href=r.checkout_url;
-    }catch(e){toast?.(e.message||'No se pudo iniciar el pago','err');}
+    }catch(e){
+      checkoutBusy=false;setPlanButtonsBusy(false);
+      toast?.(e.message||'No se pudo iniciar el pago','err');
+    }
   };
   window.dySyncImpulsePayment=async function(id){
+    if(syncBusy)return toast?.('Ya estamos consultando el estado del pago','info');
+    syncBusy=true;setPlanButtonsBusy(true,'Actualizando…');
     try{
-      const r=await api('/businesses/'+id+'/impulso-plan/sync',{method:'POST',body:{}});
+      const r=await planApi('/businesses/'+id+'/impulso-plan/sync',{method:'POST',body:{}},'La actualización del pago');
       toast?.(r.status==='approved'?'Pago Khipu aprobado y DatoYa Impulso activado':'Estado Khipu: '+(r.status||'pendiente'),r.status==='approved'?'ok':'info');
+      syncBusy=false;
       routes['mi-negocio-plan'](id);
-    }catch(e){toast?.(e.message||'No se pudo consultar el pago','err');}
+    }catch(e){
+      syncBusy=false;setPlanButtonsBusy(false);
+      toast?.(e.message||'No se pudo consultar el pago','err');
+    }
   };
 
   const previousBusiness=routes['mi-negocio'];
