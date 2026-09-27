@@ -250,7 +250,7 @@ app.post('/api/admin/refunds/:id/resolve',auth,requireRole('admin'),async(req,re
 `;
   const marker='// ============ CATÁLOGOS ============';
   if(!source.includes(marker))throw new Error('No se encontró marcador CATÁLOGOS para devoluciones');
-  source=source.replace(marker,injection+'\n'+marker);
+  source=source.replace(marker,()=>injection+'\n'+marker);
 
   const paidGuard="WHERE id=? AND payment_status<>'paid'";
   if(source.includes(paidGuard))source=source.replaceAll(paidGuard,"WHERE id=? AND payment_status NOT IN ('paid','refunded','partially_refunded')");
