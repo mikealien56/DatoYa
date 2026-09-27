@@ -11,6 +11,6 @@ const indexPath=path.join(pub,'index.html');
 if(fs.existsSync(indexPath)){
   let html=fs.readFileSync(indexPath,'utf8');
   html=html.replace(/<script[^>]+src="\/account_security_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</body>','<script src="/account_security_ui.js?v=6"></script>\n</body>');
+  html=html.replace('</body>','<script src="/account_security_ui.js?v=7"></script>\n</body>');
   fs.writeFileSync(indexPath,html);
 }
