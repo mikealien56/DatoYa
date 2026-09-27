@@ -1,4 +1,5 @@
 const { test, expect, request } = require('@playwright/test');
+const fs=require('fs');
 
 const BASE=process.env.DATOYA_VISUAL_BASE||'http://127.0.0.1:3205';
 const PASS='DatoYa-Visual-2026!';
@@ -25,6 +26,8 @@ async function uiLogin(page,email){
 }
 
 test('refunds mobile visual flow',async({browser})=>{
+  test.setTimeout(120000);
+  fs.mkdirSync('visual-artifacts',{recursive:true});
   const stamp=Date.now();
   const clientEmail='visual-client-'+stamp+'@datoya.test';
   const businessEmail='visual-business-'+stamp+'@datoya.test';
@@ -71,19 +74,34 @@ test('refunds mobile visual flow',async({browser})=>{
   r=await clientApi.post('/api/orders/'+order1+'/refunds',{data:{reason:'quality',amount:7990,details:'El producto llegó con un problema y solicito devolución.'}});
   expect(r.ok()).toBeTruthy();
   const refund1=(await r.json()).refund.id;
+  r=await clientApi.get('/api/orders/refunds/mine');
+  expect(r.ok()).toBeTruthy();
+  const clientRefunds=(await r.json()).refunds||[];
+  expect(clientRefunds.some(x=>Number(x.id)===Number(refund1))).toBeTruthy();
 
   const customerContext=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2});
   const customer=await customerContext.newPage();
+  customer.on('pageerror',e=>console.log('[customer pageerror]',e.message));
+  customer.on('response',res=>{if(res.status()>=400)console.log('[customer http]',res.status(),res.url())});
   await uiLogin(customer,clientEmail);
-  await customer.goto(BASE+'/#/pedidos');
-  await customer.waitForSelector('.dy-refund-box');
+  const me=await customer.evaluate(async()=>{const r=await fetch('/api/auth/me');return {status:r.status,body:await r.text()}});
+  console.log('[customer auth]',me.status,me.body);
+  await customer.evaluate(()=>{location.hash='#/pedidos';if(typeof route==='function')route();});
+  await customer.waitForTimeout(1800);
+  await customer.screenshot({path:'visual-artifacts/00-cliente-debug.png',fullPage:true});
+  fs.writeFileSync('visual-artifacts/00-cliente-body.txt',await customer.locator('body').innerText());
+  await expect(customer.locator('.dy-order-card').first()).toBeVisible({timeout:15000});
+  await expect(customer.locator('.dy-refund-box').first()).toBeVisible({timeout:15000});
   await customer.screenshot({path:'visual-artifacts/01-cliente-solicitud.png',fullPage:true});
 
   const businessContext=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2});
   const business=await businessContext.newPage();
+  business.on('pageerror',e=>console.log('[business pageerror]',e.message));
+  business.on('response',res=>{if(res.status()>=400)console.log('[business http]',res.status(),res.url())});
   await uiLogin(business,businessEmail);
-  await business.goto(BASE+'/#/mi-negocio-pedidos/'+businessId);
-  await business.waitForSelector('.dy-refund-box');
+  await business.evaluate(id=>{location.hash='#/mi-negocio-pedidos/'+id;if(typeof route==='function')route();},businessId);
+  await business.waitForTimeout(1800);
+  await expect(business.locator('.dy-refund-box').first()).toBeVisible({timeout:15000});
   await business.screenshot({path:'visual-artifacts/02-negocio-solicitud.png',fullPage:true});
 
   r=await businessApi.post('/api/businesses/'+businessId+'/refunds/'+refund1+'/decision',{data:{action:'approve',amount:7990,note:'Aprobada en QA visual'}});
