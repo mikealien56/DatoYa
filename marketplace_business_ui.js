@@ -69,4 +69,25 @@
 
   const previousProfile=routes.perfil;
   if(previousProfile)routes.perfil=async function(){const r=await previousProfile.apply(this,arguments);if(!ME||ME.account_type!=='business')return r;try{const {businesses=[]}=await api('/businesses/mine');const cards=[...document.querySelectorAll('.dy-business-list article')];cards.forEach((el,i)=>{const b=businesses[i];if(!b||el.querySelector('.dy-manage-business'))return;const actions=document.createElement('div');actions.className='dy-business-card-actions';const a=document.createElement('a');a.className='btn btn-outline btn-sm dy-manage-business';a.href='#/mi-negocio/'+b.id;a.textContent='Administrar';const mp=document.createElement('a');mp.className='btn btn-primary btn-sm dy-manage-payment';mp.href='#/mi-negocio-pagos/'+b.id;mp.textContent='💳 Pagos';actions.appendChild(a);actions.appendChild(mp);el.appendChild(actions);});}catch(_){}};
+
+  const __dyGrowthPreviousBusiness=routes['mi-negocio'];
+  if(__dyGrowthPreviousBusiness)routes['mi-negocio']=async function(id){
+    const result=await __dyGrowthPreviousBusiness.apply(this,arguments);
+    if(!ME||ME.account_type!=='business')return result;
+    const businessId=Number(id||0);if(!businessId)return result;
+    try{
+      const g=await api('/businesses/'+businessId+'/growth-program'),p=g.profile||{},hero=document.querySelector('.dy-business-hero');
+      if(!hero||document.querySelector('.dy-growth-business-card'))return result;
+      const founder=Number(p.is_founder)===1,ref=!!p.referred_by_business_id,remaining=Math.max(0,Number(p.launch_free_order_limit||0)-Number(p.launch_free_orders_used||0));
+      const card=document.createElement('section');card.className='dy-business-card dy-growth-business-card';
+      card.innerHTML='<div class="dy-card-head"><div><span>CRECIMIENTO DATOYA</span><h2>'+(founder?'🏅 Negocio Fundador':ref?'🎁 Negocio invitado':'Beneficio de lanzamiento')+'</h2></div></div>'+
+        '<div class="dy-growth-business-stats"><div><b>'+remaining+'</b><small>pedidos con 0% restantes</small></div><div><b>'+Number(g.referrals?.rewarded||0)+'</b><small>referidos que calificaron</small></div></div>'+
+        (founder&&p.founder_code?'<div class="dy-founder-share"><span>Tu código para invitar negocios</span><b>'+h(p.founder_code)+'</b><button class="btn btn-outline btn-sm" type="button" data-copy-founder>Copiar código</button><small>Cuando un negocio invitado llegue a 5 pedidos completados, ganas días extra de DatoYa Impulso.</small></div>':'')+
+        '<div class="dy-growth-rate-line"><span>Comisión normal</span><b>'+Number(g.commission?.free_pct??5.9).toLocaleString('es-CL')+'% Gratis · '+Number(g.commission?.impulso_pct??3.9).toLocaleString('es-CL')+'% Impulso</b></div>'+
+        '<div class="dy-growth-rate-line"><span>🔒 Solo en DatoYa</span><b>'+Number(g.commission?.exclusive_free_pct??4.9).toLocaleString('es-CL')+'% Gratis · '+Number(g.commission?.exclusive_impulso_pct??2.9).toLocaleString('es-CL')+'% Impulso</b></div>';
+      hero.insertAdjacentElement('afterend',card);
+      card.querySelector('[data-copy-founder]')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(String(p.founder_code));toast?.('Código copiado','ok')}catch(_){toast?.('Código: '+p.founder_code,'info')}});
+    }catch(_){}
+    return result;
+  };
 })();
