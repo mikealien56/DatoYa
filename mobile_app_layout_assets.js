@@ -10,6 +10,6 @@ html=html.replace(/<link[^>]+href="\/mobile_app_layout\.css[^"]*"[^>]*>\s*/g,'')
 // No forzar cambios de host desde JavaScript. Cloudflare/Render resuelven el dominio;
 // así evitamos bucles datoya.cl <-> www.datoya.cl o redirecciones desde onrender.
 html=html.replace(/<script id="dy-canonical-domain">[\s\S]*?<\/script>\s*/g,'');
-html=html.replace('</head>','  <link rel="stylesheet" href="/mobile_app_layout.css?v=20260925-2">\n</head>');
+html=html.replace('</head>','  <link rel="stylesheet" href="/mobile_app_layout.css?v=20260926-3">\n</head>');
 fs.writeFileSync(indexPath,html);
 console.log('[DatoYa] Capa responsive PWA final preparada sin redirección canónica en cliente.');
