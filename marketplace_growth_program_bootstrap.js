@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS business_referrals (
 CREATE INDEX IF NOT EXISTS idx_business_referrals_founder ON business_referrals(founder_business_id,status);
 `);
 
+const founderInviteCols=db.prepare('PRAGMA table_info(founder_invites)').all().map(x=>x.name);
+if(!founderInviteCols.includes('invitee_email'))db.exec("ALTER TABLE founder_invites ADD COLUMN invitee_email TEXT");
+if(!founderInviteCols.includes('invitee_business_name'))db.exec("ALTER TABLE founder_invites ADD COLUMN invitee_business_name TEXT");
+if(!founderInviteCols.includes('used_by_user_id'))db.exec("ALTER TABLE founder_invites ADD COLUMN used_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL");
+if(!founderInviteCols.includes('used_at'))db.exec("ALTER TABLE founder_invites ADD COLUMN used_at TEXT");
+
 const productCols=db.prepare('PRAGMA table_info(products)').all().map(x=>x.name);
 if(!productCols.includes('datoya_exclusive'))db.exec("ALTER TABLE products ADD COLUMN datoya_exclusive INTEGER NOT NULL DEFAULT 0");
 
