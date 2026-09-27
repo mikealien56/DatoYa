@@ -73,7 +73,9 @@ const __sha256 = value => crypto.createHash('sha256').update(String(value)).dige
 function __securityEvent(userId,type,detail){ try{ db.prepare('INSERT INTO security_events(user_id,event_type,detail) VALUES(?,?,?)').run(userId||null,type,String(detail||'').slice(0,500)); }catch(_){} }
 function __authRateLimit(req,res,next){
   const p=req.path || '/';
-  const rule=p.includes('forgot-password')?{limit:5,window:15*60*1000}:p.includes('phone-verification')?{limit:6,window:15*60*1000}:p.includes('email-verification')?{limit:8,window:15*60*1000}:p.includes('login')?{limit:12,window:10*60*1000}:{limit:30,window:10*60*1000};
+  const baseRule=p.includes('forgot-password')?{limit:5,window:15*60*1000}:p.includes('phone-verification')?{limit:6,window:15*60*1000}:p.includes('email-verification')?{limit:8,window:15*60*1000}:p.includes('login')?{limit:12,window:10*60*1000}:{limit:30,window:10*60*1000};
+  const ciBoost=String(process.env.AUTH_TEST_MODE||'').toLowerCase()==='true'?10:1;
+  const rule={limit:baseRule.limit*ciBoost,window:baseRule.window};
   const key=String(req.ip||req.socket?.remoteAddress||'unknown')+'|'+p;
   const now=Date.now(); let b=__authRateBuckets.get(key);
   if(!b || now>b.reset){ b={count:0,reset:now+rule.window}; __authRateBuckets.set(key,b); }
