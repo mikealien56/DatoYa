@@ -13,7 +13,8 @@
     let data,meta;
     try{[data,meta]=await Promise.all([api('/businesses/'+businessId+'/coupons'),api('/businesses/'+businessId+'/manage')]);}
     catch(err){view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card"><h2>No pudimos cargar Cupones</h2><p>'+h(err.message||'Intenta nuevamente.')+'</p></section></div>';await window.__datoyaBusinessHubFrame?.(businessId,'coupons');return;}
-    const coupons=data.coupons||[],plan=data.plan||{},b=meta.business||{};
+    const coupons=data.coupons||[],plan=data.plan||{},b=meta.business||{},products=meta.products||[];
+    const categoryMap=new Map();for(const p of products){if(Number(p.category_id||0))categoryMap.set(Number(p.category_id),{id:Number(p.category_id),name:p.category_name||('Categoría '+p.category_id),icon:p.category_icon||'🏷️'});}const categories=[...categoryMap.values()];
     const active=Number(plan.active_count||0),limit=Number(plan.active_limit||1),paid=plan.plan==='impulso';
     view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage dy-coupons-page">
       <section class="dy-business-dashboard-hero"><div><span>CUPONES</span><h1>Descuentos de ${h(b.name||'tu negocio')}</h1><p>El descuento lo financia el negocio. La comisión DatoYa se mantiene protegida y nunca se descuenta por defecto para financiar un cupón.</p></div></section>
