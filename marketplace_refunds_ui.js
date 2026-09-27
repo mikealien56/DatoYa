@@ -38,6 +38,8 @@
     await previousOrders.apply(this,arguments);
     try{
       const [{orders=[]},{refunds=[]}]=await Promise.all([api('/orders/mine'),api('/orders/refunds/mine')]);
+      const refundedByOrder=new Map();for(const r of refunds)if(String(r.status)==='refunded')refundedByOrder.set(Number(r.order_id),(refundedByOrder.get(Number(r.order_id))||0)+Number(r.refunded_amount||0));
+      for(const o of orders)o.refunded_total=refundedByOrder.get(Number(o.id))||0;
       window.__dyRefundOrders=orders;
       const byOrder=new Map();for(const r of refunds)if(!byOrder.has(Number(r.order_id)))byOrder.set(Number(r.order_id),r);
       for(const o of orders){
@@ -45,7 +47,7 @@
         const r=byOrder.get(Number(o.id));
         if(r)card.insertAdjacentHTML('beforeend',refundBox(r,'customer'));
         const refundable=['paid','partially_refunded'].includes(String(o.payment_status));
-        if(refundable&&!r){
+        if(refundable&&(!r||!active(r.status))){
           card.insertAdjacentHTML('beforeend','<div class="dy-refund-start"><button class="btn btn-outline btn-sm" onclick="dyRequestRefund('+Number(o.id)+')">Solicitar devolución</button><small>La solicitud se envía primero al negocio.</small></div>');
         }
       }
