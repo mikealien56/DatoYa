@@ -150,7 +150,7 @@
     if(!ME){location.hash='#/registro-negocio';return;}
     if(ME.account_type!=='business'){location.hash='#/registro-negocio';return;}
     const [{categories=[]},{comunas=[]}]=await Promise.all([api('/market/categories'),api('/comunas')]);
-    const key='datoya_business_draft';
+    const key='datoya_business_draft_v2_'+Number(ME.id||0);
     let draft={business_type:'physical_store',category_ids:[],pickup_enabled:true,delivery_enabled:false,public_address_mode:'approximate',comuna_id:getSavedComuna(),hours_schedule:null,accept_orders_when_closed:false};
     try{draft={...draft,...JSON.parse(localStorage.getItem(key)||'{}')};}catch(_){}
     const hourDays=[['mon','Lunes'],['tue','Martes'],['wed','Miércoles'],['thu','Jueves'],['fri','Viernes'],['sat','Sábado'],['sun','Domingo']];
