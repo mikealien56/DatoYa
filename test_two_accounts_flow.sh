@@ -116,7 +116,9 @@ LOW_CODE="$(curl -s -o /dev/null -w '%{http_code}' -b "$CLIENT_JAR" -H 'Content-
 curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$BIZ_ID/delivery" -d '{\"enabled\":true,\"fee\":1500,\"min_order\":5000,\"free_from\":12000,\"radius_km\":5}' >/dev/null
 DELIVERY_REQ="qa-delivery-$STAMP"
 DELIVERY_BODY="{\"business_id\":$BIZ_ID,\"fulfillment_method\":\"delivery\",\"customer_name\":\"Cliente QA\",\"customer_phone\":\"+56911112222\",\"delivery_address\":\"Dirección QA 456\",\"client_request_id\":\"$DELIVERY_REQ\",\"items\":[{\"product_id\":$PRODUCT_ID,\"quantity\":1}]}"
-DELIVERY_JSON="$(curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "$DELIVERY_BODY")"
+DELIVERY_CODE="$(curl -sS -o "$TMP/delivery_ok.json" -w '%{http_code}' -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "$DELIVERY_BODY")"
+if [ "$DELIVERY_CODE" != "200" ]; then echo "Respuesta despacho esperado válido: $(cat "$TMP/delivery_ok.json")"; fail "Despacho válido fue rechazado (HTTP $DELIVERY_CODE)"; fi
+DELIVERY_JSON="$(cat "$TMP/delivery_ok.json")"
 DELIVERY_ID="$(printf '%s' "$DELIVERY_JSON" | python3 -c 'import sys,json; o=json.load(sys.stdin)["order"]; assert o["subtotal"]==5990 and o["delivery_fee"]==1500 and o["total"]==7490; print(o["id"])')"
 curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "$DELIVERY_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('idempotent') is True and int(d['order']['id'])==int('$DELIVERY_ID')"
 curl -fsS "$BASE/api/market/products?q=$PRODUCT_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); p=next(x for x in d['products'] if int(x['id'])==int('$PRODUCT_ID')); assert int(p['stock'])==3"
