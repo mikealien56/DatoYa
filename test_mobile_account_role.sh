@@ -25,7 +25,7 @@ grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_public_beta_ui.js || 
 grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_growth_ui.js || fail "Ficha growth no identifica productos por ID"
 grep -q "productById=new Map" marketplace_commerce_ui.js || fail "Carrito sigue dependiendo del orden visual de productos"
 grep -q "el.dataset.productId" marketplace_commerce_ui.js || fail "Carrito no enlaza botón con ID de producto"
-grep -q "datoya-shell-v72" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+grep -q "datoya-shell-v73" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
 grep -q "data-signup-hour-day" marketplace_account_ui.js || fail "Registro no muestra horarios semanales"
 grep -q "accept_orders_when_closed" marketplace_account_ui.js || fail "Registro no permite definir pedidos fuera de horario"
 grep -q "hours_schedule" marketplace_account_bootstrap_v2.js || fail "Registro no persiste horarios estructurados"
