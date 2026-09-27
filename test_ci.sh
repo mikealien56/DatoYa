@@ -157,7 +157,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
@@ -177,6 +177,20 @@ grep -q "impulso_paid_catalog_limit" marketplace_admin_v2_ui.js || { echo "Admin
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const plan=s.indexOf("business_impulse_plan_assets");const hub=s.indexOf("business_hub_assets");if(plan<0||hub<0||hub<plan){throw new Error("Panel Negocio 2.0 no carga al final de los módulos comerciales")}'
 echo "✅ Khipu es el único flujo de pago publicado"
 echo "✅ Frontend comercial publicado"
+
+# La beta pública no debe mostrar escaparates ni ofertas ficticias.
+if grep -Eq 'marketplace_demo_(showcase|pitch)' public/index.html; then
+  echo "ERROR: la portada final todavía carga escaparates DEMO"
+  exit 1
+fi
+for demo_asset in marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_demo_showcase.css marketplace_demo_pitch.css; do
+  [ ! -e "public/$demo_asset" ] || { echo "ERROR: asset DEMO sigue publicado: $demo_asset"; exit 1; }
+done
+! grep -q "demoItems" marketplace_impulse_home.js || { echo "Impulso Ahora todavía usa comercios ficticios"; exit 1; }
+grep -q "No hay Impulsos activos ahora" marketplace_impulse_home.js || { echo "Falta estado vacío real de Impulso Ahora"; exit 1; }
+! grep -q "renderDemo" marketplace_weekly_home.js || { echo "Oferta semanal todavía tiene fallback DEMO"; exit 1; }
+grep -q "section.hidden=true" marketplace_weekly_home.js || { echo "Oferta semanal vacía no se oculta"; exit 1; }
+echo "✅ Portada beta sin escaparates ficticios"
 
 # Legacy visual scripts must not ship in the final generated HTML.
 LEGACY_PUBLIC_SCRIPTS=(
