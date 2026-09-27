@@ -24,10 +24,20 @@
   }
   function setPlanButtonsBusy(busy,text){
     document.querySelectorAll('.dy-plan-page button').forEach(btn=>{
-      if(busy){if(!btn.dataset.dyLabel)btn.dataset.dyLabel=btn.textContent;btn.disabled=true;}
-      else{btn.disabled=false;if(btn.dataset.dyLabel){btn.textContent=btn.dataset.dyLabel;delete btn.dataset.dyLabel;}}
+      if(busy){
+        if(!btn.dataset.dyLabel)btn.dataset.dyLabel=btn.textContent;
+        if(btn.dataset.dyWasDisabled===undefined)btn.dataset.dyWasDisabled=btn.disabled?'1':'0';
+        btn.disabled=true;
+      }else{
+        btn.disabled=btn.dataset.dyWasDisabled==='1';
+        if(btn.dataset.dyLabel){btn.textContent=btn.dataset.dyLabel;delete btn.dataset.dyLabel;}
+        delete btn.dataset.dyWasDisabled;
+      }
     });
-    if(busy&&text){const first=document.querySelector('.dy-plan-page button[disabled]');if(first)first.textContent=text;}
+    if(busy&&text){
+      const first=[...document.querySelectorAll('.dy-plan-page button')].find(btn=>btn.dataset.dyWasDisabled==='0');
+      if(first)first.textContent=text;
+    }
   }
 
   routes['mi-negocio-plan']=async function(id){
