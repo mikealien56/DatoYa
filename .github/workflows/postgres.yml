@@ -58,6 +58,9 @@ jobs:
                 AND conrelid='commerce_refund_requests'::regclass
             )
             THEN RAISE EXCEPTION 'Refund order FK missing after commerce_orders creation'; END IF;
+            IF (SELECT count(*) FROM information_schema.columns WHERE table_name='founder_invites' AND column_name IN
+              ('invitee_email','invitee_business_name','used_by_user_id','used_at')) <> 4
+            THEN RAISE EXCEPTION 'Founder invite identity columns missing'; END IF;
           END; $verify$;
           SQL
       - name: Verify critical tables and constraints
