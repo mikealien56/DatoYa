@@ -97,3 +97,10 @@
   .dy-register-type{grid-template-columns:1fr}
   .dy-activation-card{padding:24px 17px;border-radius:20px}
 }
+
+/* Invitación personal de Negocio Fundador */
+.dy-founder-invite-banner{display:flex;gap:12px;align-items:flex-start;margin:0 0 16px;padding:14px;border:1px solid #efd083;border-radius:16px;background:linear-gradient(180deg,#fffaf0,#fff7df);color:#553d08}
+.dy-founder-invite-banner>span{font-size:26px;line-height:1}.dy-founder-invite-banner small{display:block;font-size:10px;font-weight:900;letter-spacing:.08em;color:#9a6a00}.dy-founder-invite-banner b{display:block;margin:3px 0;color:#704d00}.dy-founder-invite-banner p{margin:0;font-size:12px;line-height:1.45;color:#745d2c}
+.dy-register-type button[disabled]{opacity:.55;cursor:not-allowed}
+.dy-founder-applied{display:flex;gap:11px;align-items:flex-start;margin:12px 0;padding:13px;border:1px solid #efd083;border-radius:14px;background:#fff9e8}.dy-founder-applied>span{font-size:24px}.dy-founder-applied b{display:block;color:#725000}.dy-founder-applied small{display:block;margin-top:3px;color:#7a6841;line-height:1.4}
+@media(max-width:520px){.dy-founder-invite-banner,.dy-founder-applied{padding:12px}}
