@@ -123,6 +123,6 @@
 
   // Accesos legales visibles en toda la SPA.
   if(!document.getElementById('datoya-legal-footer')){
-    const footer=document.createElement('footer'); footer.id='datoya-legal-footer'; footer.className='small muted'; footer.style.cssText='text-align:center;padding:34px 12px 94px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px'; footer.innerHTML='<img src="/brand/datoya-footer-logo.webp?v=20260927-1" alt="DatoYa · Lo que buscas, cerca de ti" style="display:block;width:138px;max-width:40vw;height:auto;object-fit:contain" loading="lazy"><div><a href="#/terminos">Términos</a> · <a href="#/privacidad">Privacidad</a> · <a href="#/seguridad">Seguridad</a></div>'; document.body.appendChild(footer);
+    const footer=document.createElement('footer'); footer.id='datoya-legal-footer'; footer.className='small muted'; footer.style.cssText='text-align:center;padding:34px 12px 94px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px'; footer.innerHTML='<img src="/brand/datoya-logo-horizontal.png?v=20260927-hq" alt="DatoYa · Lo que buscas, cerca de ti" style="display:block;width:132px;max-width:42vw;height:auto;object-fit:contain;image-rendering:auto" loading="lazy"><div><a href="#/terminos">Términos</a> · <a href="#/privacidad">Privacidad</a> · <a href="#/seguridad">Seguridad</a></div>'; document.body.appendChild(footer);
   }
 })();
