@@ -7,3 +7,14 @@
 .dy-demo-live-card{border:1px solid #ffd6ab!important}.dy-demo-live-card .dy-live-badge{background:#fff;color:#d45c00}.dy-demo-demo-tag{position:absolute;top:10px;right:10px;z-index:3;background:#fff;color:#0B3A82;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:900;box-shadow:0 5px 12px rgba(0,0,0,.1)}
 @keyframes dyArrowNudge{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
 @media(max-width:760px){.dy-demo-intro{padding:23px 18px;flex-direction:column}.dy-demo-start-here{width:100%;align-self:stretch}.dy-demo-pitch-actions{display:grid;grid-template-columns:1fr}.dy-demo-pitch-actions .btn{width:100%}.dy-demo-concepts{grid-template-columns:1fr}.dy-demo-showcase-title{align-items:flex-start;flex-direction:column}.dy-demo-showcase-title a{font-size:13px}.dy-demo-pitch-copy h2{font-size:31px}}
+
+/* DEMO móvil: primera fila Impulso + DEMO; segunda fila estado/stock. */
+@media(max-width:640px){
+  .dy-demo-live-card .dy-live-badge{right:68px;max-width:calc(100% - 88px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dy-demo-live-card .dy-demo-demo-tag{top:10px;right:10px}
+  .dy-demo-live-card .dy-stock-badge{top:48px;left:10px;right:auto;max-width:calc(100% - 20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+@media(max-width:380px){
+  .dy-demo-live-card .dy-live-badge{right:62px;max-width:calc(100% - 82px)}
+  .dy-demo-live-card .dy-demo-demo-tag{font-size:8px;padding:5px 7px}
+}
