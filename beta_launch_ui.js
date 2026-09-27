@@ -5,7 +5,7 @@
   const badge=(txt,tone='')=>'<span class="dy-beta-badge '+tone+'">'+h(txt)+'</span>';
   const pct=n=>Math.max(0,Math.min(100,Number(n||0)));
   function ensureAdminBetaNav(){
-    if(!window.ME||ME.role!=='admin')return;
+    if(typeof ME==='undefined'||!ME||ME.role!=='admin')return;
     const nav=document.querySelector('.dy-admin-v2-nav .dy-admin-nav-scroll section');
     if(!nav||nav.querySelector('[data-dy-beta-nav]'))return;
     const a=document.createElement('a');
