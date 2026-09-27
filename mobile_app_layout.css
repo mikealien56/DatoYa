@@ -455,6 +455,38 @@ input,select,textarea,button{
   #auth-area>a[href="#/perfil"]{max-width:58px!important}
 }
 
+/* Guest header: both account links must remain readable on narrow phones. */
+@media (max-width:640px){
+  #topbar:has(#auth-area>a[href="#/login"]) .logo{
+    flex:0 1 140px!important;
+    max-width:140px!important;
+    overflow:visible!important;
+  }
+  #topbar:has(#auth-area>a[href="#/login"]) .datoya-header-logo{
+    width:140px!important;
+    max-width:100%!important;
+  }
+  #auth-area:has(>a[href="#/login"]){
+    max-width:none!important;
+    flex:0 0 auto!important;
+    overflow:visible!important;
+    gap:6px!important;
+  }
+  #auth-area:has(>a[href="#/login"])>a{
+    max-width:none!important;
+    flex:none!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    padding:7px 6px!important;
+    font-size:12px!important;
+  }
+}
+@media (max-width:390px){
+  #topbar:has(#auth-area>a[href="#/login"]) .logo{flex-basis:118px!important;max-width:118px!important}
+  #topbar:has(#auth-area>a[href="#/login"]) .datoya-header-logo{width:118px!important}
+  #auth-area:has(>a[href="#/login"])>a{font-size:11px!important;padding:7px 4px!important}
+}
+
 /* ===== HEADER NOTIFICATION FIX V3 ===== */
 @media (max-width:820px){
   #topnav,#auth-area{overflow:visible!important}
