@@ -54,7 +54,7 @@ if(!source.includes('DATOYA ORDER INTEGRITY V1')){
   if(!source.includes(businessListOld))throw new Error('No se encontró listado de pedidos del negocio');
   source=source.replace(businessListOld,businessListNew);
 
-  const pickupRoutes=\`
+  const pickupRoutes=`
 // ============ DATOYA ORDER INTEGRITY V1 ============
 app.get('/api/orders/:id/pickup-qr.svg',auth,async(req,res)=>{
   const o=db.prepare("SELECT o.id,o.reference,o.user_id,o.fulfillment_method,o.status,o.pickup_code,b.name AS business_name FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=? AND o.user_id=?").get(Number(req.params.id),req.user.id);
@@ -84,7 +84,7 @@ app.post('/api/orders/:id/pickup/verify',auth,(req,res)=>{
   res.json({ok:true,status:'completed',pickup_verified_at:now});
 });
 // ============ FIN DATOYA ORDER INTEGRITY V1 ============
-\`;
+`;
   const cat='// ============ CATÁLOGOS ============';
   if(!source.includes(cat))throw new Error('No se encontró marcador CATÁLOGOS para retiro');
   source=source.replace(cat,pickupRoutes+'\\n'+cat);
