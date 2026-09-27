@@ -14,7 +14,7 @@
       ['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos'],['#/admin/pedidos','🧾','Pedidos'],['#/admin/soporte','📨','Soporte']
     ]],
     ['Crecimiento',[
-      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso semanal'],['#/admin/analitica','📈','Analítica']
+      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/fundadores','🏅','Fundadores'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso semanal'],['#/admin/analitica','📈','Analítica']
     ]],
     ['Sistema',[
       ['#/admin/usuarios','👥','Usuarios'],['#/admin/finanzas','💰','Finanzas'],['#/admin/configuracion','⚙️','Configuración']
@@ -57,7 +57,7 @@
 
   routes.admin=async function(tab='dashboard'){
     if(!ME||ME.role!=='admin'){view.innerHTML='<div class="empty"><b>🛡️</b>Acceso solo para administradores.</div>';return;}
-    const managed=['dashboard','resumen','usuarios','negocios','productos','pedidos','finanzas','impulso','impulso-semanal','analitica','moderacion','configuracion'];
+    const managed=['dashboard','resumen','usuarios','negocios','productos','pedidos','finanzas','impulso','fundadores','impulso-semanal','analitica','moderacion','configuracion'];
     if(!managed.includes(tab))return previous.apply(this,arguments);
     try{
       if(tab==='dashboard'||tab==='resumen'){
@@ -139,6 +139,56 @@
         wireSearch('[data-imp-row]');return;
       }
 
+      if(tab==='fundadores'){
+        const [{founders=[],referrals=[],invites=[],config={}},{settings={}}]=await Promise.all([
+          api('/admin/marketplace-v2/founders'),
+          api('/admin/marketplace-v2/growth-settings')
+        ]);
+        shell('🏅 Fundadores y crecimiento','Invitaciones, referidos, beneficios y comisiones de lanzamiento.',`
+          <div class="dy-admin-kpis">
+            <div><strong>${founders.length}</strong><span>Fundadores</span><small>Negocios invitados por DatoYa</small></div>
+            <div><strong>${referrals.length}</strong><span>Referidos</span><small>${referrals.filter(x=>x.status==='rewarded').length} ya calificaron</small></div>
+            <div><strong>${invites.filter(x=>x.status==='active'&&Number(x.used_count)<Number(x.max_uses)).length}</strong><span>Invitaciones disponibles</span><small>Códigos Fundador vigentes</small></div>
+          </div>
+          <div class="dy-admin-grid2">
+            <section class="card">
+              <span class="small muted">INVITACIONES</span><h3>Crear código de Negocio Fundador</h3>
+              <p class="small muted">Tú decides qué negocio puede entrar como Fundador. El código se valida al registrar el negocio.</p>
+              <form id="dy-founder-invite-form" class="dy-admin-settings">
+                <div class="field"><label>Nombre o referencia</label><input name="label" maxlength="100" placeholder="Ej: Panadería Don Juan"></div>
+                <div class="field"><label>Código opcional</label><input name="code" maxlength="32" placeholder="Ej: FUNDADOR-DONJUAN"></div>
+                <div class="field"><label>Usos permitidos</label><input name="max_uses" type="number" min="1" max="100" value="1"></div>
+                <button class="btn btn-primary" type="submit">Crear invitación</button>
+              </form>
+              <div class="dy-admin-history" style="margin-top:12px">${invites.map(x=>`<div><b>${h(x.code)}</b><span>${h(x.label||'Invitación Fundador')} · ${Number(x.used_count||0)}/${Number(x.max_uses||1)} usos · ${h(x.status)}</span><button class="btn btn-outline btn-sm" onclick="dyFounderInviteToggle(${Number(x.id)},${x.status==='active'?'false':'true'},this)">${x.status==='active'?'Pausar':'Activar'}</button></div>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div>
+            </section>
+            <section class="card">
+              <span class="small muted">MODELO COMERCIAL</span><h3>Comisiones y beneficios</h3>
+              <form id="dy-growth-settings-form" class="dy-admin-settings">
+                <div class="field"><label>Gratis (%)</label><input name="commission_free_pct" type="number" step="0.1" min="0" max="20" value="${h(settings.commission_free_pct??5.9)}"></div>
+                <div class="field"><label>Gratis · Solo en DatoYa (%)</label><input name="commission_exclusive_free_pct" type="number" step="0.1" min="0" max="20" value="${h(settings.commission_exclusive_free_pct??4.9)}"></div>
+                <div class="field"><label>Impulso (%)</label><input name="commission_impulso_pct" type="number" step="0.1" min="0" max="20" value="${h(settings.commission_impulso_pct??3.9)}"></div>
+                <div class="field"><label>Impulso + exclusiva (%)</label><input name="commission_exclusive_impulso_pct" type="number" step="0.1" min="0" max="20" value="${h(settings.commission_exclusive_impulso_pct??2.9)}"></div>
+                <div class="field"><label>Tope Gratis (CLP)</label><input name="commission_free_cap" type="number" min="0" value="${h(settings.commission_free_cap??2990)}"></div>
+                <div class="field"><label>Tope Impulso (CLP)</label><input name="commission_impulso_cap" type="number" min="0" value="${h(settings.commission_impulso_cap??1990)}"></div>
+                <div class="field"><label>Pedidos iniciales al 0%</label><input name="launch_free_orders" type="number" min="0" max="100" value="${h(settings.launch_free_orders??5)}"></div>
+                <div class="field"><label>Fundador: días Impulso</label><input name="founder_impulso_days" type="number" min="0" max="365" value="${h(settings.founder_impulso_days??30)}"></div>
+                <div class="field"><label>Referido: días Impulso</label><input name="referred_impulso_days" type="number" min="0" max="365" value="${h(settings.referred_impulso_days??15)}"></div>
+                <div class="field"><label>Premio por referido</label><input name="referral_reward_days" type="number" min="0" max="365" value="${h(settings.referral_reward_days??15)}"></div>
+                <div class="field"><label>Tope premio acumulado</label><input name="referral_reward_cap_days" type="number" min="0" max="730" value="${h(settings.referral_reward_cap_days??90)}"></div>
+                <button class="btn btn-primary" type="submit">Guardar modelo</button>
+              </form>
+              <div class="dy-admin-note" style="margin-top:12px">La comisión se calcula sobre productos netos después de descuentos. El despacho propio no entra en la base de comisión.</div>
+            </section>
+          </div>
+          <section class="card" style="margin-top:16px"><span class="small muted">NEGOCIOS FUNDADORES</span><h3>Quién entró como Fundador</h3><div class="dy-admin-list">${founders.map(f=>`<article class="card dy-admin-row"><div><b>🏅 ${h(f.business_name)}</b><div class="small muted">${h(f.owner_name||'')} · ${h(f.owner_email||'')}</div><div class="dy-admin-tags">${badge(f.founder_code||'Sin código','ok')} ${badge(Number(f.referral_count||0)+' referidos')} ${badge(Number(f.rewarded_referrals||0)+' calificados')} ${badge('+'+Number(f.founder_reward_days||0)+' días')}</div></div><div class="small muted">${Number(f.launch_free_orders_used||0)}/${Number(f.launch_free_order_limit||0)} pedidos iniciales usados</div></article>`).join('')||'<p class="muted">Todavía no hay Fundadores.</p>'}</div></section>
+          <section class="card" style="margin-top:16px"><span class="small muted">REFERIDOS</span><h3>Negocios recomendados</h3><div class="dy-admin-history">${referrals.map(r=>`<div><b>${h(r.referred_name)}</b><span>Invitado por ${h(r.founder_name)} · ${Number(r.completed_orders||0)}/5 pedidos · ${r.status==='rewarded'?'premio entregado':'pendiente'}</span></div>`).join('')||'<p class="muted">Aún no hay referidos.</p>'}</div></section>
+        `);
+        document.getElementById('dy-founder-invite-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button');btn.disabled=true;try{const r=await api('/admin/marketplace-v2/founder-invites',{method:'POST',body:{label:f.label.value.trim(),code:f.code.value.trim(),max_uses:Number(f.max_uses.value||1)}});toast?.('Invitación creada: '+r.invite.code,'ok');routes.admin('fundadores');}catch(err){btn.disabled=false;toast?.(err.message,'err')}});
+        document.getElementById('dy-growth-settings-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,body={};for(const el of f.querySelectorAll('input[name]'))body[el.name]=Number(el.value);try{await api('/admin/marketplace-v2/growth-settings',{method:'PUT',body});toast?.('Modelo comercial actualizado','ok');routes.admin('fundadores');}catch(err){toast?.(err.message,'err')}});
+        return;
+      }
+
       if(tab==='impulso-semanal'){
         const [{impulses=[]},{businesses=[]}]=await Promise.all([api('/admin/weekly-impulses'),api('/admin/marketplace-v2/businesses')]);
         const activeBiz=businesses.filter(b=>b.status==='active');
@@ -186,9 +236,10 @@
   };
 
   window.dyToggleAdminUser=async id=>{try{await api('/admin/users/'+id+'/toggle',{method:'POST',body:{}});toast?.('Usuario actualizado','ok');routes.admin('usuarios');}catch(e){toast?.(e.message,'err');}};
-  window.dySetBusinessStatus=async(id,status)=>{if(!status)return;try{await api('/admin/marketplace/businesses/'+id+'/status',{method:'PUT',body:{status}});toast?.('Estado del negocio actualizado','ok');routes.admin('negocios');}catch(e){toast?.(e.message,'err');}};
+  window.dySetBusinessStatus=async(id,status)=>{if(!status)return;try{await api('/admin/marketplace/businesses/'+id+'/status',{method:'PUT',body:{status}});if(status==='active')await api('/admin/marketplace-v2/founders').catch(()=>null);toast?.('Estado del negocio actualizado','ok');routes.admin('negocios');}catch(e){toast?.(e.message,'err');}};
   window.dyGiftImpulse=async(id,name)=>{const days=Number(document.getElementById('gift-days-'+id)?.value||30);if(!confirm('¿Regalar '+days+' días de DatoYa Impulso a '+name+'?'))return;try{const r=await api('/admin/marketplace-v2/impulso/gift',{method:'POST',body:{business_id:id,days}});toast?.(r.message||'Cortesía activada','ok');routes.admin('impulso');}catch(e){toast?.(e.message,'err');}};
   window.dyGiftWeekly=async()=>{const id=Number(document.getElementById('dy-weekly-business')?.value||0);if(!id)return toast?.('Selecciona un negocio','err');try{await api('/admin/weekly-impulses/gift',{method:'POST',body:{business_id:id}});toast?.('Impulso semanal regalado','ok');routes.admin('impulso-semanal');}catch(e){toast?.(e.message,'err');}};
   window.dyApproveWeekly=async id=>{if(!confirm('¿Aprobar este destacado por 7 días usando la foto disponible?'))return;try{await api('/admin/weekly-impulses/'+id+'/approve',{method:'POST',body:{placement_type:'gifted',use_original:true}});toast?.('Destacado aprobado','ok');routes.admin('impulso-semanal');}catch(e){toast?.(e.message,'err');}};
   window.dyRejectWeekly=async id=>{const reason=prompt('¿Qué debe corregir el negocio?','Necesitamos que ajustes la oferta antes de publicarla.');if(reason===null)return;try{await api('/admin/weekly-impulses/'+id+'/reject',{method:'POST',body:{reason}});toast?.('Se solicitaron cambios','ok');routes.admin('impulso-semanal');}catch(e){toast?.(e.message,'err');}};
+  window.dyFounderInviteToggle=async(id,active,btn)=>{if(btn)btn.disabled=true;try{await api('/admin/marketplace-v2/founder-invites/'+Number(id)+'/status',{method:'PUT',body:{active:!!active}});toast?.(active?'Invitación activada':'Invitación pausada','ok');routes.admin('fundadores');}catch(e){if(btn)btn.disabled=false;toast?.(e.message,'err')}};
 })();
