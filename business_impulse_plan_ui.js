@@ -40,6 +40,19 @@
     }
   }
 
+  routes['mi-negocio-destacado']=async function(id){
+    id=Number(id);if(!ME||ME.account_type!=='business'){location.hash='#/login';return;}
+    view.innerHTML='<div class="dy-plan-page"><section class="dy-plan-card">Consultando destacado…</section></div>';
+    try{
+      let data=await api('/businesses/'+id+'/featured-week/status');
+      if(data.placement?.status==='pending_payment'){await api('/businesses/'+id+'/featured-week/sync',{method:'POST',body:{}}).catch(()=>{});data=await api('/businesses/'+id+'/featured-week/status');}
+      const placement=data.placement,labels={pending_payment:'Pago pendiente',paid_pending_review:'Pago confirmado · esperando revisión',active:'Publicado',ended:'Finalizado'};
+      view.innerHTML=`<div class="dy-plan-page"><a class="dy-plan-back" href="#/mi-negocio-plan/${id}">← Volver al plan</a><section class="dy-plan-hero"><div><span>⭐ NEGOCIO DESTACADO</span><h1>Una semana en portada</h1><p>Destacamos un negocio aprobado por comuna durante siete días. El espacio aparece marcado como publicidad.</p></div></section><section class="dy-plan-card"><h2>${money(data.price)} por 7 días</h2><p>Pago único; la fecha se asigna después de confirmar el pago y revisar el negocio. Si no hay cupo inmediato, se coordina la siguiente semana.</p>${placement?`<p><b>Estado:</b> ${h(labels[placement.status]||placement.status)}${placement.ends_at?' · Hasta '+h(new Date(placement.ends_at).toLocaleDateString('es-CL')):''}</p>`:''}${!placement||['ended','rejected'].includes(placement.status)?`<button class="btn btn-primary" id="dy-featured-checkout" ${data.checkout_available?'':'disabled'}>Solicitar y pagar con Khipu</button>`:''}${placement?.status==='pending_payment'?'<button class="btn btn-outline" id="dy-featured-sync">Consultar pago</button>':''}${!data.checkout_available?'<p class="dy-plan-note">Los pagos reales siguen bloqueados. Este espacio no se cobrará hasta habilitar Khipu.</p>':''}</section></div>`;
+      document.getElementById('dy-featured-checkout')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{const r=await api('/businesses/'+id+'/featured-week/checkout',{method:'POST',body:{}});location.href=r.checkout_url;}catch(err){toast?.(err.message,'err');e.currentTarget.disabled=false}});
+      document.getElementById('dy-featured-sync')?.addEventListener('click',async()=>{try{await api('/businesses/'+id+'/featured-week/sync',{method:'POST',body:{}});routes['mi-negocio-destacado'](id);}catch(err){toast?.(err.message,'err')}});
+    }catch(e){view.innerHTML='<div class="dy-plan-page"><section class="dy-plan-card"><h2>No pudimos cargar el destacado</h2><p>'+h(e.message)+'</p></section></div>';}
+  };
+
   routes['mi-negocio-plan']=async function(id){
     if(!ME){location.hash='#/login';return;}
     if(ME.account_type!=='business'){location.hash='#/perfil';return;}
@@ -91,6 +104,7 @@
           ${!canCheckout?'<div class="dy-plan-note">Khipu TEST no está disponible en este momento. No se habilitarán pagos reales.</div>':''}
         </section>`:''}
 
+        <section class="dy-plan-card" style="margin:18px 0"><span>⭐ ESPACIO APARTE</span><h2>Negocio destacado de la semana</h2><p>Un cupo por comuna, durante 7 días. Se solicita y paga por separado de Impulso; DatoYa revisa el negocio antes de publicarlo.</p><a class="btn btn-outline" href="#/mi-negocio-destacado/${id}">Ver precio y disponibilidad →</a></section>
         <section class="dy-plan-clarity">
           <div><span>✓</span><b>Lo esencial siempre es gratis</b><p>Perfil, pedidos, soporte, horarios, retiro/despacho y hasta ${freeLimit} productos.</p></div>
           <div><span>🔒</span><b>Lo premium está marcado</b><p>Impulso Ahora, estadísticas avanzadas y herramientas de crecimiento requieren una membresía activa.</p></div>
