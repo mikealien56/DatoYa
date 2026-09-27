@@ -219,7 +219,7 @@
         const {settings:s}=await api('/admin/marketplace-v2/settings');
         shell('Configuración','Parámetros del marketplace sin tocar código.',`
           <form id="dy-admin-settings" class="card dy-admin-settings">
-            <div class="field"><label>Comisión DatoYa (%)</label><input name="commission_pct" type="number" min="0" max="50" step="0.1" value="${h(s.commission_pct)}"></div>
+            <div class="card dy-admin-note" style="grid-column:1/-1"><b>Comisiones por nivel:</b> ahora se administran en <a href="#/admin/fundadores">🏅 Fundadores y crecimiento</a>. Ahí están Gratis, Solo en DatoYa, Impulso y sus topes.</div>
             <div class="field"><label>DatoYa Impulso mensual (CLP)</label><input name="impulso_monthly_price" type="number" min="0" value="${h(s.impulso_monthly_price)}"></div>
             <div class="field"><label>DatoYa Impulso 3 meses (CLP)</label><input name="impulso_quarterly_price" type="number" min="0" value="${h(s.impulso_quarterly_price)}"></div>
             <div class="field"><label>DatoYa Impulso anual (CLP)</label><input name="impulso_annual_price" type="number" min="0" value="${h(s.impulso_annual_price)}"></div>
@@ -229,7 +229,7 @@
             <button class="btn btn-primary" type="submit">Guardar configuración</button>
           </form>
           <div class="card dy-admin-note"><b>Pagos reales:</b> ${s.live_payments_allowed?'habilitados':'bloqueados'} · <b>Checkout Impulso:</b> ${s.impulso_checkout_enabled?'habilitado':'en validación'}. No se habilitan cobros reales desde esta pantalla.</div>`);
-        document.getElementById('dy-admin-settings')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/admin/marketplace-v2/settings',{method:'PUT',body:{commission_pct:Number(f.commission_pct.value),impulso_monthly_price:Number(f.impulso_monthly_price.value),impulso_quarterly_price:Number(f.impulso_quarterly_price.value),impulso_annual_price:Number(f.impulso_annual_price.value),impulso_free_catalog_limit:Number(f.impulso_free_catalog_limit.value),impulso_paid_catalog_limit:Number(f.impulso_paid_catalog_limit.value),weekly_impulse_days:Number(f.weekly_impulse_days.value)}});toast?.('Configuración guardada','ok');}catch(err){toast?.(err.message,'err');}});
+        document.getElementById('dy-admin-settings')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/admin/marketplace-v2/settings',{method:'PUT',body:{impulso_monthly_price:Number(f.impulso_monthly_price.value),impulso_quarterly_price:Number(f.impulso_quarterly_price.value),impulso_annual_price:Number(f.impulso_annual_price.value),impulso_free_catalog_limit:Number(f.impulso_free_catalog_limit.value),impulso_paid_catalog_limit:Number(f.impulso_paid_catalog_limit.value),weekly_impulse_days:Number(f.weekly_impulse_days.value)}});toast?.('Configuración guardada','ok');}catch(err){toast?.(err.message,'err');}});
         return;
       }
     }catch(e){toast?.(e.message||'No se pudo cargar el panel administrador','err');}
