@@ -160,15 +160,14 @@
           </div>
           <div class="dy-admin-grid2">
             <section class="card">
-              <span class="small muted">INVITACIONES</span><h3>Crear código de Negocio Fundador</h3>
-              <p class="small muted">Tú decides qué negocio puede entrar como Fundador. El código se valida al registrar el negocio.</p>
+              <span class="small muted">INVITACIONES</span><h3>Invitar un Negocio Fundador</h3>
+              <p class="small muted">Cada invitación pertenece a un solo negocio, queda ligada a su correo y se puede usar una sola vez.</p>
               <form id="dy-founder-invite-form" class="dy-admin-settings">
-                <div class="field"><label>Nombre o referencia</label><input name="label" maxlength="100" placeholder="Ej: Panadería Don Juan"></div>
-                <div class="field"><label>Código opcional</label><input name="code" maxlength="32" placeholder="Ej: FUNDADOR-DONJUAN"></div>
-                <div class="field"><label>Usos permitidos</label><input name="max_uses" type="number" min="1" max="100" value="1"></div>
-                <button class="btn btn-primary" type="submit">Crear invitación</button>
+                <div class="field"><label>Nombre del negocio</label><input name="business_name" maxlength="100" placeholder="Ej: Panadería Don Juan" required></div>
+                <div class="field"><label>Correo del invitado</label><input name="email" type="email" maxlength="160" placeholder="juan@correo.cl" required></div>
+                <button class="btn btn-primary" type="submit">Crear invitación única</button>
               </form>
-              <div class="dy-admin-history" style="margin-top:12px">${invites.map(x=>`<div><b>${h(x.code)}</b><span>${h(x.label||'Invitación Fundador')} · ${Number(x.used_count||0)}/${Number(x.max_uses||1)} usos · ${h(x.status)}</span><button class="btn btn-outline btn-sm" onclick="dyFounderInviteToggle(${Number(x.id)},${x.status==='active'?'false':'true'},this)">${x.status==='active'?'Pausar':'Activar'}</button></div>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div>
+              <div class="dy-admin-history" style="margin-top:12px">${invites.map(x=>`<div><div><b>${h(x.invitee_business_name||x.label||'Invitación Fundador')}</b><span>${h(x.invitee_email||'Sin correo asociado')} · ${h(x.code)} · ${x.status==='used'?'Usada':x.status==='active'?'Disponible':'Pausada'}</span></div><div class="dy-admin-row-actions">${x.status==='active'?'<button class="btn btn-outline btn-sm" onclick="dyCopyFounderInvite(\''+h(x.code)+'\')">Copiar enlace</button><button class="btn btn-outline btn-sm" onclick="dyShareFounderInvite(\''+h(x.code)+'\',\''+h(x.invitee_business_name||x.label||'tu negocio')+'\')">WhatsApp</button>':''}<button class="btn btn-outline btn-sm" onclick="dyFounderInviteToggle(${Number(x.id)},${x.status==='active'?'false':'true'},this)" ${x.status==='used'?'disabled':''}>${x.status==='active'?'Pausar':x.status==='used'?'Usada':'Activar'}</button></div></div>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div>
             </section>
             <section class="card">
               <span class="small muted">MODELO COMERCIAL</span><h3>Comisiones y beneficios</h3>
