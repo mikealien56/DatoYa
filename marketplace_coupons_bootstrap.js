@@ -44,6 +44,18 @@ CREATE TABLE IF NOT EXISTS coupon_redemptions (
   reversed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_coupon_user ON coupon_redemptions(coupon_id,user_id,status);
+CREATE TABLE IF NOT EXISTS market_coupon_products (
+  coupon_id INTEGER NOT NULL,
+  product_id INTEGER NOT NULL,
+  PRIMARY KEY(coupon_id,product_id)
+);
+CREATE INDEX IF NOT EXISTS idx_market_coupon_products_product ON market_coupon_products(product_id);
+CREATE TABLE IF NOT EXISTS market_coupon_categories (
+  coupon_id INTEGER NOT NULL,
+  category_id INTEGER NOT NULL,
+  PRIMARY KEY(coupon_id,category_id)
+);
+CREATE INDEX IF NOT EXISTS idx_market_coupon_categories_category ON market_coupon_categories(category_id);
 `);
 
 const orderCols=db.prepare('PRAGMA table_info(commerce_orders)').all().map(x=>x.name);
@@ -109,16 +121,73 @@ function __dyCouponRelease(orderId,now){
   return Number(changed.changes||0)>0;
 }
 
+/* DATOYA MARKET COUPONS V2 */
+function __dyCouponScope(couponId){
+  const product_ids=db.prepare('SELECT product_id FROM market_coupon_products WHERE coupon_id=? ORDER BY product_id').all(Number(couponId)).map(x=>Number(x.product_id));
+  const category_ids=db.prepare('SELECT category_id FROM market_coupon_categories WHERE coupon_id=? ORDER BY category_id').all(Number(couponId)).map(x=>Number(x.category_id));
+  return {scope_mode:product_ids.length?'products':category_ids.length?'categories':'all',product_ids,category_ids};
+}
+function __dyCouponRequestItems(businessId,rawItems){
+  const out=[];
+  for(const raw of (Array.isArray(rawItems)?rawItems:[]).slice(0,20)){
+    const qty=Math.max(1,Math.min(99,Math.floor(Number(raw?.quantity||1))));
+    const impulseId=Number(raw?.impulse_id||0),productId=Number(raw?.product_id||0);
+    if(impulseId){
+      const i=db.prepare('SELECT i.product_id,i.price,p.category_id FROM impulse_now i LEFT JOIN products p ON p.id=i.product_id WHERE i.id=? AND i.business_id=?').get(impulseId,Number(businessId));
+      if(i)out.push({product_id:Number(i.product_id||0)||null,category_id:Number(i.category_id||0)||null,unit_price:Number(i.price||0),quantity:qty});
+    }else if(productId){
+      const p=db.prepare('SELECT id,category_id,price,promo_price FROM products WHERE id=? AND business_id=? AND active=1').get(productId,Number(businessId));
+      if(p)out.push({product_id:Number(p.id),category_id:Number(p.category_id||0)||null,unit_price:Number(p.promo_price||p.price||0),quantity:qty});
+    }
+  }
+  return out;
+}
+function __dyCouponEligibleSubtotal(coupon,businessId,items,totalSubtotal){
+  const scope=__dyCouponScope(coupon.id);
+  if(scope.scope_mode==='all')return {eligible_subtotal:Math.max(0,Math.round(Number(totalSubtotal||0))),scope};
+  const productSet=new Set(scope.product_ids),categorySet=new Set(scope.category_ids);
+  let eligible=0;
+  for(const item of (Array.isArray(items)?items:[])){
+    let productId=Number(item.product_id||0),categoryId=Number(item.category_id||0);
+    if(productId&&!categoryId){
+      const p=db.prepare('SELECT category_id FROM products WHERE id=? AND business_id=?').get(productId,Number(businessId));
+      categoryId=Number(p?.category_id||0);
+    }
+    if((productId&&productSet.has(productId))||(categoryId&&categorySet.has(categoryId))){
+      eligible+=Math.max(0,Number(item.unit_price||0))*Math.max(1,Number(item.quantity||1));
+    }
+  }
+  return {eligible_subtotal:Math.max(0,Math.round(eligible)),scope};
+}
+function __dyCouponQuoteV2(businessId,userId,rawCode,items,totalSubtotal){
+  const base=__dyCouponQuote(businessId,userId,rawCode,totalSubtotal);
+  const eligible=__dyCouponEligibleSubtotal(base.coupon,businessId,items,totalSubtotal);
+  if(eligible.eligible_subtotal<1)throw __dyCouponError('Este cupón no aplica a los productos de tu carrito',409,'COUPON_SCOPE_MISMATCH');
+  let discount=0;
+  if(String(base.coupon.discount_type)==='percent'){
+    discount=Math.floor(eligible.eligible_subtotal*Math.max(1,Math.min(50,Number(base.coupon.discount_value||0)))/100);
+    if(Number(base.coupon.max_discount||0)>0)discount=Math.min(discount,Number(base.coupon.max_discount));
+  }else discount=Math.min(eligible.eligible_subtotal,Math.max(0,Number(base.coupon.discount_value||0)));
+  discount=Math.max(0,Math.min(eligible.eligible_subtotal,Math.round(discount)));
+  if(discount<1)throw __dyCouponError('Este cupón no genera descuento para los productos elegibles',409,'COUPON_ZERO_DISCOUNT');
+  return {...base,discount,business_funded:discount,datoya_funded:0,subtotal_after_discount:Math.max(0,Math.round(Number(totalSubtotal||0))-discount),eligible_subtotal:eligible.eligible_subtotal,scope:eligible.scope};
+}
+
 app.post('/api/coupons/validate',auth,(req,res)=>{try{
-  const businessId=Number(req.body?.business_id||0),subtotal=Math.round(Number(req.body?.subtotal||0));
-  if(!businessId||!Number.isFinite(subtotal)||subtotal<1)return res.status(400).json({error:'Datos del carrito inválidos'});
-  const q=__dyCouponQuote(businessId,req.user.id,req.body?.code,subtotal);
-  res.json({ok:true,coupon:{id:q.coupon.id,code:q.code,name:q.coupon.name,discount_type:q.coupon.discount_type,discount_value:Number(q.coupon.discount_value),max_discount:Number(q.coupon.max_discount||0),min_order:Number(q.coupon.min_order||0),funding_source:'business'},discount_amount:q.discount,subtotal_after_discount:q.subtotal_after_discount,business_funded_amount:q.business_funded,datoya_funded_amount:0,max_campaign_cost:q.max_campaign_cost,commission_protected:true});
+  const businessId=Number(req.body?.business_id||0),fallbackSubtotal=Math.round(Number(req.body?.subtotal||0));
+  if(!businessId||!Number.isFinite(fallbackSubtotal)||fallbackSubtotal<1)return res.status(400).json({error:'Datos del carrito inválidos'});
+  const quoteItems=__dyCouponRequestItems(businessId,req.body?.items),trustedSubtotal=quoteItems.length?Math.round(quoteItems.reduce((sum,it)=>sum+Number(it.unit_price||0)*Number(it.quantity||0),0)):fallbackSubtotal;
+  const q=__dyCouponQuoteV2(businessId,req.user.id,req.body?.code,quoteItems,trustedSubtotal);
+  res.json({ok:true,coupon:{id:q.coupon.id,code:q.code,name:q.coupon.name,discount_type:q.coupon.discount_type,discount_value:Number(q.coupon.discount_value),max_discount:Number(q.coupon.max_discount||0),min_order:Number(q.coupon.min_order||0),funding_source:'business',scope_mode:q.scope.scope_mode,product_ids:q.scope.product_ids,category_ids:q.scope.category_ids},discount_amount:q.discount,eligible_subtotal:q.eligible_subtotal,subtotal_after_discount:q.subtotal_after_discount,business_funded_amount:q.business_funded,datoya_funded_amount:0,max_campaign_cost:q.max_campaign_cost,commission_protected:true});
 }catch(e){res.status(e.status||400).json({error:e.message,code:e.code||'COUPON_INVALID'});}});
 
 app.get('/api/businesses/:id/coupons',auth,(req,res)=>{
   const b=__dyCouponBusiness(req.user.id,req.params.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
-  const rows=db.prepare("SELECT c.*, (SELECT COALESCE(SUM(r.discount_amount),0) FROM coupon_redemptions r WHERE r.coupon_id=c.id AND r.status='applied') AS discount_used FROM market_coupons c WHERE c.business_id=? ORDER BY c.active DESC,c.created_at DESC,c.id DESC").all(b.id);
+  const rows=db.prepare("SELECT c.* FROM market_coupons c WHERE c.business_id=? ORDER BY c.active DESC,c.created_at DESC,c.id DESC").all(b.id);
+  for(const c of rows){
+    const scope=__dyCouponScope(c.id),metrics=db.prepare("SELECT COUNT(*) AS orders_generated,COALESCE(SUM(r.discount_amount),0) AS discount_used,COALESCE(SUM(o.total),0) AS sales_generated FROM coupon_redemptions r JOIN commerce_orders o ON o.id=r.order_id WHERE r.coupon_id=? AND r.status='applied' AND o.status<>'cancelled'").get(c.id)||{};
+    Object.assign(c,scope,{orders_generated:Number(metrics.orders_generated||0),redemption_count:Number(metrics.orders_generated||0),discount_used:Number(metrics.discount_used||0),sales_generated:Number(metrics.sales_generated||0)});
+  }
   const plan=__dyCouponPlan(b.id),active=rows.filter(x=>Number(x.active)===1).length;
   res.json({coupons:rows,plan:{...plan,active_count:active},funding_policy:{default:'business',datoya_funded_enabled:false}});
 });
@@ -136,11 +205,27 @@ app.post('/api/businesses/:id/coupons',auth,(req,res)=>{try{
   if(starts&&Number.isNaN(starts.getTime()))return res.status(400).json({error:'Fecha de inicio inválida'});
   if(ends&&Number.isNaN(ends.getTime()))return res.status(400).json({error:'Fecha de término inválida'});
   if(starts&&ends&&ends<=starts)return res.status(400).json({error:'La fecha de término debe ser posterior al inicio'});
+  const scopeMode=['all','products','categories'].includes(String(x.scope_mode||'all'))?String(x.scope_mode||'all'):'all';
+  let scopeProductIds=[...new Set((Array.isArray(x.product_ids)?x.product_ids:[]).map(Number).filter(Number.isFinite))].slice(0,200);
+  let scopeCategoryIds=[...new Set((Array.isArray(x.category_ids)?x.category_ids:[]).map(Number).filter(Number.isFinite))].slice(0,50);
+  if(scopeMode==='products'){
+    if(!scopeProductIds.length)return res.status(400).json({error:'Selecciona al menos un producto para este cupón'});
+    const valid=db.prepare('SELECT id FROM products WHERE business_id=? AND id IN ('+scopeProductIds.map(()=>'?').join(',')+')').all(b.id,...scopeProductIds).map(r=>Number(r.id));
+    if(valid.length!==scopeProductIds.length)return res.status(400).json({error:'Uno de los productos seleccionados no pertenece a tu negocio'});
+    scopeCategoryIds=[];
+  }else if(scopeMode==='categories'){
+    if(!scopeCategoryIds.length)return res.status(400).json({error:'Selecciona al menos una categoría para este cupón'});
+    const valid=db.prepare('SELECT DISTINCT category_id AS id FROM products WHERE business_id=? AND category_id IN ('+scopeCategoryIds.map(()=>'?').join(',')+')').all(b.id,...scopeCategoryIds).map(r=>Number(r.id));
+    if(valid.length!==scopeCategoryIds.length)return res.status(400).json({error:'Una categoría seleccionada no tiene productos en tu catálogo'});
+    scopeProductIds=[];
+  }else{scopeProductIds=[];scopeCategoryIds=[];}
   const active=x.active===false?0:1,plan=__dyCouponPlan(b.id);
   if(active){const n=Number((db.prepare('SELECT COUNT(*) c FROM market_coupons WHERE business_id=? AND active=1').get(b.id)||{}).c||0);if(n>=plan.active_limit)return res.status(409).json({error:plan.plan==='free'?'El plan Gratis permite 1 cupón activo a la vez. Pausa el actual o activa DatoYa Impulso.':'Alcanzaste el límite de cupones activos de tu plan.',code:'COUPON_ACTIVE_LIMIT'});}
   const now=new Date().toISOString();
   try{db.prepare("INSERT INTO market_coupons(business_id,code,name,discount_type,discount_value,max_discount,min_order,funding_source,datoya_share_pct,max_uses,per_user_limit,first_order_only,starts_at,ends_at,active,created_by_user_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'business',0,?,?,?,?,?,?,?,?,?)").run(b.id,code,String(x.name||'').trim().slice(0,100)||null,type,value,maxDiscount,minOrder,maxUses,perUser,x.first_order_only?1:0,starts?starts.toISOString():null,ends?ends.toISOString():null,active,req.user.id,now,now);}catch(e){if(String(e.message||e).toLowerCase().includes('unique'))return res.status(409).json({error:'Ya existe ese código en tu negocio'});throw e;}
   const coupon=db.prepare('SELECT * FROM market_coupons WHERE business_id=? AND code=?').get(b.id,code);
+  const scopeTx=db.transaction(()=>{db.prepare('DELETE FROM market_coupon_products WHERE coupon_id=?').run(coupon.id);db.prepare('DELETE FROM market_coupon_categories WHERE coupon_id=?').run(coupon.id);for(const pid of scopeProductIds)db.prepare('INSERT INTO market_coupon_products(coupon_id,product_id) VALUES(?,?)').run(coupon.id,pid);for(const cid of scopeCategoryIds)db.prepare('INSERT INTO market_coupon_categories(coupon_id,category_id) VALUES(?,?)').run(coupon.id,cid);});scopeTx();
+  Object.assign(coupon,__dyCouponScope(coupon.id));
   res.json({ok:true,coupon,plan,max_campaign_cost:maxDiscount*maxUses});
 }catch(e){console.error('[DatoYa][Coupon create]',e.message||e);res.status(500).json({error:'No se pudo crear el cupón'});}});
 
@@ -154,7 +239,8 @@ app.post('/api/businesses/:id/coupons/:couponId/toggle',auth,(req,res)=>{
 });
 
 app.get('/api/admin/marketplace-v2/coupons',auth,requireRole('admin'),(req,res)=>{
-  const rows=db.prepare("SELECT c.*,b.name AS business_name,u.email AS owner_email, (SELECT COALESCE(SUM(r.discount_amount),0) FROM coupon_redemptions r WHERE r.coupon_id=c.id AND r.status='applied') AS discount_used, (SELECT COUNT(*) FROM coupon_redemptions r WHERE r.coupon_id=c.id AND r.status='applied') AS redemption_count FROM market_coupons c JOIN businesses b ON b.id=c.business_id JOIN users u ON u.id=b.owner_user_id ORDER BY c.created_at DESC,c.id DESC").all();
+  const rows=db.prepare("SELECT c.*,b.name AS business_name,u.email AS owner_email FROM market_coupons c JOIN businesses b ON b.id=c.business_id JOIN users u ON u.id=b.owner_user_id ORDER BY c.created_at DESC,c.id DESC").all();
+  for(const c of rows){const scope=__dyCouponScope(c.id),m=db.prepare("SELECT COUNT(*) orders_generated,COALESCE(SUM(r.discount_amount),0) discount_used,COALESCE(SUM(o.total),0) sales_generated FROM coupon_redemptions r JOIN commerce_orders o ON o.id=r.order_id WHERE r.coupon_id=? AND r.status='applied' AND o.status<>'cancelled'").get(c.id)||{};Object.assign(c,scope,{orders_generated:Number(m.orders_generated||0),redemption_count:Number(m.orders_generated||0),discount_used:Number(m.discount_used||0),sales_generated:Number(m.sales_generated||0)});}
   const totals=db.prepare("SELECT COUNT(*) coupons,COALESCE(SUM(CASE WHEN active=1 THEN 1 ELSE 0 END),0) active FROM market_coupons").get();
   const funded=db.prepare("SELECT COALESCE(SUM(business_funded_amount),0) business_funded,COALESCE(SUM(datoya_funded_amount),0) datoya_funded FROM coupon_redemptions WHERE status='applied'").get();
   res.json({coupons:rows,summary:{coupons:Number(totals.coupons||0),active:Number(totals.active||0),business_funded:Number(funded.business_funded||0),datoya_funded:Number(funded.datoya_funded||0)},datoya_funded_enabled:false});
@@ -172,12 +258,12 @@ app.put('/api/admin/marketplace-v2/coupons/:id/active',auth,requireRole('admin')
   source=source.replace(subtotalAnchor,subtotalAnchor+String.raw`
   const couponCode=__dyCouponCode(x.coupon_code||'');
   let couponQuote=null,coupon=null,couponDiscount=0;
-  if(couponCode){try{couponQuote=__dyCouponQuote(b.id,req.user.id,couponCode,subtotal);coupon=couponQuote.coupon;couponDiscount=Number(couponQuote.discount||0);}catch(e){return res.status(e.status||400).json({error:e.message,code:e.code||'COUPON_INVALID'});}}
+  if(couponCode){try{couponQuote=__dyCouponQuoteV2(b.id,req.user.id,couponCode,items,subtotal);coupon=couponQuote.coupon;couponDiscount=Number(couponQuote.discount||0);}catch(e){return res.status(e.status||400).json({error:e.message,code:e.code||'COUPON_INVALID'});}}
 `);
 
   const totalOld='  const total=subtotal+deliveryFee;';
   const totalNew=String.raw`  const total=Math.max(0,subtotal-couponDiscount)+deliveryFee;
-  const commissionBase=subtotal+deliveryFee;
+  const commissionBase=Math.max(0,subtotal-couponDiscount);
   const commissionPct=Math.max(0,Math.min(50,Number(getSetting('commission_pct','10'))||0));
   const datoyaCommissionEstimate=Math.max(0,Math.round(commissionBase*commissionPct/100));
   if(coupon&&String(coupon.funding_source)==='business'&&total<datoyaCommissionEstimate)return res.status(409).json({error:'Este cupón deja el pedido por debajo de la comisión del marketplace. Reduce el descuento o aumenta la compra mínima.',code:'COUPON_MARGIN_TOO_LOW'});`;
