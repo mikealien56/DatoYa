@@ -74,6 +74,10 @@ grep -q "impulso_free_catalog_limit','20" marketplace_admin_v2_bootstrap.js
 grep -q "impulso_paid_catalog_limit','200" marketplace_admin_v2_bootstrap.js
 grep -q "Falta tabla PostgreSQL: business_impulse_memberships" postgres_migrate.js
 grep -q "Falta tabla PostgreSQL: business_impulse_payments" postgres_migrate.js
+grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_requests" postgres/012_commerce_refunds.sql
+grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_events" postgres/012_commerce_refunds.sql
+grep -q "Falta tabla PostgreSQL: commerce_refund_requests" postgres_migrate.js
+grep -q "Falta tabla PostgreSQL: commerce_refund_events" postgres_migrate.js
 echo "✅ Migrador PostgreSQL a Neon"
 echo "✅ Sintaxis JavaScript"
 
@@ -153,7 +157,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_demo_showcase_ui.js marketplace_demo_pitch_ui.js marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
@@ -192,7 +196,7 @@ done
 echo "✅ HTML público sin interfaces legacy"
 
 # 7) Marcadores críticos del backend nuevo.
-for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA KHIPU PAYMENTS V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA_SUPPORT_CENTER_V2" "DATOYA WEB PUSH V1"; do
+for marker in   "DATOYA MARKETPLACE ACCOUNT V2"   "DATOYA MARKET PRODUCTS V1"   "DATOYA COMMERCE BETA V1"   "DATOYA KHIPU PAYMENTS V1"   "DATOYA GROWTH COMMERCIAL V1"   "DATOYA STRUCTURED HOURS V1"   "DATOYA DELIVERY V1"   "DATOYA PROMO ANALYTICS V1"   "DATOYA INTEGRATIONS STATUS V1" "DATOYA COMMERCE REFUNDS V1" "DATOYA_SUPPORT_CENTER_V2" "DATOYA WEB PUSH V1"; do
   grep -q "$marker" server.js || { echo "Runtime comercial no montado: $marker"; exit 1; }
 done
 grep -q "support_cases" support_center_bootstrap.js || { echo "Falta persistencia de casos de soporte"; exit 1; }
@@ -221,7 +225,7 @@ grep -q "marketplace_order_integrity_bootstrap" production_start.js || { echo "I
 grep -q "marketplace_coupons_bootstrap" production_start.js || { echo "Cupones no están montados"; exit 1; }
 grep -q "DATOYA MARKET COUPONS V1" server.js || { echo "Runtime de cupones no está montado"; exit 1; }
 grep -q "DATOYA MARKET COUPONS V2" server.js || { echo "Runtime de cupones V2 no está montado"; exit 1; }
-grep -q "marketplace_growth_program_bootstrap" production_start.js || { echo "Programa de Fundadores no está montado"; exit 1; }
+grep -q "marketplace_growth_program_bootstrap" production_start.js || { echo "Programa de Fundadores no está montado"; exit 1; }\ngrep -q "marketplace_refunds_bootstrap" production_start.js || { echo "Devoluciones no están montadas"; exit 1; }\ngrep -q "marketplace_refunds_assets" production_start.js || { echo "UI de devoluciones no está publicada"; exit 1; }\ngrep -q "api/orders/:id/refunds" marketplace_refunds_bootstrap.js || { echo "Falta solicitud de devolución Cliente"; exit 1; }\ngrep -q "api/businesses/:id/refunds/:refundId/decision" marketplace_refunds_bootstrap.js || { echo "Falta gestión de devolución por Negocio"; exit 1; }\ngrep -q "api/admin/refunds/:id/resolve" marketplace_refunds_bootstrap.js || { echo "Falta escalamiento de devolución a Admin"; exit 1; }\ngrep -q "commission_refund_amount" marketplace_refunds_bootstrap.js || { echo "Falta reversa proporcional de comisión"; exit 1; }
 grep -q "DATOYA GROWTH PROGRAM V1" server.js || { echo "Runtime de crecimiento no está montado"; exit 1; }
 grep -q "commission_free_pct','5.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión Gratis 5,9%"; exit 1; }
 grep -q "commission_exclusive_free_pct','4.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión exclusiva 4,9%"; exit 1; }
