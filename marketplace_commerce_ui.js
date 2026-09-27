@@ -9,8 +9,29 @@
   const isCustomerAccount=()=>!!ME&&!isAdminAccount()&&ME.account_type!=='business';
   const requireBusinessAccount=()=>{if(!ME){location.hash='#/login';return false;}if(ME.account_type!=='business'||isAdminAccount()){toast?.('Esta sección pertenece a una cuenta de negocio','err');location.hash='#/perfil';return false;}return true;};
 
-  function cart(){try{return JSON.parse(localStorage.getItem(CART_KEY)||'null')||{business_id:null,business_name:'',items:[]}}catch(_){return{business_id:null,business_name:'',items:[]}}}
-  function saveCart(c){if(!c.items?.length)localStorage.removeItem(CART_KEY);else localStorage.setItem(CART_KEY,JSON.stringify(c));renderCartBubble();}
+  const emptyCart=()=>({business_id:null,business_name:'',items:[],owner_user_id:null});
+  function cart(){
+    let c;
+    try{c=JSON.parse(localStorage.getItem(CART_KEY)||'null')||emptyCart()}catch(_){c=emptyCart()}
+    if(!Array.isArray(c.items))c.items=[];
+    if(ME&&isCustomerAccount()&&c.items.length){
+      const owner=Number(c.owner_user_id||0),current=Number(ME.id||0);
+      if(owner&&current&&owner!==current){
+        localStorage.removeItem(CART_KEY);
+        return emptyCart();
+      }
+      if(!owner&&current){
+        c.owner_user_id=current;
+        try{localStorage.setItem(CART_KEY,JSON.stringify(c))}catch(_){}
+      }
+    }
+    return c;
+  }
+  function saveCart(c){
+    if(ME&&isCustomerAccount())c.owner_user_id=Number(ME.id||0)||null;
+    if(!c.items?.length)localStorage.removeItem(CART_KEY);else localStorage.setItem(CART_KEY,JSON.stringify(c));
+    renderCartBubble();
+  }
   function cartCount(){return cart().items.reduce((n,x)=>n+Number(x.quantity||0),0)}
   function renderCartBubble(){document.getElementById('dy-cart-bubble')?.remove();if(ME&&!isCustomerAccount())return;const n=cartCount();if(!n)return;const a=document.createElement('a');a.id='dy-cart-bubble';a.className='dy-cart-bubble';a.href='#/carrito';a.innerHTML=`🛒 <b>${n}</b><span>Ver carrito</span>`;document.body.appendChild(a)}
   function addItem(meta,item){if(ME&&!isCustomerAccount())return toast?.('Las compras se realizan con una cuenta Cliente','err');const c=cart();if(c.business_id&&Number(c.business_id)!==Number(meta.id)){if(!confirm('Tu carrito tiene productos de otro negocio. ¿Quieres reemplazarlo?'))return;c.items=[];delete c.source_weekly_id;}c.business_id=Number(meta.id);c.business_name=meta.name;c.pickup_enabled=!!meta.pickup_enabled;c.delivery_enabled=!!meta.delivery_enabled;const found=c.items.find(x=>(item.impulse_id&&Number(x.impulse_id)===Number(item.impulse_id))||(!item.impulse_id&&!x.impulse_id&&Number(x.product_id)===Number(item.product_id)));if(found)found.quantity=Math.min(99,Number(found.quantity||0)+1);else c.items.push({...item,quantity:1});saveCart(c);toast?.('Agregado al carrito','ok')}

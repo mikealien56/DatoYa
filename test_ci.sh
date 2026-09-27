@@ -120,6 +120,8 @@ echo "✅ Autorización base"
 
 echo "=== E2E Cliente + Negocio ==="
 bash test_two_accounts_flow.sh
+echo "=== QA Admin Marketplace V2 ==="
+bash test_admin_marketplace_v2.sh
 
 # Centro de soporte público: debe validar datos antes de intentar enviar correo.
 SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST "http://localhost:3000/api/support/contact" -H 'Content-Type: application/json' -d '{"name":"Prueba","email":"correo-invalido","subject":"Ayuda","message":"Necesito ayuda con DatoYa"}')

@@ -414,6 +414,47 @@ input,select,textarea,button{
   }
 }
 
+/* ===== HEADER AUTH COMPACT V4 =====
+   En teléfonos, Admin/Salir ya viven en la navegación inferior/perfil.
+   Ocultarlos aquí evita que la campana y el nombre se salgan del header. */
+@media (max-width:640px){
+  #topbar .logo{
+    flex:1 1 auto!important;
+    max-width:calc(100% - 112px)!important;
+  }
+  #topnav{
+    flex:0 0 auto!important;
+    max-width:none!important;
+    overflow:visible!important;
+  }
+  #auth-area{
+    flex:0 0 auto!important;
+    max-width:112px!important;
+    gap:6px!important;
+    overflow:visible!important;
+  }
+  #auth-area>a[href="#/admin"],
+  #auth-area>a[href="#"][onclick*="logout"]{
+    display:none!important;
+  }
+  #auth-area>a[href="#/perfil"]{
+    max-width:66px!important;
+    padding:7px 5px!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+  #auth-area .dy-notification-bell{
+    order:-1;
+  }
+}
+@media (max-width:390px){
+  #topbar .datoya-header-logo{width:122px!important}
+  #topbar .logo{max-width:calc(100% - 104px)!important}
+  #auth-area{max-width:104px!important}
+  #auth-area>a[href="#/perfil"]{max-width:58px!important}
+}
+
 /* ===== HEADER NOTIFICATION FIX V3 ===== */
 @media (max-width:820px){
   #topnav,#auth-area{overflow:visible!important}
