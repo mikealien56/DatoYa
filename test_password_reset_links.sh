@@ -18,7 +18,7 @@ grep -Fq "Number(current.id)!==Number(confirmed.verified_user_id)" account_secur
 grep -Fq "DATOYA_ACCOUNT_AUTH_GUARD_V1" marketplace_account_ui.js || fail "UI de cuenta no tiene guard de sesión"
 grep -Fq "No pudimos cerrar la sesión actual" marketplace_account_ui.js || fail "Cambio Cliente/Negocio ignora fallos de logout"
 grep -Fq "new URLSearchParams((location.hash.split('?')[1]||'')).get('token')" account_security_ui.js || fail "UI no acepta enlaces antiguos con ?token="
-grep -Fq "/account_security_ui.js?v=6" account_security_assets.js || fail "Asset de seguridad no fue refrescado"
+grep -Fq "/account_security_ui.js?v=7" account_security_assets.js || fail "Asset de seguridad no fue refrescado"
 
 if grep -Fq "/#/restablecer?token=" account_security_bootstrap.js; then fail "Sigue generándose enlace roto de recuperación"; fi
 if grep -Fq "/#/verificar-correo?token=" account_security_bootstrap.js; then fail "Sigue generándose enlace roto de verificación"; fi
