@@ -9,6 +9,6 @@ if(fs.existsSync(idx)){
   html=html.replace(/<link[^>]+href="\/marketplace_refunds\.css[^"]*"[^>]*>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_refunds_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_refunds.css?v=20260927-1">\n</head>');
-  html=html.replace('</body>','<script src="/marketplace_refunds_ui.js?v=20260927-1"></script>\n</body>');
+  html=html.replace('</body>','<script src="/marketplace_refunds_ui.js?v=20260927-2"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
