@@ -139,7 +139,9 @@ echo "✅ Autorización base"
 
 echo "=== E2E Cliente + Negocio ==="
 bash test_two_accounts_flow.sh
-echo "=== E2E readiness beta ==="\nbash test_beta_readiness_flow.sh\necho "=== E2E integridad de pedidos ==="
+echo "=== E2E readiness beta ==="
+bash test_beta_readiness_flow.sh
+echo "=== E2E integridad de pedidos ==="
 bash test_order_integrity_flow.sh
 echo "=== E2E cupones ==="
 bash test_coupons_flow.sh
