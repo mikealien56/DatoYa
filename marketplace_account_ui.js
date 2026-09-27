@@ -119,7 +119,7 @@
       if(ME){
         if(ME.account_type!=='business'){view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación necesita una cuenta de negocio. Cierra sesión y abre el enlace nuevamente.</div>';return;}
         const check=await accountAuthApi('/founder-invites/'+encodeURIComponent(invite.code)+'/check-email',{method:'POST',body:{email:ME.email||''}},'La invitación Fundador');
-        if(!check.ok){view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación fue creada para otro correo. Inicia sesión con la cuenta invitada.</div>';return;}
+        if(!check.ok){try{sessionStorage.removeItem('datoya_founder_invite');sessionStorage.removeItem('datoya_founder_business_name');}catch(_){}view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación fue creada para otro correo. Inicia sesión con la cuenta invitada.</div>';return;}
         if(!ME.email_verified){location.hash='#/verifica-tu-cuenta';if(typeof route==='function')route();return;}
         location.hash='#/registrar-negocio';if(typeof route==='function')route();return;
       }
@@ -213,7 +213,7 @@
     const founderInviteName=String(sessionStorage.getItem('datoya_founder_business_name')||'');
     let draft={business_type:'physical_store',category_ids:[],pickup_enabled:true,delivery_enabled:false,public_address_mode:'approximate',comuna_id:getSavedComuna(),hours_schedule:null,accept_orders_when_closed:false,invitation_code:founderInviteCode};
     try{draft={...draft,...JSON.parse(localStorage.getItem(key)||'{}')};}catch(_){}
-    if(founderInviteCode)draft.invitation_code=founderInviteCode;
+    if(founderInviteCode){draft.invitation_code=founderInviteCode;if(founderInviteName&&!String(draft.name||'').trim())draft.name=founderInviteName;}
     const hourDays=[['mon','Lunes'],['tue','Martes'],['wed','Miércoles'],['thu','Jueves'],['fri','Viernes'],['sat','Sábado'],['sun','Domingo']];
     const emptyHours=()=>({mon:[],tue:[],wed:[],thu:[],fri:[],sat:[],sun:[]});
     if(!draft.hours_schedule||typeof draft.hours_schedule!=='object')draft.hours_schedule=emptyHours();
