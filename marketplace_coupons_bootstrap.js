@@ -118,9 +118,9 @@ app.post('/api/coupons/validate',auth,(req,res)=>{try{
 
 app.get('/api/businesses/:id/coupons',auth,(req,res)=>{
   const b=__dyCouponBusiness(req.user.id,req.params.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
-  const rows=db.prepare(\`SELECT c.*,
+  const rows=db.prepare(`SELECT c.*,
     (SELECT COALESCE(SUM(r.discount_amount),0) FROM coupon_redemptions r WHERE r.coupon_id=c.id AND r.status='applied') AS discount_used
-    FROM market_coupons c WHERE c.business_id=? ORDER BY c.active DESC,c.created_at DESC,c.id DESC\`).all(b.id);
+    FROM market_coupons c WHERE c.business_id=? ORDER BY c.active DESC,c.created_at DESC,c.id DESC`).all(b.id);
   const plan=__dyCouponPlan(b.id),active=rows.filter(x=>Number(x.active)===1).length;
   res.json({coupons:rows,plan:{...plan,active_count:active},funding_policy:{default:'business',datoya_funded_enabled:false}});
 });
@@ -141,8 +141,8 @@ app.post('/api/businesses/:id/coupons',auth,(req,res)=>{try{
   const active=x.active===false?0:1,plan=__dyCouponPlan(b.id);
   if(active){const n=Number((db.prepare('SELECT COUNT(*) c FROM market_coupons WHERE business_id=? AND active=1').get(b.id)||{}).c||0);if(n>=plan.active_limit)return res.status(409).json({error:plan.plan==='free'?'El plan Gratis permite 1 cupón activo a la vez. Pausa el actual o activa DatoYa Impulso.':'Alcanzaste el límite de cupones activos de tu plan.',code:'COUPON_ACTIVE_LIMIT'});}
   const now=new Date().toISOString();
-  try{db.prepare(\`INSERT INTO market_coupons(business_id,code,name,discount_type,discount_value,max_discount,min_order,funding_source,datoya_share_pct,max_uses,per_user_limit,first_order_only,starts_at,ends_at,active,created_by_user_id,created_at,updated_at)
-    VALUES(?,?,?,?,?,?,?,'business',0,?,?,?,?,?,?,?,?,?)\`).run(b.id,code,String(x.name||'').trim().slice(0,100)||null,type,value,maxDiscount,minOrder,maxUses,perUser,x.first_order_only?1:0,starts?starts.toISOString():null,ends?ends.toISOString():null,active,req.user.id,now,now);}catch(e){if(String(e.message||e).toLowerCase().includes('unique'))return res.status(409).json({error:'Ya existe ese código en tu negocio'});throw e;}
+  try{db.prepare(`INSERT INTO market_coupons(business_id,code,name,discount_type,discount_value,max_discount,min_order,funding_source,datoya_share_pct,max_uses,per_user_limit,first_order_only,starts_at,ends_at,active,created_by_user_id,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,'business',0,?,?,?,?,?,?,?,?,?)`).run(b.id,code,String(x.name||'').trim().slice(0,100)||null,type,value,maxDiscount,minOrder,maxUses,perUser,x.first_order_only?1:0,starts?starts.toISOString():null,ends?ends.toISOString():null,active,req.user.id,now,now);}catch(e){if(String(e.message||e).toLowerCase().includes('unique'))return res.status(409).json({error:'Ya existe ese código en tu negocio'});throw e;}
   const coupon=db.prepare('SELECT * FROM market_coupons WHERE business_id=? AND code=?').get(b.id,code);
   res.json({ok:true,coupon,plan,max_campaign_cost:maxDiscount*maxUses});
 }catch(e){console.error('[DatoYa][Coupon create]',e.message||e);res.status(500).json({error:'No se pudo crear el cupón'});}});
@@ -151,16 +151,16 @@ app.post('/api/businesses/:id/coupons/:couponId/toggle',auth,(req,res)=>{
   const b=__dyCouponBusiness(req.user.id,req.params.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
   const c=db.prepare('SELECT * FROM market_coupons WHERE id=? AND business_id=?').get(Number(req.params.couponId),b.id);if(!c)return res.status(404).json({error:'Cupón no encontrado'});
   const active=req.body?.active?1:0,plan=__dyCouponPlan(b.id);
-  if(active&&Number(c.active)!==1){const n=Number((db.prepare('SELECT COUNT(*) c FROM market_coupons WHERE business_id=? AND active=1').get(b.id)||{}).c||0);if(n>=plan.active_limit)return res.status(409).json({error:plan.planm==='fre'?'El plan Gratis permite 1 cupón activo a la vez.':'Alcanzaste el límite de cupones activos de tu plan.',code:'COUPON_ACTIVE_LIMIT'});}
+  if(active&&Number(c.active)!==1){const n=Number((db.prepare('SELECT COUNT(*) c FROM market_coupons WHERE business_id=? AND active=1').get(b.id)||{}).c||0);if(n>=plan.active_limit)return res.status(409).json({error:plan.plan==='free'?'El plan Gratis permite 1 cupón activo a la vez.':'Alcanzaste el límite de cupones activos de tu plan.',code:'COUPON_ACTIVE_LIMIT'});}
   db.prepare('UPDATE market_coupons SET active=?,updated_at=? WHERE id=?').run(active,new Date().toISOString(),c.id);
   res.json({ok:true,active:!!active});
 });
 
 app.get('/api/admin/marketplace-v2/coupons',auth,requireRole('admin'),(req,res)=>{
-  const rows=db.prepare(\`SELECT c.*,b.name AS business_name,u.email AS owner_email,
+  const rows=db.prepare(`SELECT c.*,b.name AS business_name,u.email AS owner_email,
     (SELECT COALESCE(SUM(r.discount_amount),0) FROM coupon_redemptions r WHERE r.coupon_id=c.id AND r.status='applied') AS discount_used,
     (SELECT COUNT(*) FROM coupon_redemptions r WHERE r.coupon_id=c.id AND r.status='applied') AS redemption_count
-    FROM market_coupons c JOIN businesses b ON b.id=c.business_id JOIN users u ON u.id=b.owner_user_id ORDER BY c.created_at DESC,c.id DESC\`).all();
+    FROM market_coupons c JOIN businesses b ON b.id=c.business_id JOIN users u ON u.id=b.owner_user_id ORDER BY c.created_at DESC,c.id DESC`).all();
   const totals=db.prepare("SELECT COUNT(*) coupons,COALESCE(SUM(CASE WHEN active=1 THEN 1 ELSE 0 END),0) active FROM market_coupons").get();
   const funded=db.prepare("SELECT COALESCE(SUM(business_funded_amount),0) business_funded,COALESCE(SUM(datoya_funded_amount),0) datoya_funded FROM coupon_redemptions WHERE status='applied'").get();
   res.json({coupons:rows,summary:{coupons:Number(totals.coupons||0),active:Number(totals.active||0),business_funded:Number(funded.business_funded||0),datoya_funded:Number(funded.datoya_funded||0)},datoya_funded_enabled:false});
