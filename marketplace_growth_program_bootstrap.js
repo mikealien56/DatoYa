@@ -52,6 +52,8 @@ if(!founderInviteCols.includes('invitee_business_name'))db.exec("ALTER TABLE fou
 if(!founderInviteCols.includes('used_by_user_id'))db.exec("ALTER TABLE founder_invites ADD COLUMN used_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL");
 if(!founderInviteCols.includes('used_at'))db.exec("ALTER TABLE founder_invites ADD COLUMN used_at TEXT");
 
+db.prepare("UPDATE founder_invites SET status='paused',updated_at=? WHERE status='active' AND (invitee_email IS NULL OR trim(invitee_email)='')").run(new Date().toISOString());
+
 const productCols=db.prepare('PRAGMA table_info(products)').all().map(x=>x.name);
 if(!productCols.includes('datoya_exclusive'))db.exec("ALTER TABLE products ADD COLUMN datoya_exclusive INTEGER NOT NULL DEFAULT 0");
 
@@ -288,6 +290,7 @@ app.post('/api/founder-invites/:code/check-email',(req,res)=>{
 app.put('/api/admin/marketplace-v2/founder-invites/:id/status',auth,requireRole('admin'),(req,res)=>{
   const current=db.prepare('SELECT * FROM founder_invites WHERE id=?').get(Number(req.params.id));if(!current)return res.status(404).json({error:'Invitación no encontrada'});
   if(String(current.status)==='used'||Number(current.used_count||0)>=Number(current.max_uses||1))return res.status(409).json({error:'Una invitación ya utilizada no se puede reactivar'});
+  if(req.body&&req.body.active&&!String(current.invitee_email||'').trim())return res.status(409).json({error:'Las invitaciones antiguas sin correo no se pueden reactivar. Crea una invitación personal nueva.'});
   const status=req.body&&req.body.active?'active':'paused';db.prepare('UPDATE founder_invites SET status=?,updated_at=? WHERE id=?').run(status,new Date().toISOString(),current.id);res.json({ok:true,status});
 });
 app.get('/api/admin/marketplace-v2/growth-settings',auth,requireRole('admin'),(req,res)=>{
