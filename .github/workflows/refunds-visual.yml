@@ -1,6 +1,8 @@
 name: DatoYa refunds mobile visual
 
 on:
+  push:
+    branches: [test/refunds-mobile-visual]
   workflow_dispatch:
 
 jobs:
