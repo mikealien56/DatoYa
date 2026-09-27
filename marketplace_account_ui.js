@@ -3,6 +3,20 @@
   if (typeof routes === 'undefined' || typeof view === 'undefined') return;
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const getSavedComuna=()=>Number(localStorage.getItem('datoya_comuna_id')||0);
+  // DATOYA_ACCOUNT_AUTH_GUARD_V1
+  const ACCOUNT_AUTH_TIMEOUT_MS=18000;
+  function accountTimeout(promise,label='DatoYa'){
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+' tardó demasiado en responder. Revisa tu conexión y vuelve a intentar.')),ACCOUNT_AUTH_TIMEOUT_MS);})
+    ]).finally(()=>clearTimeout(timer));
+  }
+  const accountAuthApi=(url,opts,label)=>accountTimeout(api(url,opts),label);
+  async function refreshAccountSession(){
+    const r=await accountAuthApi('/auth/me',undefined,'La sesión');
+    ME=r.user;renderAuthArea();return ME;
+  }
 
   function shell(title,subtitle,body,aside=''){
     return `<div class="dy-auth-shell"><section class="dy-auth-panel"><a class="dy-auth-brand" href="#/"><img src="/brand/datoya-logo-horizontal.png" alt="DatoYa"></a><div class="dy-auth-heading"><h1>${h(title)}</h1><p>${h(subtitle)}</p></div>${body}</section>${aside?`<aside class="dy-auth-aside">${aside}</aside>`:''}</div>`;
@@ -22,8 +36,8 @@
       e.preventDefault(); const f=e.currentTarget,btn=f.querySelector('button[type="submit"]');
       btn.disabled=true;btn.textContent='Ingresando…';
       try{
-        await api('/auth/login',{method:'POST',body:{email:f.email.value.trim(),password:f.password.value}});
-        await refreshMe();
+        await accountAuthApi('/auth/login',{method:'POST',body:{email:f.email.value.trim(),password:f.password.value}},'El inicio de sesión');
+        await refreshAccountSession();
         if(ME&&!ME.email_verified){
           location.hash='#/verifica-tu-cuenta';
           if(typeof route==='function')route();
@@ -79,8 +93,8 @@
       const type=x.account_type.value==='business'?'business':'customer';
       btn.disabled=true;btn.textContent='Creando cuenta…';
       try{
-        const r=await api('/auth/register',{method:'POST',body:{name:x.name.value.trim(),email:x.email.value.trim(),password:x.password.value,phone:x.phone.value.trim()||null,comuna_id:Number(x.comuna_id.value),role:'cliente',account_type:type,accept_terms:true,accept_privacy:true}});
-        await refreshMe();
+        const r=await accountAuthApi('/auth/register',{method:'POST',body:{name:x.name.value.trim(),email:x.email.value.trim(),password:x.password.value,phone:x.phone.value.trim()||null,comuna_id:Number(x.comuna_id.value),role:'cliente',account_type:type,accept_terms:true,accept_privacy:true}},'El registro');
+        await refreshAccountSession();
         try{sessionStorage.setItem('datoya_activation_type',type);}catch(_){}
         location.hash='#/verifica-tu-cuenta';if(typeof route==='function')route();
         toast?.(r.verification_email_sent?'Te enviamos el enlace de verificación':'Cuenta creada. Puedes reenviar el correo de verificación.','ok');
@@ -102,17 +116,32 @@
     view.innerHTML=`<div class="dy-activation-page"><section class="dy-activation-card"><div class="dy-activation-icon">✉️</div><span>ACTIVA TU CUENTA</span><h1>Revisa tu correo</h1><p>Enviamos un enlace de verificación a:</p><b class="dy-activation-email">${h(ME.email||'')}</b><p>Al abrir el enlace, tu cuenta ${type==='business'?'de negocio':'cliente'} quedará activa oficialmente.</p><div class="dy-activation-actions"><button class="btn btn-primary btn-block" onclick="dyResendActivationEmail()">Reenviar correo</button><button class="btn btn-outline btn-block" onclick="dyCheckActivation()">Ya verifiqué mi correo</button></div><small>El enlace vence en 24 horas. Si no lo ves, revisa Spam o Correo no deseado.</small></section></div>`;
   };
   window.dyResendActivationEmail=async function(){
-    try{const r=await api('/auth/email-verification/request',{method:'POST'});if(r.already_verified)return window.dyCheckActivation();toast?.('Correo de verificación enviado','ok');}catch(err){toast?.(err.message||'No pudimos enviar el correo','err');}
+    const btn=document.querySelector('[onclick="dyResendActivationEmail()"]');
+    if(btn?.disabled)return;if(btn){btn.disabled=true;btn.dataset.dyLabel=btn.textContent;btn.textContent='Enviando…';}
+    try{
+      const r=await accountAuthApi('/auth/email-verification/request',{method:'POST'},'El envío de verificación');
+      if(r.already_verified)return window.dyCheckActivation();
+      toast?.(r.email_sent===false?'La verificación quedó preparada, pero el proveedor no confirmó el envío. Intenta nuevamente.':'Correo de verificación enviado',r.email_sent===false?'info':'ok');
+    }catch(err){toast?.(err.message||'No pudimos enviar el correo','err');}
+    finally{if(btn){btn.disabled=false;btn.textContent=btn.dataset.dyLabel||'Reenviar correo';delete btn.dataset.dyLabel;}}
   };
   window.dyCheckActivation=async function(){
-    await refreshMe();
-    if(ME?.email_verified){location.hash=ME.account_type==='business'?'#/registrar-negocio':'#/';if(typeof route==='function')route();return;}
-    toast?.('Todavía no aparece verificado. Abre el enlace que llegó a tu correo.','info');
+    const btn=document.querySelector('[onclick="dyCheckActivation()"]');
+    if(btn?.disabled)return;if(btn){btn.disabled=true;btn.dataset.dyLabel=btn.textContent;btn.textContent='Comprobando…';}
+    try{
+      await refreshAccountSession();
+      if(ME?.email_verified){location.hash=ME.account_type==='business'?'#/registrar-negocio':'#/';if(typeof route==='function')route();return;}
+      toast?.('Todavía no aparece verificado. Abre el enlace que llegó a tu correo.','info');
+    }catch(err){toast?.(err.message||'No pudimos comprobar la cuenta','err');}
+    finally{if(btn){btn.disabled=false;btn.textContent=btn.dataset.dyLabel||'Ya verifiqué mi correo';delete btn.dataset.dyLabel;}}
   };
 
   window.dyCreateSeparateBusinessAccount=async function(){
-    try{await api('/auth/logout',{method:'POST'});}catch(_){}
-    ME=null;location.hash='#/registro-negocio';if(typeof route==='function')route();
+    try{
+      await accountAuthApi('/auth/logout',{method:'POST'},'El cierre de sesión');
+      ME=null;try{sessionStorage.removeItem('datoya_after_auth');}catch(_){}
+      location.hash='#/registro-negocio';location.reload();
+    }catch(err){toast?.(err.message||'No pudimos cerrar la sesión actual. Intenta nuevamente.','err');}
   };
 
   routes.bienvenida=async function(){
@@ -143,7 +172,14 @@
     const verified=!!ME.email_verified;
 
     view.innerHTML=`<div class="dy-account-page"><div class="dy-account-top"><div><span class="dy-page-kicker">${h(accountLabel.toUpperCase())}</span><h1>Hola, ${h((ME.name||'').split(' ')[0]||'')}</h1><p>${h(intro)}</p></div><button class="btn btn-outline" id="dy-logout">Cerrar sesión</button></div><div class="dy-account-grid"><section class="dy-account-card dy-account-security-summary"><div class="dy-card-title-row"><div><h2>🔐 Cuenta y seguridad</h2><p class="small muted">Tus datos de acceso se definieron al registrarte. Aquí solo revisas seguridad y cambios posteriores.</p></div></div><div class="dy-account-summary-lines"><div><span>Nombre</span><b>${h(ME.name||'')}</b></div><div><span>Correo</span><b>${h(ME.email||'')}</b></div><div><span>Estado</span><b class="${verified?'ok':'warn'}">${verified?'✓ Cuenta verificada':'Correo pendiente de verificación'}</b></div></div><a class="btn btn-outline btn-block" href="${verified?'#/seguridad':'#/verifica-tu-cuenta'}">${verified?'Administrar cuenta y seguridad':'Verificar mi cuenta'}</a></section>${accountSection}</div></div>`;
-    document.getElementById('dy-logout')?.addEventListener('click',async()=>{try{await api('/auth/logout',{method:'POST'});}catch(_){} location.hash='#/';location.reload();});
+    document.getElementById('dy-logout')?.addEventListener('click',async()=>{
+      const btn=document.getElementById('dy-logout');if(btn?.disabled)return;if(btn){btn.disabled=true;btn.textContent='Cerrando…';}
+      try{
+        await accountAuthApi('/auth/logout',{method:'POST'},'El cierre de sesión');
+        ME=null;try{sessionStorage.removeItem('datoya_after_auth');}catch(_){}
+        location.hash='#/';location.reload();
+      }catch(err){if(btn){btn.disabled=false;btn.textContent='Cerrar sesión';}toast?.(err.message||'No pudimos cerrar sesión','err');}
+    });
   };
 
   routes['registrar-negocio']=async function(){
