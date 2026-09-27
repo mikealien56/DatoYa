@@ -1,0 +1,48 @@
+name: DatoYa refunds mobile visual
+
+on:
+  push:
+    branches: [test/refunds-mobile-visual]
+  workflow_dispatch:
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    env:
+      AUTH_TEST_MODE: "true"
+      DEMO_MODE: "false"
+      ADMIN_EMAIL: admin-visual@datoya.invalid
+      ADMIN_PASSWORD: DatoYa-Visual-Admin-2026
+      PORT: "3205"
+      DATOYA_VISUAL_BASE: http://127.0.0.1:3205
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start DatoYa
+        run: |
+          rm -f datoya.db datoya.db-shm datoya.db-wal
+          npm start > /tmp/datoya-visual.log 2>&1 &
+          echo $! > /tmp/datoya-visual.pid
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:3205/health >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/datoya-visual.log
+          exit 1
+      - name: Run mobile refund visual flow
+        run: npx playwright test test_refunds_visual.spec.js --reporter=line
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: refunds-mobile-visual
+          path: visual-artifacts/
+          if-no-files-found: error
