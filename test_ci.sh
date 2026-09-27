@@ -53,6 +53,12 @@ grep -q "CREATE TABLE IF NOT EXISTS market_coupon_products" postgres/009_marketp
 grep -q "CREATE TABLE IF NOT EXISTS market_coupon_categories" postgres/009_marketplace_coupon_scopes.sql
 grep -q "Falta tabla PostgreSQL: market_coupon_products" postgres_migrate.js
 grep -q "Falta tabla PostgreSQL: market_coupon_categories" postgres_migrate.js
+grep -q "CREATE TABLE IF NOT EXISTS founder_invites" postgres/010_marketplace_growth_program.sql
+grep -q "CREATE TABLE IF NOT EXISTS business_growth_profiles" postgres/010_marketplace_growth_program.sql
+grep -q "CREATE TABLE IF NOT EXISTS business_referrals" postgres/010_marketplace_growth_program.sql
+grep -q "Falta tabla PostgreSQL: founder_invites" postgres_migrate.js
+grep -q "Falta tabla PostgreSQL: business_growth_profiles" postgres_migrate.js
+grep -q "Falta tabla PostgreSQL: business_referrals" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS support_cases" postgres/003_support_cases.sql
 grep -q "Falta tabla PostgreSQL: support_cases" postgres_migrate.js
 grep -q "ADD COLUMN IF NOT EXISTS business_id" postgres/006_business_support_threads.sql
@@ -133,6 +139,8 @@ echo "=== E2E integridad de pedidos ==="
 bash test_order_integrity_flow.sh
 echo "=== E2E cupones ==="
 bash test_coupons_flow.sh
+echo "=== E2E Fundadores + crecimiento ==="
+bash test_growth_program_flow.sh
 echo "=== E2E recuperación + verificación ==="
 bash test_auth_recovery_flow.sh
 echo "=== QA Admin Marketplace V2 ==="
@@ -212,6 +220,16 @@ grep -q "marketplace_order_integrity_bootstrap" production_start.js || { echo "I
 grep -q "marketplace_coupons_bootstrap" production_start.js || { echo "Cupones no están montados"; exit 1; }
 grep -q "DATOYA MARKET COUPONS V1" server.js || { echo "Runtime de cupones no está montado"; exit 1; }
 grep -q "DATOYA MARKET COUPONS V2" server.js || { echo "Runtime de cupones V2 no está montado"; exit 1; }
+grep -q "marketplace_growth_program_bootstrap" production_start.js || { echo "Programa de Fundadores no está montado"; exit 1; }
+grep -q "DATOYA GROWTH PROGRAM V1" server.js || { echo "Runtime de crecimiento no está montado"; exit 1; }
+grep -q "commission_free_pct','5.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión Gratis 5,9%"; exit 1; }
+grep -q "commission_exclusive_free_pct','4.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión exclusiva 4,9%"; exit 1; }
+grep -q "commission_impulso_pct','3.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión Impulso 3,9%"; exit 1; }
+grep -q "commission_exclusive_impulso_pct','2.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión exclusiva Impulso 2,9%"; exit 1; }
+grep -q "__dyGrowthOnOrderCompleted" marketplace_growth_program_bootstrap.js || { echo "Referidos no reaccionan a pedidos completados"; exit 1; }
+grep -q "invitation_code" marketplace_account_ui.js || { echo "Registro no permite código Fundador"; exit 1; }
+grep -q "Solo en DatoYa" marketplace_business_ui.js || { echo "Negocio no puede marcar promoción exclusiva"; exit 1; }
+grep -q "admin/fundadores" marketplace_admin_v2_ui.js || { echo "Admin no expone Fundadores"; exit 1; }
 grep -q "commissionBase=Math.max(0,subtotal-couponDiscount)" marketplace_coupons_bootstrap.js || { echo "Comisión no usa venta neta"; exit 1; }
 grep -q "market_coupon_products" marketplace_coupons_bootstrap.js || { echo "Falta alcance por producto"; exit 1; }
 grep -q "market_coupon_categories" marketplace_coupons_bootstrap.js || { echo "Falta alcance por categoría"; exit 1; }

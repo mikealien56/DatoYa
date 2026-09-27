@@ -36,6 +36,9 @@ async function main() {
   if (!names.has('coupon_redemptions')) throw new Error('Falta tabla PostgreSQL: coupon_redemptions');
   if (!names.has('market_coupon_products')) throw new Error('Falta tabla PostgreSQL: market_coupon_products');
   if (!names.has('market_coupon_categories')) throw new Error('Falta tabla PostgreSQL: market_coupon_categories');
+  if (!names.has('founder_invites')) throw new Error('Falta tabla PostgreSQL: founder_invites');
+  if (!names.has('business_growth_profiles')) throw new Error('Falta tabla PostgreSQL: business_growth_profiles');
+  if (!names.has('business_referrals')) throw new Error('Falta tabla PostgreSQL: business_referrals');
     if (!names.has('support_case_messages')) throw new Error('Falta tabla PostgreSQL: support_case_messages');
     if (!names.has('business_impulse_memberships')) throw new Error('Falta tabla PostgreSQL: business_impulse_memberships');
     if (!names.has('business_impulse_payments')) throw new Error('Falta tabla PostgreSQL: business_impulse_payments');
