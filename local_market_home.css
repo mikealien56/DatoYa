@@ -98,3 +98,25 @@ body{background:var(--dy-bg);color:var(--dy-text)}
 
 /* Pantalla breve de arranque: evita mostrar el Home legacy mientras carga el dominio comercial. */
 .dy-home-boot{min-height:58vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#1B2B48;text-align:center;padding:48px 20px}.dy-home-boot img{width:min(180px,65vw);height:auto}.dy-home-boot p{margin:0;font-weight:600}.dy-home-boot-spinner{width:34px;height:34px;border:3px solid #E9EEF5;border-top-color:#19C6B4;border-radius:50%;animation:dy-home-boot-spin .75s linear infinite}@keyframes dy-home-boot-spin{to{transform:rotate(360deg)}}
+
+
+/* Limpieza visual final móvil de portada: evita cortes, montajes y desbordes. */
+@media(max-width:640px){
+  .dy-home,.dy-section,.dy-section-head,.dy-section-head>div{min-width:0}
+  .dy-section-head{align-items:flex-start;flex-wrap:wrap}
+  .dy-section-head>div{flex:1 1 210px}
+  .dy-section-head h2,.dy-section-head p{overflow-wrap:anywhere}
+  .dy-see-all{flex:0 0 auto;max-width:100%;white-space:normal;text-align:right;line-height:1.25}
+  .dy-live-card,.dy-business-card{max-width:100%}
+  .dy-live-body,.dy-business-body{min-width:0}
+  .dy-live-body h3,.dy-live-body p,.dy-business-body h3,.dy-business-category{overflow-wrap:anywhere}
+  .dy-live-price-row{align-items:flex-start;flex-wrap:wrap}
+  .dy-live-price{min-width:0}
+  .dy-time{max-width:100%;white-space:normal;text-align:center}
+}
+@media(max-width:360px){
+  .dy-section-head h2{font-size:19px}
+  .dy-section-head p{font-size:10.5px}
+  .dy-see-all{font-size:10px;padding:5px 0}
+  .dy-live-card{flex-basis:84%}
+}
