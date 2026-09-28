@@ -511,3 +511,41 @@ input,select,textarea,button{
     line-height:14px!important;
   }
 }
+
+
+/* ===== HEADER ADMIN LABEL FIT V1 =====
+   Reserva ancho suficiente para mostrar "Administrador" completo junto a la campana. */
+@media (max-width:640px){
+  #topbar .logo{
+    max-width:calc(100% - 150px)!important;
+  }
+  #auth-area{
+    max-width:142px!important;
+    flex:0 0 142px!important;
+  }
+  #auth-area>a[href="#/perfil"]{
+    max-width:96px!important;
+    flex:0 0 96px!important;
+    font-size:11px!important;
+    padding:7px 2px!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+  }
+}
+@media (max-width:390px){
+  #topbar .datoya-header-logo{
+    width:118px!important;
+  }
+  #topbar .logo{
+    max-width:calc(100% - 146px)!important;
+  }
+  #auth-area{
+    max-width:138px!important;
+    flex-basis:138px!important;
+  }
+  #auth-area>a[href="#/perfil"]{
+    max-width:92px!important;
+    flex-basis:92px!important;
+    font-size:10.5px!important;
+  }
+}
