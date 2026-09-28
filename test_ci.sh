@@ -38,6 +38,7 @@ for js in *.js; do
 done
 node --check scripts/migrate_render_to_neon.js >/dev/null
 grep -q "Proveedor de datos:" production_start.js || { echo "Falta diagnóstico seguro del proveedor PostgreSQL"; exit 1; }
+grep -q "ADMIN_DISPLAY_NAME" production_mode_bootstrap.js || { echo "Falta nombre visible configurable del administrador"; exit 1; }
 node test_postgres_connection.js
 grep -q "CREATE TABLE IF NOT EXISTS market_categories" postgres/001_marketplace_foundation.sql
 grep -q "CREATE TABLE IF NOT EXISTS businesses" postgres/001_marketplace_foundation.sql
