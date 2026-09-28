@@ -40,6 +40,8 @@ grep -q "owner!==current" marketplace_commerce_ui.js || fail "Carrito no descart
 grep -q "HEADER AUTH COMPACT V4" mobile_app_layout.css || fail "Header móvil no compacta acciones autenticadas"
 grep -Fq '#auth-area>a[href="#/admin"]' mobile_app_layout.css || fail "Header móvil no oculta acceso Admin duplicado"
 grep -q "HEADER ADMIN LABEL FIT V1" mobile_app_layout.css || fail "Header móvil puede cortar Administrador"
+grep -q "HERO VISUAL EN MÓVIL V1" local_market_home.css || fail "La tarjeta principal sigue oculta en móvil"
+grep -q "display:flex!important" local_market_home.css || fail "Hero visual móvil no está forzado visible"
 
 
 grep -q "\['Mis pedidos','#/pedidos'" marketplace_topnav_fix.js || fail "Cliente no tiene acceso directo a Mis pedidos"
