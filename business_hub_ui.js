@@ -204,7 +204,7 @@
     }else{
       const hero=root.querySelector('.dy-business-hero h1');
       if(hero)hero.insertAdjacentHTML('afterend','<p class="dy-hub-section-caption">⚙️ Datos, ubicación, entrega y configuración comercial</p>');
-      root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>CONFIGURACIÓN ADICIONAL</span><h2>Conexiones y cuenta</h2><p>Herramientas relacionadas con la operación del negocio.</p></div></div><div class="dy-dashboard-growth"><a href="#/mi-negocio-pagos/${id}"><span>🏦</span><b>Pagos · Khipu</b><small>Estado y cobros de pedidos.</small></a><a href="#/mi-negocio-horarios/${id}"><span>🕒</span><b>Horarios</b><small>Define cuándo atiendes.</small></a><a href="#/mi-negocio-plan/${id}"><span>⭐</span><b>Plan</b><small>DatoYa Impulso y vigencia.</small></a><a href="#/mi-negocio-soporte/${id}"><span>📨</span><b>Soporte</b><small>Casos y respuestas de DatoYa.</small></a><a href="#/perfil"><span>👤</span><b>Cuenta</b><small>Datos y seguridad de acceso.</small></a></div></section>`);
+      root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>CONFIGURACIÓN ADICIONAL</span><h2>Conexiones y cuenta</h2><p>Herramientas relacionadas con la operación del negocio.</p></div></div><div class="dy-dashboard-growth"><a href="#/mi-negocio-pagos/${id}"><span>🏦</span><b>Pagos · Khipu</b><small>Estado y cobros de pedidos.</small></a><a href="#/perfil"><span>👤</span><b>Cuenta</b><small>Datos y seguridad de acceso.</small></a></div></section>`);
     }
     await addHubFrame(id,mode==='products'?'products':'config');
   }
