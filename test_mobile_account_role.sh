@@ -52,4 +52,8 @@ grep -q "'#/pedidos/'+o.id" marketplace_commerce_bootstrap.js || fail "Cambio de
 grep -q "Pago registrado para tu pedido" marketplace_commerce_bootstrap.js || fail "Pago manual no notifica al Cliente"
 
 
+
+grep -Fq "['Casos','#/admin/soporte',null]" marketplace_topnav_fix.js || fail "Admin escritorio no entra directo a Casos de soporte"
+if grep -q "data-dy-support-link" support_center_ui.js; then fail "Centro de soporte vuelve a duplicar Soporte en el menú superior"; fi
+
 echo "Mobile account-role QA suite OK"
