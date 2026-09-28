@@ -39,6 +39,7 @@ grep -q "owner_user_id" marketplace_commerce_ui.js || fail "Carrito Cliente no q
 grep -q "owner!==current" marketplace_commerce_ui.js || fail "Carrito no descarta datos de otra cuenta"
 grep -q "HEADER AUTH COMPACT V4" mobile_app_layout.css || fail "Header móvil no compacta acciones autenticadas"
 grep -Fq '#auth-area>a[href="#/admin"]' mobile_app_layout.css || fail "Header móvil no oculta acceso Admin duplicado"
+grep -q "HEADER ADMIN LABEL FIT V1" mobile_app_layout.css || fail "Header móvil puede cortar Administrador"
 
 
 grep -q "\['Mis pedidos','#/pedidos'" marketplace_topnav_fix.js || fail "Cliente no tiene acceso directo a Mis pedidos"
