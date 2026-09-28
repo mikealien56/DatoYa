@@ -63,7 +63,7 @@
     if(isAdmin())return[
       ['Inicio','#/','top'],
       ['Panel admin','#/admin',null],
-      ['Soporte','#/soporte',null]
+      ['Casos','#/admin/soporte',null]
     ];
     return[
       ['Inicio','#/','top'],
