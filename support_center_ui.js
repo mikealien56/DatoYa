@@ -4,15 +4,9 @@
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function installLinks(){
     const admin=!!ME&&(ME.role==='admin'||ME.account_type==='admin');
-    const top=document.getElementById('topnav');
     if(admin){
-      top?.querySelector('[data-dy-support-link]')?.remove();
       document.getElementById('dy-support-footer')?.remove();
       return;
-    }
-    if(top&&!top.querySelector('[data-dy-support-link]')){
-      const a=document.createElement('a');a.href='#/soporte';a.textContent='Soporte';a.dataset.dySupportLink='1';
-      const auth=top.querySelector('#auth-area');auth?top.insertBefore(a,auth):top.appendChild(a);
     }
     if(!document.getElementById('dy-support-footer')){
       const footer=document.createElement('footer');footer.id='dy-support-footer';footer.className='dy-support-footer';
