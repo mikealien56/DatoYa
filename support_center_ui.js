@@ -3,7 +3,13 @@
   if(typeof routes==='undefined'||typeof view==='undefined'||typeof api!=='function')return;
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function installLinks(){
+    const admin=!!ME&&(ME.role==='admin'||ME.account_type==='admin');
     const top=document.getElementById('topnav');
+    if(admin){
+      top?.querySelector('[data-dy-support-link]')?.remove();
+      document.getElementById('dy-support-footer')?.remove();
+      return;
+    }
     if(top&&!top.querySelector('[data-dy-support-link]')){
       const a=document.createElement('a');a.href='#/soporte';a.textContent='Soporte';a.dataset.dySupportLink='1';
       const auth=top.querySelector('#auth-area');auth?top.insertBefore(a,auth):top.appendChild(a);
@@ -15,6 +21,10 @@
     }
   }
   routes.soporte=async function(){
+    if(ME&&(ME.role==='admin'||ME.account_type==='admin')){
+      location.hash='#/admin/soporte';
+      return;
+    }
     const email=ME?.email||'',name=ME?.name||'';
     view.innerHTML=`<div class="dy-support-page"><a class="dy-public-back" href="#/">← Inicio</a><section class="dy-support-hero"><span>AYUDA DATOYA</span><h1>¿En qué podemos ayudarte?</h1><p>Envíanos tu consulta y llegará directamente a <b>soporte@datoya.cl</b>.</p></section><div class="dy-support-layout"><form id="dy-support-form" class="dy-support-card"><div class="field"><label>Nombre</label><input name="name" value="${h(name)}" maxlength="120" autocomplete="name" required></div><div class="field"><label>Correo para responderte</label><input name="email" type="email" value="${h(email)}" maxlength="180" autocomplete="email" required></div><div class="field"><label>¿Con qué necesitas ayuda?</label><select name="category"><option>Cuenta y acceso</option><option>Compras y pedidos</option><option>Negocios y productos</option><option>Pagos</option><option>Promociones e Impulso</option><option>Otro</option></select></div><div class="field"><label>Asunto</label><input name="subject" maxlength="140" placeholder="Ej: No puedo ver mi pedido" required></div><div class="field"><label>Cuéntanos qué pasó</label><textarea name="message" rows="7" maxlength="4000" placeholder="Describe el problema y, si corresponde, indica el número de pedido." required></textarea></div><div class="dy-support-safe">🔒 Nunca envíes contraseñas, códigos de verificación ni datos completos de tarjetas.</div><button class="btn btn-primary btn-block" type="submit">Enviar a soporte</button><div id="dy-support-result" aria-live="polite"></div></form><aside class="dy-support-card dy-support-aside"><h2>También puedes escribirnos</h2><a class="dy-support-email" href="mailto:soporte@datoya.cl">✉️ soporte@datoya.cl</a><p>Responderemos al correo que indiques en el formulario.</p><hr><b>Antes de enviar</b><p>Para pedidos, incluye el número de pedido. Para un negocio, indícanos su nombre. Eso nos ayuda a encontrar el caso más rápido.</p></aside></div></div>`;
     document.getElementById('dy-support-form')?.addEventListener('submit',async e=>{
