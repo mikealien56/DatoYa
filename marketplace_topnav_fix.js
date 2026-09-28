@@ -93,7 +93,7 @@
     }else if(isBusiness()){
       bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/buscar/_" data-nav="buscar"><span>⌕</span>Buscar</a><a href="#/perfil" data-nav="perfil"><span>🏪</span>Mi negocio</a><a href="#/" data-dy-mobile-promos><span>🏷️</span>Promos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
     }else if(isAdmin()){
-      bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/admin" data-nav="admin"><span>🛡️</span>Admin</a><a href="#/soporte" data-nav="soporte"><span>🛟</span>Soporte</a><a href="#/notificaciones" data-nav="notificaciones"><span>🔔</span>Avisos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
+      bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/admin" data-nav="admin"><span>🛡️</span>Admin</a><a href="#/admin/soporte" data-nav="soporte"><span>📨</span>Casos</a><a href="#/notificaciones" data-nav="notificaciones"><span>🔔</span>Avisos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
     }else{
       bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/buscar/_" data-nav="buscar"><span>⌕</span>Buscar</a><a href="#/" data-dy-mobile-promos><span>🏷️</span>Promos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
     }
