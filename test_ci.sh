@@ -183,6 +183,23 @@ node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const 
 echo "✅ Khipu es el único flujo de pago publicado"
 echo "✅ Frontend comercial publicado"
 
+# Limpieza UX: evitar repetir CTAs y accesos que ya existen en la navegación principal.
+if grep -q 'dy-local-banner' marketplace_public_beta_ui.js; then echo "Home vuelve a repetir el CTA de registro de negocio"; exit 1; fi
+grep -q "Tu cuenta de administración y accesos principales" marketplace_account_ui.js || { echo "Mi DatoYa admin volvió a duplicar todo el menú administrativo"; exit 1; }
+node <<'NODE'
+const fs=require('fs');
+const s=fs.readFileSync('business_hub_ui.js','utf8');
+const marker='CONFIGURACIÓN ADICIONAL';
+const i=s.indexOf(marker), j=s.indexOf('await addHubFrame',i);
+if(i<0||j<0) throw new Error('No se encontró Configuración adicional del Panel Negocio');
+const block=s.slice(i,j);
+for(const duplicated of ['mi-negocio-horarios/','mi-negocio-plan/','mi-negocio-soporte/']){
+  if(block.includes(duplicated)) throw new Error('Configuración adicional repite una sección que ya está en la navegación: '+duplicated);
+}
+NODE
+echo "✅ Limpieza UX sin accesos repetidos"
+
+
 # La beta pública no debe mostrar escaparates ni ofertas ficticias.
 if grep -Eq 'marketplace_demo_(showcase|pitch)' public/index.html; then
   echo "ERROR: la portada final todavía carga escaparates DEMO"
