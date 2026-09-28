@@ -44,6 +44,8 @@ grep -q "HEADER ADMIN LABEL FIT V1" mobile_app_layout.css || fail "Header móvil
 
 grep -q "\['Mis pedidos','#/pedidos'" marketplace_topnav_fix.js || fail "Cliente no tiene acceso directo a Mis pedidos"
 grep -q 'data-nav="pedidos"' marketplace_topnav_fix.js || fail "Barra móvil Cliente no incluye Pedidos"
+grep -Fq 'href="#/admin/soporte" data-nav="soporte"' marketplace_topnav_fix.js || fail "Admin móvil no entra directo a Casos de soporte"
+grep -q "location.hash='#/admin/soporte'" support_center_ui.js || fail "Admin todavía puede abrir formulario público de soporte"
 grep -q "dy-order-progress" marketplace_commerce_ui.js || fail "Mis pedidos no muestra progreso del pedido"
 grep -q "dy-order-focus" marketplace_commerce_ui.js || fail "Notificación no puede destacar el pedido exacto"
 grep -q "'#/pedidos/'+o.id" marketplace_commerce_bootstrap.js || fail "Cambio de estado no enlaza al pedido exacto"
