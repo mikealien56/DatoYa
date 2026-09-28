@@ -120,3 +120,48 @@ body{background:var(--dy-bg);color:var(--dy-text)}
   .dy-see-all{font-size:10px;padding:5px 0}
   .dy-live-card{flex-basis:84%}
 }
+
+
+/* ===== HERO VISUAL EN MÓVIL V1 =====
+   Mantiene visible la tarjeta "Sé de los primeros" también en teléfonos. */
+@media(max-width:900px){
+  .dy-hero-visual{
+    display:flex!important;
+    min-height:260px;
+    margin-top:4px;
+  }
+  .dy-visual-card{
+    width:100%;
+    max-width:430px;
+    height:250px;
+    border-radius:24px;
+  }
+}
+@media(max-width:640px){
+  .dy-hero-visual{
+    min-height:210px;
+    margin-top:2px;
+  }
+  .dy-visual-card{
+    height:205px;
+    border-radius:20px;
+  }
+  .dy-visual-overlay{
+    left:16px;
+    right:16px;
+    bottom:15px;
+  }
+  .dy-live-pill{
+    padding:6px 9px;
+    font-size:10px;
+    margin-bottom:7px;
+  }
+  .dy-visual-overlay h3{
+    font-size:20px;
+    margin-bottom:3px;
+  }
+  .dy-visual-overlay p{
+    font-size:12px;
+    line-height:1.35;
+  }
+}
