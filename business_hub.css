@@ -100,18 +100,12 @@
 .dy-payment-order-list span{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;text-align:right}
 .dy-payment-order-list span.paid{color:#087456}
 .dy-payment-order-list span.pending{color:#b45309}
-.dy-payment-plan-link{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:16px}
-.dy-payment-plan-link>div{display:flex;align-items:center;gap:12px}
-.dy-payment-plan-link>div>span{font-size:28px}
-.dy-payment-plan-link p{margin:3px 0 0;color:#64748b}
 
 @media(max-width:700px){
   .dy-payments-hero{align-items:stretch!important}
   .dy-payments-provider-state{min-width:0;width:100%;box-sizing:border-box}
   .dy-payment-summary{grid-template-columns:1fr}
   .dy-payment-details>div{align-items:flex-start}
-  .dy-payment-plan-link{align-items:stretch;flex-direction:column}
-  .dy-payment-plan-link .btn{width:100%}
   .dy-payment-order-list>a{align-items:flex-start}
 }
 

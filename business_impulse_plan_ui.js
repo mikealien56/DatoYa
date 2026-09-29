@@ -178,16 +178,7 @@
     }
   };
 
-  const previousBusiness=routes['mi-negocio'];
-  if(previousBusiness)routes['mi-negocio']=async function(id){
-    const r=await previousBusiness.apply(this,arguments);
-    if(!ME||ME.account_type!=='business')return r;
-    const target=document.querySelector('.dy-business-tools');
-    if(target&&!target.querySelector('[data-impulso-plan-tool]')){
-      const a=document.createElement('a');a.dataset.impulsoPlanTool='1';a.href='#/mi-negocio-plan/'+Number(id);a.innerHTML='<span>⚡</span><b>DatoYa Impulso</b><small>Planes, beneficios y vigencia.</small>';target.prepend(a);
-    }
-    return r;
-  };
+  // DATOYA_PLAN_SINGLE_SECTION_V1 — compra, períodos y vigencia viven solo en la pestaña Plan.
   if(!window.dyImpulsePlanDeepLinkReady){
     window.dyImpulsePlanDeepLinkReady=true;
     const bootPath=location.hash.replace(/^#\//,'').split('/')[0];
