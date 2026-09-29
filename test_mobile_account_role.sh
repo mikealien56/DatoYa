@@ -25,7 +25,7 @@ grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_public_beta_ui.js || 
 grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_growth_ui.js || fail "Ficha growth no identifica productos por ID"
 grep -q "productById=new Map" marketplace_commerce_ui.js || fail "Carrito sigue dependiendo del orden visual de productos"
 grep -q "el.dataset.productId" marketplace_commerce_ui.js || fail "Carrito no enlaza botón con ID de producto"
-grep -q "datoya-shell-v90" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+grep -q "datoya-shell-v91" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
 grep -q "data-signup-hour-day" marketplace_account_ui.js || fail "Registro no muestra horarios semanales"
 grep -q "accept_orders_when_closed" marketplace_account_ui.js || fail "Registro no permite definir pedidos fuera de horario"
 grep -q "hours_schedule" marketplace_account_bootstrap_v2.js || fail "Registro no persiste horarios estructurados"
@@ -33,6 +33,11 @@ grep -q "Activa al menos un día de atención" marketplace_account_ui.js || fail
 grep -q "mi-negocio-horarios" business_hub_ui.js || fail "Panel Negocio no expone editor de horarios"
 grep -q "DATOYA_PLAN_ACCESS_LIVE_REFRESH_V1" business_hub_ui.js || fail "Panel Negocio puede conservar candados después de activar Impulso"
 grep -q "DATOYA_PLAN_SINGLE_SECTION_V1" business_impulse_plan_ui.js || fail "DatoYa Impulso no está centralizado en la sección Plan"
+grep -q "DATOYA_BUSINESS_PUBLIC_PREVIEW_V1" marketplace_growth_ui.js || fail "Cuenta Negocio no identifica la vista pública propia"
+grep -q "DATOYA_BUSINESS_BROWSE_ONLY_V1" marketplace_impulse_home.js || fail "Cuenta Negocio puede mostrar controles de compra en Impulso"
+grep -q "Ver mi negocio como público" business_hub_ui.js || fail "Panel Negocio no ofrece vista pública clara"
+grep -q "Ver publicado" marketplace_business_ui.js || fail "Productos visibles no permiten revisar su publicación"
+grep -q "Ver en portada" marketplace_commerce_ui.js || fail "Impulso Ahora no permite revisar la publicación"
 if grep -q "dy-payment-plan-link" business_hub_ui.js business_hub.css; then fail "Pagos vuelve a mezclar la compra de DatoYa Impulso"; fi
 if grep -q "data-impulso-plan-tool" business_impulse_plan_ui.js; then fail "Configuración vuelve a duplicar el acceso comercial a Plan"; fi
 grep -Fq "getPlanAccess(id,true)" business_hub_ui.js || fail "Panel Negocio no refresca permisos Impulso en vivo"
