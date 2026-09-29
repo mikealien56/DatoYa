@@ -46,6 +46,32 @@
     });
   }
 
+  const LAST_BUSINESS_KEY='datoya_last_business_id_v1';
+  function rememberBusinessFromHash(){
+    const m=String(location.hash||'').match(/^#\/(?:mi-negocio(?:-[^/]+)?|impulso-ahora)\/(\d+)/);
+    if(m?.[1]){try{localStorage.setItem(LAST_BUSINESS_KEY,m[1]);}catch(_){}}
+  }
+  async function resolveBusinessPanelHref(){
+    if(!isBusiness())return '#/perfil';
+    rememberBusinessFromHash();
+    try{
+      const data=await api('/businesses/mine');
+      const businesses=data.businesses||[];
+      if(!businesses.length)return '#/registrar-negocio';
+      let last=0;try{last=Number(localStorage.getItem(LAST_BUSINESS_KEY)||0)}catch(_){}
+      const selected=businesses.find(b=>Number(b.id)===last)||businesses[0];
+      try{localStorage.setItem(LAST_BUSINESS_KEY,String(selected.id))}catch(_){}
+      return '#/mi-negocio/'+Number(selected.id);
+    }catch(_){
+      return '#/perfil';
+    }
+  }
+  async function goBusinessPanel(){
+    const href=await resolveBusinessPanelHref();
+    if(location.hash===href){if(typeof route==='function')route();return;}
+    location.hash=href;
+  }
+
   function topItems(){
     if(isCustomer())return[
       ['Inicio','#/','top'],
@@ -57,7 +83,7 @@
     if(isBusiness())return[
       ['Inicio','#/','top'],
       ['Promociones','#/','promociones'],
-      ['Mi negocio','#/perfil',null],
+      ['Mi negocio','#/perfil','business-panel'],
       ['Soporte','#/soporte',null]
     ];
     if(isAdmin())return[
@@ -80,7 +106,8 @@
     const auth=document.getElementById('auth-area');
     for(const [label,href,target] of topItems()){
       const a=document.createElement('a');a.href=href;a.textContent=label;a.dataset.dyPrimaryNav='1';
-      if(target)a.dataset.dyScroll=target;
+      if(target==='business-panel')a.dataset.dyBusinessPanel='1';
+      else if(target)a.dataset.dyScroll=target;
       nav.insertBefore(a,auth||null);
     }
   }
@@ -91,7 +118,7 @@
     if(isCustomer()){
       bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/buscar/_" data-nav="buscar"><span>⌕</span>Buscar</a><a href="#/pedidos" data-nav="pedidos"><span>🧾</span>Pedidos</a><a href="#/" data-dy-mobile-promos><span>🏷️</span>Promos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
     }else if(isBusiness()){
-      bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/buscar/_" data-nav="buscar"><span>⌕</span>Buscar</a><a href="#/perfil" data-nav="perfil"><span>🏪</span>Mi negocio</a><a href="#/" data-dy-mobile-promos><span>🏷️</span>Promos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
+      bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/buscar/_" data-nav="buscar"><span>⌕</span>Buscar</a><a href="#/perfil" data-nav="mi-negocio" data-dy-business-panel="1"><span>🏪</span>Mi negocio</a><a href="#/" data-dy-mobile-promos><span>🏷️</span>Promos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
     }else if(isAdmin()){
       bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/admin" data-nav="admin"><span>🛡️</span>Admin</a><a href="#/admin/soporte" data-nav="soporte"><span>📨</span>Casos</a><a href="#/notificaciones" data-nav="notificaciones"><span>🔔</span>Avisos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
     }else{
@@ -107,6 +134,12 @@
   function sync(){syncTop();syncBottom();}
 
   document.addEventListener('click',event=>{
+    const businessLink=event.target.closest?.('a[data-dy-business-panel]');
+    if(businessLink){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      goBusinessPanel();
+      return;
+    }
     const link=event.target.closest?.('#topnav a[data-dy-scroll]');
     if(!link)return;
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
@@ -120,8 +153,9 @@
     return result;
   };
 
+  rememberBusinessFromHash();
   sync();
-  addEventListener('hashchange',()=>setTimeout(sync,40));
+  addEventListener('hashchange',()=>{rememberBusinessFromHash();setTimeout(sync,40)});
   addEventListener('datoya:market-home-rendered',()=>setTimeout(sync,0));
   document.addEventListener('datoya:location-changed',sync);
 })();
