@@ -283,18 +283,18 @@
       <section class="dy-payment-summary">
         <div><span>✅</span><strong>${paidOrders.length}</strong><b>Pedidos pagados</b><small>${money(paidTotal)} confirmado</small></div>
         <div><span>⏳</span><strong>${pendingOrders.length}</strong><b>Pagos pendientes</b><small>Pedidos aún sin pago confirmado</small></div>
-        <div><span>🧪</span><strong>TEST</strong><b>Modo actual</b><small>Los pagos reales siguen bloqueados</small></div>
+        <div><span>🛡️</span><strong>SEGURO</strong><b>Estado de activación</b><small>Los cobros reales se habilitarán solo cuando Khipu complete la activación</small></div>
       </section>
 
       <div class="dy-dashboard-grid">
         <section class="dy-business-card dy-khipu-card">
-          <div class="dy-card-head"><div><span>PROVEEDOR</span><h2>Khipu</h2><p>Estado técnico actual de los cobros en DatoYa.</p></div><span class="dy-khipu-dot ${ready?'ok':'warn'}">${ready?'TEST activo':'Atención'}</span></div>
+          <div class="dy-card-head"><div><span>PROVEEDOR</span><h2>Khipu</h2><p>Estado de preparación de los cobros de tu negocio.</p></div><span class="dy-khipu-dot ${on.status==='active'?'ok':'warn'}">${on.status==='active'?'Cobros activos':'En preparación'}</span></div>
           <div class="dy-payment-details">
-            <div><span>Entorno actual</span><b>${khipu.mode==='development'?'Desarrollo / TEST':'Bloqueado'}</b></div>
+            <div><span>Configuración técnica</span><b>${khipu.configured?'Lista':'Pendiente'}</b></div>
             <div><span>Pagos reales</span><b>${khipu.live_payments_allowed?'Habilitados':'Bloqueados'}</b></div>
             <div><span>Split de comisión</span><b>${khipu.integrator_enabled?'Habilitado':'Pendiente de Khipu'}</b></div>
           </div>
-          <div class="dy-payment-info-note"><b>Para la beta real</b><p>Los cobros reales seguirán bloqueados hasta que DatoYa tenga habilitada la modalidad integrador y el negocio complete su validación bancaria.</p></div>
+          <div class="dy-payment-info-note"><b>Antes de activar cobros</b><p>DatoYa mantendrá los cobros reales bloqueados hasta que Khipu habilite la modalidad integrador y el negocio complete su validación bancaria. No necesitas configurar claves técnicas.</p></div>
         </section>
 
         <section class="dy-business-card">
