@@ -24,6 +24,7 @@ bash test_password_reset_links.sh
 bash test_business_loading_guards.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
+bash test_khipu_business_onboarding.sh
 node --check push_notifications_bootstrap.js
 grep -q '"web-push"' package.json || { echo "Falta dependencia web-push"; exit 1; }
 grep -q "CREATE TABLE IF NOT EXISTS push_subscriptions" push_notifications_bootstrap.js || { echo "Falta persistencia de suscripciones Push"; exit 1; }
