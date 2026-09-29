@@ -6,6 +6,8 @@ fail(){ echo "MOBILE ROLE QA FAIL: $1"; exit 1; }
 
 node --check marketplace_commerce_ui.js
 node --check marketplace_account_ui.js
+node --check marketplace_topnav_fix.js
+node --check business_impulse_plan_ui.js
 node --check marketplace_public_beta_ui.js
 node --check beta_private_ui.js
 
@@ -25,7 +27,7 @@ grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_public_beta_ui.js || 
 grep -q "data-product-id=\"\${Number(p.id)}\"" marketplace_growth_ui.js || fail "Ficha growth no identifica productos por ID"
 grep -q "productById=new Map" marketplace_commerce_ui.js || fail "Carrito sigue dependiendo del orden visual de productos"
 grep -q "el.dataset.productId" marketplace_commerce_ui.js || fail "Carrito no enlaza botón con ID de producto"
-grep -q "datoya-shell-v92" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
+grep -q "datoya-shell-v93" service-worker.js || fail "PWA no refresca caché para correcciones móviles"
 grep -q "data-signup-hour-day" marketplace_account_ui.js || fail "Registro no muestra horarios semanales"
 grep -q "accept_orders_when_closed" marketplace_account_ui.js || fail "Registro no permite definir pedidos fuera de horario"
 grep -q "hours_schedule" marketplace_account_bootstrap_v2.js || fail "Registro no persiste horarios estructurados"
@@ -39,6 +41,11 @@ grep -q "Ver mi negocio como público" business_hub_ui.js || fail "Panel Negocio
 grep -q "resolveBusinessPanelHref" marketplace_topnav_fix.js || fail "Mi negocio no resuelve el panel real"
 grep -q "data-dy-business-panel" marketplace_topnav_fix.js || fail "Navegación Negocio no identifica el acceso directo al panel"
 grep -q "datoya_last_business_id_v1" marketplace_topnav_fix.js || fail "Mi negocio no recuerda el último negocio administrado"
+grep -q "DATOYA_BUSINESS_PANEL_HREF_HYDRATION_V1" marketplace_topnav_fix.js || fail "Mi negocio no hidrata su href real al panel"
+grep -q "createdId?'#/mi-negocio/'" marketplace_account_ui.js || fail "Alta de negocio vuelve a terminar en Perfil"
+grep -q "Volver a Pedidos" marketplace_commerce_ui.js || fail "QR de retiro no vuelve a Pedidos del negocio"
+grep -q "business_id:o.business_id" marketplace_order_integrity_bootstrap.js || fail "Validación QR no devuelve el negocio propietario"
+if grep -Eqi "Khipu TEST|Desarrollo / TEST|TEST activo|solo permite cobros Khipu de desarrollo" business_impulse_plan_ui.js marketplace_admin_v2_bootstrap.js; then fail "Vista comercial vuelve a exponer lenguaje técnico TEST/desarrollo"; fi
 if grep -Fq "['Mi negocio','#/perfil',null]" marketplace_topnav_fix.js; then fail "Mi negocio volvió a apuntar al perfil"; fi
 grep -q "Ver publicado" marketplace_business_ui.js || fail "Productos visibles no permiten revisar su publicación"
 grep -q "Ver en portada" marketplace_commerce_ui.js || fail "Impulso Ahora no permite revisar la publicación"

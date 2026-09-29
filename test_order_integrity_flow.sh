@@ -107,7 +107,7 @@ DIRECT_COMPLETE="$(curl -s -o /dev/null -w '%{http_code}' -b "$BUSINESS_JAR" -H 
 echo "10/12 Código incorrecto falla y código correcto completa"
 WRONG_CODE="$(curl -s -o /dev/null -w '%{http_code}' -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER_ID/pickup/verify" -d '{"code":"000000"}')"
 [ "$WRONG_CODE" = "400" ] || fail "Código incorrecto no fue rechazado (HTTP $WRONG_CODE)"
-curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER_ID/pickup/verify" -d "{\"code\":\"$PICKUP_CODE\"}" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d.get("ok") is True and d.get("status")=="completed"'
+curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER_ID/pickup/verify" -d "{\"code\":\"$PICKUP_CODE\"}" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('ok') is True and d.get('status')=='completed' and int(d.get('business_id') or 0)==int('$BIZ_ID')"
 curl -fsS -b "$CLIENT_JAR" "$BASE/api/orders/mine" | python3 -c "import sys,json; o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$ORDER_ID')); assert o['status']=='completed' and o.get('pickup_verified_at')"
 
 echo "11/12 Despacho cobra tarifa, genera QR/código y exige validación"
