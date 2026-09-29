@@ -42,6 +42,7 @@ async function main() {
     if (!names.has('support_case_messages')) throw new Error('Falta tabla PostgreSQL: support_case_messages');
     if (!names.has('business_impulse_memberships')) throw new Error('Falta tabla PostgreSQL: business_impulse_memberships');
     if (!names.has('business_impulse_payments')) throw new Error('Falta tabla PostgreSQL: business_impulse_payments');
+    if (!names.has('business_khipu_onboarding')) throw new Error('Falta tabla PostgreSQL: business_khipu_onboarding');
     if (!names.has('commerce_refund_requests')) throw new Error('Falta tabla PostgreSQL: commerce_refund_requests');
     if (!names.has('commerce_refund_events')) throw new Error('Falta tabla PostgreSQL: commerce_refund_events');
     const { rows: accountRows } = await client.query(`
