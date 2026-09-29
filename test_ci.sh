@@ -24,6 +24,7 @@ bash test_password_reset_links.sh
 bash test_business_loading_guards.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
+bash test_khipu_business_onboarding.sh
 node --check push_notifications_bootstrap.js
 grep -q '"web-push"' package.json || { echo "Falta dependencia web-push"; exit 1; }
 grep -q "CREATE TABLE IF NOT EXISTS push_subscriptions" push_notifications_bootstrap.js || { echo "Falta persistencia de suscripciones Push"; exit 1; }
@@ -77,6 +78,12 @@ grep -q "impulso_free_catalog_limit','20" marketplace_admin_v2_bootstrap.js
 grep -q "impulso_paid_catalog_limit','200" marketplace_admin_v2_bootstrap.js
 grep -q "Falta tabla PostgreSQL: business_impulse_memberships" postgres_migrate.js
 grep -q "Falta tabla PostgreSQL: business_impulse_payments" postgres_migrate.js
+grep -q "CREATE TABLE IF NOT EXISTS business_khipu_onboarding" postgres/014_khipu_business_onboarding.sql
+grep -q "Falta tabla PostgreSQL: business_khipu_onboarding" postgres_migrate.js
+grep -q "khipu_business_onboarding_bootstrap" production_start.js
+grep -q "app.get('/api/businesses/:id/khipu-onboarding'" khipu_business_onboarding_bootstrap.js
+grep -q "app.post('/api/businesses/:id/khipu-onboarding/start'" khipu_business_onboarding_bootstrap.js
+grep -q "No te pediremos claves bancarias" business_hub_ui.js
 grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_requests" postgres/012_commerce_refunds.sql
 grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_events" postgres/012_commerce_refunds.sql
 grep -q "Falta tabla PostgreSQL: commerce_refund_requests" postgres_migrate.js
@@ -132,7 +139,7 @@ curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,j
 echo "✅ Healthcheck + categorías comerciales"
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/readiness orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
+for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done

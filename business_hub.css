@@ -114,3 +114,31 @@
   .dy-payment-plan-link .btn{width:100%}
   .dy-payment-order-list>a{align-items:flex-start}
 }
+
+
+/* ===== Alta simple de cobros Khipu ===== */
+.dy-khipu-onboarding-card{margin-bottom:16px;border-color:#d8ebe8}
+.dy-khipu-onboarding-state{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;white-space:nowrap}
+.dy-khipu-onboarding-state.status-ready_for_integrator,.dy-khipu-onboarding-state.status-bank_verification{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+.dy-khipu-onboarding-state.status-active{background:#e8fbf6;border-color:#bdeedc;color:#087456}
+.dy-khipu-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 18px}
+.dy-khipu-steps>div{display:grid;grid-template-columns:34px 1fr;grid-template-areas:"n b" "n s";column-gap:9px;align-items:center;border:1px solid #e7edf4;border-radius:15px;padding:12px;background:#fbfcfe}
+.dy-khipu-steps>div>span{grid-area:n;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:#eef3f8;color:#526075}
+.dy-khipu-steps>div.done>span{background:#dff8f1;color:#087456}
+.dy-khipu-steps>div>b{grid-area:b;font-size:13px}
+.dy-khipu-steps>div>small{grid-area:s;color:#667085;font-size:11px;line-height:1.35}
+.dy-khipu-onboarding-form{display:grid;gap:14px}
+.dy-khipu-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.dy-khipu-form-grid .field{margin:0}
+.dy-khipu-form-grid .dy-khipu-wide{grid-column:1/-1}
+.dy-khipu-privacy-note,.dy-khipu-next-step{display:flex;align-items:flex-start;gap:10px;border:1px solid #cfe9e4;background:#f3fffc;border-radius:14px;padding:13px 14px}
+.dy-khipu-privacy-note>span,.dy-khipu-next-step>span{font-size:22px}
+.dy-khipu-privacy-note b,.dy-khipu-next-step b{color:#0f766e}
+.dy-khipu-privacy-note p,.dy-khipu-next-step p{margin:4px 0 0;color:#53657b;font-size:12px;line-height:1.45}
+@media(max-width:700px){
+  .dy-khipu-steps{grid-template-columns:1fr}
+  .dy-khipu-form-grid{grid-template-columns:1fr}
+  .dy-khipu-form-grid .dy-khipu-wide{grid-column:auto}
+  .dy-khipu-onboarding-card .dy-card-head{align-items:flex-start;flex-direction:column}
+  .dy-khipu-onboarding-state{white-space:normal}
+}
