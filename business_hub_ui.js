@@ -108,7 +108,7 @@
     view.innerHTML=`<div class="dy-business-dashboard">
       <section class="dy-business-dashboard-hero">
         <div><span>CENTRO DE CONTROL</span><h1>Hola, ${h((ME.name||'').split(' ')[0]||'')}</h1><p>Esto es lo que está pasando hoy en <b>${h(b.name||'tu negocio')}</b>.</p></div>
-        <div class="dy-dashboard-hero-actions"><a class="btn btn-outline" href="#/negocio/${encodeURIComponent(b.slug||'')}">Ver vitrina</a><a class="btn btn-primary" href="#/mi-negocio-productos/${id}">+ Agregar producto</a></div>
+        <div class="dy-dashboard-hero-actions"><a class="btn btn-outline" href="#/negocio/${encodeURIComponent(b.slug||'')}">👁 Ver mi negocio como público</a><a class="btn btn-primary" href="#/mi-negocio-productos/${id}">+ Agregar producto</a></div>
       </section>
 
       ${b.latest_review?.action==='request_changes'?`<div class="dy-business-warning"><b>DatoYa pidió una corrección</b><p>${h(b.latest_review.note||'Revisa la información del negocio y vuelve a enviarla.')}</p><a class="btn btn-outline btn-sm" href="#/mi-negocio-configuracion/${id}">Revisar datos</a></div>`:''}

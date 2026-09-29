@@ -24,6 +24,10 @@
     view.innerHTML='<div class="dy-public-page"><div class="dy-real-loading"><span></span>Cargando negocio…</div></div>';
     try{
       const {business:b}=await api('/market/business/'+encodeURIComponent(key));
+      let ownerPreview=false;
+      if(ME?.account_type==='business'){
+        try{const mine=await api('/businesses/mine');ownerPreview=(mine.businesses||[]).some(x=>Number(x.id)===Number(b.id));}catch(_){}
+      }
       const items=b.products||[],wa=intlChilePhone(b.whatsapp||b.phone||''),call=intlChilePhone(b.phone||b.whatsapp||'');
       const exactAddress=b.business_type!=='home_business'&&b.address&&b.public_address_mode==='exact'?b.address:'';
       const publicPlace=exactAddress?exactAddress:[b.sector,b.comuna].filter(Boolean).join(', ');
@@ -33,6 +37,7 @@
       document.title=b.name+' · DatoYa';
       view.innerHTML=`<div class="dy-public-page dy-store-page">
         <a class="dy-public-back" href="#/">← Volver</a>
+        ${ownerPreview?`<div class="dy-owner-preview-banner"><div><span>👁 VISTA PÚBLICA</span><b>Estás viendo tu negocio como lo ve un cliente</b><small>Estas visitas propias no se suman a tus estadísticas.</small></div><a class="btn btn-primary btn-sm" href="#/mi-negocio/${Number(b.id)}">Administrar negocio</a></div>`:''}
         <section class="dy-store-hero dy-growth-store"><div class="dy-store-cover">${items.find(p=>p.image_data)?`<img src="${items.find(p=>p.image_data).image_data}" alt="${h(b.name)}">`:'<div class="dy-real-placeholder">🏪</div>'}</div>
         <div class="dy-store-info"><span>${b.business_type==='home_business'?'🏠 Emprendimiento desde casa':'🏬 Local físico'}${b.verified?' · ✓ Verificado':''}</span>${founder}<h1>${h(b.name)}</h1><p>${h(b.description||'Negocio local en DatoYa.')}</p>
         <div class="dy-store-meta"><span>📍 ${h(publicPlace||b.comuna||'Ubicación protegida')}</span>${b.opening_hours?`<span>🕒 ${h(b.opening_hours)}</span>`:''}<span>${b.pickup_enabled?'✓ Retiro':''}${b.pickup_enabled&&b.delivery_enabled?' · ':''}${b.delivery_enabled?'✓ Despacho':''}</span></div>
@@ -41,15 +46,18 @@
         ${b.business_type==='home_business'?'<small class="dy-privacy-public">🔒 La dirección residencial exacta está protegida.</small>':''}</div></section>
         <section><div class="dy-section-head"><div><h2>Productos (${items.length})</h2><p>Catálogo publicado por el negocio.</p></div></div><div class="dy-store-products">${items.length?items.map(p=>`<article class="dy-store-product dy-growth-product" data-growth-product="${Number(p.id)}" data-product-id="${Number(p.id)}"><div>${p.image_data?`<img src="${p.image_data}" alt="${h(p.name)}" loading="lazy">`:'<div class="dy-real-placeholder">📦</div>'}</div><div><span>${h(p.category_icon||'')} ${h(p.category_name||'')}</span><h3>${h(p.name)}</h3><p>${h(p.description||'')}</p><div class="dy-product-public-price">${activePromo(p)?`<s>${money(p.price)}</s>`:''}<strong>${money(activePromo(p)?p.promo_price:p.price)}</strong>${timedPromo(p)?`<em class="dy-inline-countdown">${h(promoCountdown(p.promo_ends_at))}</em>`:''}${p.stock_tracking?`<em>${Number(p.stock||0)>0?`${Number(p.stock)} disponibles`:'Sin stock'}</em>`:''}</div><button class="btn btn-outline btn-sm dy-share-product" data-product-id="${Number(p.id)}" data-product-name="${h(p.name)}" data-product-price="${money(activePromo(p)?p.promo_price:p.price)}">↗ Compartir</button></div></article>`).join(''):'<div class="dy-real-empty"><span>📦</span><b>Sin productos visibles</b></div>'}</div></section>
       </div>`;
-      track(b.id,'profile_view');
-      document.getElementById('dy-growth-wa')?.addEventListener('click',()=>track(b.id,'whatsapp_click'));
-      document.getElementById('dy-growth-call')?.addEventListener('click',()=>track(b.id,'call_click'));
-      document.getElementById('dy-growth-map')?.addEventListener('click',()=>track(b.id,'map_click'));
-      document.getElementById('dy-growth-share')?.addEventListener('click',async()=>{if(await shareText(b.name,'Mira '+b.name+' en DatoYa',shareUrl))track(b.id,'share_business');});
-      document.querySelectorAll('.dy-share-product').forEach(btn=>btn.addEventListener('click',async()=>{const text=`Mira ${btn.dataset.productName} por ${btn.dataset.productPrice} en ${b.name} · DatoYa`;if(await shareText(btn.dataset.productName,text,shareUrl))track(b.id,'share_product',{product_id:Number(btn.dataset.productId)});}));
-      const seen=new Set();
-      const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){const id=Number(e.target.dataset.growthProduct);if(id&&!seen.has(id)){seen.add(id);track(b.id,'product_view',{product_id:id});io.unobserve(e.target);}}}),{threshold:.55});
-      document.querySelectorAll('[data-growth-product]').forEach(el=>io.observe(el));
+      // DATOYA_BUSINESS_PUBLIC_PREVIEW_V1 — el negocio puede revisar su ficha sin inflar sus propias métricas.
+      if(!ownerPreview)track(b.id,'profile_view');
+      if(!ownerPreview)document.getElementById('dy-growth-wa')?.addEventListener('click',()=>track(b.id,'whatsapp_click'));
+      if(!ownerPreview)document.getElementById('dy-growth-call')?.addEventListener('click',()=>track(b.id,'call_click'));
+      if(!ownerPreview)document.getElementById('dy-growth-map')?.addEventListener('click',()=>track(b.id,'map_click'));
+      document.getElementById('dy-growth-share')?.addEventListener('click',async()=>{if(await shareText(b.name,'Mira '+b.name+' en DatoYa',shareUrl)&&!ownerPreview)track(b.id,'share_business');});
+      document.querySelectorAll('.dy-share-product').forEach(btn=>btn.addEventListener('click',async()=>{const text=`Mira ${btn.dataset.productName} por ${btn.dataset.productPrice} en ${b.name} · DatoYa`;if(await shareText(btn.dataset.productName,text,shareUrl)&&!ownerPreview)track(b.id,'share_product',{product_id:Number(btn.dataset.productId)});}));
+      if(!ownerPreview){
+        const seen=new Set();
+        const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){const id=Number(e.target.dataset.growthProduct);if(id&&!seen.has(id)){seen.add(id);track(b.id,'product_view',{product_id:id});io.unobserve(e.target);}}}),{threshold:.55});
+        document.querySelectorAll('[data-growth-product]').forEach(el=>io.observe(el));
+      }
     }catch(err){if(previousBusiness)return previousBusiness(identifier);view.innerHTML='<div class="dy-public-page"><div class="dy-real-empty"><span>🏪</span><b>Negocio no disponible</b><p>'+h(err.message||'')+'</p></div></div>';}
   };
 
