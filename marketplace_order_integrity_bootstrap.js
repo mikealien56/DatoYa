@@ -149,7 +149,7 @@ if(!source.includes('DATOYA ORDER INTEGRITY V1')){
     "  const o=db.prepare(\"SELECT o.*,b.owner_user_id,b.name AS business_name FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=? AND b.owner_user_id=?\").get(Number(req.params.id),req.user.id);",
     "  if(!o)return res.status(404).json({error:'Pedido no encontrado para tu negocio'});",
     "  if(o.fulfillment_method!=='pickup')return res.status(400).json({error:'Este pedido no usa retiro'});",
-    "  if(o.status==='completed'&&o.pickup_verified_at)return res.json({ok:true,already_verified:true});",
+    "  if(o.status==='completed'&&o.pickup_verified_at)return res.json({ok:true,already_verified:true,business_id:o.business_id});",
     "  if(o.status!=='ready')return res.status(409).json({error:'El pedido debe estar listo para validar el retiro'});",
     "  if(Number(o.pickup_attempts||0)>=10)return res.status(429).json({error:'Se agotaron los intentos de código para este pedido. Contacta soporte.'});",
     "  const code=String(req.body?.code||'').replace(/\\D/g,'').slice(0,6);",
@@ -158,7 +158,7 @@ if(!source.includes('DATOYA ORDER INTEGRITY V1')){
     "  const result=db.prepare(\"UPDATE commerce_orders SET status='completed',pickup_verified_at=?,pickup_attempts=0,updated_at=? WHERE id=? AND status='ready'\").run(now,now,o.id);",
     "  if(Number(result.changes||0)<1)return res.status(409).json({error:'El pedido cambió de estado. Actualiza e intenta nuevamente.'});",
     "  notify(o.user_id,'pedido','Retiro confirmado para tu pedido '+o.reference+'.','#/pedidos/'+o.id);",
-    "  res.json({ok:true,status:'completed',pickup_verified_at:now});",
+    "  res.json({ok:true,status:'completed',pickup_verified_at:now,business_id:o.business_id});",
     "});",
     "// ============ FIN DATOYA ORDER INTEGRITY V1 ============",
     ""
