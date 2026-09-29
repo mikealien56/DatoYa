@@ -263,7 +263,7 @@ app.post('/api/businesses/:id/impulso-plan/checkout',auth,async(req,res)=>{try{
   const period=String(req.body?.billing_period||'monthly');
   if(!['monthly','quarterly','annual'].includes(period))return res.status(400).json({error:'Período inválido'});
   if(typeof __khConfigured!=='function'||!__khConfigured())return res.status(503).json({error:'Khipu todavía no está configurado en Render'});
-  if(typeof __khDevelopmentAllowed!=='function'||!__khDevelopmentAllowed())return res.status(409).json({error:'DatoYa Impulso solo permite cobros Khipu de desarrollo por ahora. Los pagos reales siguen bloqueados.',code:'KHIPU_LIVE_BLOCKED'});
+  if(typeof __khDevelopmentAllowed!=='function'||!__khDevelopmentAllowed())return res.status(409).json({error:'El cobro con Khipu no está disponible temporalmente para este plan.',code:'KHIPU_LIVE_BLOCKED'});
   const amount=period==='annual'?__dyMoneySetting('impulso_annual_price',89990):period==='quarterly'?__dyMoneySetting('impulso_quarterly_price',26990):__dyMoneySetting('impulso_monthly_price',9990);
   if(amount<=0)return res.status(409).json({error:'El precio de DatoYa Impulso no está configurado'});
   const reference='DY-IMP-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(2).toString('hex').toUpperCase();
