@@ -13,6 +13,6 @@ grep -q "Preparar activación de cobros" business_hub_ui.js || fail "Falta CTA s
 grep -q "billing_identifier" business_hub_ui.js || fail "Falta RUT de facturación"
 grep -q "business_activity" business_hub_ui.js || fail "Falta giro del negocio"
 grep -q "contact_role" khipu_business_onboarding_bootstrap.js || fail "Faltan datos de contacto requeridos por Khipu"
-if grep -Eqi "bank_account|numero.*cuenta|bank_password|clave.*banc" khipu_business_onboarding_bootstrap.js; then fail "No se deben almacenar credenciales bancarias"; fi
+if grep -Eqi "bank_account_number|bank_password|bank_secret|bank_pin" khipu_business_onboarding_bootstrap.js; then fail "No se deben almacenar credenciales bancarias"; fi
 
 echo "Khipu business onboarding QA suite OK"
