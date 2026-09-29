@@ -79,7 +79,7 @@
   .dy-hours-now .dy-hours-pill{width:100%;box-sizing:border-box;justify-content:center}
   .dy-hours-main-card{padding:14px 12px;border-radius:18px}
   .dy-hours-toolbar{align-items:stretch;flex-direction:column}
-  .dy-hours-toolbar>div:last-child{display:grid;grid-template-columns:1fr 1fr}
+  .dy-hours-toolbar>div:last-child{display:grid;grid-template-columns:1fr}
   .dy-hours-toolbar .btn{width:100%;white-space:normal}
   .dy-hours-days{grid-template-columns:1fr}
   .dy-hours-day-card{padding:14px 12px}
