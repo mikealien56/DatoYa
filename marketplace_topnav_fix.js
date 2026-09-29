@@ -131,7 +131,13 @@
     });
   }
 
-  function sync(){syncTop();syncBottom();}
+  async function hydrateBusinessPanelLinks(){
+    if(!isBusiness())return;
+    const href=await resolveBusinessPanelHref();
+    document.querySelectorAll('a[data-dy-business-panel]').forEach(a=>a.setAttribute('href',href));
+  }
+  // DATOYA_BUSINESS_PANEL_HREF_HYDRATION_V1 — el enlace real también apunta al panel, no solo el handler de click.
+  function sync(){syncTop();syncBottom();hydrateBusinessPanelLinks();}
 
   document.addEventListener('click',event=>{
     const businessLink=event.target.closest?.('a[data-dy-business-panel]');
