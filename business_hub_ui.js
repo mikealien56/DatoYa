@@ -53,7 +53,8 @@
     const root=document.getElementById('view')||view;
     root.querySelector('.dy-business-hub-shell')?.remove();
     let meta={business:{id:Number(id)}},plan={plan:'free',access:{}};
-    try{[meta,plan]=await Promise.all([getMeta(id),getPlanAccess(id)]);}catch(_){}
+    // DATOYA_PLAN_ACCESS_LIVE_REFRESH_V1 — no conservar candados después de activar Impulso.
+    try{[meta,plan]=await Promise.all([getMeta(id),getPlanAccess(id,true)]);}catch(_){}
     const b=meta.business||{id:Number(id)},paid=plan.plan==='impulso';
     const nav=[
       ['home','#/mi-negocio/'+id,'⌂','Inicio',false],
