@@ -163,7 +163,6 @@
             <a href="#/mi-negocio-promociones/${id}"><span>🏷️</span><b>Promociones</b><small>Revisa qué campañas generan actividad.</small></a>
             <a href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}" class="${paid?'':'dy-premium-link'}"><span>${paid?'⚡':'🔒'}</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Requiere DatoYa Impulso.'}</small></a>
             <a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso semanal</b><small>Prepara una oferta destacada.</small></a>
-            <a href="#/mi-negocio-plan/${id}"><span>🚀</span><b>Plan DatoYa Impulso</b><small>Revisa beneficios y vigencia.</small></a>
           </div>
         </section>
       </div>
@@ -304,8 +303,6 @@
           <a class="btn btn-outline btn-block" href="#/mi-negocio-pedidos/${id}">Ver todos los pedidos</a>
         </section>
       </div>
-
-      <section class="dy-business-card dy-payment-plan-link"><div><span>⚡</span><div><b>DatoYa Impulso</b><p>La membresía se administra aparte de los pagos de pedidos.</p></div></div><a class="btn btn-primary" href="#/mi-negocio-plan/${id}">Ver plan y comprar</a></section>
     </div>`;
 
     document.getElementById('dy-khipu-onboarding-form')?.addEventListener('submit',async e=>{
