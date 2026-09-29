@@ -41,6 +41,10 @@
 .dy-switch span:after{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.22);transition:.2s}
 .dy-switch input:checked+span{background:#19C6B4}
 .dy-switch input:checked+span:after{transform:translateX(19px)}
+.dy-hours-day-toggle{display:inline-flex;align-items:center;cursor:pointer;flex:0 0 auto}
+.dy-hours-day-toggle input{position:absolute;opacity:0;pointer-events:none;width:1px!important;height:1px}
+.dy-hours-day-toggle span{min-width:72px;text-align:center;padding:7px 10px;border-radius:999px;border:1px solid #d7e0ea;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:900;transition:.18s}
+.dy-hours-day-toggle input:checked+span{border-color:#8adfd2;background:#e8fbf6;color:#087456}
 .dy-hours-times{display:grid;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);align-items:end;gap:8px}
 .dy-hours-times label{display:grid;gap:5px}
 .dy-hours-times label>span{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#718096}
@@ -51,7 +55,7 @@
   display:flex;align-items:flex-start;gap:11px;margin:16px 0 0;padding:15px;
   border:1px solid #dce7f3;border-radius:16px;background:#f8fbff;
 }
-.dy-hours-closed-orders input{margin-top:3px;width:18px;height:18px;flex:0 0 auto}
+.dy-hours-closed-orders input[type="checkbox"]{margin:3px 0 0;padding:0;width:18px!important;min-width:18px;height:18px;flex:0 0 18px}
 .dy-hours-closed-orders>span{display:grid;gap:3px}
 .dy-hours-closed-orders b{color:#183153}
 .dy-hours-closed-orders small{color:#64748b;line-height:1.45}
