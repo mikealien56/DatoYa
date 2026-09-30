@@ -138,6 +138,7 @@ CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'impor
 [ "$CATS" -ge 20 ] || { echo "Catálogo comercial incompleto: $CATS"; exit 1; }
 curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; c=json.load(sys.stdin)["categories"]; o=next((x for x in c if x["slug"]=="opticas"),None); assert o and o["name"]=="Ópticas" and o["icon"]=="👓"' || { echo "Falta categoría Ópticas"; exit 1; }
 echo "✅ Healthcheck + categorías comerciales"
+node test_email_activation.js
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
 for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
