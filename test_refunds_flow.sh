@@ -49,19 +49,27 @@ create_paid_order(){
 
 echo "1/2 Flujo negocio → devolución confirmada"
 ORDER1="$(create_paid_order)"
-R1_JSON="$(curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER1/refunds"   -d '{"reason":"quality","amount":7990,"details":"Producto con problema de calidad"}')"
-R1="$(printf '%s' "$R1_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["refund"]["status"]=="requested"; print(d["refund"]["id"])')"
+R1_JSON="$(curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER1/refunds"   -d '{"reason":"quality","amount":1,"details":"Producto con problema de calidad"}')"
+R1="$(printf '%s' "$R1_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["refund"]["status"]=="requested" and d["refund"]["requested_amount"]==7990; print(d["refund"]["id"])')"
 curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses/$BIZ_ID/refunds/$R1/decision"   -d '{"action":"approve","amount":7990,"note":"Aprobada por el negocio"}' | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d.get("ok") is True and d.get("manual_confirmation_required") is True'
 curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses/$BIZ_ID/refunds/$R1/confirm-external"   -d '{"note":"Transferencia de devolución realizada"}' | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["refund"]["status"]=="refunded" and d["refund"]["refunded_amount"]==7990'
 curl -fsS -b "$CLIENT_JAR" "$BASE/api/orders/mine" | python3 -c "import sys,json; d=json.load(sys.stdin); o=next(x for x in d['orders'] if int(x['id'])==int('$ORDER1')); assert o['payment_status']=='refunded'"
 
 echo "2/2 Rechazo → escalamiento → resolución Admin"
 ORDER2="$(create_paid_order)"
-R2_JSON="$(curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER2/refunds"   -d '{"reason":"wrong_item","amount":7990,"details":"Recibí un producto distinto"}')"
+R2_JSON="$(curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER2/refunds"   -d '{"reason":"wrong_item","details":"Recibí un producto distinto"}')"
 R2="$(printf '%s' "$R2_JSON" | python3 -c 'import sys,json; print(json.load(sys.stdin)["refund"]["id"])')"
 curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses/$BIZ_ID/refunds/$R2/decision"   -d '{"action":"reject","note":"El negocio no está de acuerdo"}' >/dev/null
 curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/refunds/$R2/escalate"   -d '{"note":"Solicito revisión de DatoYa"}' >/dev/null
 curl -fsS -b "$ADMIN_JAR" "$BASE/api/admin/refunds" | python3 -c "import sys,json; d=json.load(sys.stdin); r=next(x for x in d['refunds'] if int(x['id'])==int('$R2')); assert r['status']=='escalated'"
 curl -fsS -b "$ADMIN_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/refunds/$R2/resolve"   -d '{"action":"mark_refunded","amount":7990,"note":"Resolución de prueba Admin"}' | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["refund"]["status"]=="refunded"'
+
+echo "3/3 Monto automático tras devolución parcial"
+ORDER3="$(create_paid_order)"
+R3_JSON="$(curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER3/refunds" -d '{"reason":"quality","amount":999999,"details":"Solicitud automática por el total pagado"}')"
+R3="$(printf '%s' "$R3_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["refund"]["requested_amount"]==7990; print(d["refund"]["id"])')"
+curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses/$BIZ_ID/refunds/$R3/decision" -d '{"action":"approve","amount":1000,"note":"Propuesta parcial"}' >/dev/null
+curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses/$BIZ_ID/refunds/$R3/confirm-external" -d '{"note":"Devolución parcial simulada"}' >/dev/null
+curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders/$ORDER3/refunds" -d '{"reason":"quality","amount":1,"details":"Solicito el saldo restante"}' | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["refund"]["requested_amount"]==6990'
 
 echo "✅ REFUNDS E2E OK: cliente → negocio → escalamiento Admin → comisión revertida"

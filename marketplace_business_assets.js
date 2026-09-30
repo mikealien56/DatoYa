@@ -11,7 +11,7 @@ if(fs.existsSync(idx)){
   html=html.replace(/<script[^>]+src="\/marketplace_business_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_business_admin_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_public_beta_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_business.css?v=20260924-3">\n<link rel="stylesheet" href="/marketplace_public_beta.css?v=20260927-3">\n</head>');
-  html=html.replace('</body>','<script src="/marketplace_business_ui.js?v=20260929-1"></script>\n<script src="/marketplace_business_admin_ui.js?v=20260917-2"></script>\n<script src="/marketplace_public_beta_ui.js?v=20260928-4"></script>\n</body>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_business.css?v=20260924-3">\n<link rel="stylesheet" href="/marketplace_public_beta.css?v=20260930-4">\n</head>');
+  html=html.replace('</body>','<script src="/marketplace_business_ui.js?v=20260929-1"></script>\n<script src="/marketplace_business_admin_ui.js?v=20260917-2"></script>\n<script src="/marketplace_public_beta_ui.js?v=20260930-5"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
