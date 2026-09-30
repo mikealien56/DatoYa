@@ -244,7 +244,7 @@ function __dyGrowthReleaseLaunchFree(orderId){
 app.get('/api/businesses/:id/growth-program',auth,(req,res)=>{
   const b=db.prepare('SELECT * FROM businesses WHERE id=? AND owner_user_id=?').get(Number(req.params.id),req.user.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
   const p=__dyGrowthEnsureBenefits(b.id)||__dyGrowthEnsureProfile(b.id),refs=Number((db.prepare("SELECT COUNT(*) c FROM business_referrals WHERE founder_business_id=?").get(b.id)||{}).c||0),qualified=Number((db.prepare("SELECT COUNT(*) c FROM business_referrals WHERE founder_business_id=? AND status='rewarded'").get(b.id)||{}).c||0);
-  res.json({profile:p,referrals:{total:refs,rewarded:qualified},commission:{free_pct:__dyGrowthNum('commission_free_pct',5.9),exclusive_free_pct:__dyGrowthNum('commission_exclusive_free_pct',4.9),impulso_pct:__dyGrowthNum('commission_impulso_pct',3.9),exclusive_impulso_pct:__dyGrowthNum('commission_exclusive_impulso_pct',2.9),free_cap:__dyGrowthNum('commission_free_cap',2990),impulso_cap:__dyGrowthNum('commission_impulso_cap',1990)}});
+  res.json({profile:p,benefits:{...__dyFounderWelcomeBenefits(),free_orders:Number(p.launch_free_order_limit||0)},referrals:{total:refs,rewarded:qualified},commission:{free_pct:__dyGrowthNum('commission_free_pct',5.9),exclusive_free_pct:__dyGrowthNum('commission_exclusive_free_pct',4.9),impulso_pct:__dyGrowthNum('commission_impulso_pct',3.9),exclusive_impulso_pct:__dyGrowthNum('commission_exclusive_impulso_pct',2.9),free_cap:__dyGrowthNum('commission_free_cap',2990),impulso_cap:__dyGrowthNum('commission_impulso_cap',1990)}});
 });
 app.put('/api/businesses/:id/products/:productId/datoya-exclusive',auth,(req,res)=>{
   const b=db.prepare('SELECT id FROM businesses WHERE id=? AND owner_user_id=?').get(Number(req.params.id),req.user.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
@@ -272,13 +272,16 @@ app.post('/api/admin/marketplace-v2/founder-invites',auth,requireRole('admin'),(
   try{db.prepare("INSERT INTO founder_invites(code,label,status,max_uses,used_count,invitee_email,invitee_business_name,created_by_user_id,created_at,updated_at) VALUES(?,?,'active',1,0,?,?,?, ?,?)").run(code,businessName,email,businessName,req.user.id,now,now);}catch(e){return res.status(409).json({error:'No pudimos crear esta invitación. Intenta nuevamente.'});}
   res.json({ok:true,invite:db.prepare('SELECT * FROM founder_invites WHERE code=?').get(code)});
 });
+function __dyFounderWelcomeBenefits(){
+  return {impulso_days:__dyGrowthNum('founder_impulso_days',30),free_orders:__dyGrowthNum('launch_free_orders',5),reward_days:__dyGrowthNum('referral_reward_days',15),reward_cap_days:__dyGrowthNum('referral_reward_cap_days',90)};
+}
 app.get('/api/founder-invites/:code',(req,res)=>{
   const code=__dyGrowthCode(req.params.code),now=new Date().toISOString();
   const inv=db.prepare("SELECT * FROM founder_invites WHERE code=? AND status='active' AND used_count<max_uses AND (expires_at IS NULL OR expires_at>?) LIMIT 1").get(code,now);
   if(!inv)return res.status(404).json({error:'Esta invitación ya no está disponible'});
   const email=String(inv.invitee_email||'');
   const masked=email.replace(/^(.)([^@]*)(@.*)$/,(m,a,b,d)=>a+(b?'***':'')+d);
-  res.json({invite:{code:inv.code,business_name:inv.invitee_business_name||inv.label||'Negocio invitado',email_masked:masked}});
+  res.json({invite:{code:inv.code,business_name:inv.invitee_business_name||inv.label||'Negocio invitado',email_masked:masked,benefits:__dyFounderWelcomeBenefits()}});
 });
 app.post('/api/founder-invites/:code/check-email',(req,res)=>{
   const code=__dyGrowthCode(req.params.code),email=String(req.body&&req.body.email||'').toLowerCase().trim(),now=new Date().toISOString();
