@@ -7,7 +7,7 @@ fail(){ echo "KHIPU ONBOARDING QA FAIL: $1"; exit 1; }
 node --check khipu_business_onboarding_bootstrap.js
 node --check business_hub_ui.js
 grep -q "CREATE TABLE IF NOT EXISTS business_khipu_onboarding" khipu_business_onboarding_bootstrap.js || fail "Falta tabla de onboarding"
-grep -q "ready_for_integrator" khipu_business_onboarding_bootstrap.js || fail "Falta estado listo para integrador"
+grep -q "pending_integrator" khipu_business_onboarding_bootstrap.js || fail "Falta estado listo para integrador"
 grep -q "No te pediremos claves bancarias" business_hub_ui.js || fail "La UI no explica que DatoYa no pide claves bancarias"
 grep -q "Preparar activación de cobros" business_hub_ui.js || fail "Falta CTA simple de activación"
 grep -q "billing_identifier" business_hub_ui.js || fail "Falta RUT de facturación"

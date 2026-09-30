@@ -233,15 +233,19 @@
     const paidTotal=paidOrders.reduce((sum,x)=>sum+Number(x.total||0),0);
     const ready=!!khipu.configured&&khipu.mode==='development';
     const activationLabels={
-      not_started:['⚪','No configurado','Completa una vez los datos para dejar tu negocio listo.'],
+      not_started:['⚪','Conecta Khipu','Completa una vez los datos para dejar tu negocio listo.'],
       draft:['🟡','Datos guardados','Revisa los datos y prepara la activación.'],
       ready_for_integrator:['🟠','Datos listos','DatoYa está esperando la habilitación integrador de Khipu.'],
+      pending_integrator:['🟠','Esperando habilitación de Khipu','Tus datos están preparados. Khipu debe habilitar a DatoYa como integrador antes de crear tu cuenta.'],
+      receiver_created:['🟡','Cuenta de cobro creada','Revisa tu correo para terminar la activación con Khipu.'],
+      pending_khipu_activation:['🟡','Esperando activación de Khipu','Revisa tu correo para terminar la activación con Khipu.'],
+      error:['🔴','Revisar conexión','Usa Soporte para revisar la conexión con Khipu.'],
       bank_verification:['🟡','Falta validar banco','Revisa el correo de Khipu y vincula tu cuenta bancaria.'],
-      active:['🟢','Cobros activos','Tu negocio está listo para recibir pagos.'],
+      active:['🟢','Khipu conectado','Khipu validó tu cuenta. DatoYa mantiene los cobros reales bloqueados.'],
       blocked:['🔴','Revisar activación','DatoYa necesita revisar la conexión con Khipu.']
     };
     const activation=activationLabels[on.status]||activationLabels.not_started;
-    const canEdit=on.status!=='active'&&on.status!=='bank_verification';
+    const canEdit=!['active','bank_verification','receiver_created','pending_khipu_activation'].includes(on.status);
     const onboardingForm=canEdit?`
       <form id="dy-khipu-onboarding-form" class="dy-khipu-onboarding-form">
         <div class="dy-khipu-form-grid">
@@ -268,7 +272,7 @@
     view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
       <section class="dy-business-dashboard-hero dy-payments-hero">
         <div><span>PAGOS</span><h1>Cobros de ${h(b.name||'tu negocio')}</h1><p>Khipu será el medio de pago para los pedidos de DatoYa.</p></div>
-        <div class="dy-payments-provider-state ${on.status==='active'?'ok':ready?'ok':'warn'}"><span>🏦</span><div><b>Khipu</b><small>${on.status==='active'?'Cobros activos':activation[1]}</small></div></div>
+        <div class="dy-payments-provider-state ${on.status==='active'?'ok':ready?'ok':'warn'}"><span>🏦</span><div><b>Khipu</b><small>${on.status==='active'?'Khipu conectado':activation[1]}</small></div></div>
       </section>
 
       ${window.dyFounderUI?.paymentIntro(id,founderMode)||''}
@@ -290,7 +294,7 @@
 
       <div class="dy-dashboard-grid">
         <section class="dy-business-card dy-khipu-card">
-          <div class="dy-card-head"><div><span>PROVEEDOR</span><h2>Khipu</h2><p>Estado de preparación de los cobros de tu negocio.</p></div><span class="dy-khipu-dot ${on.status==='active'?'ok':'warn'}">${on.status==='active'?'Cobros activos':'En preparación'}</span></div>
+          <div class="dy-card-head"><div><span>PROVEEDOR</span><h2>Khipu</h2><p>Estado de preparación de los cobros de tu negocio.</p></div><span class="dy-khipu-dot ${on.status==='active'?'ok':'warn'}">${on.status==='active'?'Khipu conectado':'En preparación'}</span></div>
           <div class="dy-payment-details">
             <div><span>Configuración técnica</span><b>${khipu.configured?'Lista':'Pendiente'}</b></div>
             <div><span>Pagos reales</span><b>${khipu.live_payments_allowed?'Habilitados':'Bloqueados'}</b></div>
