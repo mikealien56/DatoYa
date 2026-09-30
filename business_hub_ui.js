@@ -64,19 +64,19 @@
       ['hours','#/mi-negocio-horarios/'+id,'🕒','Horarios',false],
       ['promos','#/mi-negocio-promociones/'+id,'🏷️','Promociones',false],
       ['coupons','#/mi-negocio-cupones/'+id,'🎟️','Cupones',false],
-      ['impulse','#/impulso-ahora/'+id,'⚡','Impulso',!paid],
+      ['impulse',paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id,'⚡','Impulso Ahora',!paid],
       ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
       ['pulse',paid?'#/mi-negocio-pulso/'+id:'#/mi-negocio-plan/'+id,'📍','Pulso Local',!paid],
       ['radar',paid?'#/mi-negocio-radar/'+id:'#/mi-negocio-plan/'+id,'🎯','Radar',!paid],
       ['wanted','#/mi-negocio-lo-busco-ya/'+id,'🙋','Lo Busco Ya',false],
       ['support','#/mi-negocio-soporte/'+id,'📨','Soporte',false],
-      ['public',b.slug?'#/negocio/'+encodeURIComponent(b.slug):'#/mi-negocio-configuracion/'+id,'🏪','Mi negocio',false],
+      ['public',b.status==='active'&&b.slug?'#/negocio/'+encodeURIComponent(b.slug):'#/mi-negocio-configuracion/'+id,'🏪',b.status==='active'?'Vista pública':'Datos del negocio',false],
       ['plan','#/mi-negocio-plan/'+id,'⭐','Plan',false],
       ['config','#/mi-negocio-configuracion/'+id,'⚙️','Configuración',false]
     ];
     const shell=document.createElement('div');
     shell.className='dy-business-hub-shell';
-    shell.innerHTML=`<div class="dy-business-hub-brand"><div><span>DATOYA NEGOCIOS</span><b>${h(b.name||'Mi negocio')}</b></div><div class="dy-business-hub-state"><span class="dy-business-status ${h(b.status||'')}">${h(statusLabel(b.status))}</span><a href="#/perfil">Cambiar negocio</a></div></div><nav class="dy-business-hub-nav" aria-label="Panel del negocio">${nav.map(([key,href,icon,label,locked])=>`<a href="${href}" class="${active===key?'active':''} ${locked?'locked':''}" data-hub-key="${key}"><span>${icon}</span><b>${label}</b>${locked?'<em>🔒</em>':''}</a>`).join('')}</nav>`;
+    shell.innerHTML=`<div class="dy-business-hub-brand"><div><span>DATOYA NEGOCIOS</span><b>${h(b.name||'Mi negocio')}</b></div><div class="dy-business-hub-state"><span class="dy-business-status ${h(b.status||'')}">${h(statusLabel(b.status))}</span><a href="#/perfil">Cuenta y negocios</a></div></div><nav class="dy-business-hub-nav" aria-label="Panel del negocio">${nav.map(([key,href,icon,label,locked])=>`<a href="${href}" class="${active===key?'active':''} ${locked?'locked':''}" data-hub-key="${key}"><span>${icon}</span><b>${label}</b>${locked?'<em>🔒</em>':''}</a>`).join('')}</nav>`;
     root.prepend(shell);
   }
 
@@ -108,7 +108,7 @@
     view.innerHTML=`<div class="dy-business-dashboard">
       <section class="dy-business-dashboard-hero">
         <div><span>CENTRO DE CONTROL</span><h1>Hola, ${h((ME.name||'').split(' ')[0]||'')}</h1><p>Esto es lo que está pasando hoy en <b>${h(b.name||'tu negocio')}</b>.</p></div>
-        <div class="dy-dashboard-hero-actions"><a class="btn btn-outline" href="#/negocio/${encodeURIComponent(b.slug||'')}">👁 Ver mi negocio como público</a><a class="btn btn-primary" href="#/mi-negocio-productos/${id}">+ Agregar producto</a></div>
+        <div class="dy-dashboard-hero-actions">${b.status==='active'&&b.slug?`<a class="btn btn-outline" href="#/negocio/${encodeURIComponent(b.slug)}">👁 Ver mi negocio como público</a>`:`<a class="btn btn-outline" href="#/mi-negocio-configuracion/${id}">✏️ Revisar datos del negocio</a>`}<a class="btn btn-primary" href="#/mi-negocio-productos/${id}">+ Agregar producto</a></div>
       </section>
 
       ${b.latest_review?.action==='request_changes'?`<div class="dy-business-warning"><b>DatoYa pidió una corrección</b><p>${h(b.latest_review.note||'Revisa la información del negocio y vuelve a enviarla.')}</p><a class="btn btn-outline btn-sm" href="#/mi-negocio-configuracion/${id}">Revisar datos</a></div>`:''}
@@ -137,7 +137,7 @@
           <div class="dy-dashboard-checks">
             <div><span>${b.status==='active'?'✅':'○'}</span><b>Negocio publicado</b><small>${h(statusLabel(b.status))}</small></div>
             <div><span>${products.some(p=>p.active)?'✅':'○'}</span><b>Productos visibles</b><small>${products.filter(p=>p.active).length} publicados</small></div>
-            <div><span>${khipuD.configured&&khipuD.mode==='development'?'✅':'○'}</span><b>Khipu</b><small>${khipuD.configured?(khipuD.mode==='development'?'Operativo en TEST':'Configurado'):'No disponible'}</small></div>
+            <div><span>${khipuD.live_payments_allowed?'✅':khipuD.configured?'🟡':'○'}</span><b>Khipu</b><small>${khipuD.live_payments_allowed?'Cobros activos':khipuD.configured?'Configurado · activación pendiente':'No disponible'}</small></div>
             <div><span>${membership?'✅':'○'}</span><b>Plan</b><small>${membership?'DatoYa Impulso activo':'Gratis · '+products.length+'/'+catalogLimit+' productos'}</small></div>
           </div>
           <a class="btn btn-outline btn-block" href="#/mi-negocio-configuracion/${id}">Revisar configuración</a>
@@ -162,7 +162,7 @@
           <div class="dy-dashboard-growth">
             <a href="#/mi-negocio-promociones/${id}"><span>🏷️</span><b>Promociones</b><small>Revisa qué campañas generan actividad.</small></a>
             <a href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}" class="${paid?'':'dy-premium-link'}"><span>${paid?'⚡':'🔒'}</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Requiere DatoYa Impulso.'}</small></a>
-            <a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso semanal</b><small>Prepara una oferta destacada.</small></a>
+            <a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso de la semana</b><small>Prepara una oferta destacada.</small></a>
           </div>
         </section>
       </div>
@@ -445,7 +445,7 @@
     view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
       <section class="dy-business-dashboard-hero"><div><span>ESTADÍSTICAS</span><h1>Cómo está funcionando ${h(b.name)}</h1><p>Lectura simple de los últimos 30 días, sin métricas inventadas.</p></div></section>
       <section class="dy-business-card"><div class="dy-dashboard-metrics dy-dashboard-metrics-large"><div><strong>${Number(e.profile_view||0)}</strong><span>Vistas del perfil</span></div><div><strong>${Number(e.product_view||0)}</strong><span>Vistas productos</span></div><div><strong>${Number(e.whatsapp_click||0)}</strong><span>Clics WhatsApp</span></div><div><strong>${shares}</strong><span>Compartidos</span></div><div><strong>${Number(a.orders||0)}</strong><span>Pedidos</span></div><div><strong>${Number(a.completed_orders||0)}</strong><span>Completados</span></div><div><strong>${money(a.sales_completed||0)}</strong><span>Ventas completadas</span></div><div><strong>${Number(pn.orders||0)+Number(pw.orders||0)}</strong><span>Pedidos por promoción</span></div></div></section>
-      <div class="dy-dashboard-grid"><section class="dy-business-card"><div class="dy-card-head"><div><span>CONVERSIÓN</span><h2>Del interés a la compra</h2></div></div><div class="dy-stat-funnel"><div><b>${Number(e.profile_view||0)}</b><span>Vieron tu negocio</span></div><i>↓</i><div><b>${Number(e.product_view||0)}</b><span>Miraron productos</span></div><i>↓</i><div><b>${Number(a.orders||0)}</b><span>Hicieron pedidos</span></div></div></section><section class="dy-business-card"><div class="dy-card-head"><div><span>PROMOCIONES</span><h2>Qué aportaron</h2></div></div><div class="dy-dashboard-checks"><div><span>⚡</span><b>Impulso Ahora</b><small>${Number(pn.orders||0)} pedidos · ${money(pn.revenue||0)}</small></div><div><span>⭐</span><b>Impulso semanal</b><small>${Number(pw.orders||0)} pedidos · ${money(pw.revenue||0)}</small></div></div><a class="btn btn-outline btn-block" href="#/mi-negocio-promociones/${id}">Ver promociones</a></section></div>
+      <div class="dy-dashboard-grid"><section class="dy-business-card"><div class="dy-card-head"><div><span>CONVERSIÓN</span><h2>Del interés a la compra</h2></div></div><div class="dy-stat-funnel"><div><b>${Number(e.profile_view||0)}</b><span>Vieron tu negocio</span></div><i>↓</i><div><b>${Number(e.product_view||0)}</b><span>Miraron productos</span></div><i>↓</i><div><b>${Number(a.orders||0)}</b><span>Hicieron pedidos</span></div></div></section><section class="dy-business-card"><div class="dy-card-head"><div><span>PROMOCIONES</span><h2>Qué aportaron</h2></div></div><div class="dy-dashboard-checks"><div><span>⚡</span><b>Impulso Ahora</b><small>${Number(pn.orders||0)} pedidos · ${money(pn.revenue||0)}</small></div><div><span>⭐</span><b>Impulso de la semana</b><small>${Number(pw.orders||0)} pedidos · ${money(pw.revenue||0)}</small></div></div><a class="btn btn-outline btn-block" href="#/mi-negocio-promociones/${id}">Ver promociones</a></section></div>
     </div>`;
     await addHubFrame(id,'stats');
   }
