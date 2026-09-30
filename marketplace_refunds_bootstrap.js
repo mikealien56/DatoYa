@@ -154,7 +154,7 @@ app.post('/api/orders/:id/refunds',auth,(req,res)=>{
   if(!['paid','partially_refunded'].includes(String(o.payment_status)))return res.status(409).json({error:'Solo puedes solicitar devolución de un pedido pagado'});
   if(__dyRefundActive(o.id))return res.status(409).json({error:'Ya existe una solicitud de devolución en curso para este pedido'});
   const returned=__dyRefundPaidTotal(o.id),remaining=Math.max(0,Number(o.total||0)-returned);
-  const amount=Math.round(Number(req.body&&req.body.amount||remaining));if(!Number.isFinite(amount)||amount<1||amount>remaining)return res.status(400).json({error:'Monto de devolución inválido'});
+  const amount=remaining;if(!Number.isFinite(amount)||amount<1)return res.status(400).json({error:'Monto de devolución inválido'});
   const reason=__dyRefundReason(req.body&&req.body.reason),text=__dyRefundText(req.body&&req.body.details,1200);
   if(reason==='other'&&text.length<5)return res.status(400).json({error:'Cuéntanos brevemente el motivo de la devolución'});
   const now=new Date().toISOString(),ref='DY-DEV-'+require('crypto').randomBytes(4).toString('hex').toUpperCase();
