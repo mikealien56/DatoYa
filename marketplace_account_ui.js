@@ -63,7 +63,7 @@
     const saved=getSavedComuna();
     const initial=founderInvite||typeHint==='business'?'business':'customer';
     const founderBanner=founderInvite?`<div class="dy-founder-invite-banner"><span>🏅</span><div><small>INVITACIÓN PERSONAL</small><b>Has sido invitado como Negocio Fundador de DatoYa</b><p>${h(founderInvite.business_name||'Tu negocio')} · usa el correo al que se envió esta invitación (${h(founderInvite.email_masked||'correo invitado')}).</p></div></div>`:'';
-    view.innerHTML=shell('Crear cuenta',founderInvite?'Crea la cuenta de negocio asociada a esta invitación única.':'Elige cómo quieres usar DatoYa. Tu cuenta se activa al verificar el correo.',`
+    view.innerHTML=(founderInvite?'<div class="dy-founder-page">'+window.dyFounderUI.hero(founderInvite.business_name):'')+shell(founderInvite?'Tu lugar entre los primeros':'Crear cuenta',founderInvite?'Crea la cuenta de negocio asociada a esta invitación única.':'Elige cómo quieres usar DatoYa. Tu cuenta se activa al verificar el correo.',`
       ${founderBanner}<div class="dy-register-type" role="radiogroup" aria-label="Tipo de cuenta">
         <button type="button" data-account-type="customer" class="${initial==='customer'?'selected':''}" ${founderInvite?'disabled aria-disabled="true"':''}><span>🛍️</span><b>Cliente</b><small>${founderInvite?'Esta invitación es para una cuenta de negocio.':'Buscar, comprar y seguir pedidos.'}</small></button>
         <button type="button" data-account-type="business" class="${initial==='business'?'selected':''}"><span>🏪</span><b>Negocio</b><small>Publicar productos, gestionar pedidos e Impulso.</small></button>
@@ -76,10 +76,11 @@
         <div class="field"><label>Comuna</label><select name="comuna_id" required><option value="">Selecciona tu comuna</option>${comunas.map(x=>`<option value="${Number(x.id)}" ${Number(x.id)===saved?'selected':''}>${h(x.name)}${x.region?' — '+h(x.region):''}</option>`).join('')}</select></div>
         <div class="dy-two-fields"><div class="field"><label>Contraseña</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label>Repetir contraseña</label><input name="repeat" type="password" minlength="8" autocomplete="new-password" required></div></div>
         <label class="dy-check"><input type="checkbox" name="terms" required><span>Acepto los <a href="#/terminos">Términos</a> y la <a href="#/privacidad">Política de Privacidad</a>.</span></label>
-        <button class="btn btn-primary btn-block" type="submit">Crear cuenta y verificar correo</button>
+        <button class="btn btn-primary btn-block" type="submit">${founderInvite?'Comenzar como Negocio Fundador':'Crear cuenta y verificar correo'}</button>
       </form>
       <p class="dy-auth-switch">¿Ya tienes cuenta? <a href="#/login">Ingresar</a></p>
-    `,`<span class="dy-aside-kicker">✉️ ACTIVACIÓN POR CORREO</span><h2>Una cuenta, un correo confirmado.</h2><p>Después de registrarte te enviaremos un enlace. Al verificarlo tu cuenta quedará activa.</p><div class="dy-aside-points"><span>✓ Cliente: entra a explorar y comprar</span><span>✓ Negocio: continúa con Crear mi negocio</span><span>✓ Khipu se usa en los pagos habilitados</span></div>`);
+    `,founderInvite?`<span class="dy-aside-kicker">🏅 CRECEMOS CONTIGO</span><h2>Tu negocio, parte del comienzo.</h2><p>Un pequeño paso hoy puede abrir nuevas puertas para tu negocio.</p><div class="dy-aside-points"><span>1. Confirma tu correo</span><span>2. Completa tu negocio</span><span>3. Deja Khipu preparado</span><span>🤝 Estamos contigo desde Soporte</span></div>`:`<span class="dy-aside-kicker">✉️ ACTIVACIÓN POR CORREO</span><h2>Una cuenta, un correo confirmado.</h2><p>Después de registrarte te enviaremos un enlace. Al verificarlo tu cuenta quedará activa.</p><div class="dy-aside-points"><span>✓ Cliente: entra a explorar y comprar</span><span>✓ Negocio: continúa con Crear mi negocio</span><span>✓ Khipu se usa en los pagos habilitados</span></div>`)+(founderInvite?window.dyFounderUI.benefits(founderInvite.benefits)+window.dyFounderUI.beta()+'</div>':'');
+    if(founderInvite)window.dyFounderUI.celebrate('invite-'+founderInvite.code);
 
     const form=document.getElementById('dy-unified-register-form');
     document.querySelectorAll('[data-account-type]').forEach(btn=>btn.addEventListener('click',()=>{if(founderInvite&&btn.dataset.accountType!=='business')return;
@@ -101,6 +102,7 @@
         }
         const r=await accountAuthApi('/auth/register',{method:'POST',body:{name:x.name.value.trim(),email:x.email.value.trim(),password:x.password.value,phone:x.phone.value.trim()||null,comuna_id:Number(x.comuna_id.value),role:'cliente',account_type:type,accept_terms:true,accept_privacy:true}},'El registro');
         await refreshAccountSession();
+        if(founderInvite)window.dyFounderUI.remember(founderInvite);
         try{sessionStorage.setItem('datoya_activation_type',type);}catch(_){}
         location.hash='#/verifica-tu-cuenta';if(typeof route==='function')route();
         toast?.(r.verification_email_sent?'Te enviamos el enlace de verificación':'Cuenta creada. Puedes reenviar el correo de verificación.','ok');
@@ -120,9 +122,11 @@
         if(ME.account_type!=='business'){view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación necesita una cuenta de negocio. Cierra sesión y abre el enlace nuevamente.</div>';return;}
         const check=await accountAuthApi('/founder-invites/'+encodeURIComponent(invite.code)+'/check-email',{method:'POST',body:{email:ME.email||''}},'La invitación Fundador');
         if(!check.ok){try{sessionStorage.removeItem('datoya_founder_invite');sessionStorage.removeItem('datoya_founder_business_name');}catch(_){}view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación fue creada para otro correo. Inicia sesión con la cuenta invitada.</div>';return;}
+        window.dyFounderUI.remember(invite);
         if(ME.email_verified!==true){location.hash='#/verifica-tu-cuenta';if(typeof route==='function')route();return;}
         location.hash='#/registrar-negocio';if(typeof route==='function')route();return;
       }
+      window.dyFounderUI.remember(invite);
       await renderUnifiedRegistration('business',invite);
     }catch(err){view.innerHTML='<div class="empty"><b>🏅</b>'+h(err.message||'Esta invitación ya no está disponible')+'</div>';}
   };
@@ -135,7 +139,7 @@
       return;
     }
     const type=ME.account_type==='business'?'business':'customer';
-    view.innerHTML=`<div class="dy-activation-page"><section class="dy-activation-card"><div class="dy-activation-icon">✉️</div><span>ACTIVA TU CUENTA</span><h1>Revisa tu correo</h1><p>Enviamos un enlace de verificación a:</p><b class="dy-activation-email">${h(ME.email||'')}</b><p>Al abrir el enlace, tu cuenta ${type==='business'?'de negocio':'cliente'} quedará activa oficialmente.</p><div class="dy-activation-actions"><button class="btn btn-primary btn-block" onclick="dyResendActivationEmail()">Reenviar correo</button><button class="btn btn-outline btn-block" onclick="dyCheckActivation()">Ya verifiqué mi correo</button></div><small>El enlace vence en 24 horas. Si no lo ves, revisa Spam o Correo no deseado.</small></section></div>`;
+    view.innerHTML=window.dyFounderUI.activation()+`<div class="dy-activation-page"><section class="dy-activation-card"><div class="dy-activation-icon">✉️</div><span>ACTIVA TU CUENTA</span><h1>Revisa tu correo</h1><p>Enviamos un enlace de verificación a:</p><b class="dy-activation-email">${h(ME.email||'')}</b><p>Al abrir el enlace, tu cuenta ${type==='business'?'de negocio':'cliente'} quedará activa oficialmente.</p><div class="dy-activation-actions"><button class="btn btn-primary btn-block" onclick="dyResendActivationEmail()">Reenviar correo</button><button class="btn btn-outline btn-block" onclick="dyCheckActivation()">Ya verifiqué mi correo</button></div><small>El enlace vence en 24 horas. Si no lo ves, revisa Spam o Correo no deseado.</small></section></div>`;
   };
   window.dyResendActivationEmail=async function(){
     const btn=document.querySelector('[onclick="dyResendActivationEmail()"]');
@@ -209,6 +213,8 @@
     if(ME.account_type!=='business'){location.hash='#/registro-negocio';return;}
     const [{categories=[]},{comunas=[]}]=await Promise.all([api('/market/categories'),api('/comunas')]);
     const key='datoya_business_draft_v2_'+Number(ME.id||0);
+    const savedFounder=window.dyFounderUI.context();
+    if(savedFounder)window.dyFounderUI.remember(savedFounder);
     const founderInviteCode=String(sessionStorage.getItem('datoya_founder_invite')||'').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,32);
     const founderInviteName=String(sessionStorage.getItem('datoya_founder_business_name')||'');
     let draft={business_type:'physical_store',category_ids:[],pickup_enabled:true,delivery_enabled:false,public_address_mode:'approximate',comuna_id:getSavedComuna(),hours_schedule:null,accept_orders_when_closed:false,invitation_code:founderInviteCode};
@@ -267,7 +273,7 @@
       hourDays.forEach(([key])=>document.querySelector('[name="'+key+'_enabled"]')?.addEventListener('change',()=>syncSignupHourDay(key)));
       document.getElementById('dy-signup-close-sunday')?.addEventListener('click',()=>{const enabled=document.querySelector('[name="sun_enabled"]');if(enabled)enabled.checked=false;syncSignupHourDay('sun');if(typeof toast==='function')toast('Domingo marcado como cerrado','ok');});
       document.getElementById('dy-prev-step')?.addEventListener('click',()=>{collect();step--;render();});
-      document.getElementById('dy-next-step')?.addEventListener('click',async()=>{collect();if(step===2&&(!(draft.name||'').trim()||(draft.category_ids||[]).length<1))return typeof toast==='function'&&toast('Completa nombre y al menos una categoría','err');if(step===3&&!draft.comuna_id)return typeof toast==='function'&&toast('Selecciona una comuna','err');if(step===4){const periods=Object.values(draft.hours_schedule||{}).flat();if(!periods.length)return typeof toast==='function'&&toast('Activa al menos un día de atención','err');if(periods.some(x=>!x.open||!x.close||x.open>=x.close))return typeof toast==='function'&&toast('Revisa los horarios: el cierre debe ser posterior a la apertura','err');}if(step<5){step++;render();return;}const btn=document.getElementById('dy-next-step');btn.disabled=true;btn.textContent='Enviando…';try{const created=await api('/businesses',{method:'POST',body:{...draft,category_ids:(draft.category_ids||[]).map(Number),comuna_id:Number(draft.comuna_id),public_address_mode:draft.business_type==='home_business'?'approximate':'approximate'}});localStorage.removeItem(key);try{sessionStorage.removeItem('datoya_founder_invite');sessionStorage.removeItem('datoya_founder_business_name');}catch(_){}const createdId=Number(created?.business?.id||0);if(createdId){try{localStorage.setItem('datoya_last_business_id_v1',String(createdId));}catch(_){}}if(typeof toast==='function')toast(founderInviteCode?'Negocio Fundador enviado a revisión':'Negocio enviado a revisión','ok');location.hash=createdId?'#/mi-negocio/'+createdId:'#/perfil';if(typeof route==='function')route();}catch(err){btn.disabled=false;btn.textContent='Enviar a revisión';if(typeof toast==='function')toast(err.message,'err');}});
+      document.getElementById('dy-next-step')?.addEventListener('click',async()=>{collect();if(step===2&&(!(draft.name||'').trim()||(draft.category_ids||[]).length<1))return typeof toast==='function'&&toast('Completa nombre y al menos una categoría','err');if(step===3&&!draft.comuna_id)return typeof toast==='function'&&toast('Selecciona una comuna','err');if(step===4){const periods=Object.values(draft.hours_schedule||{}).flat();if(!periods.length)return typeof toast==='function'&&toast('Activa al menos un día de atención','err');if(periods.some(x=>!x.open||!x.close||x.open>=x.close))return typeof toast==='function'&&toast('Revisa los horarios: el cierre debe ser posterior a la apertura','err');}if(step<5){step++;render();return;}const btn=document.getElementById('dy-next-step');btn.disabled=true;btn.textContent='Enviando…';try{const created=await api('/businesses',{method:'POST',body:{...draft,category_ids:(draft.category_ids||[]).map(Number),comuna_id:Number(draft.comuna_id),public_address_mode:draft.business_type==='home_business'?'approximate':'approximate'}});localStorage.removeItem(key);window.dyFounderUI.clearInvitation();const createdId=Number(created?.business?.id||0);if(createdId){try{localStorage.setItem('datoya_last_business_id_v1',String(createdId));}catch(_){}}if(typeof toast==='function')toast(founderInviteCode?'Negocio Fundador enviado a revisión':'Negocio enviado a revisión','ok');location.hash=founderInviteCode&&createdId?'#/bienvenida-fundador/'+createdId:createdId?'#/mi-negocio/'+createdId:'#/perfil';if(typeof route==='function')route();}catch(err){btn.disabled=false;btn.textContent='Enviar a revisión';if(typeof toast==='function')toast(err.message,'err');}});
     }
     render();
   };

@@ -1,0 +1,32 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const storage=()=>{const m=new Map();return {getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear()}};
+const local=storage(),session=storage(),view={innerHTML:''},layers=[];
+const invite={code:'FND-QA-1234',business_name:'Tienda <QA>',email_masked:'q***@datoya.test',benefits:{impulso_days:21,free_orders:3,reward_days:7,reward_cap_days:28}};
+let reduced=true;
+const ctx={ME:null,routes:{},view,location:{hash:'#/'},localStorage:local,sessionStorage:session,window:{matchMedia:()=>({matches:reduced})},document:{getElementById:()=>null,querySelectorAll:()=>[],addEventListener(){},createElement:()=>({setAttribute(){},remove(){}}),body:{appendChild:x=>layers.push(x)}},setTimeout(){},clearTimeout(){},renderAuthArea(){},api:async path=>{
+  if(path==='/comunas')return {comunas:[]};
+  if(path.startsWith('/founder-invites/'))return {invite};
+  if(path.endsWith('/manage'))return {business:{id:9,name:'Tienda QA',status:'pending_review'}};
+  if(path.endsWith('/growth-program'))return {profile:{is_founder:1},benefits:invite.benefits};
+  if(path.endsWith('/khipu-onboarding'))return {onboarding:{status:'not_started',live_payments_allowed:false}};
+  throw Error('Unexpected API '+path);
+}};
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync('founder_welcome_ui.js','utf8'),ctx);
+vm.runInContext(fs.readFileSync('marketplace_account_ui.js','utf8'),ctx);
+(async()=>{
+  await ctx.routes['registro-fundador'](invite.code);
+  assert.match(view.innerHTML,/Los grandes comienzos/);assert.match(view.innerHTML,/Tienda &lt;QA&gt;/);
+  assert.match(view.innerHTML,/21 días/);assert.match(view.innerHTML,/3 primeros pedidos/);
+  assert.match(view.innerHTML,/Comenzar como Negocio Fundador/);assert.match(view.innerHTML,/beta de lanzamiento/i);
+  assert.equal(layers.length,0,'reduced motion disables celebration');
+  ctx.ME={id:4,account_type:'business',email_verified:false};ctx.window.dyFounderUI.remember(invite);
+  session.clear();assert.equal(ctx.window.dyFounderUI.context().code,invite.code,'another tab recovers own account context');
+  ctx.ME={id:5,account_type:'business',email_verified:false};assert.equal(ctx.window.dyFounderUI.context(),null,'different account does not inherit invite');
+  ctx.ME={id:4,account_type:'business',email_verified:false};await ctx.routes['bienvenida-fundador'](9);assert.equal(ctx.location.hash,'#/verifica-tu-cuenta');
+  ctx.ME.email_verified=true;await ctx.routes['bienvenida-fundador'](9);
+  assert.match(view.innerHTML,/revisión pendiente/);assert.match(view.innerHTML,/#\/mi-negocio-pagos\/9\/existente/);assert.match(view.innerHTML,/#\/mi-negocio-pagos\/9\/nueva/);assert.match(view.innerHTML,/#\/mi-negocio-soporte\/9/);assert.match(view.innerHTML,/cobros reales permanecen bloqueados/);
+  reduced=false;ctx.window.dyFounderUI.celebrate('qa');ctx.window.dyFounderUI.celebrate('qa');assert.equal(layers.length,1,'celebration appears once');
+  ctx.window.dyFounderUI.clearInvitation();assert.equal(ctx.window.dyFounderUI.context(),null);
+  console.log('Founder welcome: exclusive signup, configured benefits, safe persistence, verified onboarding, Khipu paths, support, reduced motion and bounded celebration.');
+})().catch(e=>{console.error(e);process.exitCode=1});

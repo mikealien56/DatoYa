@@ -140,6 +140,7 @@ curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,j
 echo "✅ Healthcheck + categorías comerciales"
 node test_email_activation.js
 node test_customer_controls.js
+node test_founder_welcome.js
 bash test_refunds_flow.sh
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.

@@ -209,7 +209,8 @@
     await addHubFrame(id,mode==='products'?'products':'config');
   }
 
-  async function renderPayments(id){
+  async function renderPayments(id,founderMode){
+    founderMode=['existente','nueva'].includes(founderMode)?founderMode:null;
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
     view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-loading"><b>💳 Cargando pagos…</b><small>Consultando Khipu y los pedidos del negocio. Si la red falla, podrás reintentar sin perder datos.</small></section></div>';
@@ -270,6 +271,7 @@
         <div class="dy-payments-provider-state ${on.status==='active'?'ok':ready?'ok':'warn'}"><span>🏦</span><div><b>Khipu</b><small>${on.status==='active'?'Cobros activos':activation[1]}</small></div></div>
       </section>
 
+      ${window.dyFounderUI?.paymentIntro(id,founderMode)||''}
       <section class="dy-business-card dy-khipu-onboarding-card">
         <div class="dy-card-head"><div><span>ACTIVAR COBROS</span><h2>Déjalo listo en 3 pasos</h2><p>DatoYa se encarga de la parte técnica. Tú solo revisas tus datos y Khipu valida tu cuenta bancaria.</p></div><span class="dy-khipu-onboarding-state status-${h(on.status)}">${activation[0]} ${activation[1]}</span></div>
         <div class="dy-khipu-steps">
@@ -317,7 +319,8 @@
         await hubApi('/businesses/'+id+'/khipu-onboarding',{method:'PUT',body});
         const out=await hubApi('/businesses/'+id+'/khipu-onboarding/start',{method:'POST',body:{}});
         toast?.(out.message||'Datos de cobro preparados','ok');
-        routes['mi-negocio-pagos'](id);
+        if(founderMode){location.hash='#/bienvenida-fundador/'+id;if(typeof route==='function')route();}
+        else routes['mi-negocio-pagos'](id);
       }catch(err){
         toast?.(err.message||'No pudimos preparar los cobros','err');
         if(btn){btn.disabled=false;btn.textContent='Preparar activación de cobros';}
@@ -458,7 +461,7 @@
   };
   routes['mi-negocio-productos']=id=>renderLegacySection(id,'products');
   routes['mi-negocio-configuracion']=id=>renderLegacySection(id,'config');
-  routes['mi-negocio-pagos']=id=>renderPayments(id);
+  routes['mi-negocio-pagos']=(id,mode)=>renderPayments(id,mode);
   routes['mi-negocio-pulso']=id=>renderPulse(id);
   routes['mi-negocio-radar']=id=>renderRadar(id);
   routes['mi-negocio-lo-busco-ya']=id=>renderWanted(id);
