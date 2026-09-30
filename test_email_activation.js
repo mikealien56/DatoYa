@@ -13,6 +13,7 @@ async function call(path,body){
     const registered=await call('/auth/register',{name:'Activation QA',email:`activation-${account_type}-${Date.now()}@datoya.test`,password:'Activation-QA-2026!',comuna_id:comuna,account_type,accept_terms:true,accept_privacy:true});
     assert.equal(registered.status,200);assert.equal(registered.data.user.email_verified,false);
     assert.equal((await call('/auth/me')).data.user.email_verified,false);
+    assert.equal((await call('/legal/consent')).status,200);
     for(const [path,body] of [['/orders/mine'],['/businesses/mine'],['/orders',{}],['/businesses',{}],['/orders/999/khipu/checkout',{}]]){
       const denied=await call(path,body);assert.equal(denied.status,403,path);assert.equal(denied.data.code,'EMAIL_NOT_VERIFIED',path);
     }
