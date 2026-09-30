@@ -34,7 +34,7 @@ curl -fsS -c "$A" -H 'Content-Type: application/json' -X POST "$BASE/api/auth/lo
 echo "1/9 Admin crea invitación Fundador única y ligada al correo"
 INVITE_JSON="$(curl -fsS -b "$A" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/marketplace-v2/founder-invites" -d "{\"business_name\":\"Fundador QA\",\"email\":\"$F_EMAIL\"}")"
 INVITE="$(printf '%s' "$INVITE_JSON"|python3 -c 'import sys,json;d=json.load(sys.stdin);i=d["invite"];assert int(i["max_uses"])==1 and i["invitee_email"];print(i["code"])')"
-curl -fsS "$BASE/api/founder-invites/$INVITE" | python3 -c 'import sys,json;d=json.load(sys.stdin)["invite"];assert d["business_name"]=="Fundador QA" and "***" in d["email_masked"]'
+curl -fsS "$BASE/api/founder-invites/$INVITE" | python3 -c 'import sys,json;d=json.load(sys.stdin)["invite"];assert d["business_name"]=="Fundador QA" and "***" in d["email_masked"]; assert d["benefits"]==dict(impulso_days=30,free_orders=5,reward_days=15,reward_cap_days=90)'
 curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/founder-invites/$INVITE/check-email" -d "{\"email\":\"$R_EMAIL\"}" | python3 -c 'import sys,json;assert json.load(sys.stdin)["ok"] is False'
 curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/founder-invites/$INVITE/check-email" -d "{\"email\":\"$F_EMAIL\"}" | python3 -c 'import sys,json;assert json.load(sys.stdin)["ok"] is True'
 BAD_CODE="$(curl -s -o "$TMP/wrong-founder-email" -w '%{http_code}' -b "$R" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" -d "{\"name\":\"NoDebeSerFundador$STAMP\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"address\":\"QA Wrong\",\"pickup_enabled\":true,\"invitation_code\":\"$INVITE\"}")"
