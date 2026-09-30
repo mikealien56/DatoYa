@@ -2,6 +2,12 @@
 const assert=require('node:assert/strict'),crypto=require('node:crypto'),Database=require('better-sqlite3'),fs=require('node:fs');
 const k=require('./khipu_integrator');
 async function main(){
+  const vm=require('node:vm'),sqlCalls=[];
+  const bootstrap=fs.readFileSync('khipu_business_onboarding_bootstrap.js','utf8');
+  vm.runInNewContext(bootstrap,{__dirname:process.cwd(),require:name=>name==='./db'?{db:{exec:sql=>sqlCalls.push(sql)}}:name==='fs'?{readFileSync:path=>String(path).endsWith('.sql')?fs.readFileSync(path,'utf8'):'// ============ CATÁLOGOS ============',writeFileSync(){}}:require(name),console:{log(){}}});
+  const pg=fs.readFileSync('db_pg.js','utf8'),parser=pg.slice(pg.indexOf('function splitStatements('),pg.indexOf('function pragmaInfo(')),pgContext={};
+  vm.runInNewContext(parser,pgContext);
+  for(const sql of pgContext.splitStatements(sqlCalls[1]))assert.match(sql,/^CREATE TABLE/i);
   const db=new Database(':memory:');db.pragma('foreign_keys=ON');
   db.exec('CREATE TABLE businesses(id INTEGER PRIMARY KEY);INSERT INTO businesses VALUES(7),(8);CREATE TABLE business_khipu_onboarding(business_id INTEGER PRIMARY KEY,status TEXT,receiver_id TEXT,provider_note TEXT,updated_at TEXT);INSERT INTO business_khipu_onboarding(business_id,status) VALUES(7,\'pending_integrator\'),(8,\'pending_integrator\');');
   db.exec(fs.readFileSync('postgres/015_khipu_integrator_credentials.sql','utf8'));

@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS business_khipu_onboarding (
 );
 `);
 
-db.exec(fs.readFileSync(path.join(__dirname,'postgres/015_khipu_integrator_credentials.sql'),'utf8'));
+// Strip migration comments before the compatibility adapter splits SQL statements.
+db.exec(fs.readFileSync(path.join(__dirname,'postgres/015_khipu_integrator_credentials.sql'),'utf8').replace(/^\s*--.*$/gm,''));
 
 let source=fs.readFileSync(serverFile,'utf8');
 const startMarker='// ============ DATOYA KHIPU BUSINESS ONBOARDING V1 ============';
