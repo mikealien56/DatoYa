@@ -7,7 +7,7 @@ if(!src.includes('DATOYA_EMAIL_ACTIVATION_GUARD_V2')){
   if(!src.includes(anchor))throw new Error('Email activation: auth anchor missing');
   src=src.replace(anchor,`  req.user = s;
   // DATOYA_EMAIL_ACTIVATION_GUARD_V2
-  const activationPaths=new Set(['/api/auth/me','/api/auth/logout','/api/auth/email-verification/request','/api/auth/security-status','/api/auth/legal-consent']);
+  const activationPaths=new Set(['/api/auth/me','/api/auth/logout','/api/auth/email-verification/request','/api/auth/security-status','/api/legal/consent']);
   if(s.role!=='admin' && !activationPaths.has(req.path) && !__dyEmailVerified(s.id)){
     return res.status(403).json({error:'Confirma tu correo electrónico para activar tu cuenta.',code:'EMAIL_NOT_VERIFIED'});
   }
