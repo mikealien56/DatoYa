@@ -14,7 +14,7 @@
       ['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos'],['#/admin/pedidos','🧾','Pedidos'],['#/admin/soporte','📨','Soporte']
     ]],
     ['Crecimiento',[
-      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/fundadores','🏅','Fundadores'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso semanal'],['#/admin/destacado','🏅','Negocio destacado'],['#/admin/analitica','📈','Analítica']
+      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/fundadores','🏅','Fundadores'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso de la semana'],['#/admin/destacado','🏅','Negocio destacado'],['#/admin/analitica','📈','Analítica']
     ]],
     ['Sistema',[
       ['#/admin/usuarios','👥','Usuarios'],['#/admin/finanzas','💰','Finanzas'],['#/admin/configuracion','⚙️','Configuración']
