@@ -78,6 +78,7 @@
       ['Categorías','#/','local-categories'],
       ['Promociones','#/','promociones'],
       ['Mis pedidos','#/pedidos',null],
+      ['Lo Busco Ya','#/lo-busco-ya',null],
       ['Soporte','#/soporte',null]
     ];
     if(isBusiness())return[
@@ -116,7 +117,7 @@
     const bottom=document.getElementById('bottomnav');if(!bottom)return;
     bottom.classList.remove('hidden');bottom.classList.add('dy-market-nav');
     if(isCustomer()){
-      bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/buscar/_" data-nav="buscar"><span>⌕</span>Buscar</a><a href="#/pedidos" data-nav="pedidos"><span>🧾</span>Pedidos</a><a href="#/" data-dy-mobile-promos><span>🏷️</span>Promos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
+      bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/buscar/_" data-nav="buscar"><span>⌕</span>Buscar</a><a href="#/pedidos" data-nav="pedidos"><span>🧾</span>Pedidos</a><a href="#/lo-busco-ya" data-nav="lo-busco-ya"><span>🙋</span>Lo Busco Ya</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
     }else if(isBusiness()){
       bottom.innerHTML='<a href="#/" data-nav="inicio"><span>⌂</span>Inicio</a><a href="#/buscar/_" data-nav="buscar"><span>⌕</span>Buscar</a><a href="#/perfil" data-nav="mi-negocio" data-dy-business-panel="1"><span>🏪</span>Mi negocio</a><a href="#/" data-dy-mobile-promos><span>🏷️</span>Promos</a><a href="#/perfil" data-nav="perfil"><span>☰</span>Mi DatoYa</a>';
     }else if(isAdmin()){
