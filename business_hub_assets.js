@@ -10,6 +10,6 @@ if(fs.existsSync(idx)){
   html=html.replace(/<link[^>]+href="\/business_hub\.css[^"]*"[^>]*>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/business_hub_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace('</head>','<link rel="stylesheet" href="/business_hub.css?v=20260929-3">\n</head>');
-  html=html.replace('</body>','<script src="/business_hub_ui.js?v=20260929-5"></script>\n</body>');
+  html=html.replace('</body>','<script src="/business_hub_ui.js?v=20260929-6"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
