@@ -19,4 +19,18 @@ function testClientNavigation(){
   assert.match(bottom.innerHTML,/href="#\/lo-busco-ya"/);
   assert.equal((bottom.innerHTML.match(/<a /g)||[]).length,5);
 }
-(async()=>{await testRefundForm();testClientNavigation();console.log('Customer controls: fixed refund amount, no submitted amount, desktop/mobile wanted links.');})().catch(e=>{console.error(e);process.exitCode=1});
+async function testRoleSeparation(){
+  for(const user of [{role:'admin',account_type:'customer'},{role:'cliente',account_type:'admin'},{role:'cliente',account_type:'business'},{role:'cliente',account_type:'customer'}]){
+    const added=[],view={appendChild:x=>added.push(x)},routes={perfil:async()=>{},buscar:async()=>{}};
+    const context={ME:user,routes,view,api:async()=>({}),document:{querySelector:()=>null,createElement:()=>({})},location:{hash:'#/lo-busco-ya'},window:{},navigator:{},setTimeout(){},setInterval(){},toast(){}};
+    vm.runInNewContext(fs.readFileSync('beta_private_ui.js','utf8'),context);
+    await routes.perfil();await routes.buscar('torta');
+    const customer=user.role!=='admin'&&user.account_type==='customer';
+    assert.equal(added.length,customer?2:0);
+    if(!customer){await routes['lo-busco-ya']();assert.equal(context.location.hash,'#/perfil');}
+  }
+  let auth='';const area={set innerHTML(v){auth=v}},ctx={ME:{role:'admin',name:'Mike',unread_notifications:0},$:id=>id==='#auth-area'?area:null,esc:x=>x};
+  const source=fs.readFileSync('app.js','utf8'),start=source.indexOf('function renderAuthArea(){'),end=source.indexOf('\n',start);
+  vm.runInNewContext(source.slice(start,end),ctx);ctx.renderAuthArea();assert.doesNotMatch(auth,/#\/admin/);
+}
+(async()=>{await testRefundForm();testClientNavigation();await testRoleSeparation();console.log('Customer controls: fixed refund amount, no submitted amount, desktop/mobile wanted links.');})().catch(e=>{console.error(e);process.exitCode=1});
