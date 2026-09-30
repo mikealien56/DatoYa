@@ -38,7 +38,7 @@
       try{
         await accountAuthApi('/auth/login',{method:'POST',body:{email:f.email.value.trim(),password:f.password.value}},'El inicio de sesión');
         await refreshAccountSession();
-        if(ME&&!ME.email_verified){
+        if(ME&&ME.email_verified!==true){
           location.hash='#/verifica-tu-cuenta';
           if(typeof route==='function')route();
           toast?.('Verifica tu correo para activar la cuenta','info');
@@ -56,7 +56,7 @@
 
   async function renderUnifiedRegistration(typeHint,founderInvite=null){
     if(ME){
-      if(!ME.email_verified){location.hash='#/verifica-tu-cuenta';return;}
+      if(ME.email_verified!==true){location.hash='#/verifica-tu-cuenta';return;}
       location.hash='#/perfil';return;
     }
     const {comunas=[]}=await api('/comunas');
@@ -120,7 +120,7 @@
         if(ME.account_type!=='business'){view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación necesita una cuenta de negocio. Cierra sesión y abre el enlace nuevamente.</div>';return;}
         const check=await accountAuthApi('/founder-invites/'+encodeURIComponent(invite.code)+'/check-email',{method:'POST',body:{email:ME.email||''}},'La invitación Fundador');
         if(!check.ok){try{sessionStorage.removeItem('datoya_founder_invite');sessionStorage.removeItem('datoya_founder_business_name');}catch(_){}view.innerHTML='<div class="empty"><b>🏅</b>Esta invitación fue creada para otro correo. Inicia sesión con la cuenta invitada.</div>';return;}
-        if(!ME.email_verified){location.hash='#/verifica-tu-cuenta';if(typeof route==='function')route();return;}
+        if(ME.email_verified!==true){location.hash='#/verifica-tu-cuenta';if(typeof route==='function')route();return;}
         location.hash='#/registrar-negocio';if(typeof route==='function')route();return;
       }
       await renderUnifiedRegistration('business',invite);
@@ -129,7 +129,7 @@
 
   routes['verifica-tu-cuenta']=async function(){
     if(!ME){location.hash='#/login';return;}
-    if(ME.email_verified){
+    if(ME.email_verified===true){
       location.hash=ME.account_type==='business'?'#/registrar-negocio':'#/';
       if(typeof route==='function')setTimeout(route,0);
       return;
@@ -152,7 +152,7 @@
     if(btn?.disabled)return;if(btn){btn.disabled=true;btn.dataset.dyLabel=btn.textContent;btn.textContent='Comprobando…';}
     try{
       await refreshAccountSession();
-      if(ME?.email_verified){location.hash=ME.account_type==='business'?'#/registrar-negocio':'#/';if(typeof route==='function')route();return;}
+      if(ME?.email_verified===true){location.hash=ME.account_type==='business'?'#/registrar-negocio':'#/';if(typeof route==='function')route();return;}
       toast?.('Todavía no aparece verificado. Abre el enlace que llegó a tu correo.','info');
     }catch(err){toast?.(err.message||'No pudimos comprobar la cuenta','err');}
     finally{if(btn){btn.disabled=false;btn.textContent=btn.dataset.dyLabel||'Ya verifiqué mi correo';delete btn.dataset.dyLabel;}}
@@ -168,7 +168,7 @@
 
   routes.bienvenida=async function(){
     if(!ME){location.hash='#/registro';return;}
-    if(!ME.email_verified){location.hash='#/verifica-tu-cuenta';if(typeof route==='function')setTimeout(route,0);return;}
+    if(ME.email_verified!==true){location.hash='#/verifica-tu-cuenta';if(typeof route==='function')setTimeout(route,0);return;}
     if(ME.account_type==='business'){
       view.innerHTML=`<div class="dy-welcome"><div class="dy-welcome-icon">🏪</div><h1>¡Cuenta de negocio creada!</h1><p>Primero verifica tu correo. Después podrás registrar y administrar tu negocio.</p><div class="dy-welcome-actions"><a class="dy-choice-card featured" href="#/seguridad"><span>🔐</span><b>Verificar correo</b><small>Necesario antes de registrar el negocio.</small></a><a class="dy-choice-card" href="#/registrar-negocio"><span>🏪</span><b>Registrar negocio</b><small>Disponible cuando el correo esté verificado.</small></a></div></div>`;
     }else{
@@ -191,7 +191,7 @@
     const customerSection=`<section class="dy-account-card"><h2>🛍️ Mi cuenta cliente</h2><p class="small muted">Tu cuenta cliente se usa para explorar, comprar y seguir pedidos. No puede registrar ni administrar negocios.</p><div class="dy-welcome-actions"><a class="dy-choice-card" href="#/"><span>📍</span><b>Explorar</b><small>Busca productos y negocios cercanos.</small></a><a class="dy-choice-card" href="#/pedidos"><span>🧾</span><b>Mis pedidos</b><small>Revisa tus compras.</small></a></div></section>`;
     const accountSection=isAdmin?adminSection:isBusiness?businessSection:customerSection;
     const intro=isAdmin?'Administra DatoYa y controla la operación del marketplace.':isBusiness?'Administra tu negocio y las herramientas comerciales.':'Tus compras, pedidos y seguridad en un solo lugar.';
-    const verified=!!ME.email_verified;
+    const verified=!ME.email_verified!==true;
 
     view.innerHTML=`<div class="dy-account-page"><div class="dy-account-top"><div><span class="dy-page-kicker">${h(accountLabel.toUpperCase())}</span><h1>Hola, ${h((ME.name||'').split(' ')[0]||'')}</h1><p>${h(intro)}</p></div><button class="btn btn-outline" id="dy-logout">Cerrar sesión</button></div><div class="dy-account-grid"><section class="dy-account-card dy-account-security-summary"><div class="dy-card-title-row"><div><h2>🔐 Cuenta y seguridad</h2><p class="small muted">Tus datos de acceso se definieron al registrarte. Aquí solo revisas seguridad y cambios posteriores.</p></div></div><div class="dy-account-summary-lines"><div><span>Nombre</span><b>${h(ME.name||'')}</b></div><div><span>Correo</span><b>${h(ME.email||'')}</b></div><div><span>Estado</span><b class="${verified?'ok':'warn'}">${verified?'✓ Cuenta verificada':'Correo pendiente de verificación'}</b></div></div><a class="btn btn-outline btn-block" href="${verified?'#/seguridad':'#/verifica-tu-cuenta'}">${verified?'Administrar cuenta y seguridad':'Verificar mi cuenta'}</a></section>${accountSection}</div></div>`;
     document.getElementById('dy-logout')?.addEventListener('click',async()=>{
