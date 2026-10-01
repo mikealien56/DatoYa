@@ -178,7 +178,7 @@ app.post('/api/coupons/validate',auth,(req,res)=>{try{
   if(!businessId||!Number.isFinite(fallbackSubtotal)||fallbackSubtotal<1)return res.status(400).json({error:'Datos del carrito inválidos'});
   const quoteItems=__dyCouponRequestItems(businessId,req.body?.items),trustedSubtotal=quoteItems.length?Math.round(quoteItems.reduce((sum,it)=>sum+Number(it.unit_price||0)*Number(it.quantity||0),0)):fallbackSubtotal;
   const q=__dyCouponQuoteV2(businessId,req.user.id,req.body?.code,quoteItems,trustedSubtotal);
-  res.json({ok:true,coupon:{id:q.coupon.id,code:q.code,name:q.coupon.name,discount_type:q.coupon.discount_type,discount_value:Number(q.coupon.discount_value),max_discount:Number(q.coupon.max_discount||0),min_order:Number(q.coupon.min_order||0),funding_source:'business',scope_mode:q.scope.scope_mode,product_ids:q.scope.product_ids,category_ids:q.scope.category_ids},discount_amount:q.discount,eligible_subtotal:q.eligible_subtotal,subtotal_after_discount:q.subtotal_after_discount,business_funded_amount:q.business_funded,datoya_funded_amount:0,max_campaign_cost:q.max_campaign_cost,commission_protected:true});
+  res.json({ok:true,coupon:{id:q.coupon.id,code:q.code,name:q.coupon.name,discount_type:q.coupon.discount_type,discount_value:Number(q.coupon.discount_value),max_discount:Number(q.coupon.max_discount||0),min_order:Number(q.coupon.min_order||0),funding_source:'business',scope_mode:q.scope.scope_mode,product_ids:q.scope.product_ids,category_ids:q.scope.category_ids},discount_amount:q.discount,eligible_subtotal:q.eligible_subtotal,subtotal_after_discount:q.subtotal_after_discount,business_funded_amount:q.business_funded,datoya_funded_amount:0,max_campaign_cost:q.max_campaign_cost,datoya_commission_pct:0,direct_payment_to_business:true});
 }catch(e){res.status(e.status||400).json({error:e.message,code:e.code||'COUPON_INVALID'});}});
 
 app.get('/api/businesses/:id/coupons',auth,(req,res)=>{
@@ -263,10 +263,9 @@ app.put('/api/admin/marketplace-v2/coupons/:id/active',auth,requireRole('admin')
 
   const totalOld='  const total=subtotal+deliveryFee;';
   const totalNew=String.raw`  const total=Math.max(0,subtotal-couponDiscount)+deliveryFee;
-  const commissionBase=Math.max(0,subtotal-couponDiscount);
-  const commissionPct=Math.max(0,Math.min(50,Number(getSetting('commission_pct','10'))||0));
-  const datoyaCommissionEstimate=Math.max(0,Math.round(commissionBase*commissionPct/100));
-  if(coupon&&String(coupon.funding_source)==='business'&&total<datoyaCommissionEstimate)return res.status(409).json({error:'Este cupón deja el pedido por debajo de la comisión del marketplace. Reduce el descuento o aumenta la compra mínima.',code:'COUPON_MARGIN_TOO_LOW'});`;
+  const commissionBase=0;
+  const commissionPct=0;
+  const datoyaCommissionEstimate=0;`;
   if(!source.includes(totalOld))throw new Error('No se encontró total del pedido');
   source=source.replace(totalOld,totalNew);
 
@@ -294,10 +293,8 @@ app.put('/api/admin/marketplace-v2/coupons/:id/active',auth,requireRole('admin')
   if(!source.includes(merchantCancel))throw new Error('No se encontró cancelación negocio para liberar cupón');
   source=source.replace(merchantCancel,"if(next==='cancelled'){__dyCouponRelease(o.id,now);for(const it of items){");
 
-  const oldFee="const fee=Math.max(0,Math.round(Number(o.total||0)*__khCommissionPct()/100));";
-  if(!source.includes(oldFee))throw new Error('No se encontró cálculo Khipu de comisión');
-  source=source.split(oldFee).join("const fee=Math.max(0,Math.round(o.datoya_commission_estimate==null?Number(o.total||0)*__khCommissionPct()/100:Number(o.datoya_commission_estimate)));" );
+  // Los pedidos de comercios no usan Khipu de DatoYa ni generan comisión.
 }
 
 fs.writeFileSync(serverPath,source);
-console.log('[DatoYa] Cupones de negocio, límites y comisión protegida preparados.');
+console.log('[DatoYa] Cupones de negocio preparados: descuento financiado por el negocio y 0% comisión DatoYa.');
