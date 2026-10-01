@@ -34,7 +34,7 @@ curl -fsS -c "$A" -H 'Content-Type: application/json' -X POST "$BASE/api/auth/lo
 echo "1/9 Admin crea invitación Fundador única y ligada al correo"
 INVITE_JSON="$(curl -fsS -b "$A" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/marketplace-v2/founder-invites" -d "{\"business_name\":\"Fundador QA\",\"email\":\"$F_EMAIL\"}")"
 INVITE="$(printf '%s' "$INVITE_JSON"|python3 -c 'import sys,json;d=json.load(sys.stdin);i=d["invite"];assert int(i["max_uses"])==1 and i["invitee_email"];print(i["code"])')"
-curl -fsS "$BASE/api/founder-invites/$INVITE" | python3 -c 'import sys,json;d=json.load(sys.stdin)["invite"];assert d["business_name"]=="Fundador QA" and "***" in d["email_masked"]; assert d["benefits"]==dict(impulso_days=30,free_orders=5,reward_days=15,reward_cap_days=90)'
+curl -fsS "$BASE/api/founder-invites/$INVITE" | python3 -c 'import sys,json;d=json.load(sys.stdin)["invite"];assert d["business_name"]=="Fundador QA" and "***" in d["email_masked"]; assert d["benefits"]==dict(impulso_days=30,free_orders=0,reward_days=15,reward_cap_days=90)'
 curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/founder-invites/$INVITE/check-email" -d "{\"email\":\"$R_EMAIL\"}" | python3 -c 'import sys,json;assert json.load(sys.stdin)["ok"] is False'
 curl -fsS -H 'Content-Type: application/json' -X POST "$BASE/api/founder-invites/$INVITE/check-email" -d "{\"email\":\"$F_EMAIL\"}" | python3 -c 'import sys,json;assert json.load(sys.stdin)["ok"] is True'
 BAD_CODE="$(curl -s -o "$TMP/wrong-founder-email" -w '%{http_code}' -b "$R" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" -d "{\"name\":\"NoDebeSerFundador$STAMP\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"address\":\"QA Wrong\",\"pickup_enabled\":true,\"invitation_code\":\"$INVITE\"}")"
@@ -55,21 +55,21 @@ PJSON="$(curl -fsS -b "$F" -H 'Content-Type: application/json' -X POST "$BASE/ap
 PROD="$(printf '%s' "$PJSON"|python3 -c 'import sys,json;print(json.load(sys.stdin)["product"]["id"])')"
 curl -fsS -b "$F" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$FBIZ/products/$PROD/datoya-exclusive" -d '{"active":true}' | python3 -c 'import sys,json;assert json.load(sys.stdin)["datoya_exclusive"] is True'
 
-echo "4/9 Primeros cinco pedidos quedan con 0% de comisión"
+echo "4/9 Pedidos del Fundador mantienen 0% de comisión DatoYa"
 for N in 1 2 3 4 5; do
-  curl -fsS -b "$C" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "{\"business_id\":$FBIZ,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente Growth\",\"customer_phone\":\"+56911112222\",\"client_request_id\":\"growth-free-$STAMP-$N\",\"items\":[{\"product_id\":$PROD,\"quantity\":1}]}" | python3 -c 'import sys,json;d=json.load(sys.stdin)["order"];assert int(d["datoya_commission_estimate"])==0 and int(d["launch_free_order"])==1 and d["commission_tier"]=="lanzamiento-0"'
+  curl -fsS -b "$C" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "{\"business_id\":$FBIZ,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente Growth\",\"customer_phone\":\"+56911112222\",\"client_request_id\":\"growth-free-$STAMP-$N\",\"items\":[{\"product_id\":$PROD,\"quantity\":1}]}" | python3 -c 'import sys,json;d=json.load(sys.stdin)["order"];assert int(d["datoya_commission_estimate"])==0 and int(d["launch_free_order"])==0 and d["commission_tier"]=="sin-comision"'
 done
 
-echo "5/9 Sexto pedido usa 2,9% por Impulso + exclusiva"
+echo "5/9 Sexto pedido también mantiene 0% de comisión"
 SIXTH="$(curl -fsS -b "$C" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "{\"business_id\":$FBIZ,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente Growth\",\"customer_phone\":\"+56911112222\",\"client_request_id\":\"growth-sixth-$STAMP\",\"items\":[{\"product_id\":$PROD,\"quantity\":1}]}")"
-printf '%s' "$SIXTH" | python3 -c 'import sys,json;d=json.load(sys.stdin)["order"];assert int(d["commission_base"])==20000 and int(d["datoya_commission_estimate"])==580 and float(d["commission_rate_effective"])==2.9 and d["commission_tier"]=="impulso-exclusiva" and int(d["commission_cap"])==1990 and int(d["exclusive_subtotal"])==20000'
+printf '%s' "$SIXTH" | python3 -c 'import sys,json;d=json.load(sys.stdin)["order"];assert int(d["commission_base"])==20000 and int(d["datoya_commission_estimate"])==0 and float(d["commission_rate_effective"])==0 and d["commission_tier"]=="sin-comision" and int(d["commission_cap"])==0'
 
 echo "6/9 Referido entra con el código personal del Fundador"
 RJSON="$(curl -fsS -b "$R" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" -d "{\"name\":\"Referido$STAMP\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"address\":\"QA 200\",\"public_address_mode\":\"approximate\",\"phone\":\"+56922220002\",\"whatsapp\":\"+56922220002\",\"pickup_enabled\":true,\"delivery_enabled\":false,\"invitation_code\":\"$FCODE\"}")"
 RBIZ="$(printf '%s' "$RJSON"|python3 -c 'import sys,json;print(json.load(sys.stdin)["business"]["id"])')"
 curl -fsS -b "$A" -H 'Content-Type: application/json' -X PUT "$BASE/api/admin/marketplace/businesses/$RBIZ/status" -d '{"status":"active"}' >/dev/null
 curl -fsS -b "$A" "$BASE/api/admin/marketplace-v2/founders" >/dev/null
-curl -fsS -b "$R" "$BASE/api/businesses/$RBIZ/growth-program" | python3 -c "import sys,json;d=json.load(sys.stdin);p=d['profile'];assert int(p['referred_by_business_id'])==int('$FBIZ') and int(p['launch_free_order_limit'])==5"
+curl -fsS -b "$R" "$BASE/api/businesses/$RBIZ/growth-program" | python3 -c "import sys,json;d=json.load(sys.stdin);p=d['profile'];assert int(p['referred_by_business_id'])==int('$FBIZ') and int(p['launch_free_order_limit'])==0"
 curl -fsS -b "$R" "$BASE/api/businesses/$RBIZ/impulso-plan" | python3 -c 'import sys,json;d=json.load(sys.stdin);m=d["membership"];assert m and int(m["days_granted"])==15'
 
 echo "7/9 Referido crea producto para completar cinco pedidos reales"
@@ -92,4 +92,4 @@ echo "9/9 Código Fundador de un solo uso no puede reutilizarse"
 CODE="$(curl -s -o "$TMP/reused" -w '%{http_code}' -b "$R" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" -d "{\"name\":\"NoDebeEntrar$STAMP\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"invitation_code\":\"$INVITE\"}")"
 [ "$CODE" = "400" ] || fail "invitación Fundador reutilizada HTTP $CODE"
 
-echo "✅ GROWTH E2E OK: Fundador + referido + 0% inicial + Solo en DatoYa + premio por 5 pedidos"
+echo "✅ GROWTH E2E OK: Fundador + referido + 0% comisión permanente + Solo en DatoYa + premio por 5 pedidos"
