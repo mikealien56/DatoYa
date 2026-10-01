@@ -5,10 +5,28 @@
   "server": {
     "url": "https://datoya.cl",
     "cleartext": false,
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "allowNavigation": [
+      "datoya.cl",
+      "www.datoya.cl",
+      "*.datoya.cl",
+      "datoya.onrender.com"
+    ]
   },
   "android": {
     "allowMixedContent": false,
     "backgroundColor": "#0B3A82"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1400,
+      "launchAutoHide": true,
+      "backgroundColor": "#0B3A82",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "backgroundColor": "#0B3A82"
+    }
   }
 }
