@@ -1,0 +1,11 @@
+node_modules/
+npm-debug.log*
+.env
+.env.*
+*.keystore
+*.jks
+android.keystore
+app-release-unsigned.apk
+app-release-signed.apk
+app-release-bundle.aab
+android-build/

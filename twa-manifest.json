@@ -1,0 +1,35 @@
+{
+  "packageId": "cl.datoya.app",
+  "host": "datoya.cl",
+  "name": "DatoYa — Lo que buscas, cerca de ti",
+  "launcherName": "DatoYa",
+  "display": "standalone",
+  "themeColor": "#0B3A82",
+  "themeColorDark": "#072B63",
+  "navigationColor": "#0B3A82",
+  "navigationColorDark": "#072B63",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#F7F9FC",
+  "enableNotifications": true,
+  "startUrl": "/#/",
+  "iconUrl": "https://datoya.cl/brand/pwa/icon-512.png",
+  "maskableIconUrl": "https://datoya.cl/brand/pwa/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./datoya-android-release.keystore",
+    "alias": "datoya"
+  },
+  "appVersionCode": 1,
+  "appVersion": "1.0.0",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://datoya.cl/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "minSdkVersion": 21,
+  "orientation": "portrait-primary",
+  "fingerprints": [
+    "96:22:E3:5B:2A:10:E3:4B:88:5B:2A:48:B1:21:3A:F1:C2:0D:C5:E8:02:C6:5C:61:DB:95:F6:FE:C7:AF:EB:E7"
+  ],
+  "additionalTrustedOrigins": []
+}
