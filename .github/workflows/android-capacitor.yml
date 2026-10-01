@@ -125,6 +125,8 @@ jobs:
           from pathlib import Path
           p=Path('android/app/src/main/AndroidManifest.xml')
           s=p.read_text()
+          if 'android.permission.CAMERA' not in s:
+              s=s.replace('<application', '    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera.any" android:required="false" />\n\n    <application', 1)
           s=s.replace('android:label="@string/app_name"', 'android:label="@string/app_name" android:usesCleartextTraffic="false"')
           p.write_text(s)
           PY
@@ -207,11 +209,16 @@ jobs:
               raise SystemExit('No se encontró build.gradle de Android')
           s=p.read_text()
           import re
-          s=re.sub(r'versionCode\s+\d+', 'versionCode 5', s)
-          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.0"', s)
+          s=re.sub(r'versionCode\s+\d+', 'versionCode 6', s)
+          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.1"', s)
           p.write_text(s)
-          print('DatoYa Android versionCode=5 versionName=2.3.0')
+          print('DatoYa Android versionCode=6 versionName=2.3.1')
           PY
+
+      - name: Verify QR camera permission
+        run: |
+          grep -q 'android.permission.CAMERA' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.hardware.camera.any' android/app/src/main/AndroidManifest.xml
 
       - name: Build release APK
         working-directory: android
