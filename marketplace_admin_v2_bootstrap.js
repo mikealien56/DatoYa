@@ -194,11 +194,24 @@ app.post('/api/admin/marketplace-v2/impulso/gift',auth,requireRole('admin'),(req
 app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
   res.json({settings:{
     commission_pct:0,
-    impulso_monthly_price:__dyMoneySetting('impulso_monthly_price',9990),
-    impulso_quarterly_price:__dyMoneySetting('impulso_quarterly_price',26990),
-    impulso_annual_price:__dyMoneySetting('impulso_annual_price',89990),
-    impulso_free_catalog_limit:Number(getSetting('impulso_free_catalog_limit','20')),
-    impulso_paid_catalog_limit:Number(getSetting('impulso_paid_catalog_limit','200')),
+    growth_impulso_1_price:__dyMoneySetting('growth_impulso_1_price',990),
+    growth_impulso_7_price:__dyMoneySetting('growth_impulso_7_price',3990),
+    growth_impulso_15_price:__dyMoneySetting('growth_impulso_15_price',6990),
+    growth_impulso_30_price:__dyMoneySetting('growth_impulso_30_price',9990),
+    growth_impulso_plus_1_price:__dyMoneySetting('growth_impulso_plus_1_price',1490),
+    growth_impulso_plus_7_price:__dyMoneySetting('growth_impulso_plus_7_price',5990),
+    growth_impulso_plus_15_price:__dyMoneySetting('growth_impulso_plus_15_price',9990),
+    growth_impulso_plus_30_price:__dyMoneySetting('growth_impulso_plus_30_price',14990),
+    growth_premium_1_price:__dyMoneySetting('growth_premium_1_price',2490),
+    growth_premium_7_price:__dyMoneySetting('growth_premium_7_price',8990),
+    growth_premium_15_price:__dyMoneySetting('growth_premium_15_price',14990),
+    growth_premium_30_price:__dyMoneySetting('growth_premium_30_price',21990),
+    customer_club_7_price:__dyMoneySetting('customer_club_7_price',990),
+    customer_club_30_price:__dyMoneySetting('customer_club_30_price',1990),
+    growth_free_catalog_limit:Number(getSetting('growth_free_catalog_limit','20')),
+    growth_impulso_catalog_limit:Number(getSetting('growth_impulso_catalog_limit','80')),
+    growth_impulso_plus_catalog_limit:Number(getSetting('growth_impulso_plus_catalog_limit','200')),
+    growth_premium_catalog_limit:Number(getSetting('growth_premium_catalog_limit','500')),
     weekly_impulse_days:Number(getSetting('weekly_impulse_days','7')),
     live_payments_allowed:false,
     impulso_checkout_enabled:typeof __khConfigured==='function'&&__khConfigured()&&typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed(),
@@ -208,7 +221,7 @@ app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)
 });
 app.put('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
   const body=req.body||{};
-  const ranges={impulso_monthly_price:[0,1000000],impulso_quarterly_price:[0,3000000],impulso_annual_price:[0,10000000],impulso_free_catalog_limit:[1,1000],impulso_paid_catalog_limit:[1,5000],weekly_impulse_days:[1,30]};
+  const ranges={growth_impulso_1_price:[0,1000000],growth_impulso_7_price:[0,1000000],growth_impulso_15_price:[0,1000000],growth_impulso_30_price:[0,1000000],growth_impulso_plus_1_price:[0,1000000],growth_impulso_plus_7_price:[0,1000000],growth_impulso_plus_15_price:[0,1000000],growth_impulso_plus_30_price:[0,1000000],growth_premium_1_price:[0,1000000],growth_premium_7_price:[0,1000000],growth_premium_15_price:[0,1000000],growth_premium_30_price:[0,1000000],customer_club_7_price:[0,1000000],customer_club_30_price:[0,1000000],growth_free_catalog_limit:[1,1000],growth_impulso_catalog_limit:[1,5000],growth_impulso_plus_catalog_limit:[1,5000],growth_premium_catalog_limit:[1,10000],weekly_impulse_days:[1,30]};
   setSetting('commission_pct','0');
   for(const [key,[min,max]] of Object.entries(ranges)){
     if(body[key]===undefined)continue;
