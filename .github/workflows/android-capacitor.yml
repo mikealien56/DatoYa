@@ -55,6 +55,17 @@ jobs:
               im=src.resize((size,size),Image.Resampling.LANCZOS)
               im.save(p/'ic_launcher.png')
               im.save(p/'ic_launcher_round.png')
+
+          # Splash real de DatoYa: fondo azul + logo centrado.
+          canvas=Image.new('RGBA',(1080,1920),(11,58,130,255))
+          logo=src.copy()
+          logo.thumbnail((420,420),Image.Resampling.LANCZOS)
+          x=(canvas.width-logo.width)//2
+          y=(canvas.height-logo.height)//2 - 80
+          canvas.alpha_composite(logo,(x,y))
+          d=root/'drawable-nodpi'
+          d.mkdir(parents=True,exist_ok=True)
+          canvas.convert('RGB').save(d/'datoya_splash.png',quality=95)
           PY
           python3 - <<'PY'
           from pathlib import Path
@@ -66,16 +77,30 @@ jobs:
           npx cap sync android
           python3 - <<'PY'
           from pathlib import Path
+          import re
+          root=Path('android/app/src/main/res')
+          # Usa el splash de DatoYa en versiones antiguas y el logo en Android 12+.
+          for p in list(root.glob('values*/styles.xml')) + list(root.glob('values*/themes.xml')):
+              s=p.read_text()
+              s=s.replace('@drawable/splash','@drawable/datoya_splash')
+              if 'windowSplashScreenAnimatedIcon' in s:
+                  s=re.sub(r'(<item\s+name=["\'](?:android:)?windowSplashScreenAnimatedIcon["\']>).*?(</item>)',r'\1@mipmap/ic_launcher\2',s)
+              if 'windowSplashScreenBackground' in s:
+                  s=re.sub(r'(<item\s+name=["\'](?:android:)?windowSplashScreenBackground["\']>).*?(</item>)',r'\1#0B3A82\2',s)
+              p.write_text(s)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
           candidates=[Path('android/app/build.gradle'),Path('android/app/build.gradle.kts')]
           p=next((x for x in candidates if x.exists()),None)
           if not p:
               raise SystemExit('No se encontró build.gradle de Android')
           s=p.read_text()
           import re
-          s=re.sub(r'versionCode\s+\d+', 'versionCode 2', s)
-          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.0.0"', s)
+          s=re.sub(r'versionCode\s+\d+', 'versionCode 3', s)
+          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.1.0"', s)
           p.write_text(s)
-          print('DatoYa Android versionCode=2 versionName=2.0.0')
+          print('DatoYa Android versionCode=3 versionName=2.1.0')
           PY
 
       - name: Build release APK
