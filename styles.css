@@ -264,3 +264,10 @@ th { background: #F9FAFB; font-size: 12px; text-transform: uppercase; color: var
 .row { display: flex; gap: 8px; align-items: center; }
 .row.between { justify-content: space-between; }
 .wrap { flex-wrap: wrap; }
+
+/* DatoYa Android: aire visual bajo la barra de estado, solo en Capacitor. */
+@media (max-width: 640px) {
+  html.datoya-native-app #topbar {
+    padding-top: calc(24px + env(safe-area-inset-top)) !important;
+  }
+}
