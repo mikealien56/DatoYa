@@ -35,7 +35,7 @@ jobs:
       - name: Configure Bubblewrap non-interactively
         run: |
           mkdir -p "$HOME/.bubblewrap"
-          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME/cmdline-tools/latest" > "$HOME/.bubblewrap/config.json"
           cat "$HOME/.bubblewrap/config.json"
           bubblewrap doctor
 
