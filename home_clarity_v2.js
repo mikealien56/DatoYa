@@ -27,10 +27,18 @@
     '</article>';
   }
   function renderBusinessPlans(){
-    const host=document.getElementById('dy-home-business-plans');if(!host||!planData)return;
-    const free=planData.free||{key:'free',label:'DatoYa Gratis',access:{}};
+    const host=document.getElementById('dy-home-business-plans');if(!host)return;
+    const data=planData||{
+      free:{key:'free',label:'DatoYa Gratis',access:{}},
+      offers:[
+        {key:'impulso',label:'Impulso',prices:{1:990,7:3990,15:6990,30:9990},access:{}},
+        {key:'impulso_plus',label:'Impulso+',prices:{1:1490,7:5990,15:9990,30:14990},access:{}},
+        {key:'premium',label:'Impulso Premium',prices:{1:2490,7:8990,15:14990,30:21990},access:{}}
+      ]
+    };
+    const free=data.free||{key:'free',label:'DatoYa Gratis',access:{}};
     host.innerHTML=planCard('free',free.label||'DatoYa Gratis',0,free.access||{},false)+
-      (planData.offers||[]).map(o=>planCard(o.key,o.label,Number(o.prices?.[homePlanDays]||0),o.access||{},o.key==='premium')).join('');
+      (data.offers||[]).map(o=>planCard(o.key,o.label,Number(o.prices?.[homePlanDays]||0),o.access||{},o.key==='premium')).join('');
     document.querySelectorAll('[data-home-plan-days]').forEach(b=>b.classList.toggle('active',Number(b.dataset.homePlanDays)===homePlanDays));
   }
   function buildHow(){
