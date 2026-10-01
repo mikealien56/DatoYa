@@ -1,0 +1,14 @@
+{
+  "appId": "cl.datoya.app",
+  "appName": "DatoYa",
+  "webDir": "capacitor-www",
+  "server": {
+    "url": "https://datoya.cl",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0B3A82"
+  }
+}
