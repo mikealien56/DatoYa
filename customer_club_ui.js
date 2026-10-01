@@ -196,12 +196,12 @@
     if(!isCustomer())return;
     const top=document.querySelector('.dy-account-top');
     if(top&&!document.getElementById('dy-club-profile-link')){
-      const a=document.createElement('a');a.id='dy-club-profile-link';a.className='btn btn-primary';a.href='#/club';a.textContent='⭐ DatoYa Club';top.appendChild(a);
+      const a=document.createElement('a');a.id='dy-club-profile-link';a.className='btn btn-primary';a.href='#/club';a.textContent='DatoYa Club';top.appendChild(a);
     }
     const root=document.querySelector('.dy-account-page,.dy-profile-page,#view>div');
     if(root&&!document.getElementById('dy-club-profile-card')){
       const s=document.createElement('section');s.id='dy-club-profile-card';s.className='dy-club-profile-card';
-      s.innerHTML='<div><span>⭐</span><div><b>DatoYa Club</b><p>Activa Caza Ya, Precio Meta y Junta DatoYa. Tu primera Caza es gratis.</p></div></div><a href="#/club">Ver Club →</a>';
+      s.innerHTML='<div><img class="dy-club-profile-brand" src="/brand/datoya-club-card.webp" alt="DatoYa Club"><div><b>DatoYa Club</b><p>Activa Caza Ya, Precio Meta y Junta DatoYa. Tu primera Caza es gratis.</p></div></div><a href="#/club">Ver Club →</a>';
       root.appendChild(s);
     }
   }
@@ -212,7 +212,7 @@
     if(ME&&(ME.account_type==='business'||ME.role==='admin'))return;
     const anchor=document.getElementById('como-funciona');if(!anchor||document.getElementById('dy-club-home'))return;
     const s=document.createElement('section');s.id='dy-club-home';s.className='dy-section dy-club-home';
-    s.innerHTML='<div class="dy-club-home-copy"><span>⭐ DATOYA CLUB</span><h2>¿Y si en vez de buscar todos los días, DatoYa estuviera atento por ti?</h2><p>Con <b>Caza Ya</b> defines lo que buscas y tu precio meta. Con <b>Junta DatoYa</b>, varias personas pueden convertir una necesidad local en una señal para los negocios. Comprar sigue siendo gratis y el pago siempre es directo al comercio.</p><div><a class="btn btn-primary" href="#/club-info">Conocer DatoYa Club</a><small>1 Caza gratis · Club desde '+money(990)+' · sin renovación automática</small></div></div><div class="dy-club-home-orbit"><div class="main">🎯<b>Caza Ya</b><small>“Avísame si aparece bajo mi precio meta”</small></div><span class="o1">👥 Junta</span><span class="o2">🤫 Sin spam</span><span class="o3">📉 Precio Meta</span></div>';
+    s.innerHTML='<div class="dy-club-home-brand"><img src="/brand/datoya-club-card.webp" alt="DatoYa Club"></div><div class="dy-club-home-copy"><span>DATOYA CLUB</span><h2>Más oportunidades. Menos búsqueda.</h2><p>Activa herramientas para que DatoYa quede atento a lo que buscas y a tu precio objetivo.</p><div><a class="btn btn-primary" href="#/club-info">Conoce más</a><small>DatoYa Gratis sigue disponible · sin renovación automática</small></div></div>';
     anchor.insertAdjacentElement('afterend',s);
   }
   addEventListener('datoya:market-home-rendered',()=>setTimeout(addHomeClub,0));
