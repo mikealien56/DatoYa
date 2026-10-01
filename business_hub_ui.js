@@ -212,11 +212,22 @@
   async function renderPayments(id){
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
-    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
-      <section class="dy-business-dashboard-hero"><div><span>PAGOS</span><h1>El cliente te paga directamente</h1><p>DatoYa organiza el pedido, pero no recibe ni retiene el dinero de tus ventas.</p></div></section>
-      <section class="dy-business-card"><div class="dy-card-head"><div><span>MODELO DATOYA</span><h2>0% comisión por venta</h2><p>Configura pago al retirar, al recibir, transferencia o tu propio enlace de pago. Los servicios DatoYa se cobran por separado.</p></div></div><a class="btn btn-primary" href="#/mi-negocio-pagos/${id}">Configurar formas de pago</a></section>
-    </div>`;
-    await addHubFrame(id,'payments');
+    view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-loading"><b>💳 Cargando pagos…</b><small>Consultando las formas de pago de tu negocio.</small></section></div>';
+    try{
+      const [meta,prefs]=await Promise.all([
+        getMeta(id,true),
+        hubApi('/businesses/'+id+'/direct-payment-settings').catch(()=>({settings:{}}))
+      ]);
+      const b=meta.business||{},s=prefs.settings||{};
+      view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
+        <section class="dy-business-dashboard-hero"><div><span>PAGOS</span><h1>El cliente te paga directamente</h1><p>DatoYa organiza el pedido, pero no recibe ni retiene el dinero de las ventas de ${h(b.name||'tu negocio')}.</p></div></section>
+        <section class="dy-business-card"><div class="dy-card-head"><div><span>MODELO DATOYA</span><h2>0% comisión por venta</h2><p>Configura pago al retirar, al recibir, transferencia o tu propio enlace de pago. Los servicios DatoYa se cobran por separado.</p></div></div><div class="dy-dashboard-checks"><div><span>🛍️</span><b>Pago al retirar</b><small>${s.pay_at_pickup?'Activo':'Configurable'}</small></div><div><span>🏦</span><b>Transferencia directa</b><small>${s.transfer_enabled?'Activa':'Configurable'}</small></div></div></section>
+      </div>`;
+      await addHubFrame(id,'payments');
+    }catch(err){
+      view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-error"><span>⚠️</span><h2>No pudimos cargar Pagos</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><button class="btn btn-primary" onclick="routes['mi-negocio-pagos'](${id})">Reintentar</button></section></div>`;
+      await addHubFrame(id,'payments');
+    }
   }
 
   async function renderPromotions(id){
