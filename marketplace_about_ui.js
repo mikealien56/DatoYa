@@ -17,7 +17,7 @@
           <h1>Haz que tu negocio aparezca cuando alguien cerca <em>está buscando lo que vendes.</em></h1>
           <p>DatoYa conecta personas con negocios y emprendimientos de su zona. Tu negocio puede mostrar productos, promociones, stock, retiro o despacho y activar ofertas por tiempo real con <b>⚡ Impulso Ahora</b>.</p>
           <div class="dy-about-actions"><a class="btn btn-primary" href="#/registrar-negocio">Quiero ser negocio fundador</a><a class="btn btn-outline" href="#/">Ver DatoYa funcionando</a></div>
-          <div class="dy-about-proof"><span>📍 Descubrimiento local</span><span>📦 Catálogo propio</span><span>🛒 Pedidos</span><span>💳 Mercado Pago</span></div>
+          <div class="dy-about-proof"><span>📍 Descubrimiento local</span><span>📦 Catálogo propio</span><span>🛒 Pedidos</span><span>💳 Pago directo al negocio</span></div>
         </div>
         <div class="dy-about-phone" aria-label="Ejemplo de DatoYa">
           <div class="dy-about-phone-top"><span>DatoYa</span><i>Lo que buscas, cerca de ti</i></div>
