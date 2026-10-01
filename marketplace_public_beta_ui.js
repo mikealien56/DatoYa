@@ -160,6 +160,40 @@
       view.innerHTML=`<div class="dy-home">
         <div class="dy-mobile-location"><div><span>📍 Tu ubicación</span><b data-dy-location-label>${h(loc.label)}</b></div><button type="button" data-dy-locate>Cambiar</button></div>
         <section class="dy-hero"><div class="dy-hero-copy"><div class="dy-kicker">📍 Descubre lo mejor de tu zona</div><h1>Negocios locales <span>cerca de ti</span></h1><p>Explora negocios y productos publicados realmente en DatoYa. Sin resultados inventados.</p><form class="dy-search" id="dy-beta-search"><label class="dy-search-field"><span class="dy-search-icon">⌕</span><input name="q" autocomplete="off" placeholder="¿Qué necesitas? Ej: cerrajero, sushi, veterinaria 24h"></label><div class="dy-location-field"><span class="dy-location-icon">📍</span><button type="button" class="dy-location-button" data-dy-locate><span data-dy-location-label>${h(loc.label)}</span></button></div><button class="dy-search-submit" type="submit">Buscar</button></form><div class="dy-trust-row"><span>✓ Negocios aprobados</span><span>📦 ${productCount} productos disponibles</span><span>♡ Compra local</span></div></div><div class="dy-hero-visual" aria-hidden="true"><div class="dy-visual-card"><div class="dy-visual-image"></div><div class="dy-visual-overlay"><span class="dy-live-pill"><i class="dy-live-dot"></i> DatoYa Beta</span><h3>${businesses.length?`${businesses.length} negocios en esta vista`:'Sé de los primeros'}</h3><p>${businesses.length?'Contenido real publicado por comercios.':'Invita a un negocio local a registrarse.'}</p></div></div></div></section>
+        <section class="dy-section dy-how-it-works" id="como-funciona" aria-labelledby="dy-how-title">
+          <div class="dy-how-heading">
+            <span class="dy-how-eyebrow">ASÍ FUNCIONA DATOYA</span>
+            <h2 id="dy-how-title">Simple para comprar. Simple para vender.</h2>
+            <p>DatoYa conecta personas con negocios cercanos. El pedido se organiza aquí, pero el dinero de la venta va directo al negocio.</p>
+          </div>
+          <div class="dy-how-grid">
+            <article class="dy-how-card customer">
+              <div class="dy-how-card-head"><span>🛍️</span><div><small>PARA CLIENTES</small><h3>Encuentra y compra cerca de ti</h3></div></div>
+              <ol class="dy-how-steps">
+                <li><b>Busca lo que necesitas</b><span>Usa tu ubicación, categorías, promociones o Lo Busco Ya.</span></li>
+                <li><b>Elige un negocio</b><span>Revisa productos, precios, horarios, retiro y despacho.</span></li>
+                <li><b>Haz tu pedido</b><span>DatoYa registra el pedido y te avisa cuando cambia de estado.</span></li>
+                <li><b>Paga directamente al negocio</b><span>Retiro, despacho, transferencia o el medio que el comercio tenga habilitado.</span></li>
+              </ol>
+              <a class="btn btn-outline dy-how-cta" href="#/buscar/_">Explorar negocios →</a>
+            </article>
+            <article class="dy-how-card business" id="como-funciona-negocios">
+              <div class="dy-how-card-head"><span>🏪</span><div><small>PARA NEGOCIOS</small><h3>Publica gratis y vende sin comisión DatoYa</h3></div></div>
+              <ol class="dy-how-steps">
+                <li><b>Crea tu negocio gratis</b><span>Publica tu perfil, ubicación, horarios, productos y promociones.</span></li>
+                <li><b>Recibe pedidos reales</b><span>Confirma, prepara y completa pedidos desde tu panel.</span></li>
+                <li><b>Cobra directamente</b><span>El cliente te paga a ti. DatoYa no recibe ni retiene el dinero de la venta.</span></li>
+                <li><b>Impúlsate solo si quieres</b><span>Impulso, Impulso+ y Premium agregan visibilidad y herramientas por 1, 7, 15 o 30 días.</span></li>
+              </ol>
+              <a class="btn btn-primary dy-how-cta" href="#/registrar-negocio">Registrar mi negocio →</a>
+            </article>
+          </div>
+          <div class="dy-how-promise">
+            <div><span>💸</span><p><b>0% comisión DatoYa sobre tus ventas</b><small>DatoYa cobra únicamente por servicios opcionales de crecimiento.</small></p></div>
+            <div><span>🔒</span><p><b>El dinero no pasa por DatoYa</b><small>Los pagos de pedidos se hacen directamente al comercio.</small></p></div>
+            <div><span>⚡</span><p><b>Crecer es opcional</b><small>Un negocio puede seguir usando DatoYa Gratis sin contratar un impulso.</small></p></div>
+          </div>
+        </section>
         <section class="dy-section dy-exclusive-section" id="solo-datoya" aria-labelledby="dy-exclusive-title"><div class="dy-exclusive-intro"><span class="dy-exclusive-eyebrow">🔒 SOLO EN DATOYA</span><h2 id="dy-exclusive-title">Ofertas exclusivas para ti</h2><p>Promociones especiales de negocios de tu zona, disponibles al pedir por DatoYa.</p></div>${exclusivePromos.length?`<div class="dy-live-grid">${exclusivePromos.map(p=>productCard(p,businesses,'promo')).join('')}</div>`:`<div class="dy-exclusive-soon">Próximamente verás aquí las primeras ofertas exclusivas de tu zona. <a href="#/buscar/_">Explorar negocios →</a></div>`}</section>
         <section class="dy-section dy-featured-week" id="negocio-destacado"><div class="dy-featured-week-head"><span>⭐ ESPACIO DESTACADO</span><h2>Negocio destacado de la semana</h2><p>${featuredBusiness?'Conoce este negocio local. Espacio promocionado por DatoYa.':'Pronto conocerás aquí un negocio de tu zona.'}</p></div>${featuredBusiness?`<div class="dy-featured-week-card"><div class="dy-featured-week-photo">${businessPhoto(featuredBusiness,products)}</div><div><span class="dy-featured-week-label">${'Publicidad · 7 días'}</span><h3>${h(featuredBusiness.name)}</h3><p>${h(featuredBusiness.comuna||'Negocio local')}</p><a href="#/negocio/${Number(featuredBusiness.id)}" class="btn btn-primary">Conocer negocio →</a></div></div>`:`<div class="dy-featured-week-soon">Un espacio para negocios aprobados que quieran mostrarse durante siete días. <a href="#/registrar-negocio">Tengo un negocio →</a></div>`}</section>
         ${ME&&(ME.role==='admin'||ME.account_type==='admin')?'':`<section class="dy-section dy-wanted-intro" id="lo-busco-ya-demo" aria-labelledby="dy-wanted-intro-title"><div><span class="dy-wanted-intro-kicker">🙋 LO BUSCO YA</span><h2 id="dy-wanted-intro-title">Cuéntanos qué necesitas y recibe respuestas de negocios cercanos</h2><p>Publica los detalles, elige tu zona y revisa las respuestas en tu cuenta cliente.</p><a class="btn btn-primary" href="${!ME?'#/registro':isCustomerAccount()?'#/lo-busco-ya':'#/perfil'}">${!ME?'Crear cuenta cliente':isCustomerAccount()?'Publicar lo que busco':'Ver mi cuenta'}</a></div><div class="dy-wanted-example"><span>Ejemplo de cómo funciona</span><blockquote>“Busco una torta para 10 personas para este sábado.”</blockquote><ol><li>Publicas lo que buscas y cuándo lo necesitas.</li><li>Los negocios compatibles pueden responderte.</li><li>Revisas las opciones y eliges con quién comprar.</li></ol><small>Tu dirección exacta y tus datos privados no se publican.</small></div></section>`}
