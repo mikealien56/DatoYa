@@ -204,7 +204,7 @@
     }else{
       const hero=root.querySelector('.dy-business-hero h1');
       if(hero)hero.insertAdjacentHTML('afterend','<p class="dy-hub-section-caption">⚙️ Datos, ubicación, entrega y configuración comercial</p>');
-      root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>CONFIGURACIÓN ADICIONAL</span><h2>Conexiones y cuenta</h2><p>Herramientas relacionadas con la operación del negocio.</p></div></div><div class="dy-dashboard-growth"><a href="#/mi-negocio-pagos/${id}"><span>🏦</span><b>Pagos · Khipu</b><small>Estado y cobros de pedidos.</small></a><a href="#/perfil"><span>👤</span><b>Cuenta</b><small>Datos y seguridad de acceso.</small></a></div></section>`);
+      root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>CONFIGURACIÓN ADICIONAL</span><h2>Conexiones y cuenta</h2><p>Herramientas relacionadas con la operación del negocio.</p></div></div><div class="dy-dashboard-growth"><a href="#/mi-negocio-pagos/${id}"><span>💳</span><b>Formas de pago</b><small>El cliente te paga directamente.</small></a><a href="#/perfil"><span>👤</span><b>Cuenta</b><small>Datos y seguridad de acceso.</small></a></div></section>`);
     }
     await addHubFrame(id,mode==='products'?'products':'config');
   }
@@ -213,7 +213,7 @@
     founderMode=['existente','nueva'].includes(founderMode)?founderMode:null;
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
-    view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-loading"><b>💳 Cargando pagos…</b><small>Consultando Khipu y los pedidos del negocio. Si la red falla, podrás reintentar sin perder datos.</small></section></div>';
+    view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-loading"><b>💳 Cargando formas de pago…</b><small>Revisando los medios que tu negocio ofrece a sus clientes.</small></section></div>';
     let meta={business:{}},khipu={},ordersD={orders:[]},onboardingD={onboarding:{status:'not_started'}};
     try{
       [meta,khipu,ordersD,onboardingD]=await Promise.all([
@@ -271,7 +271,7 @@
 
     view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
       <section class="dy-business-dashboard-hero dy-payments-hero">
-        <div><span>PAGOS</span><h1>Cobros de ${h(b.name||'tu negocio')}</h1><p>Khipu será el medio de pago para los pedidos de DatoYa.</p></div>
+        <div><span>PAGOS</span><h1>Formas de pago de ${h(b.name||'tu negocio')}</h1><p>Los clientes pagan directamente a tu negocio. DatoYa no recibe el dinero de la venta.</p></div>
         <div class="dy-payments-provider-state ${on.status==='active'?'ok':ready?'ok':'warn'}"><span>🏦</span><div><b>Khipu</b><small>${on.status==='active'?'Khipu conectado':activation[1]}</small></div></div>
       </section>
 
@@ -298,7 +298,7 @@
           <div class="dy-payment-details">
             <div><span>Configuración técnica</span><b>${khipu.configured?'Lista':'Pendiente'}</b></div>
             <div><span>Pagos reales</span><b>${khipu.live_payments_allowed?'Habilitados':'Bloqueados'}</b></div>
-            <div><span>Split de comisión</span><b>${khipu.integrator_enabled?'Habilitado':'Pendiente de Khipu'}</b></div>
+            <div><span>Comisión DatoYa por venta</span><b>0%</b></div>
           </div>
           <div class="dy-payment-info-note"><b>Antes de activar cobros</b><p>DatoYa mantendrá los cobros reales bloqueados hasta que Khipu habilite la modalidad integrador y el negocio complete su validación bancaria. No necesitas configurar claves técnicas.</p></div>
         </section>

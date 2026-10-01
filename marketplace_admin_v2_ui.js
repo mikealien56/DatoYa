@@ -75,8 +75,8 @@
           <div class="dy-admin-kpis">
             <a href="#/admin/usuarios"><strong>${s.users}</strong><span>Usuarios</span><small>${s.customers} clientes · ${s.business_accounts} negocios</small></a>
             <a href="#/admin/negocios"><strong>${s.businesses_total}</strong><span>Negocios</span><small>${businessPending} por revisar</small></a>
-            <a href="#/admin/pedidos"><strong>${s.orders}</strong><span>Pedidos</span><small>${money(s.paid_gmv)} pagado</small></a>
-            <a href="#/admin/finanzas"><strong>${money(s.datoya_fees)}</strong><span>Comisiones DatoYa</span><small>Sobre pagos aprobados</small></a>
+            <a href="#/admin/pedidos"><strong>${s.orders}</strong><span>Pedidos</span><small>Ventas gestionadas por los negocios</small></a>
+            <a href="#/admin/finanzas"><strong>${money(s.datoya_revenue)}</strong><span>Ingresos DatoYa</span><small>Servicios propios, no ventas de terceros</small></a>
             <a href="#/admin/impulso"><strong>${s.active_impulse}</strong><span>Impulso activos</span><small>Membresías vigentes</small></a>
             <a href="#/admin/soporte"><strong>${s.open_support}</strong><span>Soporte abierto</span><small>Casos por revisar</small></a>
           </div>
@@ -87,7 +87,7 @@
               <a class="dy-admin-action" href="#/admin/soporte">📨 <b>${cases.filter(x=>['new','in_progress'].includes(x.status)).length}</b><span>caso(s) de soporte abierto(s)</span></a>
             </section>
             <section class="card"><span class="small muted">INGRESOS</span><h3>Vista rápida</h3>
-              <div class="dy-admin-money"><div><span>GMV pagado</span><b>${money(s.paid_gmv)}</b></div><div><span>Comisiones DatoYa</span><b>${money(s.datoya_fees)}</b></div></div>
+              <div class="dy-admin-money"><div><span>Planes negocio</span><b>${money(s.impulse_revenue)}</b></div><div><span>DatoYa Club</span><b>${money(s.club_revenue)}</b></div></div>
               <a class="btn btn-primary btn-block" href="#/admin/finanzas">Abrir finanzas</a>
             </section>
           </div>`);
@@ -117,23 +117,23 @@
 
       if(tab==='pedidos'){
         const {orders=[]}=await api('/admin/marketplace-v2/orders');
-        shell('Pedidos','Seguimiento de pedidos, pagos y estados.',inputFilter('Buscar pedido, negocio, cliente o payment_id')+
-          '<div class="dy-admin-list">'+orders.map(o=>`<article class="card dy-admin-row" data-order-row data-search="${h([o.reference,o.business_name,o.customer_name,o.customer_email,o.payment_id,o.payment_status,o.status].join(' ').toLowerCase())}"><div><b>${h(o.reference)}</b><div class="small muted">${h(o.business_name)} · ${h(o.customer_name)} · ${dt(o.created_at)}</div><div class="dy-admin-tags">${badge(o.status)} ${badge('Pago: '+o.payment_status,o.payment_status==='paid'?'ok':'warn')} ${o.payment_id?badge('Khipu '+o.payment_id):''}</div></div><div class="dy-admin-money-inline"><b>${money(o.total)}</b><small>Fee: ${money(o.marketplace_fee||0)}</small></div></article>`).join('')+'</div>');
+        shell('Pedidos','Seguimiento operativo. El cliente paga directamente al negocio; DatoYa no cobra comisión por la venta.',inputFilter('Buscar pedido, negocio o cliente')+
+          '<div class="dy-admin-list">'+orders.map(o=>`<article class="card dy-admin-row" data-order-row data-search="${h([o.reference,o.business_name,o.customer_name,o.customer_email,o.payment_status,o.status].join(' ').toLowerCase())}"><div><b>${h(o.reference)}</b><div class="small muted">${h(o.business_name)} · ${h(o.customer_name)} · ${dt(o.created_at)}</div><div class="dy-admin-tags">${badge(o.status)} ${badge('Pago: '+o.payment_status,o.payment_status==='paid'?'ok':'warn')} ${badge('Pago directo al negocio','ok')}</div></div><div class="dy-admin-money-inline"><b>${money(o.total)}</b><small>Comisión DatoYa: $0</small></div></article>`).join('')+'</div>');
         wireSearch('[data-order-row]');return;
       }
 
       if(tab==='finanzas'){
         const {summary:s,rows=[]}=await api('/admin/marketplace-v2/finance');
-        shell('Finanzas','Ventas procesadas, comisión DatoYa y conciliación.',`
+        shell('Finanzas DatoYa','Aquí solo se contabiliza dinero que corresponde a servicios vendidos por DatoYa.',`
           <div class="dy-admin-kpis finance">
-            <div><strong>${money(s.paid_gmv)}</strong><span>GMV pagado</span></div>
-            <div><strong>${money(s.datoya_fees)}</strong><span>Comisiones DatoYa</span></div>
-            <div><strong>${money(s.seller_net)}</strong><span>Neto estimado negocios</span></div>
-            <div><strong>${money(s.impulso_revenue)}</strong><span>Ingresos Impulso</span></div>
+            <div><strong>${money(s.datoya_revenue)}</strong><span>Ingresos DatoYa</span><small>Total de servicios propios</small></div>
+            <div><strong>${money(s.impulso_revenue)}</strong><span>Planes negocio</span><small>Impulso / Impulso+ / Premium</small></div>
+            <div><strong>${money(s.club_revenue)}</strong><span>DatoYa Club</span><small>Pases de clientes</small></div>
+            <div><strong>${money(s.featured_revenue)}</strong><span>Destacados</span><small>Espacios promocionales pagados</small></div>
           </div>
-          <div class="card dy-admin-note">💡 Esta vista es contable/operativa. DatoYa no se presenta como banco ni billetera. Los pagos se concilian con Khipu. El split real se mostrará solo cuando la cuenta integradora esté habilitada.</div>
-          ${inputFilter('Buscar referencia, negocio o payment_id')}
-          <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.reference,r.business_name,r.payment_id,r.payment_status].join(' ').toLowerCase())}"><div><b>${h(r.reference)}</b><div class="small muted">${h(r.business_name)} · ${dt(r.created_at)} · ${h(r.payment_status)}</div><div class="small muted">${r.payment_id?'payment_id '+h(r.payment_id):'Sin payment_id'}</div></div><div class="dy-admin-money-inline"><b>${money(r.total)}</b><small>Comisión DatoYa ${money(r.datoya_fee)}</small></div></article>`).join('')}</div>`);
+          <div class="card dy-admin-note"><b>💳 Regla financiera de DatoYa:</b> los pedidos de clientes se pagan directamente al negocio. No se consideran ingreso de DatoYa y no existe comisión por venta. Khipu de DatoYa se usa únicamente para servicios propios de la plataforma.</div>
+          ${inputFilter('Buscar cliente, negocio o concepto')}
+          <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.source_name,r.source_type,r.concept].join(' ').toLowerCase())}"><div><b>${h(r.concept)}</b><div class="small muted">${h(r.source_type)} · ${h(r.source_name)} · ${dt(r.created_at)}</div></div><div class="dy-admin-money-inline"><b>${money(r.amount)}</b><small>Ingreso DatoYa</small></div></article>`).join('')||'<div class="card"><p class="muted">Todavía no hay ingresos registrados por servicios DatoYa.</p></div>'}</div>`);
         wireSearch('[data-fin-row]');return;
       }
 
@@ -155,11 +155,12 @@
 
       if(tab==='impulso'){
         const {businesses=[],history=[],config={}}=await api('/admin/marketplace-v2/impulso');
-        shell('⚡ DatoYa Impulso','Planes mensual, 3 meses y anual, más cortesías para negocios.',`
-          <div class="card dy-admin-note"><b>Precios actuales:</b> Mensual ${money(config.monthly_price)} · 3 meses ${money(config.quarterly_price)} · Anual ${money(config.annual_price)}. Puedes cambiarlos en Configuración.</div>
+        const tiers=config.tiers||{};
+        shell('⚡ Planes para negocios','Gratis, Impulso, Impulso+ y Premium por 1, 7, 15 o 30 días. DatoYa no cobra comisión por las ventas.',`
+          <div class="card dy-admin-note"><b>Modelo actual:</b> DatoYa Gratis $0 · Impulso desde ${money(tiers.impulso?.prices?.[1]||990)} · Impulso+ desde ${money(tiers.impulso_plus?.prices?.[1]||1490)} · Premium desde ${money(tiers.premium?.prices?.[1]||2490)}. Los pagos corresponden solo a servicios DatoYa.</div>
           ${inputFilter('Buscar negocio, dueño o correo')}
-          <div class="dy-admin-list">${businesses.map(b=>`<article class="card dy-admin-row" data-imp-row data-search="${h([b.name,b.owner_name,b.owner_email,b.comuna].join(' ').toLowerCase())}"><div><b>⚡ ${h(b.name)}</b><div class="small muted">${h(b.owner_name)} · ${h(b.owner_email)}</div><div class="dy-admin-tags">${b.expires_at?badge('Activo hasta '+String(b.expires_at).slice(0,10),'ok'):badge('Plan Gratis')} ${b.source?badge('Origen '+b.source):''}</div></div><div class="dy-admin-row-actions"><select id="gift-days-${Number(b.id)}"><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>30 días</option><option value="90">90 días</option></select><button class="btn btn-primary btn-sm" onclick="dyGiftImpulse(${Number(b.id)},'${h(String(b.name).replace(/'/g,'&#39;'))}')">🎁 Regalar</button></div></article>`).join('')}</div>
-          <section class="card" style="margin-top:16px"><h3>Historial de membresías</h3><div class="dy-admin-history">${history.slice(0,80).map(x=>`<div><b>${h(x.business_name)}</b><span>${h(x.source)} · ${x.days_granted} días · vence ${String(x.expires_at||'').slice(0,10)}</span></div>`).join('')||'<p class="muted">Sin historial todavía.</p>'}</div></section>`);
+          <div class="dy-admin-list">${businesses.map(b=>`<article class="card dy-admin-row" data-imp-row data-search="${h([b.name,b.owner_name,b.owner_email,b.comuna,b.tier].join(' ').toLowerCase())}"><div><b>🏪 ${h(b.name)}</b><div class="small muted">${h(b.owner_name)} · ${h(b.owner_email)}</div><div class="dy-admin-tags">${b.expires_at?badge((b.tier==='premium'?'🚀 Premium':b.tier==='impulso_plus'?'⚡⚡ Impulso+':'⚡ Impulso')+' hasta '+String(b.expires_at).slice(0,10),'ok'):badge('DatoYa Gratis')} ${b.source?badge('Origen '+b.source):''}</div></div><div class="dy-admin-row-actions"><select id="gift-tier-${Number(b.id)}"><option value="impulso">⚡ Impulso</option><option value="impulso_plus" selected>⚡⚡ Impulso+</option><option value="premium">🚀 Premium</option></select><select id="gift-days-${Number(b.id)}"><option value="1">1 día</option><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>30 días</option></select><button class="btn btn-primary btn-sm" onclick="dyGiftGrowthPlan(${Number(b.id)},'${h(String(b.name).replace(/'/g,'&#39;'))}')">🎁 Regalar</button></div></article>`).join('')}</div>
+          <section class="card" style="margin-top:16px"><h3>Historial de planes</h3><div class="dy-admin-history">${history.slice(0,80).map(x=>`<div><b>${h(x.business_name)}</b><span>${h(x.tier||'impulso_plus')} · ${h(x.source)} · ${x.days_granted} días · vence ${String(x.expires_at||'').slice(0,10)}</span></div>`).join('')||'<p class="muted">Sin historial todavía.</p>'}</div></section>`);
         wireSearch('[data-imp-row]');return;
       }
 
@@ -168,7 +169,7 @@
           api('/admin/marketplace-v2/founders'),
           api('/admin/marketplace-v2/growth-settings')
         ]);
-        shell('🏅 Fundadores y crecimiento','Invitaciones, referidos, beneficios y comisiones de lanzamiento.',`
+        shell('🏅 Fundadores y crecimiento','Invitaciones, referidos y beneficios de crecimiento. Sin comisión por ventas.',`
           <div class="dy-admin-kpis">
             <div><strong>${founders.length}</strong><span>Fundadores</span><small>Negocios invitados por DatoYa</small></div>
             <div><strong>${referrals.length}</strong><span>Referidos</span><small>${referrals.filter(x=>x.status==='rewarded').length} ya calificaron</small></div>
@@ -186,26 +187,19 @@
               <div class="dy-admin-history" style="margin-top:12px">${invites.map(x=>`<div><div><b>${h(x.invitee_business_name||x.label||'Invitación Fundador')}</b><span>${h(x.invitee_email||'Sin correo asociado')} · ${h(x.code)} · ${x.status==='used'?'Usada':x.status==='active'?'Disponible':'Pausada'}</span></div><div class="dy-admin-row-actions">${x.status==='active'&&x.invitee_email?'<button class="btn btn-outline btn-sm" onclick="dyCopyFounderInvite(\''+h(x.code)+'\')">Copiar enlace</button><button class="btn btn-outline btn-sm" onclick="dyShareFounderInvite(\''+h(x.code)+'\',\''+h(x.invitee_business_name||x.label||'tu negocio')+'\')">WhatsApp</button>':''}${!x.invitee_email?'<span class="small muted">Código antiguo pausado · crea una invitación nueva</span>':'<button class="btn btn-outline btn-sm" onclick="dyFounderInviteToggle('+Number(x.id)+','+(x.status==='active'?'false':'true')+',this)" '+(x.status==='used'?'disabled':'')+'>'+(x.status==='active'?'Pausar':x.status==='used'?'Usada':'Activar')+'</button>'}</div></div>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div>
             </section>
             <section class="card">
-              <span class="small muted">MODELO COMERCIAL</span><h3>Comisiones y beneficios</h3>
+              <span class="small muted">BENEFICIOS DE CRECIMIENTO</span><h3>Premios para Fundadores y referidos</h3>
               <form id="dy-growth-settings-form" class="dy-admin-settings">
-                <div class="field"><label>Gratis (%)</label><input name="commission_free_pct" type="number" step="0.1" min="0" max="20" value="${h(settings.commission_free_pct??5.9)}"></div>
-                <div class="field"><label>Gratis · Solo en DatoYa (%)</label><input name="commission_exclusive_free_pct" type="number" step="0.1" min="0" max="20" value="${h(settings.commission_exclusive_free_pct??4.9)}"></div>
-                <div class="field"><label>Impulso (%)</label><input name="commission_impulso_pct" type="number" step="0.1" min="0" max="20" value="${h(settings.commission_impulso_pct??3.9)}"></div>
-                <div class="field"><label>Impulso + exclusiva (%)</label><input name="commission_exclusive_impulso_pct" type="number" step="0.1" min="0" max="20" value="${h(settings.commission_exclusive_impulso_pct??2.9)}"></div>
-                <div class="field"><label>Tope Gratis (CLP)</label><input name="commission_free_cap" type="number" min="0" value="${h(settings.commission_free_cap??2990)}"></div>
-                <div class="field"><label>Tope Impulso (CLP)</label><input name="commission_impulso_cap" type="number" min="0" value="${h(settings.commission_impulso_cap??1990)}"></div>
-                <div class="field"><label>Pedidos iniciales al 0%</label><input name="launch_free_orders" type="number" min="0" max="100" value="${h(settings.launch_free_orders??5)}"></div>
                 <div class="field"><label>Fundador: días Impulso</label><input name="founder_impulso_days" type="number" min="0" max="365" value="${h(settings.founder_impulso_days??30)}"></div>
                 <div class="field"><label>Referido: días Impulso</label><input name="referred_impulso_days" type="number" min="0" max="365" value="${h(settings.referred_impulso_days??15)}"></div>
                 <div class="field"><label>Premio por referido</label><input name="referral_reward_days" type="number" min="0" max="365" value="${h(settings.referral_reward_days??15)}"></div>
                 <div class="field"><label>Tope premio acumulado</label><input name="referral_reward_cap_days" type="number" min="0" max="730" value="${h(settings.referral_reward_cap_days??90)}"></div>
-                <button class="btn btn-primary" type="submit">Guardar modelo</button>
+                <button class="btn btn-primary" type="submit">Guardar beneficios</button>
               </form>
-              <div class="dy-admin-note" style="margin-top:12px">La comisión se calcula sobre productos netos después de descuentos. El despacho propio no entra en la base de comisión.</div>
+              <div class="dy-admin-note" style="margin-top:12px"><b>0% comisión sobre ventas.</b> DatoYa monetiza planes, Club y espacios promocionales opcionales.</div>
             </section>
           </div>
-          <section class="card" style="margin-top:16px"><span class="small muted">NEGOCIOS FUNDADORES</span><h3>Quién entró como Fundador</h3><div class="dy-admin-list">${founders.map(f=>`<article class="card dy-admin-row"><div><b>🏅 ${h(f.business_name)}</b><div class="small muted">${h(f.owner_name||'')} · ${h(f.owner_email||'')}</div><div class="dy-admin-tags">${badge(f.founder_code||'Sin código','ok')} ${badge(Number(f.referral_count||0)+' referidos')} ${badge(Number(f.rewarded_referrals||0)+' calificados')} ${badge('+'+Number(f.founder_reward_days||0)+' días')}</div></div><div class="small muted">${Number(f.launch_free_orders_used||0)}/${Number(f.launch_free_order_limit||0)} pedidos iniciales usados</div></article>`).join('')||'<p class="muted">Todavía no hay Fundadores.</p>'}</div></section>
-          <section class="card" style="margin-top:16px"><span class="small muted">REFERIDOS</span><h3>Negocios recomendados</h3><div class="dy-admin-history">${referrals.map(r=>`<div><b>${h(r.referred_name)}</b><span>Invitado por ${h(r.founder_name)} · ${Number(r.completed_orders||0)}/5 pedidos · ${r.status==='rewarded'?'premio entregado':'pendiente'}</span></div>`).join('')||'<p class="muted">Aún no hay referidos.</p>'}</div></section>
+          <section class="card" style="margin-top:16px"><span class="small muted">NEGOCIOS FUNDADORES</span><h3>Quién entró como Fundador</h3><div class="dy-admin-list">${founders.map(f=>`<article class="card dy-admin-row"><div><b>🏅 ${h(f.business_name)}</b><div class="small muted">${h(f.owner_name||'')} · ${h(f.owner_email||'')}</div><div class="dy-admin-tags">${badge(f.founder_code||'Sin código','ok')} ${badge(Number(f.referral_count||0)+' referidos')} ${badge(Number(f.rewarded_referrals||0)+' calificados')} ${badge('+'+Number(f.founder_reward_days||0)+' días')}</div></div><div class="small muted">Beneficios de Fundador activos según configuración</div></article>`).join('')||'<p class="muted">Todavía no hay Fundadores.</p>'}</div></section>
+          <section class="card" style="margin-top:16px"><span class="small muted">REFERIDOS</span><h3>Negocios recomendados</h3><div class="dy-admin-history">${referrals.map(r=>`<div><b>${h(r.referred_name)}</b><span>Invitado por ${h(r.founder_name)} · ${r.status==='rewarded'?'beneficio entregado':'beneficio pendiente'}</span></div>`).join('')||'<p class="muted">Aún no hay referidos.</p>'}</div></section>
         `);
         document.getElementById('dy-founder-invite-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button');btn.disabled=true;try{const r=await api('/admin/marketplace-v2/founder-invites',{method:'POST',body:{business_name:f.business_name.value.trim(),email:f.email.value.trim()}});toast?.('Invitación única creada para '+r.invite.invitee_business_name,'ok');routes.admin('fundadores');}catch(err){btn.disabled=false;toast?.(err.message,'err')}});
         document.getElementById('dy-growth-settings-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,body={};for(const el of f.querySelectorAll('input[name]'))body[el.name]=Number(el.value);try{await api('/admin/marketplace-v2/growth-settings',{method:'PUT',body});toast?.('Modelo comercial actualizado','ok');routes.admin('fundadores');}catch(err){toast?.(err.message,'err')}});
@@ -225,7 +219,7 @@
         const {summary:s}=await api('/admin/marketplace-v2/summary');
         shell('Analítica','Indicadores clave de crecimiento y operación.',`
           <div class="dy-admin-kpis">
-            <div><strong>${s.customers}</strong><span>Clientes</span></div><div><strong>${s.business_accounts}</strong><span>Cuentas negocio</span></div><div><strong>${s.businesses_total}</strong><span>Negocios creados</span></div><div><strong>${s.orders}</strong><span>Pedidos</span></div><div><strong>${money(s.paid_gmv)}</strong><span>GMV pagado</span></div><div><strong>${s.active_impulse}</strong><span>Impulso activos</span></div>
+            <div><strong>${s.customers}</strong><span>Clientes</span></div><div><strong>${s.business_accounts}</strong><span>Cuentas negocio</span></div><div><strong>${s.businesses_total}</strong><span>Negocios creados</span></div><div><strong>${s.orders}</strong><span>Pedidos</span></div><div><strong>${money(s.datoya_revenue)}</strong><span>Ingresos DatoYa</span></div><div><strong>${s.active_impulse}</strong><span>Planes negocio activos</span></div>
           </div><div class="card dy-admin-note">Próximo nivel: demanda por comuna, búsquedas sin resultado, conversión carrito→pedido, clics a WhatsApp y rendimiento de Impulsos. La base de eventos ya existe y puede conectarse aquí.</div>`);
         return;
       }
@@ -265,7 +259,11 @@
     if(!confirm('¿Enviar esta Sorpresa Club a '+name+'?'))return;
     try{const r=await api('/admin/club-gifts',{method:'POST',body:{user_id:Number(id),kind,value}});toast?.('🎁 Sorpresa Club enviada','ok');routes.admin('club');}catch(e){toast?.(e.message||'No se pudo enviar','err');}
   };
-  window.dyGiftImpulse=async(id,name)=>{const days=Number(document.getElementById('gift-days-'+id)?.value||30);if(!confirm('¿Regalar '+days+' días de DatoYa Impulso a '+name+'?'))return;try{const r=await api('/admin/marketplace-v2/impulso/gift',{method:'POST',body:{business_id:id,days}});toast?.(r.message||'Cortesía activada','ok');routes.admin('impulso');}catch(e){toast?.(e.message,'err');}};
+  window.dyGiftGrowthPlan=async(id,name)=>{
+    const tier=String(document.getElementById('gift-tier-'+id)?.value||'impulso_plus'),days=Number(document.getElementById('gift-days-'+id)?.value||30);
+    if(!confirm('¿Regalar '+days+' día'+(days===1?'':'s')+' de '+(tier==='premium'?'Premium':tier==='impulso_plus'?'Impulso+':'Impulso')+' a '+name+'?'))return;
+    try{const r=await api('/admin/marketplace-v2/growth-plans/gift',{method:'POST',body:{business_id:Number(id),tier,days}});toast?.(r.message||'Cortesía activada','ok');routes.admin('impulso');}catch(e){toast?.(e.message||'No se pudo regalar el plan','err');}
+  };
   window.dyGiftWeekly=async()=>{const id=Number(document.getElementById('dy-weekly-business')?.value||0);if(!id)return toast?.('Selecciona un negocio','err');try{await api('/admin/weekly-impulses/gift',{method:'POST',body:{business_id:id}});toast?.('Impulso semanal regalado','ok');routes.admin('impulso-semanal');}catch(e){toast?.(e.message,'err');}};
   window.dyApproveWeekly=async id=>{if(!confirm('¿Aprobar este destacado por 7 días usando la foto disponible?'))return;try{await api('/admin/weekly-impulses/'+id+'/approve',{method:'POST',body:{placement_type:'gifted',use_original:true}});toast?.('Destacado aprobado','ok');routes.admin('impulso-semanal');}catch(e){toast?.(e.message,'err');}};
   window.dyRejectWeekly=async id=>{const reason=prompt('¿Qué debe corregir el negocio?','Necesitamos que ajustes la oferta antes de publicarla.');if(reason===null)return;try{await api('/admin/weekly-impulses/'+id+'/reject',{method:'POST',body:{reason}});toast?.('Se solicitaron cambios','ok');routes.admin('impulso-semanal');}catch(e){toast?.(e.message,'err');}};
