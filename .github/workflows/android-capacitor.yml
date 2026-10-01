@@ -6,6 +6,9 @@ on:
     paths:
       - 'capacitor.config.json'
       - 'capacitor-www/**'
+      - 'brand/android/**'
+      - 'styles.css'
+      - 'index.html'
       - '.github/workflows/android-capacitor.yml'
   pull_request:
     paths:
@@ -46,15 +49,72 @@ jobs:
           python3 - <<'PY'
           from PIL import Image
           from pathlib import Path
-          src=Image.open('brand/pwa/icon-512.png').convert('RGBA')
+          from collections import deque
+          import base64
+
+          raw=base64.b64decode(Path('brand/android/datoya-icon-source.b64').read_text().strip())
+          tmp=Path('/tmp/datoya-icon-source.jpg')
+          tmp.write_bytes(raw)
+          src=Image.open(tmp).convert('RGBA')
+
+          # Quita solo el blanco exterior conectado a los bordes. Conserva el blanco interno del local.
+          px=src.load(); W,H=src.size
+          seen=set(); q=deque()
+          def near_white(x,y):
+              r,g,b,a=px[x,y]
+              return a>0 and r>=232 and g>=232 and b>=232
+          for x in range(W):
+              for y in (0,H-1):
+                  if near_white(x,y) and (x,y) not in seen:
+                      seen.add((x,y)); q.append((x,y))
+          for y in range(H):
+              for x in (0,W-1):
+                  if near_white(x,y) and (x,y) not in seen:
+                      seen.add((x,y)); q.append((x,y))
+          while q:
+              x,y=q.popleft()
+              px[x,y]=(255,255,255,0)
+              for nx,ny in ((x+1,y),(x-1,y),(x,y+1),(x,y-1)):
+                  if 0<=nx<W and 0<=ny<H and (nx,ny) not in seen and near_white(nx,ny):
+                      seen.add((nx,ny)); q.append((nx,ny))
+          bbox=src.getchannel('A').getbbox()
+          if bbox:
+              src=src.crop(bbox)
+          side=max(src.size)
+          square=Image.new('RGBA',(side,side),(0,0,0,0))
+          square.alpha_composite(src,((side-src.width)//2,(side-src.height)//2))
+          src=square.resize((512,512),Image.Resampling.LANCZOS)
           root=Path('android/app/src/main/res')
           sizes={'mipmap-mdpi':48,'mipmap-hdpi':72,'mipmap-xhdpi':96,'mipmap-xxhdpi':144,'mipmap-xxxhdpi':192}
+          scales={'mipmap-mdpi':1,'mipmap-hdpi':1.5,'mipmap-xhdpi':2,'mipmap-xxhdpi':3,'mipmap-xxxhdpi':4}
           for folder,size in sizes.items():
               p=root/folder
               p.mkdir(parents=True,exist_ok=True)
               im=src.resize((size,size),Image.Resampling.LANCZOS)
               im.save(p/'ic_launcher.png')
               im.save(p/'ic_launcher_round.png')
+              fg_size=round(108*scales[folder])
+              fg=Image.new('RGBA',(fg_size,fg_size),(0,0,0,0))
+              logo=src.copy()
+              logo.thumbnail((round(fg_size*.76),round(fg_size*.76)),Image.Resampling.LANCZOS)
+              fg.alpha_composite(logo,((fg_size-logo.width)//2,(fg_size-logo.height)//2))
+              fg.save(p/'ic_launcher_foreground.png')
+
+          values=root/'values'
+          values.mkdir(parents=True,exist_ok=True)
+          colors=values/'colors.xml'
+          if colors.exists():
+              text=colors.read_text()
+              if 'datoya_launcher_background' not in text:
+                  text=text.replace('</resources>','    <color name="datoya_launcher_background">#0B3A82</color>\n</resources>')
+                  colors.write_text(text)
+          else:
+              colors.write_text('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="datoya_launcher_background">#0B3A82</color>\n</resources>\n')
+          anydpi=root/'mipmap-anydpi-v26'
+          anydpi.mkdir(parents=True,exist_ok=True)
+          adaptive='<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@color/datoya_launcher_background"/>\n    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n'
+          (anydpi/'ic_launcher.xml').write_text(adaptive)
+          (anydpi/'ic_launcher_round.xml').write_text(adaptive)
 
           # Splash real de DatoYa: fondo azul + logo centrado.
           canvas=Image.new('RGBA',(1080,1920),(11,58,130,255))
@@ -97,10 +157,10 @@ jobs:
               raise SystemExit('No se encontró build.gradle de Android')
           s=p.read_text()
           import re
-          s=re.sub(r'versionCode\s+\d+', 'versionCode 3', s)
-          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.1.0"', s)
+          s=re.sub(r'versionCode\s+\d+', 'versionCode 4', s)
+          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.2.0"', s)
           p.write_text(s)
-          print('DatoYa Android versionCode=3 versionName=2.1.0')
+          print('DatoYa Android versionCode=4 versionName=2.2.0')
           PY
 
       - name: Build release APK
