@@ -392,3 +392,14 @@ grep -q "const total=subtotal+deliveryFee" marketplace_order_integrity_bootstrap
 node --check marketplace_delivery_eta_ui.js
 node --check marketplace_delivery_eta_bootstrap.js
 node --check marketplace_delivery_eta_assets.js
+
+# DatoYa Club identidad pública
+test -s brand/datoya-club-card.webp || { echo "Falta imagen oficial DatoYa Club"; exit 1; }
+grep -q 'datoya-club-card.webp' home_structure_v3.js || { echo "Portada no usa identidad DatoYa Club"; exit 1; }
+grep -q 'Conoce más' home_structure_v3.js || { echo "Portada Club no enlaza a información"; exit 1; }
+grep -q 'DatoYa atento por ti' customer_club_ui.js || { echo "Página Conoce más Club no fue renovada"; exit 1; }
+grep -q 'CLUB EN UNA FRASE' customer_club_ui.js || { echo "Falta explicación breve de Club"; exit 1; }
+grep -q 'brandSrc' customer_club_assets.js || { echo "Imagen Club no se publica en /public/brand"; exit 1; }
+node --check home_structure_v3.js
+node --check customer_club_ui.js
+node --check customer_club_assets.js
