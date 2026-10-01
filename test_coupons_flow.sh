@@ -36,9 +36,9 @@ echo '3/8 Validación descuenta solo el producto elegible'
 QUOTE="$(curl -fsS -b "$C" -H 'Content-Type: application/json' -X POST "$BASE/api/coupons/validate" -d "{\"business_id\":$BIZ,\"code\":\"PROD10\",\"subtotal\":30000,\"items\":[{\"product_id\":$PROD1,\"quantity\":1},{\"product_id\":$PROD2,\"quantity\":1}]}")"
 printf '%s' "$QUOTE" | python3 -c "import sys,json;d=json.load(sys.stdin);assert d['discount_amount']==2000 and d['eligible_subtotal']==20000 and d['subtotal_after_discount']==28000 and d['coupon']['scope_mode']=='products' and d['datoya_funded_amount']==0"
 
-echo '4/8 Pedido conserva base neta y aplica 0% de lanzamiento'
+echo '4/8 Pedido conserva base neta y comisión DatoYa en 0%'
 ORDER="$(curl -fsS -b "$C" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "{\"business_id\":$BIZ,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente Cupón\",\"customer_phone\":\"+56911112222\",\"client_request_id\":\"coupon-product-$STAMP\",\"coupon_code\":\"PROD10\",\"items\":[{\"product_id\":$PROD1,\"quantity\":1},{\"product_id\":$PROD2,\"quantity\":1}]}")"
-OID="$(printf '%s' "$ORDER"|python3 -c 'import sys,json;d=json.load(sys.stdin)["order"];assert d["subtotal"]==30000 and d["coupon_discount"]==2000 and d["total"]==28000 and d["commission_base"]==28000 and d["datoya_commission_estimate"]==0 and int(d["launch_free_order"])==1 and d["commission_tier"]=="lanzamiento-0" and d["coupon_datoya_funded"]==0;print(d["id"])')"
+OID="$(printf '%s' "$ORDER"|python3 -c 'import sys,json;d=json.load(sys.stdin)["order"];assert d["subtotal"]==30000 and d["coupon_discount"]==2000 and d["total"]==28000 and d["commission_base"]==28000 and d["datoya_commission_estimate"]==0 and int(d["launch_free_order"])==0 and d["commission_tier"]=="sin-comision" and d["coupon_datoya_funded"]==0;print(d["id"])')"
 
 echo '5/8 Métricas muestran pedido, ventas netas y descuento'
 curl -fsS -b "$B" "$BASE/api/businesses/$BIZ/coupons" | python3 -c 'import sys,json;d=json.load(sys.stdin);c=next(x for x in d["coupons"] if x["code"]=="PROD10");assert int(c["orders_generated"])==1 and int(c["sales_generated"])==28000 and int(c["discount_used"])==2000'
@@ -58,4 +58,4 @@ curl -fsS -b "$C" -H 'Content-Type: application/json' -X POST "$BASE/api/coupons
 echo '8/8 Admin mantiene aporte DatoYa en cero'
 curl -fsS -b "$A" "$BASE/api/admin/marketplace-v2/coupons" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert int(d["summary"]["datoya_funded"])==0 and d["datoya_funded_enabled"] is False'
 
-echo '✅ COUPON V2 E2E OK: negocio financia + scopes + comisión neta + métricas + reversa'
+echo '✅ COUPON V2 E2E OK: negocio financia + scopes + 0% comisión DatoYa + métricas + reversa'
