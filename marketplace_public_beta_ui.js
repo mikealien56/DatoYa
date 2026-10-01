@@ -189,7 +189,7 @@
             </article>
           </div>
           <div class="dy-how-promise">
-            <div><span>💸</span><p><b>0% comisión DatoYa sobre tus ventas</b><small>DatoYa cobra únicamente por servicios opcionales de crecimiento.</small></p></div>
+            <div><span>💸</span><p><b>0% comisión DatoYa sobre tus ventas</b><small>Vender y recibir pedidos puede seguir siendo gratis.</small></p></div>
             <div><span>🔒</span><p><b>El dinero no pasa por DatoYa</b><small>Los pagos de pedidos se hacen directamente al comercio.</small></p></div>
             <div><span>⚡</span><p><b>Crecer es opcional</b><small>Un negocio puede seguir usando DatoYa Gratis sin contratar un impulso.</small></p></div>
           </div>

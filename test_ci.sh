@@ -371,3 +371,9 @@ grep -q "const target='#/club-info'" home_structure_v3.js || { echo "Home todav�
 grep -q "DatoYa busca oportunidades por ti" customer_club_ui.js || { echo "Página Club no explica qué es"; exit 1; }
 grep -q "CÓMO FUNCIONA" customer_club_ui.js || { echo "Página Club no explica funcionamiento"; exit 1; }
 grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara con Gratis"; exit 1; }
+
+# Copy público: no explicar cómo gana dinero DatoYa
+! grep -q "DatoYa gana por" home_structure_v3.js || { echo "La portada expone el modelo de ingresos de DatoYa"; exit 1; }
+! grep -q "DatoYa cobra únicamente" marketplace_public_beta_ui.js || { echo "La portada explica cobros internos que no interesan al usuario"; exit 1; }
+! grep -q "Club se paga a DatoYa" customer_club_ui.js || { echo "Club expone innecesariamente el flujo de ingreso de DatoYa"; exit 1; }
+grep -q "El pago de la compra es directo al negocio" home_structure_v3.js || { echo "Falta mensaje útil de pago directo para clientes"; exit 1; }
