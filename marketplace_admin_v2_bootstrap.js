@@ -161,12 +161,22 @@ app.get('/api/admin/marketplace-v2/impulso',auth,requireRole('admin'),(req,res)=
   const businesses=db.prepare(`SELECT b.id,b.name,b.status,u.name owner_name,u.email owner_email,c.name comuna,
     (SELECT im.id FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) membership_id,
     (SELECT im.expires_at FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) expires_at,
-    (SELECT im.source FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) source
-    FROM businesses b JOIN users u ON u.id=b.owner_user_id LEFT JOIN comunas c ON c.id=b.comuna_id ORDER BY b.name`).all(__dyImpulseNow(),__dyImpulseNow(),__dyImpulseNow());
+    (SELECT im.source FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) source,
+    (SELECT COALESCE(im.tier,'impulso_plus') FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) tier,
+    (SELECT COALESCE(im.offer_days,im.days_granted,30) FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) offer_days
+    FROM businesses b JOIN users u ON u.id=b.owner_user_id LEFT JOIN comunas c ON c.id=b.comuna_id ORDER BY b.name`).all(__dyImpulseNow(),__dyImpulseNow(),__dyImpulseNow(),__dyImpulseNow(),__dyImpulseNow());
   const history=db.prepare(`SELECT im.*,b.name business_name,u.name granted_by
     FROM business_impulse_memberships im JOIN businesses b ON b.id=im.business_id LEFT JOIN users u ON u.id=im.created_by_user_id
     ORDER BY im.created_at DESC LIMIT 300`).all();
-  res.json({businesses,history,config:{monthly_price:__dyMoneySetting('impulso_monthly_price',9990),quarterly_price:__dyMoneySetting('impulso_quarterly_price',26990),annual_price:__dyMoneySetting('impulso_annual_price',89990)}});
+  const price=(tier,days,def)=>__dyMoneySetting('growth_'+tier+'_'+days+'_price',def);
+  res.json({businesses,history,config:{
+    durations:[1,7,15,30],
+    tiers:{
+      impulso:{label:'Impulso',prices:{1:price('impulso',1,990),7:price('impulso',7,3990),15:price('impulso',15,6990),30:price('impulso',30,9990)}},
+      impulso_plus:{label:'Impulso+',prices:{1:price('impulso_plus',1,1490),7:price('impulso_plus',7,5990),15:price('impulso_plus',15,9990),30:price('impulso_plus',30,14990)}},
+      premium:{label:'Impulso Premium',prices:{1:price('premium',1,2490),7:price('premium',7,8990),15:price('premium',15,14990),30:price('premium',30,21990)}}
+    }
+  }});
 });
 
 app.post('/api/admin/marketplace-v2/impulso/gift',auth,requireRole('admin'),(req,res)=>{
