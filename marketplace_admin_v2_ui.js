@@ -219,7 +219,7 @@
         const {summary:s}=await api('/admin/marketplace-v2/summary');
         shell('Analítica','Indicadores clave de crecimiento y operación.',`
           <div class="dy-admin-kpis">
-            <div><strong>${s.customers}</strong><span>Clientes</span></div><div><strong>${s.business_accounts}</strong><span>Cuentas negocio</span></div><div><strong>${s.businesses_total}</strong><span>Negocios creados</span></div><div><strong>${s.orders}</strong><span>Pedidos</span></div><div><strong>${money(s.paid_gmv)}</strong><span>GMV pagado</span></div><div><strong>${s.active_impulse}</strong><span>Impulso activos</span></div>
+            <div><strong>${s.customers}</strong><span>Clientes</span></div><div><strong>${s.business_accounts}</strong><span>Cuentas negocio</span></div><div><strong>${s.businesses_total}</strong><span>Negocios creados</span></div><div><strong>${s.orders}</strong><span>Pedidos</span></div><div><strong>${money(s.datoya_revenue)}</strong><span>Ingresos DatoYa</span></div><div><strong>${s.active_impulse}</strong><span>Planes negocio activos</span></div>
           </div><div class="card dy-admin-note">Próximo nivel: demanda por comuna, búsquedas sin resultado, conversión carrito→pedido, clics a WhatsApp y rendimiento de Impulsos. La base de eventos ya existe y puede conectarse aquí.</div>`);
         return;
       }
