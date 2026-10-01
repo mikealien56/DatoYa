@@ -56,7 +56,7 @@
   window.dyCartQty=(i,d)=>{const c=cart();if(!c.items[i])return;c.items[i].quantity=Math.max(1,Math.min(99,Number(c.items[i].quantity||1)+Number(d)));saveCart(c);routes.carrito()};
   window.dyCartRemove=i=>{const c=cart();c.items.splice(Number(i),1);saveCart(c);routes.carrito()};
 
-  const cleanTestLabel=v=>{const s=String(v??'');return /mercado pago/i.test(s)&&/test/i.test(s)?s.replace(/mercado pago/ig,'Khipu'):s};
+  const cleanTestLabel=v=>String(v??'').replace(/mercado pago/ig,'Pago directo').replace(/khipu test/ig,'Pago directo');
   const orderLabel=(s,o)=>({new:'Pedido recibido',confirmed:'Confirmado',preparing:'Preparando',ready:o?.fulfillment_method==='delivery'?'Listo para despacho':'Listo para retirar',completed:'Completado',cancelled:'Cancelado'})[s]||s;
   const paymentLabel=s=>({paid:'✅ Pagado',pending:'⏳ Pendiente',refunded:'↩️ Devuelto',partially_refunded:'↩️ Devuelto parcial'})[String(s)]||String(s||'Pendiente');
   const orderProgress=o=>{
