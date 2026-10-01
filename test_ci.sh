@@ -159,9 +159,9 @@ done
 if [ "$READY" -ne 1 ]; then echo "Timeout esperando DatoYa"; cat /tmp/datoya-ci.log; exit 1; fi
 
 curl -fsS http://localhost:3000/health | grep -q '"ok":true'
-CATS=$(curl -fsS http://localhost:3000/api/public/business-plans | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["rule"].startswith("DatoYa no cobra comisión"); assert len(d["offers"])==3; assert d["durations"]==[1,7,15,30]' || { echo "Planes públicos de negocio incorrectos"; exit 1; }
+curl -fsS http://localhost:3000/api/public/business-plans | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["rule"].startswith("DatoYa no cobra comisión"); assert len(d["offers"])==3; assert d["durations"]==[1,7,15,30]' || { echo "Planes públicos de negocio incorrectos"; exit 1; }
 curl -fsS http://localhost:3000/api/public/club | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["no_auto_renew"] is True; assert int(d["free_hunts"])>=1' || { echo "Club público incorrecto"; exit 1; }
-curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["categories"]))')
+CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["categories"]))')
 [ "$CATS" -ge 20 ] || { echo "Catálogo comercial incompleto: $CATS"; exit 1; }
 curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; c=json.load(sys.stdin)["categories"]; o=next((x for x in c if x["slug"]=="opticas"),None); assert o and o["name"]=="Ópticas" and o["icon"]=="👓"' || { echo "Falta categoría Ópticas"; exit 1; }
 echo "✅ Healthcheck + categorías comerciales"
