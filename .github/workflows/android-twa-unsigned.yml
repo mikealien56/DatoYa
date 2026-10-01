@@ -34,8 +34,13 @@ jobs:
 
       - name: Configure Bubblewrap non-interactively
         run: |
+          SDK_ROOT=/tmp/datoya-android-sdk
+          rm -rf "$SDK_ROOT"
+          mkdir -p "$SDK_ROOT"
+          ln -s "$ANDROID_HOME/cmdline-tools/latest/bin" "$SDK_ROOT/bin"
+          ln -s "$ANDROID_HOME/cmdline-tools/latest/lib" "$SDK_ROOT/lib"
           mkdir -p "$HOME/.bubblewrap"
-          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME/cmdline-tools/latest" > "$HOME/.bubblewrap/config.json"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$SDK_ROOT" > "$HOME/.bubblewrap/config.json"
           cat "$HOME/.bubblewrap/config.json"
           bubblewrap doctor
 
@@ -49,16 +54,17 @@ jobs:
           echo "Proyecto Android generado correctamente."
 
       - name: Accept Android licenses and install required SDK
-        env:
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk/cmdline-tools/latest
         run: |
+          SDK_ROOT=/tmp/datoya-android-sdk
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null || true
-          "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "build-tools;35.0.0" "platforms;android-36"
+          yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platform-tools" "build-tools;35.0.0" "platforms;android-36"
+          test -f "$SDK_ROOT/platforms/android-36/android.jar"
 
       - name: Build unsigned APK and AAB
         env:
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk/cmdline-tools/latest
+          ANDROID_HOME: /tmp/datoya-android-sdk
+          ANDROID_SDK_ROOT: /tmp/datoya-android-sdk
         run: bubblewrap build --skipSigning --skipPwaValidation
 
       - name: Collect artifacts
