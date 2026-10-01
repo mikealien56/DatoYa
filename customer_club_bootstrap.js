@@ -298,7 +298,7 @@ try{
 }
   const injection=__dyClubInjected.toString().replace(/^function __dyClubInjected\(\)\{\n?/,'').replace(/\n?\}$/,'');
   if(!src.includes(marker))throw new Error('No se encontró marcador MISC para DatoYa Club');
-  src=src.replace(marker,injection+'\n'+marker);
+  src=src.replace(marker,()=>injection+'\n'+marker);
 }
 
 if(!src.includes('DATOYA_CUSTOMER_CLUB_WEBHOOK_V1')){
