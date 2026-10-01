@@ -237,19 +237,42 @@
 
       if(tab==='configuracion'){
         const {settings:s}=await api('/admin/marketplace-v2/settings');
-        shell('Configuración','Parámetros del marketplace sin tocar código.',`
+        const priceField=(name,label)=>'<div class="field"><label>'+label+'</label><input name="'+name+'" type="number" min="0" value="'+h(s[name])+'"></div>';
+        shell('Configuración','Precios y límites del modelo actual de DatoYa.',`
+          <div class="card dy-admin-note"><b>Modelo fijo:</b> ventas de comercios = 0% comisión DatoYa. Esta pantalla solo administra precios de servicios propios.</div>
           <form id="dy-admin-settings" class="card dy-admin-settings">
-            <div class="card dy-admin-note" style="grid-column:1/-1"><b>Comisiones por nivel:</b> ahora se administran en <a href="#/admin/fundadores">🏅 Fundadores y crecimiento</a>. Ahí están Gratis, Solo en DatoYa, Impulso y sus topes.</div>
-            <div class="field"><label>DatoYa Impulso mensual (CLP)</label><input name="impulso_monthly_price" type="number" min="0" value="${h(s.impulso_monthly_price)}"></div>
-            <div class="field"><label>DatoYa Impulso 3 meses (CLP)</label><input name="impulso_quarterly_price" type="number" min="0" value="${h(s.impulso_quarterly_price)}"></div>
-            <div class="field"><label>DatoYa Impulso anual (CLP)</label><input name="impulso_annual_price" type="number" min="0" value="${h(s.impulso_annual_price)}"></div>
-            <div class="field"><label>Límite catálogo plan Gratis</label><input name="impulso_free_catalog_limit" type="number" min="1" value="${h(s.impulso_free_catalog_limit)}"></div>
-            <div class="field"><label>Límite catálogo DatoYa Impulso</label><input name="impulso_paid_catalog_limit" type="number" min="1" value="${h(s.impulso_paid_catalog_limit)}"></div>
+            <div style="grid-column:1/-1"><span class="small muted">PLANES NEGOCIO</span><h3>⚡ Impulso</h3></div>
+            ${priceField('growth_impulso_1_price','Impulso · 1 día (CLP)')}
+            ${priceField('growth_impulso_7_price','Impulso · 7 días (CLP)')}
+            ${priceField('growth_impulso_15_price','Impulso · 15 días (CLP)')}
+            ${priceField('growth_impulso_30_price','Impulso · 30 días (CLP)')}
+            <div style="grid-column:1/-1"><h3>⚡⚡ Impulso+</h3></div>
+            ${priceField('growth_impulso_plus_1_price','Impulso+ · 1 día (CLP)')}
+            ${priceField('growth_impulso_plus_7_price','Impulso+ · 7 días (CLP)')}
+            ${priceField('growth_impulso_plus_15_price','Impulso+ · 15 días (CLP)')}
+            ${priceField('growth_impulso_plus_30_price','Impulso+ · 30 días (CLP)')}
+            <div style="grid-column:1/-1"><h3>🚀 Premium</h3></div>
+            ${priceField('growth_premium_1_price','Premium · 1 día (CLP)')}
+            ${priceField('growth_premium_7_price','Premium · 7 días (CLP)')}
+            ${priceField('growth_premium_15_price','Premium · 15 días (CLP)')}
+            ${priceField('growth_premium_30_price','Premium · 30 días (CLP)')}
+            <div style="grid-column:1/-1"><span class="small muted">CLIENTES</span><h3>⭐ DatoYa Club</h3></div>
+            ${priceField('customer_club_7_price','Club · 7 días (CLP)')}
+            ${priceField('customer_club_30_price','Club · 30 días (CLP)')}
+            <div style="grid-column:1/-1"><span class="small muted">LÍMITES DE CATÁLOGO</span><h3>Productos por nivel</h3></div>
+            <div class="field"><label>Gratis</label><input name="growth_free_catalog_limit" type="number" min="1" value="${h(s.growth_free_catalog_limit)}"></div>
+            <div class="field"><label>Impulso</label><input name="growth_impulso_catalog_limit" type="number" min="1" value="${h(s.growth_impulso_catalog_limit)}"></div>
+            <div class="field"><label>Impulso+</label><input name="growth_impulso_plus_catalog_limit" type="number" min="1" value="${h(s.growth_impulso_plus_catalog_limit)}"></div>
+            <div class="field"><label>Premium</label><input name="growth_premium_catalog_limit" type="number" min="1" value="${h(s.growth_premium_catalog_limit)}"></div>
             <div class="field"><label>Días por defecto Impulso semanal</label><input name="weekly_impulse_days" type="number" min="1" max="30" value="${h(s.weekly_impulse_days)}"></div>
-            <button class="btn btn-primary" type="submit">Guardar configuración</button>
+            <button class="btn btn-primary" type="submit">Guardar precios y límites</button>
           </form>
-          <div class="card dy-admin-note"><b>Pagos reales:</b> ${s.live_payments_allowed?'habilitados':'bloqueados'} · <b>Checkout Impulso:</b> ${s.impulso_checkout_enabled?'habilitado':'en validación'}. No se habilitan cobros reales desde esta pantalla.</div>`);
-        document.getElementById('dy-admin-settings')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/admin/marketplace-v2/settings',{method:'PUT',body:{impulso_monthly_price:Number(f.impulso_monthly_price.value),impulso_quarterly_price:Number(f.impulso_quarterly_price.value),impulso_annual_price:Number(f.impulso_annual_price.value),impulso_free_catalog_limit:Number(f.impulso_free_catalog_limit.value),impulso_paid_catalog_limit:Number(f.impulso_paid_catalog_limit.value),weekly_impulse_days:Number(f.weekly_impulse_days.value)}});toast?.('Configuración guardada','ok');}catch(err){toast?.(err.message,'err');}});
+          <div class="card dy-admin-note"><b>Khipu:</b> ${s.impulso_checkout_enabled?'entorno de cobro disponible':'en validación / bloqueado'} · se usa únicamente para servicios DatoYa. Los pedidos de comercios no pasan por Khipu DatoYa.</div>`);
+        document.getElementById('dy-admin-settings')?.addEventListener('submit',async e=>{
+          e.preventDefault();const f=e.currentTarget,body={};
+          ['growth_impulso_1_price','growth_impulso_7_price','growth_impulso_15_price','growth_impulso_30_price','growth_impulso_plus_1_price','growth_impulso_plus_7_price','growth_impulso_plus_15_price','growth_impulso_plus_30_price','growth_premium_1_price','growth_premium_7_price','growth_premium_15_price','growth_premium_30_price','customer_club_7_price','customer_club_30_price','growth_free_catalog_limit','growth_impulso_catalog_limit','growth_impulso_plus_catalog_limit','growth_premium_catalog_limit','weekly_impulse_days'].forEach(k=>body[k]=Number(f.elements[k].value));
+          try{await api('/admin/marketplace-v2/settings',{method:'PUT',body});toast?.('Configuración guardada','ok');routes.admin('configuracion');}catch(err){toast?.(err.message,'err');}
+        });
         return;
       }
     }catch(e){toast?.(e.message||'No se pudo cargar el panel administrador','err');}
