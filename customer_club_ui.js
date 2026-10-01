@@ -85,6 +85,38 @@
     '</div>';
     bindForms();
   }
+  async function loadClubInfo(){
+    view.innerHTML='<div class="dy-club-page"><section class="dy-club-loading"><span>⭐</span><h2>Conociendo DatoYa Club…</h2></section></div>';
+    try{
+      const p=await api('/public/club');
+      const cta=!ME
+        ?'<a class="btn btn-primary" href="#/registro">Crear cuenta Cliente</a><a class="btn btn-outline" href="#/login">Ya tengo cuenta</a>'
+        :isCustomer()
+          ?'<a class="btn btn-primary" href="#/club">Ir a mi DatoYa Club</a><a class="btn btn-outline" href="#/buscar/_">Seguir explorando gratis</a>'
+          :'<a class="btn btn-outline" href="#/">Volver al inicio</a>';
+      const accountNote=ME&&!isCustomer()?'<div class="dy-club-info-account-note">ℹ️ DatoYa Club es una función para cuentas Cliente. Tu cuenta actual puede seguir usando sus herramientas normales.</div>':'';
+      view.innerHTML='<div class="dy-club-page">'+
+        '<a class="dy-public-back" href="#/">← Volver a DatoYa</a>'+
+        '<section class="dy-club-hero"><div><span>⭐ DATOYA CLUB</span><h1>DatoYa busca oportunidades por ti</h1><p>Club es un pase opcional para clientes. No necesitas Club para buscar, comprar ni hacer pedidos: DatoYa Gratis sigue funcionando. Club agrega automatización para que no tengas que revisar todos los días.</p><div class="dy-club-hero-tags"><b>Comprar sigue siendo gratis</b><b>Sin renovación automática</b><b>El pago del pedido va al negocio</b></div></div><div class="dy-club-stamp"><strong>CLUB OPCIONAL</strong><small>Tú eliges cuándo activarlo</small></div></section>'+
+        '<section class="dy-club-rule"><span>💙</span><div><b>¿Qué cambia al activar Club?</b><p>No desbloquea comercios ni productos ocultos. Activa herramientas para seguir búsquedas, precios y señales locales de forma automática.</p></div></section>'+
+        '<section class="dy-club-lab"><div class="dy-club-section-head"><span>CÓMO FUNCIONA</span><h2>Le dices a DatoYa qué buscas y DatoYa queda atento</h2><p>La idea es simple: defines una necesidad y Club te ayuda a detectar oportunidades reales cerca de ti.</p></div>'+
+          '<div class="dy-club-info-steps"><article><span>1</span><div><b>Activas una Caza Ya</b><p>Escribes lo que buscas, por ejemplo “alimento perro 15 kg”.</p></div></article><article><span>2</span><div><b>Opcionalmente defines tu Precio Meta</b><p>Puedes decir cuánto estarías dispuesto a pagar.</p></div></article><article><span>3</span><div><b>Radar revisa coincidencias</b><p>DatoYa compara productos y promociones reales publicados en tu zona.</p></div></article><article><span>4</span><div><b>Te avisamos cuando aparece algo útil</b><p>Radar Silencioso prioriza coincidencias nuevas o mejores precios sin llenarte de avisos.</p></div></article></div>'+
+        '</section>'+
+        '<section class="dy-club-lab"><div class="dy-club-section-head"><span>QUÉ INCLUYE</span><h2>Herramientas de DatoYa Club</h2></div>'+
+          '<div class="dy-club-feature-grid"><article><span>🎯</span><b>Caza Ya</b><p>DatoYa sigue varias búsquedas por ti.</p><small>Gratis: '+Number(p.free_hunts||1)+' · Club: hasta '+Number(p.club_hunts||10)+'</small></article><article><span>📉</span><b>Precio Meta</b><p>Define el precio que te interesa y filtra oportunidades según ese objetivo.</p><small>Tú decides qué precio vale la pena.</small></article><article><span>🤫</span><b>Radar Silencioso</b><p>Te avisa cuando aparece una coincidencia nueva o un precio mejor.</p><small>Menos búsqueda manual.</small></article><article><span>👥</span><b>Junta DatoYa</b><p>Personas de una misma zona pueden señalar que buscan lo mismo.</p><small>La señal es agregada, no revela tus datos.</small></article><article><span>🎁</span><b>Sorpresas Club</b><p>DatoYa puede entregar beneficios digitales durante un pase activo.</p><small>Días, Cazas o Radar Turbo.</small></article><article><span>💙</span><b>DatoYa Gratis permanece</b><p>Al terminar el pase vuelves a Gratis; no pierdes el acceso normal a DatoYa.</p><small>Sin renovación automática.</small></article></div>'+
+        '</section>'+
+        '<section class="dy-club-passes"><div class="dy-club-pass-copy"><span>PRECIOS</span><h2>Elige solo si te sirve</h2><p>Son pases por tiempo. No es una suscripción automática.</p></div><div class="dy-club-pass-grid"><article><small>PRUEBA</small><h3>7 días</h3><strong>'+money(p.prices?.[7]||990)+'</strong><p>Para conocer las herramientas durante una semana.</p></article><article class="recommended"><em>MÁS CONVENIENTE</em><small>PASE COMPLETO</small><h3>30 días</h3><strong>'+money(p.prices?.[30]||1990)+'</strong><p>Para dejar tus Cazas y Radar trabajando durante el mes.</p></article></div></section>'+
+        '<section class="dy-club-info-compare"><div><span>🆓</span><h3>DatoYa Gratis</h3><p>Buscar, explorar negocios, hacer pedidos, usar Lo Busco Ya y probar una Caza.</p></div><div><span>⭐</span><h3>DatoYa Club</h3><p>Todo lo anterior + más Cazas, Precio Meta, Radar, Junta y beneficios Club.</p></div></section>'+
+        accountNote+
+        '<section class="dy-club-info-cta"><div><b>Primero conoce DatoYa. Club es un extra, no una obligación.</b><p>Puedes seguir usando DatoYa Gratis todo el tiempo que quieras.</p></div><div>'+cta+'</div></section>'+
+        '<section class="dy-club-footer-card"><div><span>🔐</span><div><b>Club se paga a DatoYa; tus compras no</b><p>El pase Club es un servicio de DatoYa. Los productos y pedidos se siguen pagando directamente al negocio.</p></div></div></section>'+
+      '</div>';
+    }catch(e){
+      view.innerHTML='<div class="dy-club-page"><section class="dy-club-loading error"><span>⚠️</span><h2>No pudimos cargar la información de Club</h2><p>'+h(e.message||'Intenta nuevamente.')+'</p><button class="btn btn-primary" onclick="routes[\'club-info\']()">Reintentar</button></section></div>';
+    }
+  }
+  routes['club-info']=loadClubInfo;
+
   async function loadClub(){
     if(!ME){location.hash='#/login';return;}
     if(!isCustomer()){toast?.('DatoYa Club está pensado para cuentas Cliente','err');location.hash='#/perfil';return;}
@@ -159,7 +191,7 @@
     if(ME&&(ME.account_type==='business'||ME.role==='admin'))return;
     const anchor=document.getElementById('como-funciona');if(!anchor||document.getElementById('dy-club-home'))return;
     const s=document.createElement('section');s.id='dy-club-home';s.className='dy-section dy-club-home';
-    s.innerHTML='<div class="dy-club-home-copy"><span>⭐ DATOYA CLUB</span><h2>¿Y si en vez de buscar todos los días, DatoYa estuviera atento por ti?</h2><p>Con <b>Caza Ya</b> defines lo que buscas y tu precio meta. Con <b>Junta DatoYa</b>, varias personas pueden convertir una necesidad local en una señal para los negocios. Comprar sigue siendo gratis y el pago siempre es directo al comercio.</p><div><a class="btn btn-primary" href="'+(!ME?'#/registro':'#/club')+'">'+(!ME?'Crear cuenta y probar una Caza':'Probar Caza Ya')+'</a><small>1 Caza gratis · Club desde '+money(990)+' · sin renovación automática</small></div></div><div class="dy-club-home-orbit"><div class="main">🎯<b>Caza Ya</b><small>“Avísame si aparece bajo mi precio meta”</small></div><span class="o1">👥 Junta</span><span class="o2">🤫 Sin spam</span><span class="o3">📉 Precio Meta</span></div>';
+    s.innerHTML='<div class="dy-club-home-copy"><span>⭐ DATOYA CLUB</span><h2>¿Y si en vez de buscar todos los días, DatoYa estuviera atento por ti?</h2><p>Con <b>Caza Ya</b> defines lo que buscas y tu precio meta. Con <b>Junta DatoYa</b>, varias personas pueden convertir una necesidad local en una señal para los negocios. Comprar sigue siendo gratis y el pago siempre es directo al comercio.</p><div><a class="btn btn-primary" href="#/club-info">Conocer DatoYa Club</a><small>1 Caza gratis · Club desde '+money(990)+' · sin renovación automática</small></div></div><div class="dy-club-home-orbit"><div class="main">🎯<b>Caza Ya</b><small>“Avísame si aparece bajo mi precio meta”</small></div><span class="o1">👥 Junta</span><span class="o2">🤫 Sin spam</span><span class="o3">📉 Precio Meta</span></div>';
     anchor.insertAdjacentElement('afterend',s);
   }
   addEventListener('datoya:market-home-rendered',()=>setTimeout(addHomeClub,0));
