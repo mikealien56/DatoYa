@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "cl.datoya.app",
+      "sha256_cert_fingerprints": [
+        "96:22:E3:5B:2A:10:E3:4B:88:5B:2A:48:B1:21:3A:F1:C2:0D:C5:E8:02:C6:5C:61:DB:95:F6:FE:C7:AF:EB:E7"
+      ]
+    }
+  }
+]
