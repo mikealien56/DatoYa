@@ -14,7 +14,7 @@
       ['#/admin/negocios','🏪','Negocios'],['#/admin/productos','📦','Productos'],['#/admin/pedidos','🧾','Pedidos'],['#/admin/soporte','📨','Soporte']
     ]],
     ['Crecimiento',[
-      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/fundadores','🏅','Fundadores'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso de la semana'],['#/admin/destacado','🏅','Negocio destacado'],['#/admin/analitica','📈','Analítica']
+      ['#/admin/impulso','⚡','DatoYa Impulso'],['#/admin/club','⭐','Club clientes'],['#/admin/fundadores','🏅','Fundadores'],['#/admin/cupones','🎟️','Cupones'],['#/admin/impulso-semanal','⭐','Impulso de la semana'],['#/admin/destacado','🏅','Negocio destacado'],['#/admin/analitica','📈','Analítica']
     ]],
     ['Sistema',[
       ['#/admin/usuarios','👥','Usuarios'],['#/admin/finanzas','💰','Finanzas'],['#/admin/configuracion','⚙️','Configuración']
@@ -57,7 +57,7 @@
 
   routes.admin=async function(tab='dashboard'){
     if(!ME||ME.role!=='admin'){view.innerHTML='<div class="empty"><b>🛡️</b>Acceso solo para administradores.</div>';return;}
-    const managed=['dashboard','resumen','usuarios','negocios','productos','pedidos','finanzas','impulso','fundadores','impulso-semanal','destacado','analitica','moderacion','configuracion'];
+    const managed=['dashboard','resumen','usuarios','negocios','productos','pedidos','finanzas','impulso','club','fundadores','impulso-semanal','destacado','analitica','moderacion','configuracion'];
     if(!managed.includes(tab))return previous.apply(this,arguments);
     try{
       if(tab==='destacado'){
@@ -135,6 +135,22 @@
           ${inputFilter('Buscar referencia, negocio o payment_id')}
           <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.reference,r.business_name,r.payment_id,r.payment_status].join(' ').toLowerCase())}"><div><b>${h(r.reference)}</b><div class="small muted">${h(r.business_name)} · ${dt(r.created_at)} · ${h(r.payment_status)}</div><div class="small muted">${r.payment_id?'payment_id '+h(r.payment_id):'Sin payment_id'}</div></div><div class="dy-admin-money-inline"><b>${money(r.total)}</b><small>Comisión DatoYa ${money(r.datoya_fee)}</small></div></article>`).join('')}</div>`);
         wireSearch('[data-fin-row]');return;
+      }
+
+      if(tab==='club'){
+        const {members=[],history=[]}=await api('/admin/club-gifts/members');
+        shell('⭐ DatoYa Club','Miembros activos y Sorpresas Club. Los regalos son beneficios digitales; no reemplazan el pago normal de Club.',`
+          <div class="dy-admin-kpis">
+            <div><strong>${members.length}</strong><span>Club activos</span><small>Pases vigentes</small></div>
+            <div><strong>${members.filter(x=>Number(x.pending_gifts)>0).length}</strong><span>Con sorpresa</span><small>Regalo pendiente por abrir</small></div>
+            <div><strong>${history.filter(x=>x.status==='claimed').length}</strong><span>Regalos abiertos</span><small>Historial reciente</small></div>
+          </div>
+          <div class="card dy-admin-note"><b>🎁 Sorpresa Club:</b> puedes regalar días extra, Cazas o Radar Turbo. No entrega dinero ni hace gratis la membresía.</div>
+          ${inputFilter('Buscar miembro Club por nombre, correo o comuna')}
+          <div class="dy-admin-list">${members.map(m=>`<article class="card dy-admin-row" data-club-row data-search="${h([m.name,m.email,m.comuna].join(' ').toLowerCase())}"><div><b>⭐ ${h(m.name)}</b><div class="small muted">${h(m.email)} · ${h(m.comuna||'Sin comuna')}</div><div class="dy-admin-tags">${badge('Club hasta '+String(m.expires_at||'').slice(0,10),'ok')} ${Number(m.pending_gifts)?badge(m.pending_gifts+' sorpresa(s)','warn'):badge('Sin regalos pendientes')} ${badge(m.claimed_gifts+' abiertos')}</div></div><div class="dy-admin-row-actions"><select id="club-gift-${Number(m.id)}"><option value="radar_turbo:24">⚡ Radar Turbo 24 h</option><option value="hunt_slots:1">🎯 +1 Caza</option><option value="hunt_slots:2">🎯 +2 Cazas</option><option value="club_days:2">🎁 +2 días Club</option><option value="club_days:3">🎁 +3 días Club</option><option value="club_days:7">🎁 +7 días Club</option></select><button class="btn btn-primary btn-sm" onclick="dyGiftCustomerClub(${Number(m.id)},'${h(String(m.name).replace(/'/g,'&#39;'))}')">🎁 Enviar sorpresa</button></div></article>`).join('')||'<div class="card"><p class="muted">Todavía no hay miembros Club activos.</p></div>'}</div>
+          <section class="card" style="margin-top:16px"><h3>Historial de Sorpresas Club</h3><div class="dy-admin-history">${history.slice(0,80).map(g=>`<div><b>${h(g.user_name)}</b><span>${h(g.kind)} · ${Number(g.value)} · ${h(g.status)} · ${dt(g.created_at)}</span></div>`).join('')||'<p class="muted">Aún no se han enviado regalos.</p>'}</div></section>
+        `);
+        wireSearch('[data-club-row]');return;
       }
 
       if(tab==='impulso'){
@@ -244,6 +260,11 @@
 
   window.dyToggleAdminUser=async id=>{try{await api('/admin/users/'+id+'/toggle',{method:'POST',body:{}});toast?.('Usuario actualizado','ok');routes.admin('usuarios');}catch(e){toast?.(e.message,'err');}};
   window.dySetBusinessStatus=async(id,status)=>{if(!status)return;try{await api('/admin/marketplace/businesses/'+id+'/status',{method:'PUT',body:{status}});if(status==='active')await api('/admin/marketplace-v2/founders').catch(()=>null);toast?.('Estado del negocio actualizado','ok');routes.admin('negocios');}catch(e){toast?.(e.message,'err');}};
+  window.dyGiftCustomerClub=async(id,name)=>{
+    const raw=String(document.getElementById('club-gift-'+id)?.value||'radar_turbo:24'),parts=raw.split(':'),kind=parts[0],value=Number(parts[1]||1);
+    if(!confirm('¿Enviar esta Sorpresa Club a '+name+'?'))return;
+    try{const r=await api('/admin/club-gifts',{method:'POST',body:{user_id:Number(id),kind,value}});toast?.('🎁 Sorpresa Club enviada','ok');routes.admin('club');}catch(e){toast?.(e.message||'No se pudo enviar','err');}
+  };
   window.dyGiftImpulse=async(id,name)=>{const days=Number(document.getElementById('gift-days-'+id)?.value||30);if(!confirm('¿Regalar '+days+' días de DatoYa Impulso a '+name+'?'))return;try{const r=await api('/admin/marketplace-v2/impulso/gift',{method:'POST',body:{business_id:id,days}});toast?.(r.message||'Cortesía activada','ok');routes.admin('impulso');}catch(e){toast?.(e.message,'err');}};
   window.dyGiftWeekly=async()=>{const id=Number(document.getElementById('dy-weekly-business')?.value||0);if(!id)return toast?.('Selecciona un negocio','err');try{await api('/admin/weekly-impulses/gift',{method:'POST',body:{business_id:id}});toast?.('Impulso semanal regalado','ok');routes.admin('impulso-semanal');}catch(e){toast?.(e.message,'err');}};
   window.dyApproveWeekly=async id=>{if(!confirm('¿Aprobar este destacado por 7 días usando la foto disponible?'))return;try{await api('/admin/weekly-impulses/'+id+'/approve',{method:'POST',body:{placement_type:'gifted',use_original:true}});toast?.('Destacado aprobado','ok');routes.admin('impulso-semanal');}catch(e){toast?.(e.message,'err');}};

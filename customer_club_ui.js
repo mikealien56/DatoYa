@@ -40,6 +40,21 @@
         '<article><span>💡</span><b>Ahorro potencial verificable</b><p>DatoYa solo muestra diferencia de precio cuando existe un precio normal y una promoción activa reales.</p><small>Sin inventar “antes” para hacer parecer más grande el descuento.</small></article>'+
       '</div></section>';
   }
+  function giftsSection(d){
+    if(!d.club_active)return '';
+    const pending=d.pending_gifts||[],claimed=(d.gifts||[]).filter(g=>g.status==='claimed').slice(0,6),bonus=d.active_bonuses||{};
+    return '<section class="dy-club-gifts">'+
+      '<div class="dy-club-section-head row"><div><span>🎁 SORPRESA CLUB</span><h2>Regalos por ser parte de Club</h2><p>No son sorteos ni compras extra. Son beneficios digitales que DatoYa puede darte durante tu pase.</p></div>'+
+      (pending.length?'<b class="dy-club-gift-count">'+pending.length+' por abrir</b>':'')+'</div>'+
+      (pending.length?'<div class="dy-club-gift-grid">'+pending.map(g=>'<article class="dy-club-gift-card unopened"><div class="gift-icon">🎁</div><small>SORPRESA PARA TI</small><h3>'+h(g.title||'Sorpresa Club')+'</h3><p>'+h(g.message||'Tienes un regalo Club esperando.')+'</p><button class="btn btn-primary btn-block" onclick="dyClubClaimGift('+Number(g.id)+')">Abrir regalo</button></article>').join('')+'</div>':'<div class="dy-club-gift-empty"><span>💙</span><div><b>Hoy no tienes regalos pendientes</b><p>DatoYa puede sorprenderte durante tu pase con días extra, Cazas o Radar Turbo.</p></div></div>')+
+      ((Number(bonus.hunt_slots||0)>0||bonus.radar_turbo_until)?'<div class="dy-club-active-bonuses">'+
+        (Number(bonus.hunt_slots||0)>0?'<span>🎯 +'+Number(bonus.hunt_slots)+' Caza'+(Number(bonus.hunt_slots)===1?'':'s')+' activa'+(Number(bonus.hunt_slots)===1?'':'s')+'</span>':'')+
+        (bonus.radar_turbo_until?'<span>⚡ Radar Turbo hasta '+h(date(bonus.radar_turbo_until))+'</span>':'')+
+      '</div>':'')+
+      (claimed.length?'<details class="dy-club-gift-history"><summary>Ver regalos recibidos</summary><div>'+claimed.map(g=>'<span>'+h(g.meta?.icon||'🎁')+' '+h(g.meta?.label||g.title)+'</span>').join('')+'</div></details>':'')+
+    '</section>';
+  }
+
   function huntsSection(d){
     const active=(d.hunts||[]).filter(x=>x.status==='active'),left=Math.max(0,Number(d.hunt_limit||1)-active.length);
     return '<section class="dy-club-tool"><div class="dy-club-section-head row"><div><span>🎯 CAZA YA</span><h2>¿Qué quieres que encontremos?</h2><p>'+active.length+' activa'+(active.length===1?'':'s')+' · te quedan '+left+' espacios.</p></div><b class="dy-club-limit">'+active.length+'/'+Number(d.hunt_limit||1)+'</b></div>'+
@@ -65,7 +80,7 @@
     clubData=d;
     view.innerHTML='<div class="dy-club-page"><a class="dy-public-back" href="#/perfil">← Mi cuenta</a>'+clubHero(d)+
       '<section class="dy-club-rule"><span>💙</span><div><b>La regla de Club</b><p>DatoYa Gratis nunca pierde búsqueda, pedidos ni acceso a negocios por no pagar. Club solo agrega automatización, prioridad futura y herramientas de oportunidad.</p></div></section>'+
-      planCards(d)+featureLab(d)+huntsSection(d)+opportunitiesSection(d)+juntasSection(d)+
+      planCards(d)+giftsSection(d)+featureLab(d)+huntsSection(d)+opportunitiesSection(d)+juntasSection(d)+
       '<section class="dy-club-footer-card"><div><span>🔐</span><div><b>Tu compra sigue siendo con el negocio</b><p>Club se paga a DatoYa porque es un servicio DatoYa. Los productos y pedidos se pagan directamente al comercio, igual que en la versión Gratis.</p></div></div></section>'+
     '</div>';
     bindForms();
@@ -102,6 +117,16 @@
       }catch(err){btn.disabled=false;toast?.(err.message||'No pudimos unirte','err');}
     });
   }
+  window.dyClubClaimGift=async function(id){
+    try{
+      const btn=document.querySelector('[onclick="dyClubClaimGift('+Number(id)+')"]');
+      if(btn){btn.disabled=true;btn.textContent='Abriendo…';}
+      const r=await api('/club/gifts/'+Number(id)+'/claim',{method:'POST',body:{}});
+      const label=r.meta?.label||'Regalo activado';
+      toast?.('🎁 '+label,'ok');
+      loadClub();
+    }catch(e){toast?.(e.message||'No se pudo abrir el regalo','err');}
+  };
   window.dyClubBuy=async function(days){
     if(clubBusy)return;clubBusy=true;
     try{
