@@ -367,8 +367,8 @@ grep -q "Pago directo al negocio" marketplace_admin_v2_ui.js || { echo "Admin pe
 
 # DatoYa Club público debe informar antes de pedir registro
 grep -q "routes\['club-info'\]=loadClubInfo" customer_club_ui.js || { echo "Falta página pública informativa de DatoYa Club"; exit 1; }
-grep -q "const target='#/club-info'" home_structure_v3.js || { echo "Home todavía envía Club directo a registro/perfil"; exit 1; }
-grep -q "DatoYa busca oportunidades por ti" customer_club_ui.js || { echo "Página Club no explica qué es"; exit 1; }
+grep -q 'href="#/club-info"' home_structure_v3.js || { echo "Home todavía no envía Club a Conoce más"; exit 1; }
+grep -q "DatoYa atento por ti" customer_club_ui.js || { echo "Página Club no explica qué es"; exit 1; }
 grep -q "CÓMO FUNCIONA" customer_club_ui.js || { echo "Página Club no explica funcionamiento"; exit 1; }
 grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara con Gratis"; exit 1; }
 
@@ -392,3 +392,14 @@ grep -q "const total=subtotal+deliveryFee" marketplace_order_integrity_bootstrap
 node --check marketplace_delivery_eta_ui.js
 node --check marketplace_delivery_eta_bootstrap.js
 node --check marketplace_delivery_eta_assets.js
+
+# DatoYa Club identidad pública
+test -s brand/datoya-club-card.webp || { echo "Falta imagen oficial DatoYa Club"; exit 1; }
+grep -q 'datoya-club-card.webp' home_structure_v3.js || { echo "Portada no usa identidad DatoYa Club"; exit 1; }
+grep -q 'Conoce más' home_structure_v3.js || { echo "Portada Club no enlaza a información"; exit 1; }
+grep -q 'DatoYa atento por ti' customer_club_ui.js || { echo "Página Conoce más Club no fue renovada"; exit 1; }
+grep -q 'CLUB EN UNA FRASE' customer_club_ui.js || { echo "Falta explicación breve de Club"; exit 1; }
+grep -q 'brandSrc' customer_club_assets.js || { echo "Imagen Club no se publica en /public/brand"; exit 1; }
+node --check home_structure_v3.js
+node --check customer_club_ui.js
+node --check customer_club_assets.js

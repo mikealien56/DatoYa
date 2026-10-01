@@ -30,24 +30,26 @@
   async function renderClub(host){
     let p={prices:{7:990,30:1990},free_hunts:1,club_hunts:10,no_auto_renew:true};
     try{p=await api('/public/club');}catch(_){}
-    const target='#/club-info';
     host.innerHTML=`
-      <div class="dy-home-v3-head">
-        <span>🛍️ PARA CLIENTES</span>
-        <h2>Comprar sigue siendo gratis. Club hace que DatoYa trabaje por ti.</h2>
-        <p>Busca, compara, pide y paga directamente al negocio sin contratar nada. Si quieres automatización, DatoYa Club agrega herramientas especiales.</p>
-      </div>
-      <div class="dy-home-client-grid">
-        <article class="free">
-          <span>💙</span><h3>DatoYa Gratis</h3><strong>$0</strong>
-          <ul><li>Buscar negocios y productos</li><li>Pedidos y seguimiento</li><li>Lo Busco Ya</li><li>Favoritos y alertas básicas</li><li>${Number(p.free_hunts||1)} Caza Ya para probar</li></ul>
-          <a class="btn btn-outline" href="#/buscar/_">Explorar gratis</a>
-        </article>
-        <article class="club">
-          <em>OPCIONAL</em><span>⭐</span><h3>DatoYa Club</h3><div class="prices"><b>7 días ${money(p.prices?.[7]||990)}</b><b>30 días ${money(p.prices?.[30]||1990)}</b></div>
-          <ul><li>Hasta ${Number(p.club_hunts||10)} Cazas activas</li><li>Precio Meta y Radar Silencioso</li><li>Junta DatoYa</li><li>Sorpresas Club</li><li>Sin renovación automática</li></ul>
-          <a class="btn btn-primary" href="${target}">Conocer DatoYa Club</a>
-        </article>
+      <div class="dy-home-club-showcase">
+        <div class="dy-home-club-visual">
+          <img src="/brand/datoya-club-card.webp" alt="Tarjeta DatoYa Club" loading="lazy">
+        </div>
+        <div class="dy-home-club-copy">
+          <span class="dy-home-club-kicker">DATOYA CLUB</span>
+          <h2>Más oportunidades. Menos búsqueda.</h2>
+          <p>DatoYa Club es un pase opcional para quienes quieren que DatoYa quede atento a lo que buscan, a su precio objetivo y a nuevas oportunidades cerca de ellos.</p>
+          <div class="dy-home-club-benefits">
+            <div><b>Caza Ya + Precio Meta</b><small>Define qué buscas y cuánto quieres pagar.</small></div>
+            <div><b>Radar Silencioso</b><small>Recibe avisos cuando aparece una coincidencia útil.</small></div>
+            <div><b>Junta DatoYa</b><small>Suma tu interés a necesidades reales de tu zona.</small></div>
+          </div>
+          <div class="dy-home-club-actions">
+            <a class="btn btn-primary" href="#/club-info">Conoce más</a>
+            <div class="dy-home-club-prices"><b>7 días ${money(p.prices?.[7]||990)}</b><b>30 días ${money(p.prices?.[30]||1990)}</b></div>
+          </div>
+          <small class="dy-home-club-note">DatoYa Gratis sigue disponible. Club no se renueva automáticamente.</small>
+        </div>
       </div>`;
   }
 

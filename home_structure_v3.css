@@ -10,3 +10,25 @@
 .dy-home-v3-final{display:flex;justify-content:space-between;gap:16px;align-items:center;background:#072B63!important;color:#fff;border-radius:22px!important;padding:21px!important}.dy-home-v3-final>div{display:flex;gap:12px;align-items:flex-start}.dy-home-v3-final>div>span{font-size:28px}.dy-home-v3-final b{font-size:17px}.dy-home-v3-final p{margin:3px 0 0;opacity:.82}
 @media(max-width:900px){.dy-home-plan-table{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.dy-home-flow-grid,.dy-home-client-grid,.dy-home-plan-table{grid-template-columns:1fr}.dy-home-v3-block{padding:18px 13px!important}.dy-home-v3-final{align-items:flex-start;flex-direction:column}.dy-home-plan-actions{align-items:stretch}.dy-home-plan-actions .btn{width:100%;box-sizing:border-box;text-align:center}}
+
+
+/* DatoYa Club — identidad destacada en portada */
+.dy-home-v3-block.client{background:linear-gradient(145deg,#071f49,#0B3A82 62%,#0f766e);border:0;color:#fff;overflow:hidden;position:relative}
+.dy-home-v3-block.client:before{content:"";position:absolute;width:340px;height:340px;border-radius:50%;right:-170px;top:-170px;background:rgba(78,220,206,.10);pointer-events:none}
+.dy-home-club-showcase{position:relative;z-index:1;display:grid;grid-template-columns:minmax(280px,.95fr) minmax(0,1.05fr);gap:28px;align-items:center}
+.dy-home-club-visual{display:flex;align-items:center;justify-content:center;min-height:270px}
+.dy-home-club-visual img{display:block;width:min(100%,560px);height:auto;filter:drop-shadow(0 22px 32px rgba(0,0,0,.28));transform:rotate(-1.5deg)}
+.dy-home-club-copy{max-width:620px}
+.dy-home-club-kicker{display:inline-flex;align-items:center;border:1px solid rgba(78,220,206,.35);background:rgba(25,198,180,.12);border-radius:999px;padding:7px 10px;font-size:10px;font-weight:900;letter-spacing:.16em;color:#75f1e5}
+.dy-home-club-copy h2{font-size:clamp(28px,4.5vw,44px);line-height:1.04;margin:10px 0 10px;color:#fff}
+.dy-home-club-copy>p{margin:0;color:rgba(255,255,255,.86);line-height:1.58}
+.dy-home-club-benefits{display:grid;gap:8px;margin-top:17px}
+.dy-home-club-benefits>div{position:relative;padding:10px 12px 10px 38px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.075)}
+.dy-home-club-benefits>div:before{content:"";position:absolute;left:13px;top:14px;width:12px;height:7px;border-left:2px solid #4EDCCE;border-bottom:2px solid #4EDCCE;transform:rotate(-45deg)}
+.dy-home-club-benefits b,.dy-home-club-benefits small{display:block}.dy-home-club-benefits b{font-size:13px;color:#fff}.dy-home-club-benefits small{margin-top:2px;font-size:11px;color:rgba(255,255,255,.68)}
+.dy-home-club-actions{display:flex;gap:11px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.dy-home-club-actions .btn{background:#fff;color:#072B63;border-color:#fff;font-weight:900}
+.dy-home-club-prices{display:flex;gap:7px;flex-wrap:wrap}.dy-home-club-prices b{border-radius:999px;padding:7px 10px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);font-size:10px;color:#fff}
+.dy-home-club-note{display:block;margin-top:10px;color:rgba(255,255,255,.62);font-size:10px}
+@media(max-width:820px){.dy-home-club-showcase{grid-template-columns:1fr;gap:12px}.dy-home-club-visual{min-height:0}.dy-home-club-visual img{width:min(100%,500px)}}
+@media(max-width:520px){.dy-home-v3-block.client{padding:17px 12px!important}.dy-home-club-copy h2{font-size:29px}.dy-home-club-actions{align-items:stretch}.dy-home-club-actions .btn{width:100%;text-align:center;box-sizing:border-box}.dy-home-club-prices{width:100%}.dy-home-club-prices b{flex:1;text-align:center}.dy-home-club-visual img{transform:none}}
