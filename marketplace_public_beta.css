@@ -24,3 +24,32 @@
 .dy-featured-week{padding:22px;border:1px solid #dce6f1;border-radius:24px;background:linear-gradient(115deg,#fff,#edf7ff)}.dy-featured-week-head>span,.dy-featured-week-label{font-size:11px;color:#0b3a82;font-weight:850;letter-spacing:.05em}.dy-featured-week-head h2{margin:7px 0 3px;color:#072b63;font-size:clamp(21px,3vw,27px)}.dy-featured-week-head p{margin:0 0 13px;color:#52617a;font-size:13px}.dy-featured-week-card{display:grid;grid-template-columns:220px 1fr;gap:17px;align-items:center;padding:13px;border:1px solid #dbe7ef;border-radius:18px;background:#fff}.dy-featured-week-photo{height:145px;overflow:hidden;border-radius:13px}.dy-featured-week-photo img{width:100%;height:100%;object-fit:cover}.dy-featured-week-card h3{margin:7px 0 3px;color:#072b63;font-size:23px}.dy-featured-week-card p{margin:0 0 13px}.dy-featured-week-soon{padding:13px 15px;border-radius:14px;background:#fff;color:#36536b;font-size:13px}.dy-featured-week-soon a{font-weight:800;color:#0b3a82;text-decoration:none}@media(max-width:640px){.dy-featured-week{padding:17px 13px}.dy-featured-week-card{grid-template-columns:1fr}.dy-featured-week-photo{height:140px}.dy-featured-week-card h3{font-size:20px}}
 
 .dy-wanted-intro{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;padding:24px;border-radius:20px;background:#eef8f8;border:1px solid #c9e8e4}.dy-wanted-intro h2{font-size:clamp(21px,3vw,28px);margin:10px 0;color:#0b3a82}.dy-wanted-intro p{line-height:1.6;margin:0 0 18px}.dy-wanted-intro-kicker{font-weight:800;color:#0b3a82}.dy-wanted-example{padding:20px;border-radius:16px;background:#fff}.dy-wanted-example>span{font-size:12px;font-weight:700;color:#526071}.dy-wanted-example blockquote{margin:14px 0;font-size:18px;font-weight:700;color:#0b3a82}.dy-wanted-example ol{padding-left:20px;line-height:1.6}.dy-wanted-example small{color:#526071}@media(max-width:640px){.dy-wanted-intro{grid-template-columns:1fr;padding:18px;gap:18px}}
+
+
+/* DatoYa — explicación pública: clientes y negocios */
+.dy-how-it-works{padding:26px;border:1px solid #dce7f2;border-radius:28px;background:linear-gradient(145deg,#fff 0%,#f7fbff 54%,#effcf9 100%);box-shadow:0 14px 36px rgba(7,43,99,.07)}
+.dy-how-heading{text-align:center;max-width:760px;margin:0 auto 20px}
+.dy-how-eyebrow{display:inline-flex;padding:6px 10px;border-radius:999px;background:#e8fbf8;color:#08796d;font-size:11px;font-weight:900;letter-spacing:.1em}
+.dy-how-heading h2{margin:8px 0 7px;color:#072b63;font-size:clamp(24px,4vw,34px);letter-spacing:-.5px}
+.dy-how-heading p{margin:0;color:#607086;font-size:14px;line-height:1.6}
+.dy-how-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dy-how-card{display:flex;flex-direction:column;border-radius:22px;padding:20px;background:#fff;border:1px solid #e2e8f0;min-width:0}
+.dy-how-card.customer{box-shadow:inset 0 4px 0 #19c6b4}
+.dy-how-card.business{box-shadow:inset 0 4px 0 #0b3a82}
+.dy-how-card-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.dy-how-card-head>span{width:48px;height:48px;display:grid;place-items:center;flex:0 0 auto;border-radius:15px;background:#f1f6fb;font-size:24px}
+.dy-how-card-head small{display:block;color:#718096;font-size:10px;font-weight:900;letter-spacing:.1em}
+.dy-how-card-head h3{margin:3px 0 0;color:#0b3a82;font-size:19px;line-height:1.2}
+.dy-how-steps{list-style:none;counter-reset:dyhow;padding:0;margin:0 0 16px;display:grid;gap:10px;flex:1}
+.dy-how-steps li{counter-increment:dyhow;display:grid;grid-template-columns:30px 1fr;column-gap:9px;align-items:start}
+.dy-how-steps li:before{content:counter(dyhow);display:grid;place-items:center;width:27px;height:27px;border-radius:50%;background:#e8fbf8;color:#08796d;font-size:12px;font-weight:900;grid-row:1/3}
+.dy-how-card.business .dy-how-steps li:before{background:#edf4ff;color:#0b3a82}
+.dy-how-steps b{color:#25364f;font-size:13px}
+.dy-how-steps span{grid-column:2;color:#6b778b;font-size:12px;line-height:1.45}
+.dy-how-cta{align-self:flex-start;text-decoration:none}
+.dy-how-promise{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.dy-how-promise>div{display:flex;align-items:flex-start;gap:10px;padding:13px;border-radius:15px;background:#fff;border:1px solid #e5ebf3}
+.dy-how-promise>div>span{font-size:22px}
+.dy-how-promise p{margin:0}.dy-how-promise b,.dy-how-promise small{display:block}
+.dy-how-promise b{color:#0b3a82;font-size:12px}.dy-how-promise small{margin-top:3px;color:#6c788b;font-size:10px;line-height:1.4}
+@media(max-width:760px){.dy-how-it-works{padding:19px 13px;border-radius:22px}.dy-how-grid{grid-template-columns:1fr}.dy-how-promise{grid-template-columns:1fr}.dy-how-heading{text-align:left}.dy-how-card{padding:17px}.dy-how-card-head h3{font-size:17px}}
