@@ -6,7 +6,6 @@ on:
     paths:
       - 'capacitor.config.json'
       - 'capacitor-www/**'
-      - 'brand/android/**'
       - 'styles.css'
       - 'index.html'
       - '.github/workflows/android-capacitor.yml'
@@ -50,12 +49,7 @@ jobs:
           from PIL import Image
           from pathlib import Path
           from collections import deque
-          import base64
-
-          raw=base64.b64decode(Path('brand/android/datoya-icon-source.b64').read_text().strip())
-          tmp=Path('/tmp/datoya-icon-source.jpg')
-          tmp.write_bytes(raw)
-          src=Image.open(tmp).convert('RGBA')
+          src=Image.open('brand/pwa/icon-512.png').convert('RGBA')
 
           # Quita solo el blanco exterior conectado a los bordes. Conserva el blanco interno del local.
           px=src.load(); W,H=src.size
