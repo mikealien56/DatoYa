@@ -81,7 +81,7 @@
     view.innerHTML='<div class="dy-club-page"><a class="dy-public-back" href="#/perfil">← Mi cuenta</a>'+clubHero(d)+
       '<section class="dy-club-rule"><span>💙</span><div><b>La regla de Club</b><p>DatoYa Gratis nunca pierde búsqueda, pedidos ni acceso a negocios por no pagar. Club solo agrega automatización, prioridad futura y herramientas de oportunidad.</p></div></section>'+
       planCards(d)+giftsSection(d)+featureLab(d)+huntsSection(d)+opportunitiesSection(d)+juntasSection(d)+
-      '<section class="dy-club-footer-card"><div><span>🔐</span><div><b>Tu compra sigue siendo con el negocio</b><p>Club se paga a DatoYa porque es un servicio DatoYa. Los productos y pedidos se pagan directamente al comercio, igual que en la versión Gratis.</p></div></div></section>'+
+      '<section class="dy-club-footer-card"><div><span>🔐</span><div><b>Tu compra sigue siendo con el negocio</b><p>DatoYa Club es opcional. Los productos y pedidos se pagan directamente al comercio, igual que en la versión Gratis.</p></div></div></section>'+
     '</div>';
     bindForms();
   }
@@ -109,7 +109,7 @@
         '<section class="dy-club-info-compare"><div><span>🆓</span><h3>DatoYa Gratis</h3><p>Buscar, explorar negocios, hacer pedidos, usar Lo Busco Ya y probar una Caza.</p></div><div><span>⭐</span><h3>DatoYa Club</h3><p>Todo lo anterior + más Cazas, Precio Meta, Radar, Junta y beneficios Club.</p></div></section>'+
         accountNote+
         '<section class="dy-club-info-cta"><div><b>Primero conoce DatoYa. Club es un extra, no una obligación.</b><p>Puedes seguir usando DatoYa Gratis todo el tiempo que quieras.</p></div><div>'+cta+'</div></section>'+
-        '<section class="dy-club-footer-card"><div><span>🔐</span><div><b>Club se paga a DatoYa; tus compras no</b><p>El pase Club es un servicio de DatoYa. Los productos y pedidos se siguen pagando directamente al negocio.</p></div></div></section>'+
+        '<section class="dy-club-footer-card"><div><span>🔐</span><div><b>Tus compras siguen siendo directas con el negocio</b><p>Club es opcional y no cambia la forma en que pagas tus productos o pedidos.</p></div></div></section>'+
       '</div>';
     }catch(e){
       view.innerHTML='<div class="dy-club-page"><section class="dy-club-loading error"><span>⚠️</span><h2>No pudimos cargar la información de Club</h2><p>'+h(e.message||'Intenta nuevamente.')+'</p><button class="btn btn-primary" onclick="routes[\'club-info\']()">Reintentar</button></section></div>';
