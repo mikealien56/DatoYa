@@ -64,7 +64,7 @@
         <article><div class="icon">🛍️</div><small>CLIENTE</small><h3>Busca → pide → paga al negocio</h3><p>Encuentra opciones cercanas, haz tu pedido y coordina el pago directamente con el comercio.</p><a href="#/buscar/_">Buscar cerca de mí →</a></article>
         <article id="como-funciona-negocios"><div class="icon">🏪</div><small>NEGOCIO</small><h3>Publica → recibe pedidos → cobra directo</h3><p>Crea tu presencia gratis. Si quieres más alcance, activas herramientas de crecimiento por días.</p><a href="#/registrar-negocio">Publicar mi negocio →</a></article>
       </div>
-      <div class="dy-home-money-rule"><span>💳</span><div><b>El dinero de la venta no pasa por DatoYa</b><p>DatoYa gana por servicios propios opcionales: planes de crecimiento, DatoYa Club y espacios promocionales.</p></div></div>`;
+      <div class="dy-home-money-rule"><span>💳</span><div><b>El pago de la compra es directo al negocio</b><p>DatoYa te ayuda a encontrar, pedir y coordinar con comercios cercanos de forma simple y transparente.</p></div></div>`;
   }
 
   function restructureHome(){
