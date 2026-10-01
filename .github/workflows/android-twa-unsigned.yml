@@ -49,6 +49,8 @@ jobs:
           echo "Proyecto Android generado correctamente."
 
       - name: Build unsigned APK and AAB
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk/cmdline-tools/latest
         run: bubblewrap build --skipSigning --skipPwaValidation
 
       - name: Collect artifacts
