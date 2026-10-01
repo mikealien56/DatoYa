@@ -111,6 +111,15 @@ function __dyGrowthOffers(){
   }));
 }
 
+app.get('/api/market/business-plans',(req,res)=>{
+  res.json({
+    free:{key:'free',label:'DatoYa Gratis',price:0,access:__dyGrowthAccess('free')},
+    offers:__dyGrowthOffers(),
+    durations:[1,7,15,30],
+    sales_policy:{datoya_commission_pct:0,direct_payment_to_business:true,datoya_handles_order_money:false}
+  });
+});
+
 app.get('/api/businesses/:id/growth-plans',auth,(req,res)=>{
   const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
   if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
