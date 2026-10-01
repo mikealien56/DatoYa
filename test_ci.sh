@@ -25,8 +25,6 @@ bash test_password_reset_links.sh
 bash test_business_loading_guards.sh
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
-bash test_khipu_business_onboarding.sh
-node test_khipu_integrator.js
 node --check push_notifications_bootstrap.js
 grep -q '"web-push"' package.json || { echo "Falta dependencia web-push"; exit 1; }
 grep -q "CREATE TABLE IF NOT EXISTS push_subscriptions" push_notifications_bootstrap.js || { echo "Falta persistencia de suscripciones Push"; exit 1; }
@@ -72,19 +70,21 @@ grep -q "CREATE TABLE IF NOT EXISTS support_case_messages" postgres/006_business
 grep -q "Falta tabla PostgreSQL: support_case_messages" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS business_impulse_memberships" postgres/004_marketplace_admin_v2.sql
 grep -q "CREATE TABLE IF NOT EXISTS business_impulse_payments" postgres/004_marketplace_admin_v2.sql
-grep -q "impulso_quarterly_price" postgres/005_impulso_quarterly_pricing.sql
-grep -q "quarterly" marketplace_admin_v2_bootstrap.js
-grep -q "26990" marketplace_admin_v2_bootstrap.js
-grep -q "89990" marketplace_admin_v2_bootstrap.js
-grep -q "impulso_free_catalog_limit','20" marketplace_admin_v2_bootstrap.js
-grep -q "impulso_paid_catalog_limit','200" marketplace_admin_v2_bootstrap.js
+grep -q "growth_impulso_7_price" marketplace_admin_v2_bootstrap.js || { echo "Admin no expone precios Growth V2"; exit 1; }
+grep -q "growth_impulso_plus_7_price" marketplace_admin_v2_bootstrap.js || { echo "Admin no expone Impulso+"; exit 1; }
+grep -q "growth_premium_7_price" marketplace_admin_v2_bootstrap.js || { echo "Admin no expone Premium"; exit 1; }
+grep -q "customer_club_30_price" marketplace_admin_v2_bootstrap.js || { echo "Admin no expone precio Club"; exit 1; }
 grep -q "Falta tabla PostgreSQL: business_impulse_memberships" postgres_migrate.js
 grep -q "Falta tabla PostgreSQL: business_impulse_payments" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS business_khipu_onboarding" postgres/014_khipu_business_onboarding.sql
 grep -q "Falta tabla PostgreSQL: business_khipu_onboarding" postgres_migrate.js
-grep -q "khipu_business_onboarding_bootstrap" production_start.js
+! grep -q "khipu_business_onboarding_bootstrap" production_start.js || { echo "Onboarding Khipu integrador antiguo volvió al runtime"; exit 1; }
 grep -q "business_growth_plans_v2_bootstrap" production_start.js || { echo "Growth Plans V2 backend no montado"; exit 1; }
 grep -q "business_growth_plans_v2_assets" production_start.js || { echo "Growth Plans V2 UI no publicada"; exit 1; }
+grep -q "home_clarity_v2_assets" production_start.js || { echo "Home Clarity V2 no está montado"; exit 1; }
+grep -q "api/market/business-plans" business_growth_plans_v2_bootstrap.js || { echo "Falta comparación pública de planes negocio"; exit 1; }
+grep -q "api/market/club-info" customer_club_bootstrap.js || { echo "Falta resumen público de DatoYa Club"; exit 1; }
+! grep -q "business_impulse_plan_assets" production_start.js || { echo "UI antigua mensual/trimestral de Impulso volvió a producción"; exit 1; }
 grep -q "direct_merchant_payments_bootstrap" production_start.js || { echo "Pagos directos backend no montado"; exit 1; }
 grep -q "direct_merchant_payments_assets" production_start.js || { echo "Pagos directos UI no publicada"; exit 1; }
 grep -q "customer_club_bootstrap" production_start.js || { echo "DatoYa Club backend no montado"; exit 1; }
@@ -107,9 +107,7 @@ grep -q "DATOYA_GROWTH_PLANS_V2" business_growth_plans_v2_bootstrap.js || { echo
 grep -q "business_growth_plan_payments" business_growth_plans_v2_bootstrap.js || { echo "Falta persistencia de pagos Growth Plans V2"; exit 1; }
 grep -q "Impulso Premium" business_growth_plans_v2_ui.js || { echo "Falta nivel Premium en planes"; exit 1; }
 grep -q "\[1,7,15,30\]" business_growth_plans_v2_ui.js || { echo "Faltan duraciones 1/7/15/30"; exit 1; }
-grep -q "app.get('/api/businesses/:id/khipu-onboarding'" khipu_business_onboarding_bootstrap.js
-grep -q "app.post('/api/businesses/:id/khipu-onboarding/start'" khipu_business_onboarding_bootstrap.js
-grep -q "No te pediremos claves bancarias" business_hub_ui.js
+grep -q "El cliente te paga directamente" business_hub_ui.js || { echo "Panel Negocio no explica pago directo"; exit 1; }
 grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_requests" postgres/012_commerce_refunds.sql
 grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_events" postgres/012_commerce_refunds.sql
 grep -q "Falta tabla PostgreSQL: commerce_refund_requests" postgres_migrate.js
@@ -169,7 +167,7 @@ node test_founder_welcome.js
 bash test_refunds_flow.sh
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/growth-plans businesses/1/growth-access businesses/1/direct-payment-settings orders/1/direct-payment-options club/overview club/gifts admin/club-gifts/members businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
+for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/growth-plans businesses/1/growth-access businesses/1/direct-payment-settings orders/1/direct-payment-options club/overview club/gifts admin/club-gifts/members businesses/1/readiness orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done
@@ -199,7 +197,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css beta_launch_ui.js beta_launch.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css business_growth_plans_v2_ui.js business_growth_plans_v2.css direct_merchant_payments_ui.js direct_merchant_payments.css customer_club_ui.js customer_club.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css beta_launch_ui.js beta_launch.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css business_growth_plans_v2_ui.js business_growth_plans_v2.css direct_merchant_payments_ui.js direct_merchant_payments.css customer_club_ui.js customer_club.css home_clarity_v2.js home_clarity_v2.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
@@ -291,8 +289,8 @@ grep -q "advanced||''" marketplace_promo_analytics_bootstrap.js || { echo "Falta
 grep -q "KHIPU_LIVE_BLOCKED" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de pagos Khipu reales en Impulso"; exit 1; }
 grep -q "routes\['mi-negocio-plan'\]" business_impulse_plan_ui.js || { echo "Falta página de plan Impulso para negocio"; exit 1; }
 grep -q "admin/marketplace-v2/impulso/gift" marketplace_admin_v2_ui.js || { echo "Falta gestión de cortesías Impulso en Admin"; exit 1; }
-grep -q "'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 meses en DatoYa Impulso"; exit 1; }
-grep -q "AHORRA" business_impulse_plan_ui.js || { echo "Falta mostrar ahorro del plan trimestral"; exit 1; }
+grep -q "GROWTH_PLANS_V2_REQUIRED" marketplace_admin_v2_bootstrap.js || { echo "Checkout antiguo de Impulso no está retirado"; exit 1; }
+grep -q "Comparar Impulso, Impulso+ y Premium" business_growth_plans_v2_ui.js || { echo "Falta comparación Growth V2"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const growth=s.indexOf("marketplace_growth_assets");const commerce=s.indexOf("marketplace_commerce_assets");if(growth<0||commerce<0||growth>commerce){throw new Error("El módulo de crecimiento vuelve a reemplazar la ruta del carrito")}'
 grep -q "marketplace_order_integrity_bootstrap" production_start.js || { echo "Integridad de pedidos no está montada"; exit 1; }
 grep -q "marketplace_coupons_bootstrap" production_start.js || { echo "Cupones no están montados"; exit 1; }
@@ -310,12 +308,12 @@ grep -q "Negocio Fundador DatoYa" beta_launch_ui.js || { echo "Falta identificac
 grep -q "api/orders/:id/refunds" marketplace_refunds_bootstrap.js || { echo "Falta solicitud de devolución Cliente"; exit 1; }
 grep -q "api/businesses/:id/refunds/:refundId/decision" marketplace_refunds_bootstrap.js || { echo "Falta gestión de devolución por Negocio"; exit 1; }
 grep -q "api/admin/refunds/:id/resolve" marketplace_refunds_bootstrap.js || { echo "Falta escalamiento de devolución a Admin"; exit 1; }
-grep -q "commission_refund_amount" marketplace_refunds_bootstrap.js || { echo "Falta reversa proporcional de comisión"; exit 1; }
+grep -q "function __dyRefundFeeForOrder(order){return 0;}" marketplace_refunds_bootstrap.js || { echo "Devoluciones todavía calculan comisión"; exit 1; }
+grep -q "direct-business" marketplace_refunds_bootstrap.js || { echo "Devoluciones no quedaron directas negocio-cliente"; exit 1; }
 grep -q "DATOYA GROWTH PROGRAM V1" server.js || { echo "Runtime de crecimiento no está montado"; exit 1; }
-grep -q "commission_free_pct','5.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión Gratis 5,9%"; exit 1; }
-grep -q "commission_exclusive_free_pct','4.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión exclusiva 4,9%"; exit 1; }
-grep -q "commission_impulso_pct','3.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión Impulso 3,9%"; exit 1; }
-grep -q "commission_exclusive_impulso_pct','2.9" marketplace_growth_program_bootstrap.js || { echo "Falta comisión exclusiva Impulso 2,9%"; exit 1; }
+grep -q "commission_free_pct','0" marketplace_growth_program_bootstrap.js || { echo "Comisión Gratis no quedó en 0%"; exit 1; }
+grep -q "commission_impulso_pct','0" marketplace_growth_program_bootstrap.js || { echo "Comisión Impulso no quedó en 0%"; exit 1; }
+grep -q "sales_policy:{datoya_commission_pct:0" marketplace_growth_program_bootstrap.js || { echo "Programa de crecimiento no expone política 0%"; exit 1; }
 grep -q "__dyGrowthOnOrderCompleted" marketplace_growth_program_bootstrap.js || { echo "Referidos no reaccionan a pedidos completados"; exit 1; }
 grep -q "invitation_code" marketplace_account_ui.js || { echo "Registro no permite código Fundador"; exit 1; }
 grep -q "routes\['registro-fundador'\]" marketplace_account_ui.js || { echo "Falta enlace personal de Fundador"; exit 1; }
@@ -325,11 +323,16 @@ grep -q "status='used'" marketplace_growth_program_bootstrap.js || { echo "Invit
 grep -q "dyShareFounderInvite" marketplace_admin_v2_ui.js || { echo "Admin no puede compartir invitación Fundador"; exit 1; }
 grep -q "Solo en DatoYa" marketplace_business_ui.js || { echo "Negocio no puede marcar promoción exclusiva"; exit 1; }
 grep -q "admin/fundadores" marketplace_admin_v2_ui.js || { echo "Admin no expone Fundadores"; exit 1; }
-grep -q "commissionBase=Math.max(0,subtotal-couponDiscount)" marketplace_coupons_bootstrap.js || { echo "Comisión no usa venta neta"; exit 1; }
+grep -q "const commissionBase=0;" marketplace_coupons_bootstrap.js || { echo "Cupones todavía calculan base de comisión"; exit 1; }
+grep -q "const datoyaCommissionEstimate=0;" marketplace_coupons_bootstrap.js || { echo "Cupones todavía estiman comisión"; exit 1; }
 grep -q "market_coupon_products" marketplace_coupons_bootstrap.js || { echo "Falta alcance por producto"; exit 1; }
 grep -q "market_coupon_categories" marketplace_coupons_bootstrap.js || { echo "Falta alcance por categoría"; exit 1; }
 grep -q "sales_generated" marketplace_coupons_bootstrap.js || { echo "Faltan métricas de ventas por cupón"; exit 1; }
 grep -q "scope_mode" marketplace_coupons_ui.js || { echo "UI no permite elegir alcance del cupón"; exit 1; }
+grep -q "services_only:true" marketplace_integrations_bootstrap.js || { echo "Khipu no está limitado a servicios DatoYa"; exit 1; }
+grep -q "0% de comisión sobre esas ventas" legal_final_ui.js || { echo "Términos no reflejan 0% comisión"; exit 1; }
+grep -q "home_clarity_v2" production_start.js || { echo "Portada ordenada no está en producción"; exit 1; }
+grep -q "DATOYA_ORDER_KHIPU_DISABLED_V1" direct_merchant_payments_bootstrap.js || { echo "Checkout Khipu de pedidos no está bloqueado"; exit 1; }
 grep -q "client_request_id" marketplace_order_integrity_bootstrap.js || { echo "Falta idempotencia de pedidos"; exit 1; }
 grep -q "deliveryFee=0" marketplace_order_integrity_bootstrap.js || { echo "Despacho no se calcula en servidor"; exit 1; }
 grep -q "deliveryDistanceKm>radius" marketplace_order_integrity_bootstrap.js || { echo "Radio de despacho no se valida cuando hay GPS"; exit 1; }
