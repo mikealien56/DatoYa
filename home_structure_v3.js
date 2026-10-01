@@ -30,7 +30,7 @@
   async function renderClub(host){
     let p={prices:{7:990,30:1990},free_hunts:1,club_hunts:10,no_auto_renew:true};
     try{p=await api('/public/club');}catch(_){}
-    const target=window.ME&&ME.account_type==='customer'?'#/club':window.ME?'#/perfil':'#/registro';
+    const target='#/club-info';
     host.innerHTML=`
       <div class="dy-home-v3-head">
         <span>🛍️ PARA CLIENTES</span>
