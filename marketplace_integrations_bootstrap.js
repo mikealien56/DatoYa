@@ -19,7 +19,7 @@ function __dyCommerceEmail(to,subject,title,body,ctaLabel,ctaPath){
 app.get('/api/admin/integration-status',auth,requireRole('admin'),(req,res)=>{
   res.json({
     email:{provider:'resend',configured:!!process.env.RESEND_API_KEY,from_configured:!!(process.env.AUTH_EMAIL_FROM||process.env.DATOYA_EMAIL_FROM)},
-    khipu:{api_key:!!process.env.KHIPU_API_KEY,receiver_id:!!process.env.KHIPU_RECEIVER_ID,webhook_secret:!!process.env.KHIPU_MERCHANT_SECRET,development_mode:String(process.env.KHIPU_RECEIVER_ID||'')==='529396'&&String(process.env.DATOYA_KHIPU_LIVE_PAYMENTS||'false').toLowerCase()!=='true',integrator_enabled:false,integrator_requested:String(process.env.KHIPU_INTEGRATOR_ENABLED||'').toLowerCase()==='true',live_payments_allowed:false},
+    khipu:{api_key:!!process.env.KHIPU_API_KEY,receiver_id:!!process.env.KHIPU_RECEIVER_ID,webhook_secret:!!process.env.KHIPU_MERCHANT_SECRET,development_mode:String(process.env.KHIPU_RECEIVER_ID||'')==='529396'&&String(process.env.DATOYA_KHIPU_LIVE_PAYMENTS||'false').toLowerCase()!=='true',integrator_enabled:false,integrator_requested:false,services_only:true,merchant_order_payments:false,live_payments_allowed:false},
     runtime:{db_driver:String(process.env.DB_DRIVER||'sqlite'),public_base_url:!!process.env.PUBLIC_BASE_URL}
   });
 });
