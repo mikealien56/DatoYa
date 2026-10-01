@@ -67,24 +67,8 @@ function __dyRefundActive(orderId){
 function __dyRefundLatest(orderId){
   return db.prepare('SELECT * FROM commerce_refund_requests WHERE order_id=? ORDER BY id DESC LIMIT 1').get(Number(orderId));
 }
-function __dyRefundFeeForOrder(order){
-  let fee=0;
-  try{
-    const p=db.prepare('SELECT datoya_fee FROM commerce_khipu_payments WHERE order_id=? ORDER BY id DESC LIMIT 1').get(Number(order.id));
-    fee=Math.max(0,Number(p&&p.datoya_fee||0));
-  }catch(_){}
-  if(fee>0)return Math.round(fee);
-  const rate=Math.max(0,Number(order.commission_rate_effective||0));
-  const cap=Math.max(0,Number(order.commission_cap||0));
-  const base=Math.max(0,Number(order.subtotal||0)-Number(order.coupon_discount||0));
-  const raw=Math.round(base*rate/100);
-  return cap>0?Math.min(raw,cap):raw;
-}
-function __dyRefundCommissionPart(order,amount){
-  const total=Math.max(1,Number(order.total||0)),fee=__dyRefundFeeForOrder(order),n=Math.max(0,Math.min(total,Math.round(Number(amount)||0)));
-  if(n>=total)return fee;
-  return Math.max(0,Math.min(fee,Math.round(fee*n/total)));
-}
+function __dyRefundFeeForOrder(order){return 0;}
+function __dyRefundCommissionPart(order,amount){return 0;}
 function __dyRefundRow(row){
   if(!row)return row;
   for(const k of ['id','order_id','user_id','business_id','requested_amount','approved_amount','refunded_amount','commission_refund_amount'])if(row[k]!=null)row[k]=Number(row[k]);
@@ -117,32 +101,9 @@ function __dyRefundFinalize(refundId,actorUserId,actorType,provider,providerId,p
 }
 async function __dyRefundExecuteApproved(refundId,actorUserId,actorType){
   const r=db.prepare('SELECT * FROM commerce_refund_requests WHERE id=?').get(Number(refundId));if(!r)throw new Error('Solicitud no encontrada');
-  if(!['approved','processing'].includes(String(r.status)))return {refund:__dyRefundRow(r),executed:String(r.status)==='refunded'};
-  const o=__dyRefundOrder(r.order_id);if(!o)throw new Error('Pedido no encontrado');
-  const amount=Math.round(Number(r.approved_amount||0));if(amount<1)throw new Error('Monto aprobado inválido');
-  let kp=null;try{kp=db.prepare('SELECT * FROM commerce_khipu_payments WHERE order_id=? ORDER BY id DESC LIMIT 1').get(o.id);}catch(_){}
-  if(String(o.payment_method)==='khipu'&&kp){
-    if(Number(kp.live_mode||0)===0){
-      return {refund:__dyRefundFinalize(r.id,actorUserId,actorType,'khipu-development','DEV-'+r.reference,'development_simulated'),executed:true,mode:'development'};
-    }
-    const fullOriginal=amount>=Number(o.total||0)&&__dyRefundPaidTotal(o.id)===0;
-    const enabled=String(process.env.DATOYA_KHIPU_REFUNDS_ENABLED||'false').toLowerCase()==='true';
-    const webhookReady=String(process.env.DATOYA_KHIPU_REFUND_WEBHOOK_READY||'false').toLowerCase()==='true';
-    if(!enabled||!webhookReady)return {refund:__dyRefundRow(r),executed:false,code:'KHIPU_REFUND_NOT_ENABLED',message:'La devolución quedó aprobada. La automatización de reembolso Khipu real aún no está habilitada.'};
-    if(!fullOriginal)return {refund:__dyRefundRow(r),executed:false,code:'KHIPU_PARTIAL_REFUND_MANUAL',message:'La devolución parcial quedó aprobada y requiere gestión manual del negocio.'};
-    try{
-      const out=await __khApi('POST','/v3/payments/'+encodeURIComponent(String(kp.payment_id))+'/refunds',null);
-      const requestId=String(out&& (out.refund_request_id||out.id)||'').trim()||null,now=new Date().toISOString();
-      db.prepare("UPDATE commerce_refund_requests SET status='processing',provider='khipu',provider_refund_id=?,provider_status='requested',updated_at=? WHERE id=?").run(requestId,now,r.id);
-      __dyRefundEvent(r.id,actorUserId,actorType,'provider_refund_requested','Reembolso solicitado a Khipu',amount);
-      return {refund:__dyRefundRow(db.prepare('SELECT * FROM commerce_refund_requests WHERE id=?').get(r.id)),executed:false,processing:true};
-    }catch(e){
-      db.prepare("UPDATE commerce_refund_requests SET provider='khipu',provider_status=?,updated_at=? WHERE id=?").run('request_failed:'+String(e.message||e).slice(0,160),new Date().toISOString(),r.id);
-      __dyRefundEvent(r.id,actorUserId,actorType,'provider_refund_failed',String(e.message||e),amount);
-      return {refund:__dyRefundRow(db.prepare('SELECT * FROM commerce_refund_requests WHERE id=?').get(r.id)),executed:false,code:'KHIPU_REFUND_FAILED',message:'Khipu no confirmó la solicitud de devolución.'};
-    }
-  }
-  return {refund:__dyRefundRow(r),executed:false,manual_confirmation_required:true,message:'La devolución quedó aprobada. Confirma cuando el dinero haya sido devuelto al cliente.'};
+  if(String(r.status)==='refunded')return {refund:__dyRefundRow(r),executed:true};
+  if(!['approved','processing'].includes(String(r.status)))return {refund:__dyRefundRow(r),executed:false};
+  return {refund:__dyRefundRow(r),executed:false,manual_confirmation_required:true,message:'La devolución fue aprobada. El negocio debe devolver el dinero directamente al cliente y luego registrarlo en DatoYa.'};
 }
 
 app.get('/api/orders/refunds/mine',auth,(req,res)=>{
@@ -216,16 +177,15 @@ app.post('/api/businesses/:id/refunds/:refundId/confirm-external',auth,(req,res)
   const b=__ciOwnedBusiness(req.user.id,req.params.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
   const r=db.prepare('SELECT * FROM commerce_refund_requests WHERE id=? AND business_id=?').get(Number(req.params.refundId),b.id);if(!r)return res.status(404).json({error:'Solicitud no encontrada'});
   if(String(r.status)!=='approved')return res.status(409).json({error:'La devolución debe estar aprobada'});
-  const o=__dyRefundOrder(r.order_id);let kp=null;try{kp=db.prepare('SELECT * FROM commerce_khipu_payments WHERE order_id=? ORDER BY id DESC LIMIT 1').get(o.id);}catch(_){}
-  if(String(o.payment_method)==='khipu'&&kp&&Number(kp.live_mode||0)===1)return res.status(409).json({error:'Una devolución Khipu real no puede confirmarse manualmente en DatoYa. Debe validarse con el proveedor.'});
+  const o=__dyRefundOrder(r.order_id);
   const note=__dyRefundText(req.body&&req.body.note,500);
-  const out=__dyRefundFinalize(r.id,req.user.id,'business',String(o.payment_method)==='khipu'?'khipu-development':'external',null,note||'business_confirmed');
+  const out=__dyRefundFinalize(r.id,req.user.id,'business','direct-business',null,note||'business_confirmed');
   res.json({ok:true,refund:out});
 });
 
 app.get('/api/admin/refunds',auth,requireRole('admin'),(req,res)=>{
   const rows=db.prepare('SELECT r.*,o.reference order_reference,o.total order_total,o.payment_method,o.payment_status,b.name business_name,u.name customer_name,u.email customer_email FROM commerce_refund_requests r JOIN commerce_orders o ON o.id=r.order_id JOIN businesses b ON b.id=r.business_id JOIN users u ON u.id=r.user_id ORDER BY CASE r.status WHEN \'escalated\' THEN 0 WHEN \'requested\' THEN 1 WHEN \'approved\' THEN 2 WHEN \'processing\' THEN 3 ELSE 4 END,r.id DESC').all().map(__dyRefundRow);
-  const stats={total:rows.length,pending:rows.filter(x=>['requested','approved','processing'].includes(String(x.status))).length,escalated:rows.filter(x=>x.status==='escalated').length,refunded:rows.filter(x=>x.status==='refunded').length,refunded_amount:rows.reduce((s,x)=>s+Number(x.refunded_amount||0),0),commission_reversed:rows.reduce((s,x)=>s+Number(x.commission_refund_amount||0),0)};
+  const stats={total:rows.length,pending:rows.filter(x=>['requested','approved','processing'].includes(String(x.status))).length,escalated:rows.filter(x=>x.status==='escalated').length,refunded:rows.filter(x=>x.status==='refunded').length,refunded_amount:rows.reduce((s,x)=>s+Number(x.refunded_amount||0),0),commission_reversed:0};
   res.json({refunds:rows,stats});
 });
 app.post('/api/admin/refunds/:id/resolve',auth,requireRole('admin'),async(req,res)=>{
@@ -257,4 +217,4 @@ app.post('/api/admin/refunds/:id/resolve',auth,requireRole('admin'),async(req,re
 
   fs.writeFileSync(serverPath,source);
 }
-console.log('[DatoYa] Devoluciones y reembolsos preparados.');
+console.log('[DatoYa] Devoluciones preparadas como gestión directa entre cliente y negocio.');

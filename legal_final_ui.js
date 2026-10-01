@@ -34,10 +34,10 @@
       <h2>7. Retiro, despacho y dirección</h2>
       <p>Cada negocio define si ofrece retiro, despacho propio o ambas modalidades. En emprendimientos desde casa, DatoYa protege por defecto la dirección residencial exacta y puede mostrar públicamente solo comuna, sector aproximado o distancia. La dirección exacta podrá revelarse únicamente cuando el negocio lo autorice o cuando sea necesaria para una operación confirmada.</p>
 
-      <h2>8. Pagos, Khipu y DatoYa Impulso</h2>
-      <p>La integración de pago actualmente publicada en DatoYa utiliza <b>Khipu</b>. Mientras la plataforma identifique el flujo como <b>Khipu desarrollo</b> o TEST, se trata de una prueba y no mueve dinero real. Si posteriormente se habilitan cobros reales, antes de confirmar una operación se informará el monto total, los cargos aplicables, el proveedor utilizado y las condiciones relevantes del pago.</p>
-      <p>Al iniciar un pago con Khipu, la persona puede ser dirigida al entorno del proveedor. Los datos financieros sensibles que Khipu reciba o procese directamente se rigen además por sus propios términos y políticas. DatoYa procura conservar solo los identificadores, referencias, montos y estados necesarios para conciliar la operación y prestar soporte.</p>
-      <p>DatoYa puede cobrar comisiones o cargos por funciones comerciales y puede ofrecer el plan <b>DatoYa Impulso</b> por períodos mensuales, trimestrales o anuales. El precio, duración, beneficios y límites aplicables deben mostrarse antes del pago. La implementación vigente asigna períodos definidos y <b>no realiza renovación automática</b>; cualquier renovación futura deberá informarse antes de activarse.</p>
+      <h2>8. Pagos de pedidos y servicios DatoYa</h2>
+      <p>En los pedidos realizados a negocios, DatoYa organiza la solicitud y sus estados, pero <b>no recibe ni retiene el dinero de la venta</b>. El cliente paga directamente al comercio mediante las formas de pago que ese negocio tenga habilitadas. DatoYa cobra <b>0% de comisión sobre esas ventas</b>.</p><p>DatoYa puede utilizar <b>Khipu</b> para cobrar servicios propios de la plataforma, como planes de crecimiento para negocios, DatoYa Club u otros espacios promocionales claramente identificados. Mientras un checkout se identifique como desarrollo o TEST, no mueve dinero real.</p>
+      <p>Cuando una persona contrata un servicio propio de DatoYa mediante Khipu, puede ser dirigida al entorno del proveedor. Los datos financieros sensibles que Khipu reciba o procese directamente se rigen además por sus propios términos y políticas. DatoYa procura conservar solo las referencias, montos y estados necesarios para activar el servicio y prestar soporte.</p>
+      <p>DatoYa monetiza mediante <b>servicios opcionales</b>, no mediante una comisión sobre la venta del comercio. Entre ellos pueden existir Impulso, Impulso+, Premium, DatoYa Club y espacios destacados. El precio, duración, beneficios y límites deben mostrarse antes del pago. La implementación vigente usa períodos definidos y <b>no realiza renovación automática</b>; cualquier cambio futuro deberá informarse antes de activarse.</p>
       <p>Las cortesías de 7, 15, 30 días u otros períodos que DatoYa pueda otorgar no constituyen saldo en dinero ni generan por sí mismas derecho a reembolso. DatoYa no se presenta como banco, aseguradora ni custodio de fondos.</p>
 
       <h2>9. Cancelaciones, devoluciones y derechos del consumidor</h2>
@@ -86,14 +86,14 @@
   routes.privacidad=async function(){
     document.title='Política de Privacidad — DatoYa';
     view.innerHTML=legalCard('Política de Privacidad de DatoYa',`
-      <p>Esta Política explica cómo DatoYa trata datos personales para operar un marketplace local de negocios, productos, promociones, pedidos, soporte, notificaciones y pagos.</p>
+      <p>Esta Política explica cómo DatoYa trata datos personales para operar un marketplace local de negocios, productos, promociones, pedidos, soporte, notificaciones y servicios opcionales de DatoYa.</p>
       <div class="dy-legal-note"><b>Marco legal:</b> a la fecha de esta versión se aplica la Ley N° 19.628. La Ley N° 21.719, que moderniza el régimen chileno de protección de datos personales, tiene entrada en vigencia diferida para el 1 de diciembre de 2026.</div>
 
       <h2>1. Datos que podemos tratar</h2>
-      <p>Podemos tratar datos de cuenta y contacto; comuna y ubicación cuando la persona lo autorice; datos del negocio; categorías, horarios y medios de entrega; productos, precios, stock e imágenes; pedidos y sus estados; identificadores de pagos; mensajes o solicitudes de soporte; consentimientos; eventos de seguridad; información técnica del dispositivo, sesión y funcionamiento de la aplicación.</p>
+      <p>Podemos tratar datos de cuenta y contacto; comuna y ubicación cuando la persona lo autorice; datos del negocio; categorías, horarios y medios de entrega; productos, precios, stock e imágenes; pedidos y sus estados; estados de pago informados por los negocios e identificadores de pagos de servicios DatoYa; mensajes o solicitudes de soporte; consentimientos; eventos de seguridad; información técnica del dispositivo, sesión y funcionamiento de la aplicación.</p>
 
       <h2>2. Para qué usamos los datos</h2>
-      <p>Los datos se utilizan para crear y proteger cuentas, verificar correos, registrar y revisar negocios, mostrar resultados locales, administrar catálogos, ofertas e Impulsos, gestionar pedidos, habilitar y conciliar pagos, enviar notificaciones solicitadas, prestar soporte, prevenir fraude, mantener trazabilidad de seguridad, mejorar el funcionamiento de DatoYa y cumplir obligaciones legales.</p>
+      <p>Los datos se utilizan para crear y proteger cuentas, verificar correos, registrar y revisar negocios, mostrar resultados locales, administrar catálogos, ofertas e Impulsos, gestionar pedidos, registrar estados de pago informados por los negocios, activar y conciliar servicios pagados a DatoYa, enviar notificaciones solicitadas, prestar soporte, prevenir fraude, mantener trazabilidad de seguridad, mejorar el funcionamiento de DatoYa y cumplir obligaciones legales.</p>
 
       <h2>3. Ubicación</h2>
       <p>DatoYa puede utilizar GPS, comuna o una ubicación aproximada para mostrar negocios y productos cercanos. La ubicación precisa solo debe utilizarse cuando exista permiso o fundamento suficiente para la función solicitada. La persona puede denegar el permiso de ubicación y utilizar, cuando esté disponible, una selección manual de comuna o zona.</p>
@@ -121,7 +121,7 @@
       <p>DatoYa aplica medidas como control de sesiones, restricciones de acceso, validaciones, registros de seguridad y protección de credenciales. Ningún sistema es infalible; ante un incidente se podrán aplicar medidas de contención, investigación y comunicación según corresponda.</p>
 
       <h2>11. Conservación</h2>
-      <p>Los datos se conservan durante el tiempo necesario para operar la cuenta y las funciones solicitadas, mantener trazabilidad de pedidos y pagos, resolver controversias, prevenir fraude, cumplir obligaciones legales y proteger la seguridad de la plataforma. Los plazos pueden variar según el tipo de dato y la finalidad.</p>
+      <p>Los datos se conservan durante el tiempo necesario para operar la cuenta y las funciones solicitadas, mantener trazabilidad de pedidos, estados de pago y servicios DatoYa, resolver controversias, prevenir fraude, cumplir obligaciones legales y proteger la seguridad de la plataforma. Los plazos pueden variar según el tipo de dato y la finalidad.</p>
 
       <h2>12. Cookies, almacenamiento local y PWA</h2>
       <p>DatoYa puede utilizar cookies de sesión y almacenamiento local del dispositivo para mantener el acceso, recordar ubicación seleccionada, conservar temporalmente un carrito y permitir funciones de aplicación web progresiva. Si la persona activa notificaciones Push, el navegador o dispositivo genera una suscripción técnica que DatoYa utiliza para enviar avisos relacionados con la cuenta. Estos permisos pueden revocarse desde el navegador o el dispositivo.</p>

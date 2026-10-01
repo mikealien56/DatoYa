@@ -162,8 +162,8 @@
     s.innerHTML='<div class="dy-club-home-copy"><span>⭐ DATOYA CLUB</span><h2>¿Y si en vez de buscar todos los días, DatoYa estuviera atento por ti?</h2><p>Con <b>Caza Ya</b> defines lo que buscas y tu precio meta. Con <b>Junta DatoYa</b>, varias personas pueden convertir una necesidad local en una señal para los negocios. Comprar sigue siendo gratis y el pago siempre es directo al comercio.</p><div><a class="btn btn-primary" href="'+(!ME?'#/registro':'#/club')+'">'+(!ME?'Crear cuenta y probar una Caza':'Probar Caza Ya')+'</a><small>1 Caza gratis · Club desde '+money(990)+' · sin renovación automática</small></div></div><div class="dy-club-home-orbit"><div class="main">🎯<b>Caza Ya</b><small>“Avísame si aparece bajo mi precio meta”</small></div><span class="o1">👥 Junta</span><span class="o2">🤫 Sin spam</span><span class="o3">📉 Precio Meta</span></div>';
     anchor.insertAdjacentElement('afterend',s);
   }
-  addEventListener('datoya:market-home-rendered',()=>setTimeout(addHomeClub,0));
-  setTimeout(addHomeClub,250);
+  // La portada V2 integra Club dentro de una sola sección comparativa para evitar duplicados.
+  // La función addHomeClub se conserva por compatibilidad, pero ya no se monta automáticamente.
 
   async function addJuntaDemandToPulse(id){
     const host=document.querySelector('.dy-business-dashboard,.dy-hub-subpage');if(!host||document.getElementById('dy-junta-demand-business'))return;

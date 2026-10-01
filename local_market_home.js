@@ -17,7 +17,7 @@
     const topnav=document.getElementById('topnav');
     if(topnav){
       [...topnav.querySelectorAll(':scope > a')].forEach(a=>a.remove());
-      const links=[['Inicio','top'],['Categorías','local-categories'],['Promociones','promociones'],['Para negocios','como-funciona-negocios']];
+      const links=[['Inicio','top'],['Cómo funciona','como-funciona'],['Comprar','local-categories'],['Para negocios','como-funciona-negocios']];
       links.reverse().forEach(([label,target])=>{const a=document.createElement('a');a.href='#/';a.textContent=label;a.dataset.dyScroll=target;topnav.prepend(a);});
       topnav.querySelectorAll('[data-dy-scroll]').forEach(a=>a.addEventListener('click',e=>{if(location.hash==='#/'||!location.hash){e.preventDefault();const target=a.dataset.dyScroll==='top'?document.body:document.getElementById(a.dataset.dyScroll);target?.scrollIntoView({behavior:'smooth',block:'start'});}}));
     }

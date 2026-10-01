@@ -296,6 +296,24 @@ function __dyClubJuntas(userId,comunaId){
   return [...map.values()].sort((a,b)=>b.people-a.people||a.label.localeCompare(b.label)).slice(0,20);
 }
 
+app.get('/api/market/club-info',(req,res)=>{
+  res.json({
+    label:'DatoYa Club',
+    prices:{7:__dyClubPrice(7),30:__dyClubPrice(30)},
+    no_auto_renew:true,
+    free_hunts:Number(getSetting('customer_club_free_hunts','1')),
+    paid_hunts:Number(getSetting('customer_club_paid_hunts','10')),
+    features:[
+      'Caza Ya con precio meta',
+      'Radar Silencioso',
+      'Junta DatoYa',
+      'Sorpresas Club',
+      'Radar Turbo cuando recibes el beneficio'
+    ],
+    purchase_policy:{shopping_remains_free:true,merchant_payment_direct:true}
+  });
+});
+
 app.get('/api/club/overview',auth,(req,res)=>{
   const u=__dyClubCustomer(req,res);if(!u)return;
   const mode=typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed()?'development':'blocked';

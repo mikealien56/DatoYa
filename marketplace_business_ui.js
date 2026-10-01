@@ -83,8 +83,8 @@
       card.innerHTML='<div class="dy-card-head"><div><span>CRECIMIENTO DATOYA</span><h2>'+(founder?'🏅 Negocio Fundador':ref?'🎁 Negocio invitado':'Beneficio de lanzamiento')+'</h2></div></div>'+
         '<div class="dy-growth-business-stats"><div><b>'+remaining+'</b><small>pedidos con 0% restantes</small></div><div><b>'+Number(g.referrals?.rewarded||0)+'</b><small>referidos que calificaron</small></div></div>'+
         (founder&&p.founder_code?'<div class="dy-founder-share"><span>Tu código para invitar negocios</span><b>'+h(p.founder_code)+'</b><button class="btn btn-outline btn-sm" type="button" data-copy-founder>Copiar código</button><small>Cuando un negocio invitado llegue a 5 pedidos completados, ganas días extra de DatoYa Impulso.</small></div>':'')+
-        '<div class="dy-growth-rate-line"><span>Comisión normal</span><b>'+Number(g.commission?.free_pct??5.9).toLocaleString('es-CL')+'% Gratis · '+Number(g.commission?.impulso_pct??3.9).toLocaleString('es-CL')+'% Impulso</b></div>'+
-        '<div class="dy-growth-rate-line"><span>🔒 Solo en DatoYa</span><b>'+Number(g.commission?.exclusive_free_pct??4.9).toLocaleString('es-CL')+'% Gratis · '+Number(g.commission?.exclusive_impulso_pct??2.9).toLocaleString('es-CL')+'% Impulso</b></div>';
+        '<div class="dy-growth-rate-line"><span>Comisión por venta</span><b>0% en todos los planes</b></div>'+
+        '<div class="dy-growth-rate-line"><span>Cómo gana DatoYa</span><b>Planes y extras opcionales</b></div>';
       hero.insertAdjacentElement('afterend',card);
       card.querySelector('[data-copy-founder]')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(String(p.founder_code));toast?.('Código copiado','ok')}catch(_){toast?.('Código: '+p.founder_code,'info')}});
     }catch(_){}

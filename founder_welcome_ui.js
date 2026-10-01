@@ -22,7 +22,6 @@
   function benefits(b={}){
     const items=[];
     if(Number(b.impulso_days)>0)items.push(`<li><b>${h(b.impulso_days)} días de DatoYa Impulso</b><span>Impulso Ahora, Pulso Local, estadísticas avanzadas y catálogo ampliado, al aprobar tu negocio.</span></li>`);
-    if(Number(b.free_orders)>0)items.push(`<li><b>${h(b.free_orders)} primeros pedidos con 0% de comisión DatoYa</b><span>Beneficio de lanzamiento. No incluye posibles cargos del proveedor de pago.</span></li>`);
     if(Number(b.reward_days)>0&&Number(b.reward_cap_days)>0)items.push(`<li><b>${h(b.reward_days)} días extra por referido que complete 5 pedidos</b><span>Comparte tu código personal de negocio. Puedes acumular hasta ${h(b.reward_cap_days)} días de recompensa.</span></li>`);
     return `<section class="dy-founder-benefits"><span>TU BIENVENIDA INCLUYE</span><h2>Beneficios para comenzar juntos</h2><ul>${items.join('')||'<li>Consulta los beneficios vigentes desde el panel de tu negocio.</li>'}</ul><small>Los beneficios se activan según la aprobación del negocio y las condiciones del programa. El destacado semanal se contrata por separado.</small></section>`;
   }
@@ -40,10 +39,9 @@
     document.body.appendChild(layer);setTimeout(()=>layer.remove(),7000);
   }
   function signup(invite){return hero(invite.business_name)+benefits(invite.benefits)+beta();}
-  function activation(){const inv=context();return inv?`<div class="dy-founder-activation"><span class="dy-founder-badge">🏅 TU PRIMER PASO COMO FUNDADOR</span><h2>¡Gracias por sumarte, ${h(inv.business_name)}!</h2><p>Ya creaste tu cuenta. Confirma el correo para completar tu negocio y preparar Khipu.</p></div>`:'';}
+  function activation(){const inv=context();return inv?`<div class="dy-founder-activation"><span class="dy-founder-badge">🏅 TU PRIMER PASO COMO FUNDADOR</span><h2>¡Gracias por sumarte, ${h(inv.business_name)}!</h2><p>Ya creaste tu cuenta. Confirma el correo para completar tu negocio y configurar cómo te pagarán tus clientes.</p></div>`:'';}
   function paymentIntro(id,mode){
-    if(!['existente','nueva'].includes(mode))return '';
-    return `<section class="dy-founder-beta"><span>🏦</span><div><h2>${mode==='existente'?'Prepara la vinculación de tu cuenta Khipu':'Prepara el alta de tu cuenta Khipu'}</h2><p>${mode==='existente'?'Revisa los datos del titular de tu cuenta existente. Tener una cuenta Khipu no significa que ya esté vinculada a DatoYa.':'Completa los datos del titular para iniciar la preparación del alta. La cuenta aún no se crea ni se activa con este formulario.'} Al guardar, quedarán listos para continuar cuando Khipu habilite la integración. No te pediremos contraseñas, API Keys ni claves bancarias.</p><a href="#/bienvenida-fundador/${Number(id)}">← Volver a mi bienvenida</a></div></section>`;
+    return `<section class="dy-founder-beta"><span>💳</span><div><h2>Configura tus formas de pago</h2><p>El cliente paga directamente a tu negocio. Puedes ofrecer pago al retirar, al recibir, transferencia o tu propio enlace de pago. DatoYa no cobra comisión sobre esa venta.</p><a href="#/bienvenida-fundador/${Number(id)}">← Volver a mi bienvenida</a></div></section>`;
   }
   window.dyFounderUI={remember,context,clearInvitation,benefits,hero,beta,celebrate,signup,activation,paymentIntro};
   routes['bienvenida-fundador']=async function(id){
@@ -52,10 +50,10 @@
     if(ME.account_type!=='business'){location.hash='#/perfil';return;}
     id=Number(id||0);
     if(!id){location.hash='#/registrar-negocio';return;}
-    const [manage,growth,khipu]=await Promise.all([api('/businesses/'+id+'/manage'),api('/businesses/'+id+'/growth-program'),api('/businesses/'+id+'/khipu-onboarding')]);
+    const [manage,growth]=await Promise.all([api('/businesses/'+id+'/manage'),api('/businesses/'+id+'/growth-program')]);
     if(Number(growth.profile?.is_founder)!==1){location.hash='#/mi-negocio/'+id;return;}
-    const b=manage.business||{},on=khipu.onboarding||{},prepared=['pending_integrator','receiver_created','pending_khipu_activation','ready_for_integrator','bank_verification','active'].includes(on.status);
-    view.innerHTML=`<div class="dy-founder-page">${hero(b.name,'¡Gracias por dar este gran primer paso!')}<section class="dy-founder-next"><span>VAMOS PASO A PASO</span><h2>Deja tu negocio preparado desde hoy</h2><ol><li><b>✓ Correo confirmado</b><span>Tu cuenta ya está verificada.</span></li><li><b>${b.status==='active'?'✓ Negocio aprobado':'✓ Negocio registrado · revisión pendiente'}</b><span>${b.status==='active'?'Ya puedes completar tu catálogo.':'Te avisaremos cuando DatoYa revise tu negocio. Aún no aparece públicamente.'}</span></li><li><b>${prepared?'✓ Datos Khipu preparados':'3. Prepara Khipu ahora'}</b><span>${prepared?'Preparación guardada. La vinculación y los cobros reales siguen pendientes de habilitación.':'Puedes dejar los datos listos mientras tu negocio está en revisión.'}</span></li></ol>${prepared?'<a class="btn btn-primary" href="#/mi-negocio-pagos/'+id+'">Revisar preparación de Khipu</a>':`<div class="dy-founder-khipu-choices"><a class="btn btn-primary" href="#/mi-negocio-pagos/${id}/existente">Ya tengo cuenta Khipu</a><a class="btn btn-outline" href="#/mi-negocio-pagos/${id}/nueva">Quiero registrarme en Khipu</a></div>`}<p class="dy-founder-payment-note">Los cobros reales permanecen bloqueados hasta la habilitación de Khipu y la validación correspondiente.</p><a class="dy-founder-panel-link" href="#/mi-negocio/${id}">Continuar al panel de mi negocio →</a></section>${benefits(growth.benefits)}${beta(id)}</div>`;
+    const b=manage.business||{};
+    view.innerHTML=`<div class="dy-founder-page">${hero(b.name,'¡Gracias por dar este gran primer paso!')}<section class="dy-founder-next"><span>VAMOS PASO A PASO</span><h2>Deja tu negocio preparado desde hoy</h2><ol><li><b>✓ Correo confirmado</b><span>Tu cuenta ya está verificada.</span></li><li><b>${b.status==='active'?'✓ Negocio aprobado':'✓ Negocio registrado · revisión pendiente'}</b><span>${b.status==='active'?'Ya puedes completar tu catálogo.':'Te avisaremos cuando DatoYa revise tu negocio. Aún no aparece públicamente.'}</span></li><li><b>3. Configura tus formas de pago</b><span>El cliente te paga directamente; DatoYa no recibe el dinero de la venta.</span></li></ol><a class="btn btn-primary" href="#/mi-negocio-pagos/${id}">Configurar formas de pago</a><p class="dy-founder-payment-note">DatoYa cobra 0% comisión sobre tus ventas. Los planes y extras de crecimiento son servicios opcionales y separados.</p><a class="dy-founder-panel-link" href="#/mi-negocio/${id}">Continuar al panel de mi negocio →</a></section>${benefits(growth.benefits)}${beta(id)}</div>`;
     celebrate('business-'+id);
   };
 })();
