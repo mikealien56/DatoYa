@@ -364,3 +364,10 @@ echo "DatoYa marketplace CI: OK"
 ! grep -q "Fee:" marketplace_admin_v2_ui.js || { echo "Pedidos Admin aún muestran fee DatoYa"; exit 1; }
 grep -q "Servicios propios, no ventas de terceros" marketplace_admin_v2_ui.js || { echo "Admin no explica ingresos propios"; exit 1; }
 grep -q "Pago directo al negocio" marketplace_admin_v2_ui.js || { echo "Admin pedidos no aclara pago directo"; exit 1; }
+
+# DatoYa Club público debe informar antes de pedir registro
+grep -q "routes\['club-info'\]=loadClubInfo" customer_club_ui.js || { echo "Falta página pública informativa de DatoYa Club"; exit 1; }
+grep -q "const target='#/club-info'" home_structure_v3.js || { echo "Home todavía envía Club directo a registro/perfil"; exit 1; }
+grep -q "DatoYa busca oportunidades por ti" customer_club_ui.js || { echo "Página Club no explica qué es"; exit 1; }
+grep -q "CÓMO FUNCIONA" customer_club_ui.js || { echo "Página Club no explica funcionamiento"; exit 1; }
+grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara con Gratis"; exit 1; }
