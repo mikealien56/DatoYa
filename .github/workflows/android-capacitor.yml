@@ -127,6 +127,8 @@ jobs:
           s=p.read_text()
           if 'android.permission.CAMERA' not in s:
               s=s.replace('<application', '    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera.any" android:required="false" />\n\n    <application', 1)
+          if 'android.permission.ACCESS_COARSE_LOCATION' not in s:
+              s=s.replace('<application', '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n\n    <application', 1)
           s=s.replace('android:label="@string/app_name"', 'android:label="@string/app_name" android:usesCleartextTraffic="false"')
           p.write_text(s)
           PY
@@ -136,11 +138,15 @@ jobs:
           cat > android/app/src/main/java/cl/datoya/app/MainActivity.java <<'JAVA'
           package cl.datoya.app;
 
+          import android.Manifest;
+          import android.content.pm.PackageManager;
           import android.graphics.Color;
           import android.os.Bundle;
           import android.view.View;
           import android.view.ViewGroup;
 
+          import androidx.core.app.ActivityCompat;
+          import androidx.core.content.ContextCompat;
           import androidx.core.graphics.Insets;
           import androidx.core.view.ViewCompat;
           import androidx.core.view.WindowCompat;
@@ -166,6 +172,23 @@ jobs:
                   controller.setAppearanceLightNavigationBars(true);
 
                   View webView = this.bridge.getWebView();
+                  this.bridge.getWebView().getSettings().setGeolocationEnabled(true);
+
+                  boolean coarseGranted = ContextCompat.checkSelfPermission(
+                      this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                  boolean fineGranted = ContextCompat.checkSelfPermission(
+                      this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+
+                  if (!coarseGranted && !fineGranted) {
+                      ActivityCompat.requestPermissions(
+                          this,
+                          new String[] {
+                              Manifest.permission.ACCESS_COARSE_LOCATION,
+                              Manifest.permission.ACCESS_FINE_LOCATION
+                          },
+                          4101
+                      );
+                  }
 
                   ViewCompat.setOnApplyWindowInsetsListener(webView, (v, windowInsets) -> {
                       Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -209,16 +232,20 @@ jobs:
               raise SystemExit('No se encontró build.gradle de Android')
           s=p.read_text()
           import re
-          s=re.sub(r'versionCode\s+\d+', 'versionCode 6', s)
-          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.1"', s)
+          s=re.sub(r'versionCode\s+\d+', 'versionCode 7', s)
+          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.2"', s)
           p.write_text(s)
-          print('DatoYa Android versionCode=6 versionName=2.3.1')
+          print('DatoYa Android versionCode=7 versionName=2.3.2')
           PY
 
-      - name: Verify QR camera permission
+      - name: Verify native permissions
         run: |
           grep -q 'android.permission.CAMERA' android/app/src/main/AndroidManifest.xml
           grep -q 'android.hardware.camera.any' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.ACCESS_COARSE_LOCATION' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.ACCESS_FINE_LOCATION' android/app/src/main/AndroidManifest.xml
+          grep -q 'ActivityCompat.requestPermissions' android/app/src/main/java/cl/datoya/app/MainActivity.java
+          grep -q 'setGeolocationEnabled(true)' android/app/src/main/java/cl/datoya/app/MainActivity.java
 
       - name: Build release APK
         working-directory: android
