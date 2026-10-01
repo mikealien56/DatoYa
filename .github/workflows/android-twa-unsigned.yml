@@ -40,7 +40,7 @@ jobs:
           bubblewrap doctor
 
       - name: Generate Android project
-        run: bubblewrap update --skipVersionUpgrade
+        run: timeout 45s bubblewrap update --skipVersionUpgrade
 
       - name: Build unsigned APK and AAB
         run: bubblewrap build --skipSigning --skipPwaValidation
