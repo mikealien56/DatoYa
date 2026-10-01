@@ -1,0 +1,55 @@
+name: Android TWA unsigned build
+
+on:
+  pull_request:
+    paths:
+      - 'twa-manifest.json'
+      - 'manifest.webmanifest'
+      - '.well-known/assetlinks.json'
+      - 'android_twa_assets.js'
+      - '.github/workflows/android-twa-unsigned.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Generate Android project
+        env:
+          CI: 'true'
+        run: bubblewrap update --skipVersionUpgrade
+
+      - name: Build unsigned APK and AAB
+        env:
+          CI: 'true'
+        run: yes | bubblewrap build --skipSigning --skipPwaValidation
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p android-output
+          find . -maxdepth 4 -type f \( -name '*.apk' -o -name '*.aab' \) -print -exec cp {} android-output/ \;
+
+      - name: Upload unsigned Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: datoya-android-unsigned
+          path: android-output/*
+          if-no-files-found: error
