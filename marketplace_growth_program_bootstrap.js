@@ -1,4 +1,4 @@
-// DatoYa — Fundadores, referidos, promociones exclusivas y comisión escalonada.
+// DatoYa — Fundadores, referidos, promociones exclusivas y beneficios de crecimiento.
 const fs=require('fs');
 const path=require('path');
 const {db}=require('./db');
@@ -70,13 +70,13 @@ for(const [name,type] of [
 }
 
 for(const [key,value] of [
-  ['commission_free_pct','5.9'],
-  ['commission_exclusive_free_pct','4.9'],
-  ['commission_impulso_pct','3.9'],
-  ['commission_exclusive_impulso_pct','2.9'],
-  ['commission_free_cap','2990'],
-  ['commission_impulso_cap','1990'],
-  ['launch_free_orders','5'],
+  ['commission_free_pct','0'],
+  ['commission_exclusive_free_pct','0'],
+  ['commission_impulso_pct','0'],
+  ['commission_exclusive_impulso_pct','0'],
+  ['commission_free_cap','0'],
+  ['commission_impulso_cap','0'],
+  ['launch_free_orders','0'],
   ['founder_impulso_days','30'],
   ['referred_impulso_days','15'],
   ['referral_reward_days','15'],
@@ -85,7 +85,8 @@ for(const [key,value] of [
   db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING").run(key,value);
 }
 
-db.prepare("UPDATE settings SET value='5.9' WHERE key='commission_pct' AND value='10'").run();
+db.prepare("INSERT INTO settings(key,value) VALUES('commission_pct','0') ON CONFLICT(key) DO UPDATE SET value='0'").run();
+for(const key of ['commission_free_pct','commission_exclusive_free_pct','commission_impulso_pct','commission_exclusive_impulso_pct','commission_free_cap','commission_impulso_cap'])db.prepare("UPDATE settings SET value='0' WHERE key=?").run(key);
 
 const serverPath=path.join(__dirname,'server.js');
 let source=fs.readFileSync(serverPath,'utf8');
@@ -204,28 +205,8 @@ function __dyGrowthItemInfo(businessId,item){
   return {gross,product_id:productId||null,category_id:Number(p&&p.category_id||0)||null,exclusive};
 }
 function __dyGrowthCommissionQuote(businessId,items,couponQuote,subtotal,couponDiscount){
-  const id=Number(businessId),profile=__dyGrowthEnsureProfile(id),impulso=__dyGrowthActiveImpulse(id);
-  const std=__dyGrowthNum(impulso?'commission_impulso_pct':'commission_free_pct',impulso?3.9:5.9);
-  const exc=__dyGrowthNum(impulso?'commission_exclusive_impulso_pct':'commission_exclusive_free_pct',impulso?2.9:4.9);
-  const cap=Math.max(0,Math.round(__dyGrowthNum(impulso?'commission_impulso_cap':'commission_free_cap',impulso?1990:2990)));
-  const scope=couponQuote&&couponQuote.scope?couponQuote.scope:{scope_mode:'all',product_ids:[],category_ids:[]};
-  const productSet=new Set((scope.product_ids||[]).map(Number)),categorySet=new Set((scope.category_ids||[]).map(Number));
-  const lines=(Array.isArray(items)?items:[]).map(it=>__dyGrowthItemInfo(id,it));
-  const eligible=lines.filter(line=>!couponQuote||scope.scope_mode==='all'||(scope.scope_mode==='products'&&productSet.has(Number(line.product_id)))||(scope.scope_mode==='categories'&&categorySet.has(Number(line.category_id))));
-  const eligibleGross=eligible.reduce((a,x)=>a+x.gross,0),discount=Math.max(0,Math.round(Number(couponDiscount||0)));
-  let allocated=0,rawFee=0,base=0,exclusiveSubtotal=0,hasStd=false,hasExc=false;
-  for(let idx=0;idx<lines.length;idx++){
-    const line=lines[idx],isEligible=eligible.includes(line);let share=0;
-    if(isEligible&&discount>0&&eligibleGross>0){const lastEligible=eligible[eligible.length-1]===line;share=lastEligible?Math.max(0,discount-allocated):Math.min(line.gross,Math.floor(discount*line.gross/eligibleGross));allocated+=share;}
-    const net=Math.max(0,line.gross-share),rate=line.exclusive?exc:std;base+=net;rawFee+=net*rate/100;
-    if(line.exclusive){exclusiveSubtotal+=net;if(net>0)hasExc=true;}else if(net>0)hasStd=true;
-  }
-  if(!lines.length){base=Math.max(0,Math.round(Number(subtotal||0))-discount);rawFee=base*std/100;hasStd=base>0;}
-  let fee=Math.max(0,Math.round(rawFee));if(cap>0)fee=Math.min(fee,cap);
-  const launchCandidate=!!(profile&&Number(profile.launch_free_orders_used||0)<Number(profile.launch_free_order_limit||0));
-  const effective=base>0?Math.round((fee/base*100)*100)/100:0;
-  const tier=impulso?(hasExc&&hasStd?'impulso-mixta':hasExc?'impulso-exclusiva':'impulso'):(hasExc&&hasStd?'gratis-mixta':hasExc?'gratis-exclusiva':'gratis');
-  return {base,fee,effective_rate:effective,cap,tier,exclusive_subtotal:Math.round(exclusiveSubtotal),launch_candidate:launchCandidate};
+  const base=Math.max(0,Math.round(Number(subtotal||0))-Math.max(0,Math.round(Number(couponDiscount||0))));
+  return {base,fee:0,effective_rate:0,cap:0,tier:'sin-comision',exclusive_subtotal:0,launch_candidate:false};
 }
 function __dyGrowthReserveLaunchSlot(businessId){
   __dyGrowthEnsureProfile(businessId);
@@ -244,7 +225,7 @@ function __dyGrowthReleaseLaunchFree(orderId){
 app.get('/api/businesses/:id/growth-program',auth,(req,res)=>{
   const b=db.prepare('SELECT * FROM businesses WHERE id=? AND owner_user_id=?').get(Number(req.params.id),req.user.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
   const p=__dyGrowthEnsureBenefits(b.id)||__dyGrowthEnsureProfile(b.id),refs=Number((db.prepare("SELECT COUNT(*) c FROM business_referrals WHERE founder_business_id=?").get(b.id)||{}).c||0),qualified=Number((db.prepare("SELECT COUNT(*) c FROM business_referrals WHERE founder_business_id=? AND status='rewarded'").get(b.id)||{}).c||0);
-  res.json({profile:p,benefits:{...__dyFounderWelcomeBenefits(),free_orders:Number(p.launch_free_order_limit||0)},referrals:{total:refs,rewarded:qualified},commission:{free_pct:__dyGrowthNum('commission_free_pct',5.9),exclusive_free_pct:__dyGrowthNum('commission_exclusive_free_pct',4.9),impulso_pct:__dyGrowthNum('commission_impulso_pct',3.9),exclusive_impulso_pct:__dyGrowthNum('commission_exclusive_impulso_pct',2.9),free_cap:__dyGrowthNum('commission_free_cap',2990),impulso_cap:__dyGrowthNum('commission_impulso_cap',1990)}});
+  res.json({profile:p,benefits:{...__dyFounderWelcomeBenefits()},referrals:{total:refs,rewarded:qualified},sales_policy:{datoya_commission_pct:0,direct_payment_to_business:true}});
 });
 app.put('/api/businesses/:id/products/:productId/datoya-exclusive',auth,(req,res)=>{
   const b=db.prepare('SELECT id FROM businesses WHERE id=? AND owner_user_id=?').get(Number(req.params.id),req.user.id);if(!b)return res.status(404).json({error:'Negocio no encontrado'});
@@ -297,11 +278,11 @@ app.put('/api/admin/marketplace-v2/founder-invites/:id/status',auth,requireRole(
   const status=req.body&&req.body.active?'active':'paused';db.prepare('UPDATE founder_invites SET status=?,updated_at=? WHERE id=?').run(status,new Date().toISOString(),current.id);res.json({ok:true,status});
 });
 app.get('/api/admin/marketplace-v2/growth-settings',auth,requireRole('admin'),(req,res)=>{
-  const keys=['commission_free_pct','commission_exclusive_free_pct','commission_impulso_pct','commission_exclusive_impulso_pct','commission_free_cap','commission_impulso_cap','launch_free_orders','founder_impulso_days','referred_impulso_days','referral_reward_days','referral_reward_cap_days'];
+  const keys=['founder_impulso_days','referred_impulso_days','referral_reward_days','referral_reward_cap_days'];
   res.json({settings:Object.fromEntries(keys.map(k=>[k,__dyGrowthNum(k,0)]))});
 });
 app.put('/api/admin/marketplace-v2/growth-settings',auth,requireRole('admin'),(req,res)=>{
-  const ranges={commission_free_pct:[0,20],commission_exclusive_free_pct:[0,20],commission_impulso_pct:[0,20],commission_exclusive_impulso_pct:[0,20],commission_free_cap:[0,100000],commission_impulso_cap:[0,100000],launch_free_orders:[0,100],founder_impulso_days:[0,365],referred_impulso_days:[0,365],referral_reward_days:[0,365],referral_reward_cap_days:[0,730]};
+  const ranges={founder_impulso_days:[0,365],referred_impulso_days:[0,365],referral_reward_days:[0,365],referral_reward_cap_days:[0,730]};
   for(const [key,[min,max]] of Object.entries(ranges)){if(req.body&&req.body[key]!==undefined){const n=Number(req.body[key]);if(!Number.isFinite(n)||n<min||n>max)return res.status(400).json({error:'Valor inválido para '+key});setSetting(key,String(Math.round(n*100)/100));}}
   res.json({ok:true});
 });
@@ -320,44 +301,7 @@ const attachAnchor="    for(let i=0;i<categoryIds.length;i++)db.prepare('INSERT 
 if(!source.includes(attachAnchor))throw new Error('No se encontró transacción de alta de negocio');
 source=source.replace(attachAnchor,"    for(let i=0;i<categoryIds.length;i++)db.prepare('INSERT INTO business_category_links(business_id,category_id,is_primary) VALUES(?,?,?)').run(id,categoryIds[i],i===0?1:0);\n    if(__growthInvitation)__dyGrowthAttachInvitation(id,__growthInvitation);else __dyGrowthEnsureProfile(id);\n    notify(req.user.id,'negocio','Recibimos el registro de '+name+'. Lo revisaremos antes de publicarlo.','#/perfil');");
 
-// Comisión escalonada: neta, por plan y por promoción exclusiva.
-const commissionOld=`  const total=Math.max(0,subtotal-couponDiscount)+deliveryFee;
-  const commissionBase=Math.max(0,subtotal-couponDiscount);
-  const commissionPct=Math.max(0,Math.min(50,Number(getSetting('commission_pct','10'))||0));
-  const datoyaCommissionEstimate=Math.max(0,Math.round(commissionBase*commissionPct/100));
-  if(coupon&&String(coupon.funding_source)==='business'&&total<datoyaCommissionEstimate)return res.status(409).json({error:'Este cupón deja el pedido por debajo de la comisión del marketplace. Reduce el descuento o aumenta la compra mínima.',code:'COUPON_MARGIN_TOO_LOW'});`;
-const commissionNew=`  const total=Math.max(0,subtotal-couponDiscount)+deliveryFee;
-  const __growthCommission=__dyGrowthCommissionQuote(b.id,items,couponQuote,subtotal,couponDiscount);
-  const commissionBase=__growthCommission.base;
-  const commissionPct=__growthCommission.effective_rate;
-  let datoyaCommissionEstimate=__growthCommission.fee,__growthLaunchFree=false;
-  if(coupon&&String(coupon.funding_source)==='business'&&total<datoyaCommissionEstimate)return res.status(409).json({error:'Este cupón deja el pedido por debajo de la comisión del marketplace. Reduce el descuento o aumenta la compra mínima.',code:'COUPON_MARGIN_TOO_LOW'});`;
-if(!source.includes(commissionOld))throw new Error('No se encontró cálculo de comisión de cupones');
-source=source.replace(commissionOld,commissionNew);
-
-const insertAnchor=`    if(coupon){
-      const userUses=Number((db.prepare("SELECT COUNT(*) c FROM coupon_redemptions WHERE coupon_id=? AND user_id=? AND status='applied'").get(coupon.id,req.user.id)||{}).c||0);
-      if(userUses>=Number(coupon.per_user_limit||1))throw new Error('Ya usaste este cupón el máximo permitido');
-      const reserved=db.prepare('UPDATE market_coupons SET used_count=used_count+1,updated_at=? WHERE id=? AND active=1 AND used_count<max_uses').run(now,coupon.id);
-      if(Number(reserved.changes||0)<1)throw new Error('Este cupón agotó sus usos');
-    }
-    db.prepare('INSERT INTO commerce_orders`;
-if(!source.includes(insertAnchor))throw new Error('No se encontró reserva de cupón antes de crear pedido');
-source=source.replace(insertAnchor,`    if(coupon){
-      const userUses=Number((db.prepare("SELECT COUNT(*) c FROM coupon_redemptions WHERE coupon_id=? AND user_id=? AND status='applied'").get(coupon.id,req.user.id)||{}).c||0);
-      if(userUses>=Number(coupon.per_user_limit||1))throw new Error('Ya usaste este cupón el máximo permitido');
-      const reserved=db.prepare('UPDATE market_coupons SET used_count=used_count+1,updated_at=? WHERE id=? AND active=1 AND used_count<max_uses').run(now,coupon.id);
-      if(Number(reserved.changes||0)<1)throw new Error('Este cupón agotó sus usos');
-    }
-    if(__growthCommission.launch_candidate){__growthLaunchFree=__dyGrowthReserveLaunchSlot(b.id);if(__growthLaunchFree)datoyaCommissionEstimate=0;}
-    db.prepare('INSERT INTO commerce_orders`);
-
-const orderLookup="    const order=db.prepare('SELECT id FROM commerce_orders WHERE reference=?').get(ref);";
-if(!source.includes(orderLookup))throw new Error('No se encontró pedido recién creado');
-source=source.replace(orderLookup,orderLookup+String.raw`
-    if(order)db.prepare("UPDATE commerce_orders SET commission_rate_effective=?,commission_cap=?,commission_tier=?,commission_waived_reason=?,exclusive_subtotal=?,launch_free_order=? WHERE id=?").run(__growthLaunchFree?0:__growthCommission.effective_rate,__growthCommission.cap,__growthLaunchFree?'lanzamiento-0':__growthCommission.tier,__growthLaunchFree?'primeros-pedidos':null,__growthCommission.exclusive_subtotal,__growthLaunchFree?1:0,order.id);`);
-
-source=source.split("__dyCouponRelease(o.id,now);").join("__dyCouponRelease(o.id,now);__dyGrowthReleaseLaunchFree(o.id);");
+// DatoYa no calcula ni descuenta comisión sobre pedidos. Los referidos se premian por pedidos completados.
 
 const completeAnchor="  if(Number(result.changes||0)<1)return res.status(409).json({error:'El pedido cambió de estado. Actualiza e intenta nuevamente.'});\n  notify(o.user_id,'pedido'";
 if(!source.includes(completeAnchor))throw new Error('No se encontró confirmación final de fulfillment');
@@ -365,4 +309,4 @@ source=source.replace(completeAnchor,"  if(Number(result.changes||0)<1)return re
 }
 
 fs.writeFileSync(serverPath,source);
-console.log('[DatoYa] Fundadores, referidos, promos exclusivas y comisiones escalonadas preparados.');
+console.log('[DatoYa] Fundadores, referidos y promos exclusivas preparados sin comisión por venta.');
