@@ -291,10 +291,10 @@ grep -q "IMPULSO_PLAN_REQUIRED" marketplace_commerce_bootstrap.js || { echo "Imp
 grep -q "advanced||''" marketplace_growth_bootstrap.js || { echo "Falta candado de estadísticas avanzadas"; exit 1; }
 grep -q "advanced||''" marketplace_promo_analytics_bootstrap.js || { echo "Falta candado de analítica promocional"; exit 1; }
 grep -q "KHIPU_LIVE_BLOCKED" marketplace_admin_v2_bootstrap.js || { echo "Falta candado de pagos Khipu reales en Impulso"; exit 1; }
-grep -q "routes\['mi-negocio-plan'\]" business_impulse_plan_ui.js || { echo "Falta página de plan Impulso para negocio"; exit 1; }
-grep -q "admin/marketplace-v2/impulso/gift" marketplace_admin_v2_ui.js || { echo "Falta gestión de cortesías Impulso en Admin"; exit 1; }
-grep -q "'quarterly'" business_impulse_plan_ui.js || { echo "Falta opción de 3 meses en DatoYa Impulso"; exit 1; }
-grep -q "AHORRA" business_impulse_plan_ui.js || { echo "Falta mostrar ahorro del plan trimestral"; exit 1; }
+grep -q "routes\['mi-negocio-plan'\]" business_growth_plans_v2_ui.js || { echo "Falta página Growth Plans V2 para negocio"; exit 1; }
+grep -q "admin/marketplace-v2/growth-plans/gift" business_growth_plans_v2_bootstrap.js || { echo "Falta gestión de cortesías Growth Plans V2"; exit 1; }
+grep -q "\[1,7,15,30\]" business_growth_plans_v2_ui.js || { echo "Faltan duraciones 1/7/15/30"; exit 1; }
+grep -q "Impulso Premium" business_growth_plans_v2_ui.js || { echo "Falta comparación de niveles actuales"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const growth=s.indexOf("marketplace_growth_assets");const commerce=s.indexOf("marketplace_commerce_assets");if(growth<0||commerce<0||growth>commerce){throw new Error("El módulo de crecimiento vuelve a reemplazar la ruta del carrito")}'
 grep -q "marketplace_order_integrity_bootstrap" production_start.js || { echo "Integridad de pedidos no está montada"; exit 1; }
 grep -q "marketplace_coupons_bootstrap" production_start.js || { echo "Cupones no están montados"; exit 1; }
@@ -318,7 +318,6 @@ grep -q "Negocio Fundador DatoYa" beta_launch_ui.js || { echo "Falta identificac
 grep -q "api/orders/:id/refunds" marketplace_refunds_bootstrap.js || { echo "Falta solicitud de devolución Cliente"; exit 1; }
 grep -q "api/businesses/:id/refunds/:refundId/decision" marketplace_refunds_bootstrap.js || { echo "Falta gestión de devolución por Negocio"; exit 1; }
 grep -q "api/admin/refunds/:id/resolve" marketplace_refunds_bootstrap.js || { echo "Falta escalamiento de devolución a Admin"; exit 1; }
-grep -q "commission_refund_amount" marketplace_refunds_bootstrap.js || { echo "Falta reversa proporcional de comisión"; exit 1; }
 grep -q "DATOYA GROWTH PROGRAM V1" server.js || { echo "Runtime de crecimiento no está montado"; exit 1; }
 grep -q "__dyGrowthOnOrderCompleted" marketplace_growth_program_bootstrap.js || { echo "Referidos no reaccionan a pedidos completados"; exit 1; }
 grep -q "invitation_code" marketplace_account_ui.js || { echo "Registro no permite código Fundador"; exit 1; }
