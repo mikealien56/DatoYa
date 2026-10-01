@@ -18,34 +18,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-
-      - name: Generate Android project
-        env:
-          CI: 'true'
-        run: bubblewrap update --skipVersionUpgrade
+      - name: Generate Android project with Bubblewrap container
+        run: |
+          docker run --rm \
+            -v "$PWD:/app" \
+            -w /app \
+            ghcr.io/googlechromelabs/bubblewrap:latest \
+            update --skipVersionUpgrade
 
       - name: Build unsigned APK and AAB
-        env:
-          CI: 'true'
-        run: yes | bubblewrap build --skipSigning --skipPwaValidation
+        run: |
+          docker run --rm \
+            -v "$PWD:/app" \
+            -w /app \
+            ghcr.io/googlechromelabs/bubblewrap:latest \
+            build --skipSigning --skipPwaValidation
 
       - name: Collect artifacts
         run: |
           mkdir -p android-output
-          find . -maxdepth 4 -type f \( -name '*.apk' -o -name '*.aab' \) -print -exec cp {} android-output/ \;
+          find . -maxdepth 5 -type f \( -name '*.apk' -o -name '*.aab' \) -print -exec cp {} android-output/ \;
 
       - name: Upload unsigned Android artifacts
         uses: actions/upload-artifact@v4
