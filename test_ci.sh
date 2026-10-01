@@ -94,6 +94,11 @@ grep -q "DATOYA_CUSTOMER_CLUB_WEBHOOK_V1" customer_club_bootstrap.js || { echo "
 grep -q "Caza Ya" customer_club_ui.js || { echo "Falta Caza Ya en Club"; exit 1; }
 grep -q "Junta DatoYa" customer_club_ui.js || { echo "Falta Junta DatoYa en Club"; exit 1; }
 grep -q "Sin renovación automática" customer_club_ui.js || { echo "Club no aclara renovación"; exit 1; }
+grep -q "customer_club_gifts" customer_club_bootstrap.js || { echo "Falta almacenamiento de Sorpresa Club"; exit 1; }
+grep -q "dyClubClaimGift" customer_club_ui.js || { echo "Cliente no puede abrir Sorpresa Club"; exit 1; }
+grep -q "__dyClubTurboScanAll" customer_club_bootstrap.js || { echo "Radar Turbo no tiene comportamiento real"; exit 1; }
+grep -q "#/admin/club" marketplace_admin_v2_ui.js || { echo "Admin no expone Club clientes"; exit 1; }
+grep -q "dyGiftCustomerClub" marketplace_admin_v2_ui.js || { echo "Admin no puede enviar Sorpresa Club"; exit 1; }
 grep -q "DATOYA_DIRECT_MERCHANT_PAYMENTS_V1" direct_merchant_payments_bootstrap.js || { echo "Falta backend de pagos directos"; exit 1; }
 grep -q "DATOYA_ORDER_KHIPU_DISABLED_V1" direct_merchant_payments_bootstrap.js || { echo "Checkout Khipu de pedidos no está bloqueado"; exit 1; }
 grep -q "ORDER_KHIPU_DISABLED_V1" khipu_payments_ui.js || { echo "Frontend aún intenta cobrar pedidos con Khipu"; exit 1; }
@@ -164,7 +169,7 @@ node test_founder_welcome.js
 bash test_refunds_flow.sh
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/growth-plans businesses/1/growth-access businesses/1/direct-payment-settings orders/1/direct-payment-options club/overview businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
+for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/growth-plans businesses/1/growth-access businesses/1/direct-payment-settings orders/1/direct-payment-options club/overview club/gifts admin/club-gifts/members businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done
