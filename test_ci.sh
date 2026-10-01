@@ -201,7 +201,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css beta_launch_ui.js beta_launch.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css business_growth_plans_v2_ui.js business_growth_plans_v2.css direct_merchant_payments_ui.js direct_merchant_payments.css customer_club_ui.js customer_club.css home_structure_v3.js home_structure_v3.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_delivery_eta_ui.js marketplace_delivery_eta.css marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css beta_launch_ui.js beta_launch.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css business_growth_plans_v2_ui.js business_growth_plans_v2.css direct_merchant_payments_ui.js direct_merchant_payments.css customer_club_ui.js customer_club.css home_structure_v3.js home_structure_v3.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
@@ -377,3 +377,18 @@ grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara c
 ! grep -q "DatoYa cobra únicamente" marketplace_public_beta_ui.js || { echo "La portada explica cobros internos que no interesan al usuario"; exit 1; }
 ! grep -q "Club se paga a DatoYa" customer_club_ui.js || { echo "Club expone innecesariamente el flujo de ingreso de DatoYa"; exit 1; }
 grep -q "El pago de la compra es directo al negocio" home_structure_v3.js || { echo "Falta mensaje útil de pago directo para clientes"; exit 1; }
+
+# Despacho propio + ETA + seguimiento
+grep -q "marketplace_delivery_eta_bootstrap" production_start.js || { echo "ETA de despacho no está montado"; exit 1; }
+grep -q "marketplace_delivery_eta_assets" production_start.js || { echo "UI ETA de despacho no está publicada"; exit 1; }
+grep -q "estimated_ready_at" marketplace_delivery_eta_bootstrap.js || { echo "Falta hora estimada de preparación"; exit 1; }
+grep -q "estimated_delivery_at" marketplace_delivery_eta_bootstrap.js || { echo "Falta hora estimada de llegada"; exit 1; }
+grep -q "out-for-delivery" marketplace_delivery_eta_bootstrap.js || { echo "Falta estado de salida a reparto"; exit 1; }
+grep -q "delivery_stage='delivered'" marketplace_delivery_eta_bootstrap.js || { echo "Entrega QR no cierra estado de reparto"; exit 1; }
+grep -q "Confirmar y avisar tiempo" marketplace_delivery_eta_ui.js || { echo "Negocio no puede confirmar con ETA"; exit 1; }
+grep -q "Salió a reparto" marketplace_delivery_eta_ui.js || { echo "Negocio no puede avisar salida a reparto"; exit 1; }
+grep -q "Tu pedido va en camino" marketplace_delivery_eta_ui.js || { echo "Cliente no ve seguimiento de reparto"; exit 1; }
+grep -q "const total=subtotal+deliveryFee" marketplace_order_integrity_bootstrap.js || { echo "El despacho no forma parte del total protegido"; exit 1; }
+node --check marketplace_delivery_eta_ui.js
+node --check marketplace_delivery_eta_bootstrap.js
+node --check marketplace_delivery_eta_assets.js
