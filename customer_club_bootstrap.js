@@ -187,7 +187,81 @@ function __dyClubScanAll(){
     for(const h of hunts){try{__dyClubScanHunt(h,true);}catch(_){}}
   }catch(_){}
 }
-function __dyClubHuntLimit(userId){return __dyClubMembership(userId)?Number(getSetting('customer_club_paid_hunts','10')):Number(getSetting('customer_club_free_hunts','1'));}
+function __dyClubGiftMeta(kind,value){
+  kind=String(kind||'');value=Math.max(1,Number(value||1));
+  if(kind==='club_days')return {icon:'🎁',title:'Días Club de regalo',label:'+'+value+' día'+(value===1?'':'s')+' Club'};
+  if(kind==='hunt_slots')return {icon:'🎯',title:'Caza extra de regalo',label:'+'+value+' Caza'+(value===1?'':'s')+' extra'};
+  if(kind==='radar_turbo')return {icon:'⚡',title:'Radar Turbo de regalo',label:value+' h de Radar Turbo'};
+  return {icon:'🎁',title:'Sorpresa Club',label:'Regalo Club'};
+}
+function __dyClubExpireOldGifts(userId){
+  const now=__dyClubNow();
+  try{db.prepare("UPDATE customer_club_gifts SET status='expired',updated_at=? WHERE user_id=? AND status='pending' AND claim_expires_at IS NOT NULL AND claim_expires_at<=?").run(now,Number(userId),now);}catch(_){}
+}
+function __dyClubGiftRows(userId){
+  __dyClubExpireOldGifts(userId);
+  return db.prepare("SELECT * FROM customer_club_gifts WHERE user_id=? ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'claimed' THEN 1 ELSE 2 END,created_at DESC LIMIT 40").all(Number(userId)).map(g=>({...g,meta:__dyClubGiftMeta(g.kind,g.value)}));
+}
+function __dyClubGiftBonus(userId,kind){
+  const now=__dyClubNow();
+  const row=db.prepare("SELECT COALESCE(SUM(value),0) total FROM customer_club_gifts WHERE user_id=? AND kind=? AND status='claimed' AND (benefit_expires_at IS NULL OR benefit_expires_at>?)").get(Number(userId),String(kind),now);
+  return Number(row&&row.total||0);
+}
+function __dyClubRadarTurboUntil(userId){
+  const now=__dyClubNow();
+  const row=db.prepare("SELECT MAX(benefit_expires_at) expires_at FROM customer_club_gifts WHERE user_id=? AND kind='radar_turbo' AND status='claimed' AND benefit_expires_at>?").get(Number(userId),now);
+  return row&&row.expires_at||null;
+}
+function __dyClubCreateGift(userId,kind,value,source,sourceKey,createdBy,title,message,claimDays){
+  const m=__dyClubMembership(userId);if(!m)return null;
+  const meta=__dyClubGiftMeta(kind,value),now=new Date(),expires=new Date(now.getTime()+Math.max(1,Number(claimDays||14))*86400000).toISOString(),iso=now.toISOString();
+  try{
+    const r=db.prepare("INSERT INTO customer_club_gifts(user_id,membership_id,kind,value,title,message,source,source_key,status,claim_expires_at,created_by_user_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,'pending',?,?,?,?)")
+      .run(Number(userId),m.id,String(kind),Math.max(1,Number(value||1)),String(title||meta.title).slice(0,120),String(message||'Un beneficio digital para agradecer que seas parte de DatoYa Club.').slice(0,500),String(source||'admin'),sourceKey||null,expires,createdBy||null,iso,iso);
+    return db.prepare("SELECT * FROM customer_club_gifts WHERE id=?").get(Number(r.lastInsertRowid));
+  }catch(e){
+    if(sourceKey)return db.prepare("SELECT * FROM customer_club_gifts WHERE source_key=?").get(sourceKey)||null;
+    throw e;
+  }
+}
+function __dyClubEnsureSurprises(userId){
+  const m=__dyClubMembership(userId);if(!m||String(m.source)!=='paid')return;
+  const start=new Date(m.starts_at).getTime(),elapsed=(Date.now()-start)/86400000;
+  const create=(key,kind,value,title,msg,after)=>{
+    if(elapsed<after)return;
+    if(db.prepare("SELECT id FROM customer_club_gifts WHERE source_key=?").get(key))return;
+    const g=__dyClubCreateGift(userId,kind,value,'milestone',key,null,title,msg,10);
+    if(g)try{notify(userId,'club','🎁 Tienes una Sorpresa Club esperando.','#/club');}catch(_){}
+  };
+  if(Number(m.days_granted)>=7)create('club-m'+m.id+'-early','radar_turbo',24,'Sorpresa Club','Gracias por ser Club. Te regalamos 24 horas de Radar Turbo.',2);
+  if(Number(m.days_granted)>=30){
+    create('club-m'+m.id+'-week','hunt_slots',2,'Sorpresa Club','Desbloqueaste 2 espacios extra de Caza durante tu pase actual.',7);
+    create('club-m'+m.id+'-loyal','club_days',2,'Gracias por seguir con Club','DatoYa te regala 2 días Club adicionales.',20);
+  }
+}
+function __dyClubClaimGift(userId,giftId){
+  __dyClubExpireOldGifts(userId);
+  const g=db.prepare("SELECT * FROM customer_club_gifts WHERE id=? AND user_id=? AND status='pending'").get(Number(giftId),Number(userId));
+  if(!g)throw new Error('Este regalo ya no está disponible');
+  const m=__dyClubMembership(userId);if(!m)throw new Error('Necesitas tener DatoYa Club activo para abrir esta sorpresa');
+  const now=new Date(),iso=now.toISOString();let benefitExpires=null;
+  if(g.kind==='club_days'){
+    const currentEnd=new Date(m.expires_at),base=currentEnd>now?currentEnd:now;
+    benefitExpires=new Date(base.getTime()+Number(g.value)*86400000).toISOString();
+    db.prepare("UPDATE customer_club_memberships SET expires_at=?,updated_at=? WHERE id=?").run(benefitExpires,iso,m.id);
+  }else if(g.kind==='hunt_slots'){
+    benefitExpires=m.expires_at;
+  }else if(g.kind==='radar_turbo'){
+    benefitExpires=new Date(now.getTime()+Number(g.value)*3600000).toISOString();
+  }
+  db.prepare("UPDATE customer_club_gifts SET status='claimed',claimed_at=?,benefit_expires_at=?,updated_at=? WHERE id=? AND status='pending'").run(iso,benefitExpires,iso,g.id);
+  return db.prepare("SELECT * FROM customer_club_gifts WHERE id=?").get(g.id);
+}
+function __dyClubHuntLimit(userId){
+  const member=__dyClubMembership(userId);
+  const base=member?Number(getSetting('customer_club_paid_hunts','10')):Number(getSetting('customer_club_free_hunts','1'));
+  return base+(member?__dyClubGiftBonus(userId,'hunt_slots'):0);
+}
 function __dyClubOverview(userId){
   const u=__dyClubUser(userId),m=__dyClubMembership(userId),hunts=__dyClubHuntRows(userId),active=hunts.filter(x=>x.status==='active');
   let opportunities=[],potentialSavings=0;
