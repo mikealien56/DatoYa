@@ -69,7 +69,26 @@ db.exec("CREATE TABLE IF NOT EXISTS customer_club_memberships (\n"+
 " updated_at TEXT NOT NULL DEFAULT (datetime('now')),\n"+
 " UNIQUE(user_id,need_key,comuna_id)\n"+
 ");\n"+
-"CREATE INDEX IF NOT EXISTS idx_customer_junta_area ON customer_junta_interests(comuna_id,status,need_key);");
+"CREATE INDEX IF NOT EXISTS idx_customer_junta_area ON customer_junta_interests(comuna_id,status,need_key);\n"+
+"CREATE TABLE IF NOT EXISTS customer_club_gifts (\n"+
+" id INTEGER PRIMARY KEY AUTOINCREMENT,\n"+
+" user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n"+
+" membership_id INTEGER REFERENCES customer_club_memberships(id) ON DELETE SET NULL,\n"+
+" kind TEXT NOT NULL CHECK(kind IN ('club_days','hunt_slots','radar_turbo')),\n"+
+" value INTEGER NOT NULL,\n"+
+" title TEXT NOT NULL,\n"+
+" message TEXT,\n"+
+" source TEXT NOT NULL DEFAULT 'admin',\n"+
+" source_key TEXT UNIQUE,\n"+
+" status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','claimed','expired')),\n"+
+" claim_expires_at TEXT,\n"+
+" benefit_expires_at TEXT,\n"+
+" created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,\n"+
+" created_at TEXT NOT NULL DEFAULT (datetime('now')),\n"+
+" claimed_at TEXT,\n"+
+" updated_at TEXT NOT NULL DEFAULT (datetime('now'))\n"+
+");\n"+
+"CREATE INDEX IF NOT EXISTS idx_customer_club_gifts_user ON customer_club_gifts(user_id,status,created_at);");
 
 const settings={
   customer_club_7_price:'990',
