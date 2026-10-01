@@ -78,6 +78,24 @@ function __dyAddImpulseDays(businessId,days,source,createdBy,amount,billingPerio
   return __dyImpulseMembership(businessId);
 }
 function __dyMoneySetting(key,def){const n=Number(getSetting(key,String(def)));return Number.isFinite(n)&&n>=0?Math.round(n):def;}
+function __dyAdminRevenuePart(sql,params){
+  try{const r=db.prepare(sql).get(...(params||[]))||{};return {amount:Number(r.amount||0),count:Number(r.count||0)};}catch(_){return {amount:0,count:0};}
+}
+function __dyAdminServiceRevenue(){
+  const growth=__dyAdminRevenuePart("SELECT COALESCE(SUM(amount),0) amount,COUNT(*) count FROM business_growth_plan_payments WHERE status='approved'");
+  const club=__dyAdminRevenuePart("SELECT COALESCE(SUM(amount),0) amount,COUNT(*) count FROM customer_club_payments WHERE status='approved'");
+  const legacy=__dyAdminRevenuePart("SELECT COALESCE(SUM(amount),0) amount,COUNT(*) count FROM business_impulse_payments WHERE status='approved'");
+  const featured=__dyAdminRevenuePart("SELECT COALESCE(SUM(amount),0) amount,COUNT(*) count FROM featured_business_placements WHERE source='paid' AND status IN ('paid_pending_review','active','ended')");
+  return {total:growth.amount+club.amount+legacy.amount+featured.amount,business_plans:growth.amount,club:club.amount,legacy_impulso:legacy.amount,featured:featured.amount,payments:growth.count+club.count+legacy.count+featured.count};
+}
+function __dyAdminServiceRevenueRows(){
+  const rows=[];
+  try{for(const x of db.prepare("SELECT p.reference,p.amount,p.status,p.created_at,p.tier,p.duration_days,b.name business_name FROM business_growth_plan_payments p JOIN businesses b ON b.id=p.business_id WHERE p.status='approved' ORDER BY p.created_at DESC LIMIT 150").all())rows.push({reference:x.reference,amount:Number(x.amount||0),created_at:x.created_at,type:'Plan negocio',detail:String(x.tier||'Impulso')+' · '+Number(x.duration_days||0)+' días',party:x.business_name});}catch(_){}
+  try{for(const x of db.prepare("SELECT p.reference,p.amount,p.status,p.created_at,p.duration_days,u.name customer_name FROM customer_club_payments p JOIN users u ON u.id=p.user_id WHERE p.status='approved' ORDER BY p.created_at DESC LIMIT 150").all())rows.push({reference:x.reference,amount:Number(x.amount||0),created_at:x.created_at,type:'DatoYa Club',detail:Number(x.duration_days||0)+' días',party:x.customer_name});}catch(_){}
+  try{for(const x of db.prepare("SELECT p.reference,p.amount,p.status,p.created_at,p.billing_period,b.name business_name FROM business_impulse_payments p JOIN businesses b ON b.id=p.business_id WHERE p.status='approved' ORDER BY p.created_at DESC LIMIT 100").all())rows.push({reference:x.reference,amount:Number(x.amount||0),created_at:x.created_at,type:'Impulso anterior',detail:String(x.billing_period||''),party:x.business_name});}catch(_){}
+  try{for(const x of db.prepare("SELECT f.reference,f.amount,f.status,f.created_at,b.name business_name FROM featured_business_placements f JOIN businesses b ON b.id=f.business_id WHERE f.source='paid' AND f.status IN ('paid_pending_review','active','ended') ORDER BY f.created_at DESC LIMIT 100").all())rows.push({reference:x.reference||('DEST-'+x.created_at),amount:Number(x.amount||0),created_at:x.created_at,type:'Negocio destacado',detail:'7 días',party:x.business_name});}catch(_){}
+  return rows.sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,300);
+}
 
 app.get('/api/admin/marketplace-v2/summary',auth,requireRole('admin'),(req,res)=>{
   __dyImpulseSync();
@@ -88,7 +106,7 @@ app.get('/api/admin/marketplace-v2/summary',auth,requireRole('admin'),(req,res)=
   const orderRows=db.prepare("SELECT status,COUNT(*) c FROM commerce_orders GROUP BY status").all();
   const orderStatus=Object.fromEntries(orderRows.map(x=>[x.status,Number(x.c||0)]));
   const orders=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(total),0) total,COALESCE(SUM(CASE WHEN payment_status='paid' THEN total ELSE 0 END),0) paid_total FROM commerce_orders").get();
-  const fees=db.prepare("SELECT COALESCE(SUM(CASE WHEN p.integrator_fee_applied=1 THEN p.datoya_fee ELSE 0 END),0) total FROM commerce_khipu_payments p JOIN commerce_orders o ON o.id=p.order_id WHERE o.payment_status='paid'").get();
+  const serviceRevenue=__dyAdminServiceRevenue();
   const activeImpulse=db.prepare("SELECT COUNT(*) c FROM business_impulse_memberships WHERE status='active' AND expires_at>?").get(__dyImpulseNow());
   const weekly=db.prepare("SELECT COUNT(*) c FROM weekly_impulses WHERE status='active'").get();
   let support={open:0};try{support=db.prepare("SELECT COUNT(*) FILTER (WHERE status IN ('new','in_progress')) c FROM support_cases").get();}catch(_){try{support=db.prepare("SELECT COUNT(*) c FROM support_cases WHERE status IN ('new','in_progress')").get();}catch(_){}}
@@ -96,8 +114,8 @@ app.get('/api/admin/marketplace-v2/summary',auth,requireRole('admin'),(req,res)=
     users:Number(accounts.customer||0)+Number(accounts.business||0)+Number(accounts.admin||0),
     customers:Number(accounts.customer||0),business_accounts:Number(accounts.business||0),admins:Number(accounts.admin||0),
     businesses_total:Object.values(businesses).reduce((a,b)=>a+Number(b||0),0),businesses,
-    orders:Number(orders.c||0),order_status:orderStatus,gross_orders:Number(orders.total||0),paid_gmv:Number(orders.paid_total||0),
-    datoya_fees:Number(fees.total||0),active_impulse:Number(activeImpulse.c||0),active_weekly:Number(weekly.c||0),open_support:Number(support.c||support.open||0)
+    orders:Number(orders.c||0),order_status:orderStatus,gross_orders:Number(orders.total||0),merchant_recorded_paid_value:Number(orders.paid_total||0),
+    service_revenue:Number(serviceRevenue.total||0),service_revenue_breakdown:serviceRevenue,datoya_commission_pct:0,active_impulse:Number(activeImpulse.c||0),active_weekly:Number(weekly.c||0),open_support:Number(support.c||support.open||0)
   }});
 });
 
@@ -133,26 +151,21 @@ app.get('/api/admin/marketplace-v2/products',auth,requireRole('admin'),(req,res)
 
 app.get('/api/admin/marketplace-v2/orders',auth,requireRole('admin'),(req,res)=>{
   const rows=db.prepare(`SELECT o.id,o.reference,o.status,o.fulfillment_method,o.customer_name,o.total,o.payment_method,o.payment_status,o.created_at,o.updated_at,
-    b.name business_name,u.email customer_email,
-    p.payment_id,p.datoya_fee AS marketplace_fee,
-    CASE WHEN p.integrator_fee_applied=1 THEN (p.amount-p.datoya_fee) ELSE 0 END AS seller_net_estimate,
-    p.status provider_status,p.integrator_fee_applied,'khipu' AS payment_provider
+    b.name business_name,u.email customer_email
     FROM commerce_orders o JOIN businesses b ON b.id=o.business_id JOIN users u ON u.id=o.user_id
-    LEFT JOIN commerce_khipu_payments p ON p.order_id=o.id ORDER BY o.created_at DESC LIMIT 500`).all();
-  res.json({orders:rows});
+    ORDER BY o.created_at DESC LIMIT 500`).all().map(o=>({...o,datoya_commission:0,payment_destination:'business'}));
+  res.json({orders:rows,sales_policy:{datoya_commission_pct:0,payment_destination:'business',datoya_handles_order_money:false}});
 });
 
 app.get('/api/admin/marketplace-v2/finance',auth,requireRole('admin'),(req,res)=>{
-  const paid=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(total),0) gmv FROM commerce_orders WHERE payment_status='paid'").get();
-  const fees=db.prepare("SELECT COALESCE(SUM(CASE WHEN p.integrator_fee_applied=1 THEN p.datoya_fee ELSE 0 END),0) fees,COALESCE(SUM(CASE WHEN p.integrator_fee_applied=1 THEN p.amount-p.datoya_fee ELSE 0 END),0) sellers FROM commerce_khipu_payments p JOIN commerce_orders o ON o.id=p.order_id WHERE o.payment_status='paid'").get();
-  const memberships=db.prepare("SELECT COALESCE(SUM(amount),0) revenue,COUNT(*) c FROM business_impulse_memberships WHERE source='paid' AND amount>0").get();
-  const rows=db.prepare(`SELECT o.reference,o.total,o.payment_status,o.created_at,b.name business_name,
-    CASE WHEN p.integrator_fee_applied=1 THEN COALESCE(p.datoya_fee,0) ELSE 0 END datoya_fee,
-    CASE WHEN p.integrator_fee_applied=1 THEN COALESCE(p.amount-p.datoya_fee,0) ELSE 0 END seller_net,
-    p.payment_id,p.status provider_status,p.integrator_fee_applied,'khipu' AS payment_provider
-    FROM commerce_orders o JOIN businesses b ON b.id=o.business_id LEFT JOIN commerce_khipu_payments p ON p.order_id=o.id
-    ORDER BY o.created_at DESC LIMIT 300`).all();
-  res.json({summary:{paid_orders:Number(paid.c||0),paid_gmv:Number(paid.gmv||0),datoya_fees:Number(fees.fees||0),seller_net:Number(fees.sellers||0),impulso_revenue:Number(memberships.revenue||0),impulso_paid_count:Number(memberships.c||0)},rows});
+  const orders=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(total),0) total,COALESCE(SUM(CASE WHEN payment_status='paid' THEN total ELSE 0 END),0) merchant_paid FROM commerce_orders").get();
+  const revenue=__dyAdminServiceRevenue(),rows=__dyAdminServiceRevenueRows();
+  res.json({summary:{
+    orders:Number(orders.c||0),order_value:Number(orders.total||0),merchant_recorded_paid_value:Number(orders.merchant_paid||0),
+    service_revenue:Number(revenue.total||0),business_plan_revenue:Number(revenue.business_plans||0),club_revenue:Number(revenue.club||0),
+    featured_revenue:Number(revenue.featured||0),legacy_impulso_revenue:Number(revenue.legacy_impulso||0),service_payments:Number(revenue.payments||0),
+    datoya_commission_pct:0
+  },rows,sales_policy:{payment_destination:'business',datoya_handles_order_money:false}});
 });
 
 app.get('/api/admin/marketplace-v2/impulso',auth,requireRole('admin'),(req,res)=>{
@@ -180,7 +193,7 @@ app.post('/api/admin/marketplace-v2/impulso/gift',auth,requireRole('admin'),(req
 
 app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
   res.json({settings:{
-    commission_pct:Number(getSetting('commission_pct','10')),
+    commission_pct:0,
     impulso_monthly_price:__dyMoneySetting('impulso_monthly_price',9990),
     impulso_quarterly_price:__dyMoneySetting('impulso_quarterly_price',26990),
     impulso_annual_price:__dyMoneySetting('impulso_annual_price',89990),
@@ -195,7 +208,8 @@ app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)
 });
 app.put('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
   const body=req.body||{};
-  const ranges={commission_pct:[0,50],impulso_monthly_price:[0,1000000],impulso_quarterly_price:[0,3000000],impulso_annual_price:[0,10000000],impulso_free_catalog_limit:[1,1000],impulso_paid_catalog_limit:[1,5000],weekly_impulse_days:[1,30]};
+  const ranges={impulso_monthly_price:[0,1000000],impulso_quarterly_price:[0,3000000],impulso_annual_price:[0,10000000],impulso_free_catalog_limit:[1,1000],impulso_paid_catalog_limit:[1,5000],weekly_impulse_days:[1,30]};
+  setSetting('commission_pct','0');
   for(const [key,[min,max]] of Object.entries(ranges)){
     if(body[key]===undefined)continue;
     const n=Number(body[key]);if(!Number.isFinite(n)||n<min||n>max)return res.status(400).json({error:'Valor inválido para '+key});
