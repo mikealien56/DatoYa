@@ -1,0 +1,79 @@
+name: Build DatoYa Capacitor APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'capacitor.config.json'
+      - 'capacitor-www/**'
+      - '.github/workflows/android-capacitor.yml'
+  pull_request:
+    paths:
+      - 'capacitor.config.json'
+      - 'capacitor-www/**'
+      - '.github/workflows/android-capacitor.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Capacitor
+        run: |
+          npm install --no-save @capacitor/core@latest @capacitor/android@latest @capacitor/cli@latest @capacitor/app@latest @capacitor/status-bar@latest @capacitor/splash-screen@latest
+          npx cap add android
+
+      - name: Configure Android identity and icon
+        run: |
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src=Image.open('brand/pwa/icon-512.png').convert('RGBA')
+          root=Path('android/app/src/main/res')
+          sizes={'mipmap-mdpi':48,'mipmap-hdpi':72,'mipmap-xhdpi':96,'mipmap-xxhdpi':144,'mipmap-xxxhdpi':192}
+          for folder,size in sizes.items():
+              p=root/folder
+              p.mkdir(parents=True,exist_ok=True)
+              im=src.resize((size,size),Image.Resampling.LANCZOS)
+              im.save(p/'ic_launcher.png')
+              im.save(p/'ic_launcher_round.png')
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          s=s.replace('android:label="@string/app_name"', 'android:label="@string/app_name" android:usesCleartextTraffic="false"')
+          p.write_text(s)
+          PY
+          npx cap sync android
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Collect APK
+        run: |
+          mkdir -p android-output
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk android-output/DatoYa-Capacitor-unsigned.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: datoya-capacitor-apk
+          path: android-output/DatoYa-Capacitor-unsigned.apk
+          if-no-files-found: error
