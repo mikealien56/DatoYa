@@ -12,10 +12,23 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link id="datoya-favicon" rel="icon" href="/brand/pwa/favicon-32.png?v=20260916" type="image/png">
   <link rel="apple-touch-icon" href="/brand/pwa/icon-192.png?v=20260916">
-  <link rel="stylesheet" href="/styles.css?v=20260918-5">
+  <link rel="stylesheet" href="/styles.css?v=20261001-android-1">
   <link rel="stylesheet" href="/local_market_home.css?v=20260916-1">
 </head>
 <body>
+<script>
+(function markDatoYaNativeApp(attempt){
+  try {
+    const cap = window.Capacitor;
+    const native = !!cap && ((typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) || (typeof cap.getPlatform === 'function' && cap.getPlatform() === 'android'));
+    if (native) {
+      document.documentElement.classList.add('datoya-native-app');
+      return;
+    }
+  } catch (_) {}
+  if ((attempt || 0) < 20) setTimeout(function(){ markDatoYaNativeApp((attempt || 0) + 1); }, 50);
+})(0);
+</script>
 <div id="app">
   <header id="topbar">
     <a href="#/" class="logo" aria-label="DatoYa, inicio">
