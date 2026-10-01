@@ -187,6 +187,13 @@ function __dyClubScanAll(){
     for(const h of hunts){try{__dyClubScanHunt(h,true);}catch(_){}}
   }catch(_){}
 }
+function __dyClubTurboScanAll(){
+  try{
+    const now=__dyClubNow();
+    const hunts=db.prepare("SELECT DISTINCT h.* FROM customer_hunts h JOIN customer_club_gifts g ON g.user_id=h.user_id WHERE h.status='active' AND h.expires_at>? AND g.kind='radar_turbo' AND g.status='claimed' AND g.benefit_expires_at>? ORDER BY h.updated_at ASC LIMIT 120").all(now,now);
+    for(const h of hunts){try{__dyClubScanHunt(h,true);}catch(_){}}
+  }catch(_){}
+}
 function __dyClubGiftMeta(kind,value){
   kind=String(kind||'');value=Math.max(1,Number(value||1));
   if(kind==='club_days')return {icon:'🎁',title:'Días Club de regalo',label:'+'+value+' día'+(value===1?'':'s')+' Club'};
@@ -422,6 +429,10 @@ try{
   if(!global.__datoyaClubScanner){
     global.__datoyaClubScanner=setInterval(__dyClubScanAll,10*60*1000);
     global.__datoyaClubScanner.unref&&global.__datoyaClubScanner.unref();
+  }
+  if(!global.__datoyaClubTurboScanner){
+    global.__datoyaClubTurboScanner=setInterval(__dyClubTurboScanAll,3*60*1000);
+    global.__datoyaClubTurboScanner.unref&&global.__datoyaClubTurboScanner.unref();
   }
 }catch(_){}
 // ============ FIN DATOYA_CUSTOMER_CLUB_V1 ============
