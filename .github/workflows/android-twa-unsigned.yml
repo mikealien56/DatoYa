@@ -48,6 +48,14 @@ jobs:
           test -f build.gradle || test -f app/build.gradle || { echo "Bubblewrap no generó el proyecto Android"; exit ${code:-1}; }
           echo "Proyecto Android generado correctamente."
 
+      - name: Accept Android licenses and install required SDK
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk/cmdline-tools/latest
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "build-tools;35.0.0" "platforms;android-36"
+
       - name: Build unsigned APK and AAB
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk/cmdline-tools/latest
