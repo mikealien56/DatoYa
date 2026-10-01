@@ -1,0 +1,35 @@
+name: Export Android apksigner
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/export-apksigner.yml'
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Build Tools 35
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "build-tools;35.0.0"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
+      - name: Pack apksigner
+        run: |
+          mkdir -p out/lib
+          cp "$ANDROID_HOME/build-tools/35.0.0/apksigner" out/
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" out/lib/
+          chmod +x out/apksigner
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apksigner-35
+          path: out/
