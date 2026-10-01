@@ -67,6 +67,20 @@ jobs:
           ANDROID_SDK_ROOT: /tmp/datoya-android-sdk
         run: bubblewrap build --skipSigning --skipPwaValidation
 
+      - name: Collect apksigner tool
+        run: |
+          mkdir -p android-signing-tool/lib
+          cp /tmp/datoya-android-sdk/build-tools/35.0.0/apksigner android-signing-tool/
+          cp /tmp/datoya-android-sdk/build-tools/35.0.0/lib/apksigner.jar android-signing-tool/lib/
+          chmod +x android-signing-tool/apksigner
+
+      - name: Upload apksigner tool
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apksigner-35
+          path: android-signing-tool/
+          if-no-files-found: error
+
       - name: Collect artifacts
         run: |
           mkdir -p android-output
