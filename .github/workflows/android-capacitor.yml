@@ -38,6 +38,9 @@ jobs:
           npm install --no-save @capacitor/core@latest @capacitor/android@latest @capacitor/cli@latest @capacitor/app@latest @capacitor/status-bar@latest @capacitor/splash-screen@latest
           npx cap add android
 
+      - name: Install image tooling
+        run: python3 -m pip install --user Pillow
+
       - name: Configure Android identity and icon
         run: |
           python3 - <<'PY'
