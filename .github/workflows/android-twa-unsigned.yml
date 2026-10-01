@@ -40,7 +40,13 @@ jobs:
           bubblewrap doctor
 
       - name: Generate Android project
-        run: timeout 45s bubblewrap update --skipVersionUpgrade
+        run: |
+          set +e
+          timeout 15s bubblewrap update --skipVersionUpgrade
+          code=$?
+          set -e
+          test -f build.gradle || test -f app/build.gradle || { echo "Bubblewrap no generó el proyecto Android"; exit ${code:-1}; }
+          echo "Proyecto Android generado correctamente."
 
       - name: Build unsigned APK and AAB
         run: bubblewrap build --skipSigning --skipPwaValidation
