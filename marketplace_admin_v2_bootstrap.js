@@ -285,6 +285,7 @@ app.get('/api/businesses/:id/plan-access',auth,(req,res)=>{
 });
 
 app.post('/api/businesses/:id/impulso-plan/checkout',auth,async(req,res)=>{try{
+  return res.status(410).json({error:'Este checkout fue reemplazado por Impulso, Impulso+ y Premium de 1, 7, 15 o 30 días.',code:'GROWTH_PLANS_V2_REQUIRED'});
   const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
   if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
   const period=String(req.body?.billing_period||'monthly');
