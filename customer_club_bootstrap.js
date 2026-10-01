@@ -263,7 +263,7 @@ function __dyClubHuntLimit(userId){
   return base+(member?__dyClubGiftBonus(userId,'hunt_slots'):0);
 }
 function __dyClubOverview(userId){
-  const u=__dyClubUser(userId),m=__dyClubMembership(userId),hunts=__dyClubHuntRows(userId),active=hunts.filter(x=>x.status==='active');
+  const u=__dyClubUser(userId),m=__dyClubMembership(userId);if(m)__dyClubEnsureSurprises(userId);const hunts=__dyClubHuntRows(userId),active=hunts.filter(x=>x.status==='active');
   let opportunities=[],potentialSavings=0;
   for(const hunt of active){
     const products=__dyClubScanHunt(hunt,false);
@@ -274,7 +274,8 @@ function __dyClubOverview(userId){
   }
   const seen=new Set();opportunities=opportunities.filter(x=>{const k=x.hunt_id+':'+x.product_id;if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>a.price-b.price).slice(0,30);
   const groups=__dyClubJuntas(userId,u&&u.comuna_id);
-  return {membership:m,club_active:!!m,hunt_limit:__dyClubHuntLimit(userId),hunts,opportunities,potential_savings:potentialSavings,juntas:groups,prices:{7:__dyClubPrice(7),30:__dyClubPrice(30)}};
+  const gifts=__dyClubGiftRows(userId),membership=__dyClubMembership(userId);
+  return {membership,club_active:!!membership,hunt_limit:__dyClubHuntLimit(userId),hunts,opportunities,potential_savings:potentialSavings,juntas:groups,gifts,pending_gifts:gifts.filter(g=>g.status==='pending'),active_bonuses:{hunt_slots:__dyClubGiftBonus(userId,'hunt_slots'),radar_turbo_until:__dyClubRadarTurboUntil(userId)},prices:{7:__dyClubPrice(7),30:__dyClubPrice(30)}};
 }
 function __dyClubJuntas(userId,comunaId){
   const cid=Number(comunaId||0);
@@ -334,6 +335,42 @@ app.delete('/api/club/juntas/:key',auth,(req,res)=>{
   const key=__dyClubNorm(decodeURIComponent(String(req.params.key||'')));
   db.prepare("UPDATE customer_junta_interests SET status='left',updated_at=? WHERE user_id=? AND need_key=?").run(__dyClubNow(),u.id,key);
   res.json({ok:true,juntas:__dyClubJuntas(u.id,u.comuna_id)});
+});
+
+app.get('/api/club/gifts',auth,(req,res)=>{
+  const u=__dyClubCustomer(req,res);if(!u)return;
+  __dyClubEnsureSurprises(u.id);
+  const gifts=__dyClubGiftRows(u.id);
+  res.json({gifts,pending:gifts.filter(g=>g.status==='pending'),active_bonuses:{hunt_slots:__dyClubGiftBonus(u.id,'hunt_slots'),radar_turbo_until:__dyClubRadarTurboUntil(u.id)}});
+});
+
+app.post('/api/club/gifts/:id/claim',auth,(req,res)=>{
+  const u=__dyClubCustomer(req,res);if(!u)return;
+  try{
+    const gift=__dyClubClaimGift(u.id,req.params.id),meta=__dyClubGiftMeta(gift.kind,gift.value);
+    notify(u.id,'club','🎁 '+meta.label+' activado.','#/club');
+    res.json({ok:true,gift,meta,overview:__dyClubOverview(u.id)});
+  }catch(e){res.status(409).json({error:e.message||'No se pudo abrir la sorpresa'});}
+});
+
+app.get('/api/admin/club-gifts/members',auth,requireRole('admin'),(req,res)=>{
+  const now=__dyClubNow();
+  const members=db.prepare("SELECT u.id,u.name,u.email,c.name AS comuna,m.id membership_id,m.source,m.starts_at,m.expires_at,m.days_granted,(SELECT COUNT(*) FROM customer_club_gifts g WHERE g.user_id=u.id AND g.status='pending') pending_gifts,(SELECT COUNT(*) FROM customer_club_gifts g WHERE g.user_id=u.id AND g.status='claimed') claimed_gifts FROM customer_club_memberships m JOIN users u ON u.id=m.user_id LEFT JOIN comunas c ON c.id=u.comuna_id WHERE m.status='active' AND m.expires_at>? AND u.is_active=1 ORDER BY m.expires_at DESC").all(now);
+  const history=db.prepare("SELECT g.*,u.name user_name,u.email FROM customer_club_gifts g JOIN users u ON u.id=g.user_id ORDER BY g.created_at DESC LIMIT 100").all();
+  res.json({members,history});
+});
+
+app.post('/api/admin/club-gifts',auth,requireRole('admin'),(req,res)=>{
+  const userId=Number(req.body?.user_id||0),kind=String(req.body?.kind||''),value=Math.max(1,Number(req.body?.value||1));
+  if(!['club_days','hunt_slots','radar_turbo'].includes(kind))return res.status(400).json({error:'Tipo de regalo inválido'});
+  if(kind==='club_days'&&![1,2,3,7].includes(value))return res.status(400).json({error:'Puedes regalar 1, 2, 3 o 7 días Club'});
+  if(kind==='hunt_slots'&&![1,2,3].includes(value))return res.status(400).json({error:'Puedes regalar 1, 2 o 3 Cazas extra'});
+  if(kind==='radar_turbo'&&![12,24,48].includes(value))return res.status(400).json({error:'Radar Turbo puede durar 12, 24 o 48 horas'});
+  const u=__dyClubUser(userId);if(!u||String(u.account_type)!=='customer')return res.status(404).json({error:'Cliente no encontrado'});
+  if(!__dyClubMembership(userId))return res.status(409).json({error:'Solo puedes enviar Sorpresa Club a un cliente con Club activo'});
+  const meta=__dyClubGiftMeta(kind,value),gift=__dyClubCreateGift(userId,kind,value,'admin',null,req.user.id,meta.title,'Un regalo de DatoYa por ser parte de Club. Abre tu sorpresa desde DatoYa Club.',14);
+  notify(userId,'club','🎁 DatoYa te envió una Sorpresa Club. Ábrela en tu cuenta.','#/club');
+  res.json({ok:true,gift,meta});
 });
 
 app.post('/api/club/checkout',auth,async(req,res)=>{try{
