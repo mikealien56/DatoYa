@@ -83,6 +83,12 @@ grep -q "Falta tabla PostgreSQL: business_impulse_payments" postgres_migrate.js
 grep -q "CREATE TABLE IF NOT EXISTS business_khipu_onboarding" postgres/014_khipu_business_onboarding.sql
 grep -q "Falta tabla PostgreSQL: business_khipu_onboarding" postgres_migrate.js
 grep -q "khipu_business_onboarding_bootstrap" production_start.js
+grep -q "business_growth_plans_v2_bootstrap" production_start.js || { echo "Growth Plans V2 backend no montado"; exit 1; }
+grep -q "business_growth_plans_v2_assets" production_start.js || { echo "Growth Plans V2 UI no publicada"; exit 1; }
+grep -q "DATOYA_GROWTH_PLANS_V2" business_growth_plans_v2_bootstrap.js || { echo "Falta backend Growth Plans V2"; exit 1; }
+grep -q "business_growth_plan_payments" business_growth_plans_v2_bootstrap.js || { echo "Falta persistencia de pagos Growth Plans V2"; exit 1; }
+grep -q "Impulso Premium" business_growth_plans_v2_ui.js || { echo "Falta nivel Premium en planes"; exit 1; }
+grep -q "\[1,7,15,30\]" business_growth_plans_v2_ui.js || { echo "Faltan duraciones 1/7/15/30"; exit 1; }
 grep -q "app.get('/api/businesses/:id/khipu-onboarding'" khipu_business_onboarding_bootstrap.js
 grep -q "app.post('/api/businesses/:id/khipu-onboarding/start'" khipu_business_onboarding_bootstrap.js
 grep -q "No te pediremos claves bancarias" business_hub_ui.js
@@ -145,7 +151,7 @@ node test_founder_welcome.js
 bash test_refunds_flow.sh
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
+for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/growth-plans businesses/1/growth-access businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done
@@ -175,7 +181,7 @@ SUPPORT_CODE=$(curl -s -o /tmp/dy_support_invalid.json -w '%{http_code}' -X POST
 echo "✅ Centro de soporte montado y validando"
 
 # 6) Assets que definen la beta comercial.
-for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css beta_launch_ui.js beta_launch.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
+for asset in   manifest.webmanifest service-worker.js local_market_home.js marketplace_account_ui.js marketplace_public_beta_ui.js   marketplace_business_ui.js marketplace_commerce_ui.js khipu_payments_ui.js   marketplace_growth_ui.js marketplace_hours_ui.js marketplace_guided_demo_ui.js marketplace_delivery_ui.js marketplace_order_fulfillment_ui.js marketplace_promo_analytics_ui.js marketplace_coupons_ui.js marketplace_coupons.css marketplace_integrations_ui.js marketplace_refunds_ui.js marketplace_refunds.css beta_launch_ui.js beta_launch.css support_center_ui.js business_support_ui.js support_center.css admin_support_cases_ui.js marketplace_admin_v2_ui.js business_hub_ui.js business_hub.css marketplace_admin_v2.css business_impulse_plan_ui.js business_impulse_plan.css business_growth_plans_v2_ui.js business_growth_plans_v2.css   marketplace_legacy_route_guard.js   marketplace_growth.css marketplace_hours.css marketplace_guided_demo.css marketplace_delivery.css marketplace_promo_analytics.css marketplace_integrations.css   brand/datoya-logo-horizontal.png; do
   curl -fsS "http://localhost:3000/$asset" >/dev/null || { echo "Archivo estático no publicado: $asset"; exit 1; }
 done
 grep -q "Cuenta administrador" marketplace_account_ui.js || { echo "Mi DatoYa no distingue la cuenta administradora"; exit 1; }
