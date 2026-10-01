@@ -129,6 +129,62 @@ jobs:
           p.write_text(s)
           PY
           npx cap sync android
+
+          # Android 15/16: confina físicamente el WebView entre las barras del sistema.
+          cat > android/app/src/main/java/cl/datoya/app/MainActivity.java <<'JAVA'
+          package cl.datoya.app;
+
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.ViewGroup;
+
+          import androidx.core.graphics.Insets;
+          import androidx.core.view.ViewCompat;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  getWindow().getDecorView().setBackgroundColor(Color.WHITE);
+                  getWindow().setStatusBarColor(Color.WHITE);
+                  getWindow().setNavigationBarColor(Color.WHITE);
+
+                  WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+                  WindowInsetsControllerCompat controller =
+                      WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                  controller.setAppearanceLightStatusBars(true);
+                  controller.setAppearanceLightNavigationBars(true);
+
+                  View webView = this.bridge.getWebView();
+
+                  ViewCompat.setOnApplyWindowInsetsListener(webView, (v, windowInsets) -> {
+                      Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+                      ViewGroup.LayoutParams raw = v.getLayoutParams();
+                      if (raw instanceof ViewGroup.MarginLayoutParams) {
+                          ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) raw;
+                          if (lp.topMargin != bars.top || lp.bottomMargin != bars.bottom) {
+                              lp.topMargin = bars.top;
+                              lp.bottomMargin = bars.bottom;
+                              v.setLayoutParams(lp);
+                          }
+                      }
+                      return windowInsets;
+                  });
+
+                  ViewCompat.requestApplyInsets(webView);
+              }
+          }
+          JAVA
+
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -151,10 +207,10 @@ jobs:
               raise SystemExit('No se encontró build.gradle de Android')
           s=p.read_text()
           import re
-          s=re.sub(r'versionCode\s+\d+', 'versionCode 4', s)
-          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.2.0"', s)
+          s=re.sub(r'versionCode\s+\d+', 'versionCode 5', s)
+          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.0"', s)
           p.write_text(s)
-          print('DatoYa Android versionCode=4 versionName=2.2.0')
+          print('DatoYa Android versionCode=5 versionName=2.3.0')
           PY
 
       - name: Build release APK
