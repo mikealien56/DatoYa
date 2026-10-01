@@ -62,3 +62,7 @@
 .dy-club-info-rules-v2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}.dy-club-info-rules-v2>div{padding:15px;border:1px solid #dbe5ef;border-radius:16px;background:#f8fafc}.dy-club-info-rules-v2 b{color:#0B3A82}.dy-club-info-rules-v2 p{margin:4px 0 0;color:#64748b;font-size:12px;line-height:1.45}
 @media(max-width:820px){.dy-club-info-hero-v2{grid-template-columns:1fr;gap:12px}.dy-club-info-card-art img{width:min(100%,520px)}}
 @media(max-width:680px){.dy-club-info-hero-v2{padding:20px 14px}.dy-club-info-hero-copy h1{font-size:34px}.dy-club-info-hero-actions{align-items:stretch}.dy-club-info-hero-actions .btn{width:100%;box-sizing:border-box;text-align:center}.dy-club-info-rules-v2{grid-template-columns:1fr}}
+
+.dy-club-profile-brand{width:58px;height:40px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 6px 10px rgba(7,43,99,.18))}
+.dy-club-home-brand{display:flex;align-items:center;justify-content:center}.dy-club-home-brand img{display:block;width:min(100%,480px);height:auto;filter:drop-shadow(0 18px 28px rgba(0,0,0,.24))}
+@media(max-width:680px){.dy-club-profile-brand{width:72px;height:48px}.dy-club-home-brand img{width:min(100%,420px)}}
