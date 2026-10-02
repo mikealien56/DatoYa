@@ -232,10 +232,10 @@ jobs:
               raise SystemExit('No se encontró build.gradle de Android')
           s=p.read_text()
           import re
-          s=re.sub(r'versionCode\s+\d+', 'versionCode 7', s)
-          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.2"', s)
+          s=re.sub(r'versionCode\s+\d+', 'versionCode 8', s)
+          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.3"', s)
           p.write_text(s)
-          print('DatoYa Android versionCode=7 versionName=2.3.2')
+          print('DatoYa Android versionCode=8 versionName=2.3.3')
           PY
 
       - name: Verify native permissions
@@ -251,14 +251,46 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Collect APK
+      - name: Sign installable APK with Android v2/v3
+        shell: bash
         run: |
-          mkdir -p android-output
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk android-output/DatoYa-Capacitor-unsigned.apk
+          set -euo pipefail
 
-      - name: Upload APK
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          echo "Using Android build-tools: $BUILD_TOOLS"
+
+          UNSIGNED="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED="$RUNNER_TEMP/DatoYa-2.3.3-aligned.apk"
+          SIGNED="android-output/DatoYa-2.3.3.apk"
+          KEYSTORE="$RUNNER_TEMP/datoya-beta-release.jks"
+
+          test -f "$UNSIGNED"
+          test -x "$BUILD_TOOLS/zipalign"
+          test -x "$BUILD_TOOLS/apksigner"
+
+          mkdir -p android-output
+
+          keytool -genkeypair -noprompt             -keystore "$KEYSTORE"             -storepass "DatoYaBeta2026!"             -keypass "DatoYaBeta2026!"             -alias datoya-beta             -keyalg RSA             -keysize 2048             -validity 10000             -dname "CN=DatoYa Android Beta, OU=DatoYa, O=DatoYa, L=Rancagua, ST=O'Higgins, C=CL"
+
+          "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "$ALIGNED"
+
+          "$BUILD_TOOLS/apksigner" sign             --ks "$KEYSTORE"             --ks-key-alias datoya-beta             --ks-pass pass:"DatoYaBeta2026!"             --key-pass pass:"DatoYaBeta2026!"             --v1-signing-enabled true             --v2-signing-enabled true             --v3-signing-enabled true             --out "$SIGNED"             "$ALIGNED"
+
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$SIGNED" | tee android-output/signature-verification.txt
+          "$BUILD_TOOLS/aapt" dump badging "$SIGNED" | head -20 | tee android-output/apk-badging.txt
+
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" android-output/signature-verification.txt
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" android-output/signature-verification.txt
+          grep -q "package: name='cl.datoya.app'" android-output/apk-badging.txt
+          grep -q "versionCode='8'" android-output/apk-badging.txt
+          grep -q "versionName='2.3.3'" android-output/apk-badging.txt
+
+      - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
           name: datoya-capacitor-apk
-          path: android-output/DatoYa-Capacitor-unsigned.apk
+          path: |
+            android-output/DatoYa-2.3.3.apk
+            android-output/signature-verification.txt
+            android-output/apk-badging.txt
           if-no-files-found: error
