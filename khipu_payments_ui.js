@@ -1,8 +1,8 @@
 /* DatoYa — ORDER_KHIPU_DISABLED_V1
-   Khipu ya no se usa para cobrar ventas de terceros.
-   Se conserva este asset como guard de compatibilidad para navegadores con caché antigua. */
+   La cuenta Khipu de DatoYa no cobra ventas de terceros.
+   Cada negocio puede conectar su propia cuenta Khipu desde Panel Negocio → Pagos. */
 (()=>{
   window.dyPayOrderKhipu=function(){
-    toast?.('Este pedido se paga directamente al negocio. DatoYa no procesa el dinero de la venta.','info');
+    toast?.('La cuenta Khipu de DatoYa no procesa esta venta. Si el negocio conectó su propio Khipu, usa “Pagar con Khipu” en el pedido.','info');
   };
 })();
