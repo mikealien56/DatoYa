@@ -86,6 +86,8 @@ grep -q "khipu_business_onboarding_bootstrap" production_start.js
 grep -q "business_growth_plans_v2_bootstrap" production_start.js || { echo "Growth Plans V2 backend no montado"; exit 1; }
 grep -q "business_growth_plans_v2_assets" production_start.js || { echo "Growth Plans V2 UI no publicada"; exit 1; }
 grep -q "direct_merchant_payments_bootstrap" production_start.js || { echo "Pagos directos backend no montado"; exit 1; }
+grep -q "business_khipu_direct_bootstrap" production_start.js || { echo "Khipu directo por negocio no montado"; exit 1; }
+grep -q "DATOYA_BUSINESS_KHIPU_DIRECT_V1" business_khipu_direct_bootstrap.js || { echo "Falta backend Khipu directo por negocio"; exit 1; }
 grep -q "direct_merchant_payments_assets" production_start.js || { echo "Pagos directos UI no publicada"; exit 1; }
 grep -q "customer_club_bootstrap" production_start.js || { echo "DatoYa Club backend no montado"; exit 1; }
 grep -q "customer_club_assets" production_start.js || { echo "DatoYa Club UI no publicada"; exit 1; }
@@ -103,6 +105,9 @@ grep -q "DATOYA_DIRECT_MERCHANT_PAYMENTS_V1" direct_merchant_payments_bootstrap.
 grep -q "DATOYA_ORDER_KHIPU_DISABLED_V1" direct_merchant_payments_bootstrap.js || { echo "Checkout Khipu de pedidos no está bloqueado"; exit 1; }
 grep -q "ORDER_KHIPU_DISABLED_V1" khipu_payments_ui.js || { echo "Frontend aún intenta cobrar pedidos con Khipu"; exit 1; }
 grep -q "Exigir pago antes de preparar" direct_merchant_payments_ui.js || { echo "Falta protección de prepago en UI"; exit 1; }
+grep -q "Pagar con Khipu" direct_merchant_payments_ui.js || { echo "Cliente no puede pagar con el Khipu propio del negocio"; exit 1; }
+grep -q "DATOYA_MERCHANT_KHIPU_CREDENTIAL_KEY" business_khipu_direct_bootstrap.js || { echo "Credenciales Khipu del negocio no están cifradas con clave dedicada"; exit 1; }
+grep -q "datoya_sales_commission_pct:0" business_khipu_direct_bootstrap.js || { echo "Khipu directo alteró el modelo 0% comisión por ventas"; exit 1; }
 grep -q "DATOYA_GROWTH_PLANS_V2" business_growth_plans_v2_bootstrap.js || { echo "Falta backend Growth Plans V2"; exit 1; }
 grep -q "business_growth_plan_payments" business_growth_plans_v2_bootstrap.js || { echo "Falta persistencia de pagos Growth Plans V2"; exit 1; }
 grep -q "Impulso Premium" business_growth_plans_v2_ui.js || { echo "Falta nivel Premium en planes"; exit 1; }
@@ -171,7 +176,7 @@ node test_founder_welcome.js
 bash test_refunds_flow.sh
 
 # 5) Rutas privadas del marketplace no deben abrir sin sesión.
-for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/growth-plans businesses/1/growth-access businesses/1/direct-payment-settings orders/1/direct-payment-options club/overview club/gifts admin/club-gifts/members businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
+for path in businesses/mine businesses/1/support-cases businesses/1/plan-access businesses/1/growth-plans businesses/1/growth-access businesses/1/direct-payment-settings businesses/1/khipu-direct orders/1/direct-payment-options orders/1/business-khipu/status club/overview club/gifts admin/club-gifts/members businesses/1/readiness businesses/1/khipu-onboarding orders/mine admin/support-cases admin/marketplace-v2/summary admin/beta-launch push/config; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000/api/$path")
   [ "$code" = "401" ] || { echo "Ruta privada incorrecta /api/$path HTTP $code"; exit 1; }
 done
