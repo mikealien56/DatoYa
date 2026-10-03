@@ -4,6 +4,6 @@ for(const name of ['home_structure_v3.js','home_structure_v3.css']){const s=path
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){let h=fs.readFileSync(idx,'utf8');
 h=h.replace(/<link[^>]+href="\/home_structure_v3\.css[^"]*"[^>]*>\s*/g,'').replace(/<script[^>]+src="\/home_structure_v3\.js[^"]*"[^>]*><\/script>\s*/g,'');
-h=h.replace('</head>','<link rel="stylesheet" href="/home_structure_v3.css?v=20261003-3">\n</head>');
-h=h.replace('</body>','<script src="/home_structure_v3.js?v=20261003-3"></script>\n</body>');
+h=h.replace('</head>','<link rel="stylesheet" href="/home_structure_v3.css?v=20261003-4">\n</head>');
+h=h.replace('</body>','<script src="/home_structure_v3.js?v=20261003-4"></script>\n</body>');
 fs.writeFileSync(idx,h);}
