@@ -11,14 +11,24 @@
     if(ME.account_type!=='business'){location.hash='#/perfil';return;}
     view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-direct-pay-loading"><span>💳</span><b>Cargando formas de pago…</b></section></div>';
     try{
-      const [meta,pref,ordersD]=await Promise.all([
+      const [meta,pref,ordersD,khipuD]=await Promise.all([
         api('/businesses/'+id+'/manage'),
         api('/businesses/'+id+'/direct-payment-settings'),
-        api('/businesses/'+id+'/orders')
+        api('/businesses/'+id+'/orders'),
+        api('/businesses/'+id+'/khipu-direct').catch(()=>({khipu:{connected:false,status:'not_connected'}}))
       ]);
-      const b=meta.business||{},s=pref.settings||{},orders=ordersD.orders||[];
+      const b=meta.business||{},s=pref.settings||{},orders=ordersD.orders||[],k=khipuD.khipu||{connected:false,status:'not_connected'};
       const paid=orders.filter(o=>String(o.payment_status)==='paid').length;
       const pending=orders.filter(o=>String(o.payment_status)!=='paid'&&String(o.status)!=='cancelled').length;
+      const khipuForm=`<form id="dy-khipu-direct-form" class="dy-khipu-direct-form">
+        <div class="dy-khipu-direct-grid">
+          <div class="field"><label>ID de cobrador</label><input name="receiver_id" inputmode="numeric" value="${h(k.receiver_id||'')}" placeholder="Ej: 123456" maxlength="20" required><small>Está en Opciones de la cuenta → Para integrar Khipu a tu sitio web.</small></div>
+          <div class="field"><label>Llave de Khipu</label><input name="secret" type="password" autocomplete="new-password" placeholder="Pega tu Llave" maxlength="500" required><small>Se usa únicamente para validar las notificaciones de pago.</small></div>
+          <div class="field dy-khipu-direct-wide"><label>API Key</label><input name="api_key" type="password" autocomplete="new-password" placeholder="Pega tu Nueva API Key" maxlength="1000" required><small>Khipu la muestra al crearla. Si la perdiste, genera una nueva.</small></div>
+        </div>
+        <div class="dy-khipu-direct-security"><span>🔒</span><div><b>Tus credenciales se guardan cifradas.</b><small>DatoYa nunca te pedirá tu clave bancaria. La cuenta bancaria se configura directamente en Khipu.</small></div></div>
+        <button class="btn btn-primary btn-block" type="submit">${k.connected?'Actualizar conexión Khipu':'Conectar Khipu'}</button>
+      </form>`;
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
         <section class="dy-business-dashboard-hero dy-direct-pay-hero">
           <div><span>PAGOS</span><h1>El dinero va directo a ${h(b.name||'tu negocio')}</h1><p>DatoYa organiza pedidos y estados, pero no cobra ni retiene dinero de tus ventas.</p></div>
@@ -31,8 +41,20 @@
           <div><span>💸</span><strong>0%</strong><b>Comisión DatoYa</b><small>Sobre tus ventas</small></div>
         </section>
 
+        <section class="dy-business-card dy-khipu-direct-card">
+          <div class="dy-card-head"><div><span>KHIPU DEL NEGOCIO</span><h2>Recibe pagos Khipu directamente</h2><p>Cada negocio usa su propia cuenta Khipu. El dinero de la compra entra directamente a tu cuenta de cobro; DatoYa no recibe ni retiene ese dinero.</p></div><span class="dy-khipu-direct-state ${k.connected?'ok':'pending'}">${k.connected?'✓ Conectado':'○ No conectado'}</span></div>
+          <div class="dy-khipu-direct-steps">
+            <div><span>1</span><b>Crea o activa tu cuenta Khipu</b><small>Asocia allí la cuenta bancaria donde recibirás los pagos.</small></div>
+            <div><span>2</span><b>Obtén tus 3 credenciales</b><small>ID de cobrador, Llave y Nueva API Key, desde “Para integrar Khipu a tu sitio web”.</small></div>
+            <div><span>3</span><b>Conecta Khipu aquí</b><small>DatoYa crea el cobro con tu cuenta y confirma el pago automáticamente.</small></div>
+          </div>
+          ${k.connected?`<div class="dy-khipu-connected-box"><span>✓</span><div><b>Khipu está conectado</b><small>ID de cobrador: ${h(k.receiver_id||'—')} · ${k.receiver_verified?'Cuenta verificada con un cobro Khipu':'La API Key fue validada; el ID se comprobará automáticamente con el primer cobro.'}</small></div></div>
+          <details class="dy-khipu-update"><summary>Actualizar credenciales</summary>${khipuForm}</details>
+          <button class="btn btn-outline btn-block" type="button" id="dy-khipu-direct-disconnect">Desconectar Khipu</button>`:khipuForm}
+        </section>
+
         <section class="dy-business-card dy-direct-pay-settings">
-          <div class="dy-card-head"><div><span>FORMAS DE PAGO</span><h2>¿Cómo pueden pagarte?</h2><p>Estas opciones pertenecen a tu negocio. DatoYa solo se las muestra al cliente.</p></div></div>
+          <div class="dy-card-head"><div><span>OTRAS FORMAS DE PAGO</span><h2>¿Cómo más pueden pagarte?</h2><p>También puedes ofrecer pago al retirar, al recibir, transferencia u otro enlace propio.</p></div></div>
           <form id="dy-direct-pay-form">
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_at_pickup" ${s.pay_at_pickup?'checked':''}><span>🛍️</span><div><b>Pago al retirar</b><small>El cliente paga directamente cuando retira.</small></div></label>
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_on_delivery" ${s.pay_on_delivery?'checked':''}><span>🚚</span><div><b>Pago al recibir despacho</b><small>Para pedidos con despacho propio.</small></div></label>
@@ -51,6 +73,32 @@
 
         <section class="dy-direct-pay-note"><span>ℹ️</span><div><b>Khipu en DatoYa queda para servicios DatoYa</b><p>Impulso, Impulso+ y Premium pueden pagarse a DatoYa. Los pedidos de tus clientes no usan la cuenta Khipu de DatoYa.</p></div></section>
       </div>`;
+      document.getElementById('dy-khipu-direct-form')?.addEventListener('submit',async e=>{
+        e.preventDefault();
+        const btn=e.currentTarget.querySelector('button[type="submit"]'),fd=new FormData(e.currentTarget);
+        if(btn){btn.disabled=true;btn.textContent='Validando con Khipu…';}
+        try{
+          const result=await api('/businesses/'+id+'/khipu-direct',{method:'PUT',body:{
+            receiver_id:String(fd.get('receiver_id')||'').trim(),
+            secret:String(fd.get('secret')||'').trim(),
+            api_key:String(fd.get('api_key')||'').trim()
+          }});
+          toast?.(result.message||'Khipu conectado','ok');
+          renderDirectPayments(id);
+        }catch(err){
+          if(btn){btn.disabled=false;btn.textContent=k.connected?'Actualizar conexión Khipu':'Conectar Khipu';}
+          toast?.(err.message||'No se pudo conectar Khipu','err');
+        }
+      });
+      document.getElementById('dy-khipu-direct-disconnect')?.addEventListener('click',async e=>{
+        if(!confirm('¿Desconectar Khipu de este negocio? Los pedidos nuevos ya no podrán pagarse con Khipu.'))return;
+        const btn=e.currentTarget;btn.disabled=true;btn.textContent='Desconectando…';
+        try{
+          await api('/businesses/'+id+'/khipu-direct',{method:'DELETE'});
+          toast?.('Khipu desconectado','ok');
+          renderDirectPayments(id);
+        }catch(err){btn.disabled=false;btn.textContent='Desconectar Khipu';toast?.(err.message||'No se pudo desconectar','err');}
+      });
       document.getElementById('dy-external-pay-enabled')?.addEventListener('change',e=>{
         const wrap=document.getElementById('dy-external-pay-url-wrap');
         if(wrap)wrap.hidden=!e.currentTarget.checked;
@@ -90,6 +138,8 @@
     if(o.fulfillment_method==='pickup'&&s.pay_at_pickup)parts.push('🛍️ Pago al retirar');
     if(o.fulfillment_method==='delivery'&&s.pay_on_delivery)parts.push('🚚 Pago al recibir');
     if(s.transfer_enabled)parts.push('🏦 Transferencia directa');
+    const k=data.khipu||{};
+    if(k.available)parts.push('🏦 Khipu');
     if(s.external_payment_enabled&&s.external_payment_url)parts.push('🔗 Enlace de pago del negocio');
     const wa=String(data.order?.whatsapp||'').replace(/\D/g,'');
     const waHref=wa?'https://wa.me/'+wa+'?text='+encodeURIComponent('Hola, consulto por el pago de mi pedido '+String(o.reference||'')):'';
@@ -97,7 +147,8 @@
       <div><b>💳 Pago directo a ${h(data.order?.business_name||o.business_name||'este negocio')}</b><p>${s.prepayment_required&&String(o.payment_status)!=='paid'?'Este negocio solicita pago antes de preparar el pedido.':'DatoYa no recibe este dinero.'}</p></div>
       <div class="dy-direct-customer-methods">${parts.map(x=>'<span>'+h(x)+'</span>').join('')}</div>
       <div class="dy-direct-customer-actions">
-        ${s.external_payment_enabled&&s.external_payment_url&&String(o.payment_status)!=='paid'?`<a class="btn btn-primary btn-sm" href="${h(s.external_payment_url)}" target="_blank" rel="noopener noreferrer">Pagar al negocio</a>`:''}
+        ${k.available&&String(o.payment_status)!=='paid'?`<button class="btn btn-primary btn-sm" type="button" onclick="dyPayBusinessKhipu(${Number(o.id)},this)">Pagar con Khipu</button>`:''}
+        ${s.external_payment_enabled&&s.external_payment_url&&String(o.payment_status)!=='paid'?`<a class="btn btn-outline btn-sm" href="${h(s.external_payment_url)}" target="_blank" rel="noopener noreferrer">Otro enlace de pago</a>`:''}
         ${waHref&&String(o.payment_status)!=='paid'?`<a class="btn btn-outline btn-sm" href="${h(waHref)}" target="_blank" rel="noopener noreferrer">Coordinar pago</a>`:''}
       </div>
       ${String(o.payment_status)==='paid'?'<small class="paid">✅ El negocio registró este pago como recibido.</small>':''}
@@ -113,7 +164,12 @@
         const {orders=[]}=await api('/orders/mine');
         for(const o of orders){
           const card=document.getElementById('dy-order-'+Number(o.id));if(!card)continue;
-          const data=await api('/orders/'+Number(o.id)+'/direct-payment-options').catch(()=>null);if(!data)continue;
+          const [data,khipu]=await Promise.all([
+            api('/orders/'+Number(o.id)+'/direct-payment-options').catch(()=>null),
+            api('/orders/'+Number(o.id)+'/business-khipu/status').catch(()=>({available:false,connected:false,paid:String(o.payment_status)==='paid'}))
+          ]);if(!data)continue;
+          data.khipu=khipu||{available:false};
+          if(khipu&&khipu.paid)o.payment_status='paid';
           const old=card.querySelector('.dy-direct-customer-pay');if(old)old.remove();
           const actions=card.querySelector('button[onclick^="dyCancelOrder"]');
           if(actions)actions.insertAdjacentHTML('beforebegin',directPaymentMarkup(o,data));
@@ -158,5 +214,18 @@
     };
   }
 
-  window.dyPayOrderKhipu=function(){toast?.('Este pedido se paga directamente al negocio. DatoYa no procesa el dinero de la venta.','info');};
+  window.dyPayBusinessKhipu=async function(orderId,btn){
+    if(btn?.disabled)return;
+    const old=btn?.textContent||'Pagar con Khipu';
+    if(btn){btn.disabled=true;btn.textContent='Abriendo Khipu…';}
+    try{
+      const r=await api('/orders/'+Number(orderId)+'/business-khipu/checkout',{method:'POST'});
+      if(!r.payment_url)throw new Error('Khipu no devolvió el enlace de pago');
+      location.href=r.payment_url;
+    }catch(err){
+      if(btn){btn.disabled=false;btn.textContent=old;}
+      toast?.(err.message||'No se pudo iniciar el pago con Khipu','err');
+    }
+  };
+  window.dyPayOrderKhipu=function(){toast?.('Este pedido se paga directamente al negocio. Usa Khipu del comercio si está conectado.','info');};
 })();
