@@ -394,12 +394,16 @@ node --check marketplace_delivery_eta_bootstrap.js
 node --check marketplace_delivery_eta_assets.js
 
 # DatoYa Club identidad pública
-test -s brand/datoya-club-card.webp || { echo "Falta imagen oficial DatoYa Club"; exit 1; }
-grep -q 'datoya-club-card.webp' home_structure_v3.js || { echo "Portada no usa identidad DatoYa Club"; exit 1; }
+for i in 0 1 2 3 4; do test -s "brand/datoya-club-card.avif.b64.$i" || { echo "Falta parte $i de la tarjeta premium Club"; exit 1; }; done
+grep -q 'datoya-club-card.avif' home_structure_v3.js || { echo "Portada no usa la nueva tarjeta premium DatoYa Club"; exit 1; }
 grep -q 'Conoce más' home_structure_v3.js || { echo "Portada Club no enlaza a información"; exit 1; }
 grep -q 'DatoYa atento por ti' customer_club_ui.js || { echo "Página Conoce más Club no fue renovada"; exit 1; }
 grep -q 'CLUB EN UNA FRASE' customer_club_ui.js || { echo "Falta explicación breve de Club"; exit 1; }
-grep -q 'brandSrc' customer_club_assets.js || { echo "Imagen Club no se publica en /public/brand"; exit 1; }
+grep -q 'AHORRO CLUB' customer_club_ui.js || { echo "Falta explicar el ahorro de DatoYa Club"; exit 1; }
+grep -q 'Precio Club' customer_club_ui.js || { echo "Falta explicar Precio Club"; exit 1; }
+grep -q 'premiumParts' customer_club_assets.js || { echo "Tarjeta premium Club no se reconstruye en /public/brand"; exit 1; }
 node --check home_structure_v3.js
 node --check customer_club_ui.js
 node --check customer_club_assets.js
+node customer_club_assets.js
+test -s public/brand/datoya-club-card.avif || { echo "No se generó la tarjeta AVIF pública"; exit 1; }

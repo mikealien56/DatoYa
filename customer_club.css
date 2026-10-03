@@ -66,3 +66,22 @@
 .dy-club-profile-brand{width:58px;height:40px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 6px 10px rgba(7,43,99,.18))}
 .dy-club-home-brand{display:flex;align-items:center;justify-content:center}.dy-club-home-brand img{display:block;width:min(100%,480px);height:auto;filter:drop-shadow(0 18px 28px rgba(0,0,0,.24))}
 @media(max-width:680px){.dy-club-profile-brand{width:72px;height:48px}.dy-club-home-brand img{width:min(100%,420px)}}
+
+
+/* DatoYa Club — ahorro y tarjeta premium 2026-10-03 */
+.dy-club-info-card-art{background:transparent!important;overflow:visible!important}
+.dy-club-info-card-art img{display:block;width:min(100%,620px);height:auto;object-fit:contain;background:transparent;border:0;filter:drop-shadow(0 22px 34px rgba(0,0,0,.30))}
+.dy-club-savings{margin-top:16px;padding:22px;border-radius:22px;background:linear-gradient(145deg,#061f48,#0B3A82 62%,#0f766e);color:#fff;overflow:hidden;position:relative}
+.dy-club-savings:after{content:"";position:absolute;width:280px;height:280px;border-radius:50%;right:-130px;top:-140px;background:rgba(78,220,206,.10)}
+.dy-club-savings .dy-club-section-head{position:relative;z-index:1}
+.dy-club-savings .dy-club-section-head>span{color:#75f1e5}.dy-club-savings .dy-club-section-head h2{color:#fff}.dy-club-savings .dy-club-section-head p{color:rgba(255,255,255,.78)}
+.dy-club-savings-layout{position:relative;z-index:1;display:grid;grid-template-columns:minmax(230px,.72fr) minmax(0,1.28fr);gap:16px;align-items:start;margin-top:16px}
+.dy-club-price-example{padding:17px;border-radius:18px;background:#fff;color:#0f172a;box-shadow:0 14px 35px rgba(0,0,0,.16)}
+.dy-club-price-example>small{display:block;margin-bottom:12px;color:#0f766e;font-size:9px;font-weight:900;letter-spacing:.12em}
+.dy-club-price-example>div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #e2e8f0}
+.dy-club-price-example>div span{font-size:12px;color:#64748b}.dy-club-price-example>div b{color:#334155}
+.dy-club-price-example>div.club strong{font-size:28px;color:#0B3A82}.dy-club-price-example>div.club span{font-weight:900;color:#0B3A82}
+.dy-club-price-example>div.save{border-top:1px dashed #99f6e4}.dy-club-price-example>div.save span,.dy-club-price-example>div.save b{color:#08796d;font-weight:900}
+.dy-club-savings-copy{padding:4px 2px}.dy-club-savings-copy h3{margin:0 0 7px;color:#fff;font-size:20px}.dy-club-savings-copy p{margin:0;color:rgba(255,255,255,.78);line-height:1.55}
+.dy-club-savings-copy ul{margin:13px 0;padding-left:19px;color:rgba(255,255,255,.82);font-size:12px;line-height:1.7}.dy-club-savings-copy .note{padding:10px 12px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.07);font-size:11px}
+@media(max-width:720px){.dy-club-savings{padding:18px 13px}.dy-club-savings-layout{grid-template-columns:1fr}.dy-club-info-card-art img{width:min(100%,540px)}}

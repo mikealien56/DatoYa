@@ -98,8 +98,8 @@
       view.innerHTML='<div class="dy-club-page dy-club-info-v2">'+
         '<a class="dy-public-back" href="#/">← Volver a DatoYa</a>'+
         '<section class="dy-club-info-hero-v2">'+
-          '<div class="dy-club-info-card-art"><img src="/brand/datoya-club-card.webp" alt="Tarjeta DatoYa Club"></div>'+
-          '<div class="dy-club-info-hero-copy"><span>DATOYA CLUB</span><h1>DatoYa atento por ti</h1><p>Club es un pase opcional que agrega herramientas para seguir lo que buscas, fijar un precio objetivo y detectar nuevas oportunidades cerca de ti sin revisar la app todo el día.</p><div class="dy-club-info-hero-actions"><a class="btn btn-light" href="#club-beneficios">Ver beneficios</a><small>DatoYa Gratis sigue disponible siempre</small></div></div>'+
+          '<div class="dy-club-info-card-art"><img src="/brand/datoya-club-card.avif" alt="Tarjeta DatoYa Club"></div>'+
+          '<div class="dy-club-info-hero-copy"><span>DATOYA CLUB</span><h1>DatoYa atento por ti</h1><p>Club es un pase opcional que agrega herramientas para seguir lo que buscas, fijar un precio objetivo, detectar nuevas oportunidades y aprovechar beneficios especiales cuando un negocio ofrezca Precio Club.</p><div class="dy-club-info-hero-actions"><a class="btn btn-light" href="#club-beneficios">Ver beneficios</a><small>DatoYa Gratis sigue disponible siempre</small></div></div>'+
         '</section>'+
         '<section class="dy-club-info-summary"><span>CLUB EN UNA FRASE</span><h2>Tú defines qué buscas. DatoYa queda atento.</h2><p>No necesitas Club para explorar negocios ni hacer pedidos. Club sirve para automatizar parte de esa búsqueda y darte más herramientas para detectar oportunidades locales.</p></section>'+
         '<section id="club-beneficios" class="dy-club-lab dy-club-info-benefits-v2"><div class="dy-club-section-head"><span>BENEFICIOS</span><h2>Qué agrega DatoYa Club</h2><p>Herramientas pensadas para buscar menos y aprovechar mejor lo que aparece cerca de ti.</p></div>'+
@@ -110,6 +110,12 @@
             '<article><i>04</i><b>Junta DatoYa</b><p>Suma tu interés a otras personas que buscan algo parecido en la misma zona.</p><small>La señal es agregada y privada.</small></article>'+
             '<article><i>05</i><b>Sorpresas Club</b><p>Durante un pase activo DatoYa puede entregarte beneficios digitales adicionales.</p><small>Pueden incluir días, Cazas o Radar Turbo.</small></article>'+
             '<article><i>06</i><b>Vuelves a Gratis</b><p>Cuando termina tu pase sigues usando DatoYa normalmente. No pierdes el acceso básico.</p><small>Sin renovación automática.</small></article>'+
+          '</div>'+
+        '</section>'+
+        '<section class="dy-club-savings"><div class="dy-club-section-head"><span>AHORRO CLUB</span><h2>Precios especiales en productos participantes</h2><p>Cuando un negocio active un beneficio Club, podrá ofrecer un precio especial en productos seleccionados. No tiene que descontar todo su catálogo: el comercio decide qué productos participan y por cuánto tiempo.</p></div>'+
+          '<div class="dy-club-savings-layout">'+
+            '<div class="dy-club-price-example"><small>EJEMPLO DE PRECIO CLUB</small><div><span>Precio normal</span><b>$24.990</b></div><div class="club"><span>Precio Club</span><strong>$19.990</strong></div><div class="save"><span>Ahorras</span><b>$5.000</b></div></div>'+
+            '<div class="dy-club-savings-copy"><h3>¿Cómo funcionaría?</h3><p>Si eres miembro Club y el producto tiene un Precio Club vigente, DatoYa mostrará claramente el valor especial. Si no tienes Club, podrás seguir comprando al precio normal del negocio.</p><ul><li>El negocio decide si ofrece un Precio Club.</li><li>Puede aplicarlo solo a algunos productos.</li><li>El beneficio puede tener fechas, cantidad limitada o condiciones definidas por el comercio.</li><li>El ahorro real depende de los beneficios disponibles en tu zona.</li></ul><p class="note">La idea es mostrar beneficios reales sobre precios vigentes, no inflar un precio para simular un descuento.</p></div>'+
           '</div>'+
         '</section>'+
         '<section class="dy-club-lab"><div class="dy-club-section-head"><span>CÓMO FUNCIONA</span><h2>Cuatro pasos simples</h2><p>Club no cambia la forma de comprar; cambia cuánto trabajo manual tienes que hacer para encontrar oportunidades.</p></div>'+
@@ -201,7 +207,7 @@
     const root=document.querySelector('.dy-account-page,.dy-profile-page,#view>div');
     if(root&&!document.getElementById('dy-club-profile-card')){
       const s=document.createElement('section');s.id='dy-club-profile-card';s.className='dy-club-profile-card';
-      s.innerHTML='<div><img class="dy-club-profile-brand" src="/brand/datoya-club-card.webp" alt="DatoYa Club"><div><b>DatoYa Club</b><p>Activa Caza Ya, Precio Meta y Junta DatoYa. Tu primera Caza es gratis.</p></div></div><a href="#/club">Ver Club →</a>';
+      s.innerHTML='<div><img class="dy-club-profile-brand" src="/brand/datoya-club-card.avif" alt="DatoYa Club"><div><b>DatoYa Club</b><p>Activa Caza Ya, Precio Meta y Junta DatoYa. Tu primera Caza es gratis.</p></div></div><a href="#/club">Ver Club →</a>';
       root.appendChild(s);
     }
   }
@@ -212,7 +218,7 @@
     if(ME&&(ME.account_type==='business'||ME.role==='admin'))return;
     const anchor=document.getElementById('como-funciona');if(!anchor||document.getElementById('dy-club-home'))return;
     const s=document.createElement('section');s.id='dy-club-home';s.className='dy-section dy-club-home';
-    s.innerHTML='<div class="dy-club-home-brand"><img src="/brand/datoya-club-card.webp" alt="DatoYa Club"></div><div class="dy-club-home-copy"><span>DATOYA CLUB</span><h2>Más oportunidades. Menos búsqueda.</h2><p>Activa herramientas para que DatoYa quede atento a lo que buscas y a tu precio objetivo.</p><div><a class="btn btn-primary" href="#/club-info">Conoce más</a><small>DatoYa Gratis sigue disponible · sin renovación automática</small></div></div>';
+    s.innerHTML='<div class="dy-club-home-brand"><img src="/brand/datoya-club-card.avif" alt="DatoYa Club"></div><div class="dy-club-home-copy"><span>DATOYA CLUB</span><h2>Más oportunidades. Menos búsqueda.</h2><p>Activa herramientas para que DatoYa quede atento a lo que buscas y a tu precio objetivo.</p><div><a class="btn btn-primary" href="#/club-info">Conoce más</a><small>DatoYa Gratis sigue disponible · sin renovación automática</small></div></div>';
     anchor.insertAdjacentElement('afterend',s);
   }
   addEventListener('datoya:market-home-rendered',()=>setTimeout(addHomeClub,0));
