@@ -33,7 +33,7 @@
     host.innerHTML=`
       <div class="dy-home-club-showcase">
         <div class="dy-home-club-visual">
-          <img src="/brand/datoya-club-card-v5.webp?v=20261003-5" alt="Tarjeta DatoYa Club" loading="lazy">
+          <img src="/brand/datoya-club-card-v5.webp?v=20261003-6" alt="Tarjeta DatoYa Club" loading="eager" decoding="async" fetchpriority="high" width="1000" height="666">
         </div>
         <div class="dy-home-club-copy">
           <span class="dy-home-club-kicker">DATOYA CLUB</span>
