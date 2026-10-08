@@ -36,7 +36,7 @@ function open(businessId,enc,env=process.env){
   return JSON.parse(Buffer.concat([d.update(raw.subarray(28)),d.final()]).toString('utf8'));
 }
 async function api(method,path,token,body,transport=global.fetch){
-  if(!/^\/(checkout\/preferences(?:\/[0-9a-z-]+)?|v1\/payments\/\d+)$/i.test(path))throw err('Ruta Mercado Pago no permitida',400);
+  if(!/^\/(checkout\/preferences(?:\/[0-9a-z-]+)?|v1\/payments\/\d+|v1\/payments\/search\?external_reference=DYMP\d+)$/i.test(path))throw err('Ruta Mercado Pago no permitida',400);
   if(!/^[\w-]{16,300}$/.test(String(token||'')))throw err('Token OAuth del negocio inválido',503);
   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),14000);
   try{
@@ -108,7 +108,7 @@ function preferenceBody({order_id,subtotal,delivery_fee,total,email,site}){
     marketplace_fee:p.service_fee,
     payer:{email:String(email||'')},
     back_urls:{success:root+'/#/pedidos',failure:root+'/#/pedidos',pending:root+'/#/pedidos'},
-    notification_url:root+'/api/mp-split/webhook',
+    notification_url:root+'/api/mp-split/webhook?order=DYMP'+order_id,
     auto_return:'approved',expires:true,
     expiration_date_to:new Date(Date.now()+45*60*1000).toISOString()
   };
