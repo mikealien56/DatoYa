@@ -1,5 +1,6 @@
 // DatoYa Payku Marketplace routes. Does not move funds itself.
 const payku=require('./payku_marketplace_service');
+const {quote}=require('./datoya_service_fee');
 module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
   const cfg=()=>payku.config();
   function merchant(userId,id){
@@ -16,7 +17,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
       status:s?s.status:'not_registered',bank_last4:s&&s.bank_last4||null,
       bank_code:s&&s.bank_code||null,sandbox:c.sandbox,enabled:c.enabled,
       credentials_configured:c.credentials,approval_configured:c.approved,
-      datoya_commission_pct:0};
+      datoya_commission_pct:0,customer_service_fee_percent:2,payku_mall_enabled:c.mall_enabled};
   }
   function failure(err,res){
     const status=err&&[400,401,403,404,409,503,504].includes(Number(err.status))?Number(err.status):502;
@@ -28,17 +29,18 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
   const trxFor=id=>db.prepare('SELECT * FROM payku_marketplace_transactions WHERE order_id=?').get(Number(id))||null;
   async function sync(trx){
     if(!trx||!trx.transaction_id)return {paid:false,status:'pending'};
-    const fromProvider=await payku.checkTransaction(trx.transaction_id);
-    const checked=payku.verifyPayment(fromProvider,{
-      transaction_id:trx.transaction_id,reference:trx.reference,total:Number(trx.amount)
+    const fromProvider=await payku.checkMall(trx.transaction_id);
+    const checked=payku.verifyMall(fromProvider,{
+      transaction_id:trx.transaction_id,order_id:Number(trx.order_id),
+      business_amount:Number(trx.business_amount),service_fee:Number(trx.service_fee)
     });
     if(!checked.validated)throw Object.assign(new Error('Payku informó datos distintos al pedido; requiere conciliación'),{status:409});
     const now=new Date().toISOString();
     if(checked.paid){
       const o=db.prepare('SELECT payment_status,payment_method,user_id,reference FROM commerce_orders WHERE id=?').get(trx.order_id);
-      if(o&&String(o.payment_status)==='paid'&&o.payment_method!=='payku_marketplace')
+      if(o&&String(o.payment_status)==='paid'&&o.payment_method!=='payku_mall')
         throw Object.assign(new Error('Pedido marcado pagado por otro método; requiere conciliación'),{status:409});
-      const updated=db.prepare("UPDATE commerce_orders SET payment_method='payku_marketplace',payment_status='paid',updated_at=? WHERE id=? AND payment_status='pending'").run(now,trx.order_id);
+      const updated=db.prepare("UPDATE commerce_orders SET payment_method='payku_mall',payment_status='paid',updated_at=? WHERE id=? AND payment_status='pending'").run(now,trx.order_id);
       if(Number(updated.changes||0)>0&&o)
         notify(o.user_id,'pago','Pago Payku verificado del pedido '+o.reference,'#/pedidos');
     }
@@ -47,8 +49,9 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     return {paid:checked.paid,status:checked.state};
   }
   app.get('/api/payku/marketplace/config',auth,(req,res)=>{
-    const c=cfg();res.json({provider:'payku_marketplace',enabled:c.enabled,sandbox:c.sandbox,
-      approval_configured:c.approved,commission_pct:0,merchant_pct:100});
+    const c=cfg();res.json({provider:'payku_mall',enabled:c.mall_enabled,sandbox:c.sandbox,
+      approval_configured:c.approved,mall_split_approved:c.mall_enabled,
+      customer_service_fee_percent:2,merchant_commission_percent:0});
   });
   app.get('/api/payku/marketplace/banks',auth,async(req,res)=>{
     try{
@@ -103,13 +106,14 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     const o=orderFor(req.user.id,req.params.id);
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     const s=seller(o.business_id),t=trxFor(o.id),c=cfg();
-    const available=c.enabled&&!!s&&(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review'))&&o.status!=='cancelled';
+    const available=c.mall_enabled&&!!s&&(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review'))&&o.status!=='cancelled'&&o.payment_status==='pending';
+    let price=null;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)});}catch(_){}
     let payment=t?t.status:'not_started';
-    if(t&&t.transaction_id&&c.enabled&&t.status!=='paid'){
+    if(t&&t.transaction_id&&c.mall_enabled&&t.status!=='paid'){
       try{payment=(await sync(t)).status;}catch(_){/* never trust callback/client result */}
     }
     res.json({available,payment_status:payment,paid:payment==='paid'||o.payment_status==='paid',
-      checkout_started:!!t,sandbox:c.sandbox,
+      checkout_started:!!t,sandbox:c.sandbox,quote:price,
       payment_url:t&&payment==='pending'?t.payment_url:null});
   });
   app.post('/api/orders/:id/payku/checkout',auth,async(req,res)=>{
@@ -117,26 +121,29 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     if(o.status==='cancelled'||o.payment_status!=='pending')return res.status(409).json({error:'Este pedido no está pendiente de pago'});
     const c=cfg(),s=seller(o.business_id);
-    if(!c.enabled||!s||!(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review')))return res.status(503).json({error:'Este negocio todavía no tiene pagos Payku habilitados'});
+    if(!c.mall_enabled||!s||!(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review')))return res.status(503).json({error:'El cobro del 2% aún no está habilitado con Payku Mall para este negocio'});
+    let price;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)});}catch(_){return res.status(400).json({error:'Total de compra inconsistente'});}
+    if(price.service_fee<1)return res.status(400).json({error:'El pedido es demasiado pequeño para un cargo online de 2%. Usa un pago directo.'});
     const previous=trxFor(o.id);
     if(previous){
       if(previous.status==='pending'&&previous.payment_url)
-        return res.json({ok:true,payment_url:previous.payment_url});
+        return res.json({ok:true,payment_url:previous.payment_url,quote:price});
       return res.status(409).json({error:'Ya existe un intento de pago para este pedido. Revisa su estado antes de iniciar otro.'});
     }
     const reference='DY'+o.id,now=new Date().toISOString();
     try{
-      db.prepare("INSERT INTO payku_marketplace_transactions(order_id,reference,amount,status,created_at,updated_at) VALUES(?,?,?,'creating',?,?)")
-        .run(o.id,reference,Number(o.total),now,now);
+      db.prepare("INSERT INTO payku_marketplace_transactions(order_id,reference,amount,business_amount,service_fee,status,created_at,updated_at) VALUES(?,?,?,?,?,'creating',?,?)")
+        .run(o.id,reference,price.checkout_total,price.business_amount,price.service_fee,now,now);
     }catch(_){return res.status(409).json({error:'Ya hay un cobro en proceso'});}
     try{
       const base=String(process.env.PUBLIC_BASE_URL||'https://datoya.cl').replace(/\/+$/,'');
-      const p=await payku.startCheckout({
-        reference,total:Number(o.total),email:o.buyer_email,affiliation_token:payku.unsealToken(o.business_id,s.affiliation_token),base
+      const p=await payku.startMallCheckout({
+        order_id:Number(o.id),business_amount:price.business_amount,service_fee:price.service_fee,
+        email:o.buyer_email,affiliation_id:s.affiliation_id,base
       });
       db.prepare("UPDATE payku_marketplace_transactions SET transaction_id=?,payment_url=?,status='pending',updated_at=? WHERE order_id=? AND status='creating'")
         .run(p.transaction_id,p.url,new Date().toISOString(),o.id);
-      res.json({ok:true,payment_url:p.url});
+      res.json({ok:true,payment_url:p.url,quote:price});
     }catch(e){
       // If a provider times out, retry may create a duplicate charge. Human reconciliation required.
       db.prepare("UPDATE payku_marketplace_transactions SET status='needs_review',updated_at=? WHERE order_id=?")
@@ -149,7 +156,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     const ref=String(req.query.order||'');
     if(!/^DY\d{1,24}$/.test(ref))return res.sendStatus(200);
     const t=db.prepare('SELECT * FROM payku_marketplace_transactions WHERE reference=?').get(ref);
-    if(!t||!t.transaction_id||!cfg().enabled)return res.sendStatus(200);
+    if(!t||!t.transaction_id||!cfg().mall_enabled)return res.sendStatus(200);
     try{await sync(t);}catch(e){console.warn('[DatoYa] Payku verification not completed:',e.message);}
     res.sendStatus(200);
   }
@@ -157,8 +164,8 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
   app.get('/api/payku/marketplace/notify',notification);
   app.get('/api/admin/payku/marketplace/status',auth,requireRole('admin'),(req,res)=>{
     const c=cfg();
-    res.json({provider:'payku_marketplace',enabled:c.enabled,sandbox:c.sandbox,approved:c.approved,
-      credentials:c.credentials,
+    res.json({provider:'payku_mall',enabled:c.mall_enabled,sandbox:c.sandbox,approved:c.approved,
+      credentials:c.credentials,customer_service_fee_percent:2,
       sellers:db.prepare('SELECT status,COUNT(*) AS count FROM payku_marketplace_sellers GROUP BY status').all(),
       payments:db.prepare('SELECT status,COUNT(*) AS count FROM payku_marketplace_transactions GROUP BY status').all()});
   });
