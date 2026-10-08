@@ -1,0 +1,24 @@
+name: DatoYa Payku Marketplace (disabled by default)
+on:
+  pull_request:
+    branches: ["main"]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify backend, UI and tests
+        run: |
+          node --check payku_marketplace_service.js
+          node --check payku_marketplace_routes.js
+          node --check payku_marketplace_bootstrap.js
+          node --check payku_marketplace_ui.js
+          node --check payku_marketplace_assets.js
+          node test_payku_marketplace.js
+          grep -q "payku_marketplace_bootstrap" production_start.js
+          grep -q "payku_marketplace_assets" production_start.js
