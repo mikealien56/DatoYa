@@ -120,6 +120,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     const o=orderFor(req.user.id,req.params.id);
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     if(o.status==='cancelled'||o.payment_status!=='pending')return res.status(409).json({error:'Este pedido no está pendiente de pago'});
+    if(db.prepare('SELECT order_id FROM mp_split_attempts WHERE order_id=?').get(o.id))return res.status(409).json({error:'Este pedido ya tiene un intento con Mercado Pago. Revisa su resultado antes de cambiar de proveedor.'});
     const c=cfg(),s=seller(o.business_id);
     if(!c.mall_enabled||!s||!(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review')))return res.status(503).json({error:'El cobro del 2% aún no está habilitado con Payku Mall para este negocio'});
     let price;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)});}catch(_){return res.status(400).json({error:'Total de compra inconsistente'});}
