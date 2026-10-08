@@ -9,7 +9,7 @@ if(fs.existsSync(idx)){
   let html=fs.readFileSync(idx,'utf8');
   html=html.replace(/<link[^>]+href="\/payku_marketplace\.css[^"]*"[^>]*>\s*/g,'')
     .replace(/<script[^>]+src="\/payku_marketplace_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</head>','<link rel="stylesheet" href="/payku_marketplace.css?v=20261008-1">\n</head>');
-  html=html.replace('</body>','<script src="/payku_marketplace_ui.js?v=20261008-1"></script>\n</body>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/payku_marketplace.css?v=20261008-2">\n</head>');
+  html=html.replace('</body>','<script src="/payku_marketplace_ui.js?v=20261008-2"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
