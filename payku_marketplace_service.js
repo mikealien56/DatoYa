@@ -83,6 +83,10 @@ async function createSeller(payload,env=process.env,transport=global.fetch){
   if(!/^ma[a-z0-9]{10,40}$/i.test(String(seller.id||'')))throw httpError('Payku no confirmó el registro del negocio');
   return {client_id:String(seller.id),bank_last4:input.bank.num.slice(-4),bank_code:input.bank.sbif,bank_type:input.bank.type};
 }
+async function fetchSeller(clientId,env=process.env,transport=global.fetch){
+  if(!/^ma[a-z0-9]{10,40}$/i.test(String(clientId||'')))throw httpError('Identificador de negocio inválido',400);
+  return request('GET','/api/maclient/'+clientId,undefined,env,transport);
+}
 async function createAffiliation(clientId,name,env=process.env,transport=global.fetch){
   if(!/^ma[a-z0-9]{10,40}$/i.test(String(clientId||'')))throw httpError('Identificador de negocio inválido',400);
   const affiliation=await request('POST','/api/maaffiliation',{
@@ -118,4 +122,4 @@ async function checkTransaction(transactionId,env=process.env,transport=global.f
   if(!/^trx[a-z0-9]{8,40}$/i.test(String(transactionId||'')))throw httpError('Identificador Payku inválido',400);
   return request('GET','/api/transaction/'+encodeURIComponent(transactionId),undefined,env,transport);
 }
-module.exports={config,request,sellerInput,createSeller,createAffiliation,startCheckout,checkTransaction,verifyPayment,checkoutUrl,sealToken,unsealToken};
+module.exports={config,request,sellerInput,createSeller,fetchSeller,createAffiliation,startCheckout,checkTransaction,verifyPayment,checkoutUrl,sealToken,unsealToken};
