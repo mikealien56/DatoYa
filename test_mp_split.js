@@ -88,3 +88,14 @@ test('webhook cannot mark paid without signed valid provider reference',()=>{
   assert.equal(mp.validWebhook({...req,headers:{...req.headers,'x-request-id':'forged'}},env),false);
   assert.equal(mp.validWebhook(req,{...env,MP_SPLIT_WEBHOOK_SECRET:''}),false);
 });
+
+
+test('approved payment must belong to exact Mercado Pago merchant order and split preference',()=>{
+  const expected={reference:'DYMP12',preference_id:'pref-123456',total:21900};
+  const order={preference_id:'pref-123456',external_reference:'DYMP12',total_amount:21900,
+    payments:[{id:778899,status:'approved',transaction_amount:21900}]};
+  assert.equal(mp.verifyMerchantOrder(order,expected,778899),true);
+  assert.equal(mp.verifyMerchantOrder({...order,preference_id:'pref-without-fee'},expected,778899),false);
+  assert.equal(mp.verifyMerchantOrder({...order,total_amount:20000},expected,778899),false);
+  assert.equal(mp.verifyMerchantOrder({...order,payments:[{id:123,status:'approved'}]},expected,778899),false);
+});
