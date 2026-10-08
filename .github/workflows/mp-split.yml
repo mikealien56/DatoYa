@@ -1,0 +1,32 @@
+name: DatoYa Mercado Pago Split 1-1
+on:
+  push:
+    branches: [main, feature/mp-split-1to1-20261008]
+  pull_request:
+    branches: [main]
+jobs:
+  mp-split:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify MP split syntax and fee calculations
+        run: |
+          node --check mp_split_service.js
+          node --check mp_split_routes.js
+          node --check mp_split_bootstrap.js
+          node --check mp_split_assets.js
+          node --check mp_split_ui.js
+          node --test test_mp_split.js
+      - name: Verify payment hooks connected to DatoYa
+        run: |
+          grep -q "require('./mp_split_bootstrap')" production_start.js
+          grep -q "require('./mp_split_assets')" production_start.js
+          grep -q "DATOYA_MP_BLOCK_MANUAL_PAID_V1" mp_split_bootstrap.js
+          grep -q "DATOYA_MP_BLOCK_CANCEL_V1" mp_split_bootstrap.js
+          grep -q "MP_SPLIT_LIVE_ALLOWED" mp_split_service.js
