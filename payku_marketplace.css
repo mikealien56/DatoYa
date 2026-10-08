@@ -1,0 +1,11 @@
+/* DatoYa Payku Marketplace */
+.dy-payku-card{margin:14px 0;display:grid;gap:10px;border:1px solid #cbd5e1}
+.dy-payku-card .dy-card-head{align-items:flex-start}
+.dy-payku-card .dy-payku-info{border-radius:14px;background:#eff6ff;color:#1d4ed8;padding:14px;font-size:13px;line-height:1.55}
+.dy-payku-card .dy-payku-muted{font-size:12px;color:#64748b;margin:3px 0;line-height:1.5}
+.dy-payku-card .dy-payku-success{color:#166534;background:#f0fdf4;border-radius:12px;padding:12px}
+.dy-payku-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.dy-payku-form>label{display:grid;gap:5px;color:#334155;font-weight:700;font-size:13px}
+.dy-payku-form input,.dy-payku-form select{border:1px solid #cbd5e1;border-radius:10px;padding:11px;width:100%;box-sizing:border-box;background:#fff;color:#0f172a;min-width:0}
+.dy-payku-form>p,.dy-payku-form>button{grid-column:1/-1}
+@media(max-width:700px){.dy-payku-form{grid-template-columns:1fr}.dy-payku-card{padding:14px}}
