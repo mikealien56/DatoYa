@@ -16,3 +16,5 @@
 .dy-payku-checkout-summary>div{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:#334155}
 .dy-payku-checkout-summary .dy-payku-total{border-top:1px solid #dbeafe;margin-top:7px;padding-top:12px;color:#0b3a82;font-weight:800;font-size:16px}
 .dy-payku-checkout-summary small{display:block;color:#64748b;line-height:1.45;margin-top:7px}
+
+.dy-payku-fee-disclosure{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 13px;color:#1e3a8a;font-size:13px;line-height:1.5;margin:10px 0}
