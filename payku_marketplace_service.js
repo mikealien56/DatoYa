@@ -54,17 +54,19 @@ function sellerInput(payload){
     throw httpError('Revisa titular, correo, teléfono, banco, tipo, número de cuenta y RUT',400);
   return data;
 }
-async function enroll(payload,env=process.env,transport=global.fetch){
-  const x=sellerInput(payload);
-  const seller=await request('POST','/api/maclient',x,env,transport);
+async function createSeller(payload,env=process.env,transport=global.fetch){
+  const input=sellerInput(payload);
+  const seller=await request('POST','/api/maclient',input,env,transport);
   if(!/^ma[a-z0-9]{10,40}$/i.test(String(seller.id||'')))throw httpError('Payku no confirmó el registro del negocio');
+  return {client_id:String(seller.id),bank_last4:input.bank.num.slice(-4),bank_code:input.bank.sbif,bank_type:input.bank.type};
+}
+async function createAffiliation(clientId,name,env=process.env,transport=global.fetch){
+  if(!/^ma[a-z0-9]{10,40}$/i.test(String(clientId||'')))throw httpError('Identificador de negocio inválido',400);
   const affiliation=await request('POST','/api/maaffiliation',{
-    name:('DatoYa '+x.name).slice(0,80),
-    percentage:'0',
-    affiliation:[[seller.id,'100']]
+    name:('DatoYa '+String(name||'Negocio')).slice(0,80),percentage:'0',affiliation:[[clientId,'100']]
   },env,transport);
   if(!/^.{8,70}$/.test(String(affiliation.token||''))||!String(affiliation.id||''))throw httpError('Payku no confirmó la afiliación del negocio');
-  return {client_id:String(seller.id),affiliation_id:String(affiliation.id),token:String(affiliation.token),bank_last4:x.bank.num.slice(-4),bank_code:x.bank.sbif,bank_type:x.bank.type};
+  return {affiliation_id:String(affiliation.id),token:String(affiliation.token)};
 }
 async function startCheckout({reference,total,email,affiliation_token,base},env=process.env,transport=global.fetch){
   const cfg=config(env);
@@ -93,4 +95,4 @@ async function checkTransaction(transactionId,env=process.env,transport=global.f
   if(!/^trx[a-z0-9]{8,40}$/i.test(String(transactionId||'')))throw httpError('Identificador Payku inválido',400);
   return request('GET','/api/transaction/'+encodeURIComponent(transactionId),undefined,env,transport);
 }
-module.exports={config,request,sellerInput,enroll,startCheckout,checkTransaction,verifyPayment,checkoutUrl};
+module.exports={config,request,sellerInput,createSeller,createAffiliation,startCheckout,checkTransaction,verifyPayment,checkoutUrl};
