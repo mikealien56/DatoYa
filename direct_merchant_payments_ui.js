@@ -31,7 +31,7 @@
       </form>`;
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
         <section class="dy-business-dashboard-hero dy-direct-pay-hero">
-          <div><span>PAGOS</span><h1>Elige cómo quieres cobrar</h1><p>${h(b.name||'Tu negocio')} puede recibir pedidos sin registrar una pasarela. El pago se coordina directamente con tus clientes.</p></div>
+          <div><span>PAGOS</span><h1>Elige cómo quieres cobrar</h1><p>${h(b.name||'Tu negocio')} puede recibir pedidos sin registrar una pasarela. El pago se coordina directamente con tus clientes. DatoYa no procesa el dinero de la venta.</p></div>
           <div class="dy-direct-pay-badge"><span>✓</span><div><b>Sin comisión por venta</b><small>DatoYa cobra solo sus servicios opcionales</small></div></div>
         </section>
 
