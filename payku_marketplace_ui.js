@@ -23,6 +23,11 @@
         api('/businesses/'+Number(bid)+'/manage')
       ]);
       const p=state.payku||{},business=meta.business||{};
+      if(p.status==='linked_pending_review'){
+        section.innerHTML='<div class="dy-card-head"><div><span>REGISTRO ENVIADO</span><h2>🕒 Payku está verificando tu cuenta</h2><p>No necesitas volver a ingresar tus datos bancarios. Cuando Payku confirme la activación, podrás ofrecer pagos online.</p></div></div>'+
+          (p.sandbox?'<div class="dy-payku-info">Modo de pruebas: la vinculación puede usarse para validar pagos simulados, nunca reales.</div>':'');
+        return result;
+      }
       if(p.connected){
         section.innerHTML='<div class="dy-card-head"><div><span>PAGOS ONLINE</span><h2>✅ Payku conectado</h2><p>Tu negocio puede recibir pagos online, sujeto a las condiciones del proveedor.</p></div></div>'+
           '<p class="dy-payku-success">Cuenta terminada en '+safe(p.bank_last4||'—')+' · Comisión DatoYa: 0%</p>';
