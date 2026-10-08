@@ -1,95 +1,75 @@
-# DatoYa — Payku Marketplace (código listo, cobro real cerrado)
+# DatoYa: Payku Marketplace + Mall — tarifa del cliente 2%
 
-## Decisión de producto
+## Modelo comercial adoptado
 
-- Pagos online: **Payku Marketplace** como proveedor preferido, sujeto a contratación y pruebas.
-- Vendedores: registro en DatoYa, formulario bancario en Mi negocio → Pagos, sin pedirles API Keys.
-- Compradores: botón Pagar online con Payku en Mis pedidos cuando el vendedor esté habilitado.
-- **Comisión DatoYa = 0%**. No añadir 1% o 2% por defecto ni descontar comisiones no pactadas.
-- Pagos al retirar, al recibir y transferencia del negocio siguen operativos mientras se habilita Payku.
-- Khipu existente no se elimina automáticamente; sigue reservado a sus usos actuales, para no interrumpir pedidos o planes.
+- **DatoYa cobra una tarifa de servicio del 2% sobre el subtotal de productos** cuando el cliente elige pagar online mediante Payku.
+- El cliente paga los productos, el despacho si corresponde y **ese 2% adicional**, en una sola operación.
+- El negocio no paga comisión DatoYa por pedido y tiene asignado el importe base de productos más despacho.
+- El 2% de DatoYa y el importe del negocio son importes distintos. **La tarifa que cobra Payku por procesar el pago es adicional y puede reducir el depósito según su contrato.**
+- Pago al retirar, al recibir y transferencia directa al negocio **no llevan la tarifa de DatoYa del 2%** en esta integración.
 
-## Contrato/API Payku requerido
+Ejemplo: productos CLP 20.000, despacho CLP 1.500, tarifa DatoYa CLP 400; **cliente paga CLP 21.900**. Se envían a Payku asignaciones separadas por **CLP 21.500 al negocio** y **CLP 400 a DatoYa**, sin incluir aún eventuales comisiones del procesador ni obligaciones tributarias.
 
-Payku documenta alta de vendedores `POST /api/maclient`, afiliación
-`POST /api/maaffiliation`, checkout `POST /api/transaction` con campo
-`marketplace`, consulta `GET /api/transaction/:id` y lista
-`GET /api/banks?currency=clp`.
+## ¿Por qué usar dos API del mismo proveedor?
 
-**Necesitamos autorización comercial expresa para usar el reparto 0% DatoYa y
-100% vendedor.** La API documenta porcentajes, pero la validez comercial
-de ese reparto y el costo del procesador no se prueban sin credenciales y
-habilitación de Payku. Si Payku no permite 0/100, no activar cobros; no
-deducir silenciosamente comisiones al vendedor.
+Payku **Marketplace** registra beneficiarios (comercios) y permite crear afiliaciones con distribución por porcentaje. Para el registro base seguimos utilizando afiliación **0% DatoYa / 100% vendedor**, sujeta a autorización del proveedor.
 
-Fuentes:
+Payku **Mall** permite construir una sola orden de pago con importes concretos para múltiples destinatarios:
+- primera parte con ID de afiliación Marketplace del comercio e importe base de venta;
+- segunda parte con token público de DatoYa e importe exacto de tarifa de servicio.
+
+**La documentación describe ambas funciones, pero no demuestra que Payku habilite su combinación para la misma cuenta, ni quién asume la tarifa de procesamiento.** No activar cobros reales hasta confirmarlo contractual y operativamente. No sustituir Mall por un porcentaje fijo que altere el importe del vendedor.
+
+Documentación oficial:
 - https://docs.payku.com/cl/api/marketplace/
-- https://docs.payku.com/cl/api/transaction/
-- https://docs.payku.com/cl/api/banks/
+- https://docs.payku.com/cl/api/mall/
+- https://docs.payku.com/cl/signature/
 
-## Configuración necesaria SOLO en Render (servidor)
+## Activación (solo backend de Render)
 
-Nunca colocar estos valores en navegador ni GitHub.
+Las siguientes variables son condiciones de activación, no credenciales para enviar en correos públicos ni para incluir en la web o repositorio:
 
 ```text
 PUBLIC_BASE_URL=https://datoya.cl
 PAYKU_MARKETPLACE_ENV=sandbox
-PAYKU_MARKETPLACE_PUBLIC_TOKEN=<token público de integración Payku del ambiente>
-PAYKU_MARKETPLACE_ENCRYPTION_KEY=<clave aleatoria de 32 bytes codificada en base64>
+PAYKU_MARKETPLACE_PUBLIC_TOKEN=<token público del servidor Payku>
+PAYKU_MARKETPLACE_PRIVATE_TOKEN=<token PRIVADO para firma HMAC, solo backend>
+PAYKU_MARKETPLACE_ENCRYPTION_KEY=<32 bytes aleatorios base64, mantener estable>
 PAYKU_MARKETPLACE_CONTRACT_APPROVED=true
 PAYKU_MARKETPLACE_ZERO_SPLIT_APPROVED=true
+PAYKU_MALL_SERVICE_FEE_APPROVED=true
 PAYKU_MARKETPLACE_ENABLED=true
 PAYKU_MARKETPLACE_LIVE_ALLOWED=false
 ```
 
-Para producción, después de aprobar el checkout, notificaciones, costos,
-verificación bancaria, conciliación y devoluciones en sandbox:
-`PAYKU_MARKETPLACE_ENV=production` y
-`PAYKU_MARKETPLACE_LIVE_ALLOWED=true` con credenciales de producción.
+Las banderas de aprobación **solo se activan después de que el proveedor confirme explícitamente las condiciones** y se pruebe un pago en su sandbox. Las condiciones `CONTRACT_APPROVED`, `ZERO_SPLIT_APPROVED` y `MALL_SERVICE_FEE_APPROVED` deben reflejar hechos comprobados, nunca sustituirlos.
 
-**El código exige todas las banderas para habilitar Payku.** Si faltan,
-los vendedores ven que está en preparación, sin formulario bancario activo;
-clientes mantienen métodos directos. Los pagos reales quedan bloqueados.
+Para producción (tras sandbox, conciliación, tarifas, reembolsos y KYC), cambiar `PAYKU_MARKETPLACE_ENV=production` y `PAYKU_MARKETPLACE_LIVE_ALLOWED=true` **solo con aprobación y credenciales productivas**.
 
-La clave de cifrado debe mantenerse estable y protegida en Render; rotarla
-sin migrar tokens cifrados dejará de funcionar. No enviar claves a terceros.
+### Comportamiento seguro antes de la habilitación
 
-## Seguridad y operación
+Si falta cualquiera de las autorizaciones o credenciales requeridas, **Payku Mall no aparece como método de pago activo**. Los pagos al retirar, al recibir y por transferencia siguen disponibles. No se muestra ni cobra el 2% en los métodos de pago directo.
 
-- DatoYa NO guarda el número bancario completo ni el RUT recibido durante el
-  alta, solo código banco, tipo y últimos cuatro dígitos; Payku recibe la
-  información por HTTPS.
-- Tokens de afiliación se almacenan cifrados AES-256-GCM vinculados al ID del
-  negocio.
-- Se reserva el intento de checkout ANTES de enviar la solicitud a Payku.
-  Ante timeout, estado `needs_review` y **nunca reintento automático**.
-- Notificaciones y retorno del navegador NO acreditan pagos: el servidor
-  consulta Payku y valida ID de transacción, referencia y monto exactos.
-- El comercio no puede marcar manualmente como pagado un pedido con intento
-  Payku. Los pagos directos sin Payku siguen con confirmación manual.
-- Un intento rechazado requiere conciliación para volver a cobrar; faltan
-  confirmar políticas de expiración/reintentos con Payku.
-- En cualquier devolución de fondos de pago Payku se debe verificar primero
-  la operación y políticas de reversa del proveedor. La ruta de reembolso de
-  DatoYa debe validarse antes del lanzamiento real.
-- Panel Admin: `GET /api/admin/payku/marketplace/status` (sin secretos).
+El panel del vendedor le permite cargar sus datos para onboarding únicamente cuando el componente Marketplace está habilitado. Si la cuenta está registrada pero pendiente de activación por Payku, no se habilita cobro online en producción.
 
-## QA automatizada
+## Implementación técnica
 
-`node test_payku_marketplace.js` verifica (con respuestas simuladas,
-sin mover dinero): desactivación por defecto, alta, afiliación 0/100,
-checkout, enlaces seguros, importe/referencia exacta, estados rechazados
-y cifrado.
+- `datoya_service_fee.js`: cálculo entero CLP; 2% de productos, sin recargar despacho; total exacto validado desde el pedido almacenado.
+- `payku_marketplace_service.js`: alta vendedor, firma HMAC SHA-256 de Mall, creación de orden de pago con dos asignaciones, recuperación y validación de resultado.
+- `payku_marketplace_routes.js`: alta, cotización visible al comprador, checkout, verificación, notificaciones y diagnóstico administrativo.
+- `payku_marketplace_bootstrap.js`: esquema y protecciones contra marcar pagado / cancelar pedidos con intentos Payku.
+- `payku_marketplace_ui.js`: resumen con productos, despacho, tarifa 2% y total visible antes de redirigir a Payku.
 
-Las pruebas completas del proyecto incluyen registro, pedidos,
-stock, retiro/despacho QR y protección contra cancelaciones.
+Las credenciales del vendedor no van al navegador ni deben entregarse al usuario. El token de afiliación se cifra AES-256-GCM asociado al ID del negocio. Se almacena para cada intento de cobro la **tarifa 2% y la asignación del vendedor** para reconciliar el importe correcto.
 
-## Pendiente de validación externa
+La redirección del navegador ni las notificaciones de Payku acreditan automáticamente el pedido: el servidor consulta la operación a Payku, compara ID, importe total y los dos importes individuales. Ante timeout o diferencias se bloquea y requiere revisión manual para evitar duplicados.
 
-1. Payku habilita Marketplace para DatoYa y acepta explicitamente 0/100.
-2. Se obtienen las credenciales y tarifas reales, además de requisitos KYC
-   que cada negocio debe completar.
-3. Se prueba una afiliación y un pago sandbox con cuenta Payku real.
-4. Se prueban rechazo, webhook, reversa/devolución, conciliación y plazos.
-5. Solo entonces activar los cobros reales. No prometer pagos automáticos
-   ni comisión neta cero antes de que estos puntos estén aprobados.
+## Falta antes de dinero real
+
+1. Confirmar contractualmente con Payku Marketplace + Mall en **una sola cuenta**, dos destinatarios, cargos de procesamiento y liquidación al comercio.
+2. Activar cuenta y obtener tokens de sandbox, probar alta, revisión y afiliación KYC reales.
+3. Probar Mall en sandbox con 2%: autorización, anulación, pago rechazado, montos discrepantes, callback y reembolso completo/parcial.
+4. Confirmar facturación, IVA/documentación del cargo de servicio al cliente y procedimientos de soporte/reembolsos de la tarifa.
+5. Verificar visualmente en móvil y PC; solo después habilitar producción.
+
+**Estado:** implementación técnica en rama GitHub; nada cobrado realmente y no se han cambiado las variables de Render.
