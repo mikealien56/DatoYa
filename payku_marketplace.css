@@ -9,3 +9,10 @@
 .dy-payku-form input,.dy-payku-form select{border:1px solid #cbd5e1;border-radius:10px;padding:11px;width:100%;box-sizing:border-box;background:#fff;color:#0f172a;min-width:0}
 .dy-payku-form>p,.dy-payku-form>button{grid-column:1/-1}
 @media(max-width:700px){.dy-payku-form{grid-template-columns:1fr}.dy-payku-card{padding:14px}}
+
+/* Buyer sees mandatory service fee before redirecting to Payku. */
+.dy-payku-checkout-summary{width:100%;box-sizing:border-box;padding:14px;margin:12px 0;border:1px solid #cbd5e1;border-radius:14px;background:#fff}
+.dy-payku-checkout-summary>b{display:block;color:#0b3a82;margin-bottom:10px}
+.dy-payku-checkout-summary>div{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:#334155}
+.dy-payku-checkout-summary .dy-payku-total{border-top:1px solid #dbeafe;margin-top:7px;padding-top:12px;color:#0b3a82;font-weight:800;font-size:16px}
+.dy-payku-checkout-summary small{display:block;color:#64748b;line-height:1.45;margin-top:7px}
