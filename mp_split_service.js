@@ -36,7 +36,7 @@ function open(businessId,enc,env=process.env){
   return JSON.parse(Buffer.concat([d.update(raw.subarray(28)),d.final()]).toString('utf8'));
 }
 async function api(method,path,token,body,transport=global.fetch){
-  if(!/^\/(checkout\/preferences(?:\/[0-9a-z-]+)?|v1\/payments\/\d+|v1\/payments\/search\?external_reference=DYMP\d+)$/i.test(path))throw err('Ruta Mercado Pago no permitida',400);
+  if(!/^\/(checkout\/preferences(?:\/[0-9a-z-]+)?|v1\/payments\/\d+|v1\/payments\/search\?external_reference=DYMP\d+|merchant_orders\/\d+)$/i.test(path))throw err('Ruta Mercado Pago no permitida',400);
   if(!/^[\w-]{16,300}$/.test(String(token||'')))throw err('Token OAuth del negocio inválido',503);
   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),14000);
   try{
@@ -141,6 +141,14 @@ function verifyPayment(p,expected){
     status==='approved'?'paid':status==='rejected'||status==='cancelled'?'rejected':
     status==='refunded'?'refunded':'pending'};
 }
+
+function verifyMerchantOrder(merchantOrder,expected,paymentId){
+  return !!merchantOrder&&String(merchantOrder.preference_id)===String(expected.preference_id)&&
+    String(merchantOrder.external_reference)===String(expected.reference)&&
+    Number(merchantOrder.total_amount)===Number(expected.total)&&
+    Array.isArray(merchantOrder.payments)&&merchantOrder.payments.some(x=>
+      String(x.id)===String(paymentId)&&String(x.status).toLowerCase()==='approved');
+}
 function validWebhook({headers,query},env=process.env){
   const signature=String(headers['x-signature']||'');
   const reqId=String(headers['x-request-id']||'');
@@ -158,4 +166,4 @@ function validWebhook({headers,query},env=process.env){
   return actual.length===expected.length&&crypto.timingSafeEqual(expected,actual);
 }
 module.exports={config,seal,open,api,oauth,authUrl,connect,renew,checkoutUrl,
-  preferenceBody,createPreference,verifyPreference,verifyPayment,validWebhook};
+  preferenceBody,createPreference,verifyPreference,verifyPayment,verifyMerchantOrder,validWebhook};
