@@ -10,6 +10,7 @@ db.exec(
   "CREATE TABLE IF NOT EXISTS payku_marketplace_transactions ("+
   "order_id INTEGER PRIMARY KEY REFERENCES commerce_orders(id) ON DELETE CASCADE,"+
   "reference TEXT NOT NULL UNIQUE,amount INTEGER NOT NULL,"+
+  "business_amount INTEGER NOT NULL DEFAULT 0,service_fee INTEGER NOT NULL DEFAULT 0,"+
   "transaction_id TEXT UNIQUE,payment_url TEXT,status TEXT NOT NULL DEFAULT 'creating',"+
   "created_at TEXT NOT NULL,updated_at TEXT NOT NULL);"
 );
