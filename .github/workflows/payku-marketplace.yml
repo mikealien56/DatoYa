@@ -22,3 +22,4 @@ jobs:
           node test_payku_marketplace.js
           grep -q "payku_marketplace_bootstrap" production_start.js
           grep -q "payku_marketplace_assets" production_start.js
+          bash test_payku_disabled_runtime.sh
