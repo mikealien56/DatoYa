@@ -10,7 +10,8 @@ function config(env=process.env){
   const key=String(env.PAYKU_MARKETPLACE_ENCRYPTION_KEY||'');
   const encryption_ready=/^[A-Za-z0-9+/]{43}=$/.test(key)&&Buffer.from(key,'base64').length===32;
   const enabled=flag(env.PAYKU_MARKETPLACE_ENABLED)&&credentials&&approved&&encryption_ready&&(sandbox||flag(env.PAYKU_MARKETPLACE_LIVE_ALLOWED));
-  return {sandbox,approved,enabled,credentials,encryption_ready,origin:sandbox?TEST:LIVE,commission_pct:0,seller_pct:100};
+  const mall_enabled=enabled&&flag(env.PAYKU_MALL_SERVICE_FEE_APPROVED)&&!!String(env.PAYKU_MARKETPLACE_PRIVATE_TOKEN||'').trim();
+  return {sandbox,approved,enabled,mall_enabled,credentials,encryption_ready,origin:sandbox?TEST:LIVE,commission_pct:0,seller_pct:100};
 }
 function keyFor(env=process.env){
   const raw=String(env.PAYKU_MARKETPLACE_ENCRYPTION_KEY||'');
@@ -122,4 +123,108 @@ async function checkTransaction(transactionId,env=process.env,transport=global.f
   if(!/^trx[a-z0-9]{8,40}$/i.test(String(transactionId||'')))throw httpError('Identificador Payku inválido',400);
   return request('GET','/api/transaction/'+encodeURIComponent(transactionId),undefined,env,transport);
 }
-module.exports={config,request,sellerInput,createSeller,fetchSeller,createAffiliation,startCheckout,checkTransaction,verifyPayment,checkoutUrl,sealToken,unsealToken};
+
+// Payku Mall permits distributing exact CLP amounts to separate beneficiaries
+// within one customer payment. Approval of Mall+Marketplace coexistence is required.
+function mallSignature(path,payload,secret){
+  const encoded=encodeURIComponent(path);
+  const flat={};
+  for(const name of Object.keys(payload||{}).sort()){
+    const value=payload[name];
+    if(value===null||typeof value==='object')continue;
+    flat[name]=String(value);
+  }
+  const canonical=encoded+'&'+new URLSearchParams(flat).toString();
+  return crypto.createHmac('sha256',String(secret)).update(canonical).digest('hex');
+}
+async function mallRequest(method,path,body,env=process.env,transport=global.fetch){
+  const cfg=config(env);
+  if(!cfg.mall_enabled)throw httpError('La tarifa del 2% aún no está habilitada en Payku Mall',503);
+  if(!/^\/api\/mall(?:\/mal[l]?[a-z0-9]{10,40})?$/.test(path))throw httpError('Ruta Mall no permitida',400);
+  const secret=String(env.PAYKU_MARKETPLACE_PRIVATE_TOKEN||'');
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
+  try{
+    const response=await transport(cfg.origin+path,{
+      method,
+      headers:{
+        'Accept':'application/json','Content-Type':'application/json',
+        'Authorization':'Bearer '+String(env.PAYKU_MARKETPLACE_PUBLIC_TOKEN),
+        'Sign':mallSignature(path,body||{},secret)
+      },
+      ...(body===undefined?{}:{body:JSON.stringify(body)}),
+      signal:controller.signal,redirect:'error'
+    });
+    const raw=await response.text();let data={};try{data=JSON.parse(raw)}catch{}
+    if(!response.ok||data.status==='failed')
+      throw httpError('Payku Mall no pudo procesar el pago ('+response.status+')',response.status===400?400:502);
+    return data;
+  }catch(e){
+    if(e.name==='AbortError')throw httpError('Payku Mall no respondió a tiempo',504);
+    throw e;
+  }finally{clearTimeout(timer)}
+}
+function mallAllocation({order_id,business_amount,service_fee,affiliation_id},env=process.env){
+  if(!Number.isSafeInteger(order_id)||order_id<1||
+    !Number.isSafeInteger(business_amount)||business_amount<1||
+    !Number.isSafeInteger(service_fee)||service_fee<1||
+    !/^suc[a-z0-9]{10,40}$/i.test(String(affiliation_id||'')))
+    throw httpError('No es posible distribuir este pago; revisa el importe y la afiliación',400);
+  const platform=String(env.PAYKU_MARKETPLACE_PUBLIC_TOKEN||'').trim();
+  if(!platform)throw httpError('DatoYa no tiene un destinatario de comisiones configurado',503);
+  const reference='DY'+order_id;
+  return {
+    order:order_id,
+    merchant:[
+      [String(affiliation_id),business_amount,'Venta DatoYa '+reference,null,reference+'N'],
+      [platform,service_fee,'Servicio DatoYa '+reference,null,reference+'F']
+    ]
+  };
+}
+async function startMallCheckout({order_id,business_amount,service_fee,email,affiliation_id,base},env=process.env,transport=global.fetch){
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email||''))||
+    !/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(String(base||'')))
+    throw httpError('Faltan datos válidos del cliente o dominio de pago',400);
+  const allocation=mallAllocation({order_id,business_amount,service_fee,affiliation_id},env);
+  const result=await mallRequest('POST','/api/mall',{
+    email:String(email).slice(0,50),payment:99,
+    ...allocation,
+    urlreturn:base+'/#/pedidos',
+    urlnotify:base+'/api/payku/marketplace/notify?order=DY'+order_id
+  },env,transport);
+  if(!/^mal[l]?[a-z0-9]{10,40}$/i.test(String(result.id||'')))
+    throw httpError('Payku Mall no entregó una transacción válida');
+  const recipients=result.individual_orders;
+  if(!Array.isArray(recipients)||recipients.length!==2){
+    throw httpError('Payku no confirmó el reparto individual; necesita revisión');
+  }
+  const expected=allocation.merchant;
+  if(!expected.every(item=>recipients.some(row=>
+    String(row.merchant)===String(item[0])&&Number(row.amount)===Number(item[1])
+  )))throw httpError('Payku devolvió un reparto distinto al autorizado');
+  return {transaction_id:String(result.id),url:checkoutUrl(result.url,config(env).sandbox)};
+}
+async function checkMall(transactionId,env=process.env,transport=global.fetch){
+  if(!/^mal[l]?[a-z0-9]{10,40}$/i.test(String(transactionId||'')))
+    throw httpError('Identificador Mall inválido',400);
+  return mallRequest('GET','/api/mall/'+transactionId,undefined,env,transport);
+}
+function verifyMall(provider,expected){
+  const bad={validated:false,paid:false,reason:'mall_amount_or_beneficiary_mismatch'};
+  if(!provider||String(provider.id)!==String(expected.transaction_id))return bad;
+  const total=Number(expected.business_amount)+Number(expected.service_fee);
+  if(!Number.isSafeInteger(total)||Number(provider.amount)!==total)return bad;
+  const merchants=provider.merchant;
+  if(!Array.isArray(merchants)||merchants.length!==2)return bad;
+  const reference='DY'+expected.order_id;
+  const seller=merchants.find(x=>x.subject==='Venta DatoYa '+reference);
+  const platform=merchants.find(x=>x.subject==='Servicio DatoYa '+reference);
+  if(!seller||!platform||Number(seller.amount)!==Number(expected.business_amount)||
+    Number(platform.amount)!==Number(expected.service_fee))return bad;
+  const status=String(provider.status||'').toLowerCase();
+  return {validated:true,paid:status==='success',
+    state:status==='success'?'paid':status==='rejected'?'rejected':
+      status==='refunded'?'refunded':status==='refunded partial'?'partially_refunded':'pending'};
+}
+
+module.exports={config,request,sellerInput,createSeller,fetchSeller,createAffiliation,startCheckout,checkTransaction,verifyPayment,checkoutUrl,sealToken,unsealToken,mallSignature,mallAllocation,mallRequest,startMallCheckout,checkMall,verifyMall};
