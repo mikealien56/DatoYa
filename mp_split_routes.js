@@ -49,6 +49,13 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
       if(!result.valid)continue;
       if(t.payment_id&&String(t.payment_id)!==String(id))throw Object.assign(new Error('La compra tiene otro pago vinculado; revisar'),{status:409});
       if(result.paid){
+        // Match the actual approved payment to the exact preference that charged DatoYa's 2%.
+        const merchantOrderId=p.order&&p.order.id;
+        if(!/^\d{1,25}$/.test(String(merchantOrderId||'')))
+          throw Object.assign(new Error('Pago aprobado sin orden comercial verificable; requiere conciliación'),{status:409});
+        const merchantOrder=await mp.api('GET','/merchant_orders/'+merchantOrderId,token);
+        if(!mp.verifyMerchantOrder(merchantOrder,expected,id))
+          throw Object.assign(new Error('El pago no corresponde a la preferencia DatoYa con 2%'),{status:409});
         const now=new Date().toISOString();
         const o=db.prepare('SELECT id,user_id,reference,payment_status,payment_method FROM commerce_orders WHERE id=?').get(t.order_id);
         if(!o||o.payment_status==='paid'&&o.payment_method!=='mercadopago_split')
