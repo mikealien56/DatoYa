@@ -84,7 +84,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
       }
       const a=await payku.createAffiliation(s.client_id,b.name);
       db.prepare("UPDATE payku_marketplace_sellers SET affiliation_id=?,affiliation_token=?,status='ready',updated_at=? WHERE business_id=?")
-        .run(a.affiliation_id,a.token,new Date().toISOString(),b.id);
+        .run(a.affiliation_id,payku.sealToken(b.id,a.token),new Date().toISOString(),b.id);
       res.json({ok:true,payku:publicSeller(seller(b.id))});
     }catch(e){failure(e,res);}
   });
@@ -121,7 +121,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     try{
       const base=String(process.env.PUBLIC_BASE_URL||'https://datoya.cl').replace(/\/+$/,'');
       const p=await payku.startCheckout({
-        reference,total:Number(o.total),email:o.buyer_email,affiliation_token:s.affiliation_token,base
+        reference,total:Number(o.total),email:o.buyer_email,affiliation_token:payku.unsealToken(o.business_id,s.affiliation_token),base
       });
       db.prepare("UPDATE payku_marketplace_transactions SET transaction_id=?,payment_url=?,status='pending',updated_at=? WHERE order_id=? AND status='creating'")
         .run(p.transaction_id,p.url,new Date().toISOString(),o.id);
