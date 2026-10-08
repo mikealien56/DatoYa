@@ -12,7 +12,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
   }
   function publicSeller(s){
     const c=cfg();
-    return {connected:!!(s&&s.status==='ready'&&c.enabled),
+    return {connected:!!(s&&c.enabled&&(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review'))),
       status:s?s.status:'not_registered',bank_last4:s&&s.bank_last4||null,
       bank_code:s&&s.bank_code||null,sandbox:c.sandbox,enabled:c.enabled,
       credentials_configured:c.credentials,approval_configured:c.approved,
@@ -62,10 +62,21 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
       res.json({banks});
     }catch(_){res.status(503).json({error:'No se pudo obtener el listado de bancos de Payku'});}
   });
-  app.get('/api/businesses/:id/payku',auth,(req,res)=>{
+  app.get('/api/businesses/:id/payku',auth,async(req,res)=>{
     const b=merchant(req.user.id,req.params.id);
     if(!b)return res.status(403).json({error:'Negocio no encontrado o sin permiso'});
-    res.json({payku:publicSeller(seller(b.id))});
+    let s=seller(b.id);
+    if(s&&s.status==='linked_pending_review'&&cfg().enabled){
+      try{
+        const remote=await payku.fetchSeller(s.client_id);
+        if(String(remote.status||'').toLowerCase()==='active'){
+          db.prepare("UPDATE payku_marketplace_sellers SET status='ready',updated_at=? WHERE business_id=?")
+            .run(new Date().toISOString(),b.id);
+          s=seller(b.id);
+        }
+      }catch(_){/* Payku must confirm merchant activation. */}
+    }
+    res.json({payku:publicSeller(s)});
   });
   app.post('/api/businesses/:id/payku/onboard',auth,async(req,res)=>{
     const b=merchant(req.user.id,req.params.id);
@@ -74,7 +85,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     if(!cfg().enabled)return res.status(503).json({error:'Los pagos Payku todavía no están habilitados por DatoYa'});
     try{
       let s=seller(b.id);
-      if(s&&s.status==='ready')return res.json({ok:true,payku:publicSeller(s)});
+      if(s&&['ready','linked_pending_review'].includes(s.status))return res.json({ok:true,payku:publicSeller(s)});
       if(!s||!s.client_id){
         const data=await payku.createSeller(req.body);
         const now=new Date().toISOString();
@@ -83,7 +94,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
         s=seller(b.id);
       }
       const a=await payku.createAffiliation(s.client_id,b.name);
-      db.prepare("UPDATE payku_marketplace_sellers SET affiliation_id=?,affiliation_token=?,status='ready',updated_at=? WHERE business_id=?")
+      db.prepare("UPDATE payku_marketplace_sellers SET affiliation_id=?,affiliation_token=?,status='linked_pending_review',updated_at=? WHERE business_id=?")
         .run(a.affiliation_id,payku.sealToken(b.id,a.token),new Date().toISOString(),b.id);
       res.json({ok:true,payku:publicSeller(seller(b.id))});
     }catch(e){failure(e,res);}
@@ -92,7 +103,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     const o=orderFor(req.user.id,req.params.id);
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     const s=seller(o.business_id),t=trxFor(o.id),c=cfg();
-    const available=c.enabled&&!!s&&s.status==='ready'&&o.status!=='cancelled';
+    const available=c.enabled&&!!s&&(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review'))&&o.status!=='cancelled';
     let payment=t?t.status:'not_started';
     if(t&&t.transaction_id&&c.enabled&&t.status!=='paid'){
       try{payment=(await sync(t)).status;}catch(_){/* never trust callback/client result */}
@@ -106,7 +117,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     if(o.status==='cancelled'||o.payment_status!=='pending')return res.status(409).json({error:'Este pedido no está pendiente de pago'});
     const c=cfg(),s=seller(o.business_id);
-    if(!c.enabled||!s||s.status!=='ready')return res.status(503).json({error:'Este negocio todavía no tiene pagos Payku habilitados'});
+    if(!c.enabled||!s||!(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review')))return res.status(503).json({error:'Este negocio todavía no tiene pagos Payku habilitados'});
     const previous=trxFor(o.id);
     if(previous){
       if(previous.status==='pending'&&previous.payment_url)
