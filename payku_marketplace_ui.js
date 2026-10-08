@@ -90,6 +90,20 @@
     }
     return result;
   };
+  // Inform customers before they send the order; the exact amount is repeated before Payku checkout.
+  const cartBase=routes.carrito;
+  if(cartBase)routes.carrito=async function(){
+    const result=await cartBase.apply(this,arguments);
+    const form=document.getElementById('dy-checkout-form');
+    if(form&&!form.querySelector('.dy-payku-fee-disclosure')){
+      const note=el('p',{class:'dy-payku-fee-disclosure'},
+        'Si eliges pagar online con Payku (cuando esté disponible para este negocio), DatoYa añade una tarifa de servicio del 2% del valor de los productos. Antes de pagar verás el monto exacto y el total. Pago al retirar, al recibir y transferencia directa no llevan esta tarifa.');
+      const button=form.querySelector('button[type=submit]');
+      if(button)button.before(note);else form.appendChild(note);
+    }
+    return result;
+  };
+
   const customerBase=routes.pedidos;
   if(customerBase)routes.pedidos=async function(){
     const result=await customerBase.apply(this,arguments);
