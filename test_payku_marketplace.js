@@ -6,7 +6,8 @@ const env={
   PAYKU_MARKETPLACE_ENV:'sandbox',PAYKU_MARKETPLACE_ENABLED:'true',
   PAYKU_MARKETPLACE_CONTRACT_APPROVED:'true',
   PAYKU_MARKETPLACE_ZERO_SPLIT_APPROVED:'true',
-  PAYKU_MARKETPLACE_PUBLIC_TOKEN:'not-a-real-token'
+  PAYKU_MARKETPLACE_PUBLIC_TOKEN:'not-a-real-token',
+  PAYKU_MARKETPLACE_ENCRYPTION_KEY:Buffer.alloc(32,7).toString('base64')
 };
 function fakeTransport(history){
   return async(url,options)=>{
@@ -70,4 +71,13 @@ test('provider URLs must be trusted Payku HTTPS hosts',()=>{
 });
 test('incomplete seller data rejected before calling external API',()=>{
   assert.throws(()=>p.sellerInput({name:'x',email:'bad',phone:'1',bank:{}}));
+});
+
+test('affiliation tokens are encrypted per business and cannot be cross-used',()=>{
+  const token='sensitive-token-1234567890';
+  const cipher=p.sealToken(5,token,env);
+  assert.equal(p.unsealToken(5,cipher,env),token);
+  assert(!cipher.includes(token));
+  assert.throws(()=>p.unsealToken(6,cipher,env));
+  assert.equal(p.config({...env,PAYKU_MARKETPLACE_ENCRYPTION_KEY:''}).enabled,false);
 });
