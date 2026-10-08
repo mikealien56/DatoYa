@@ -30,5 +30,20 @@ if(!src.includes('DATOYA_PAYKU_BLOCK_MANUAL_MARK_V1')){
     "if(db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id))return res.status(409).json({error:'Los cobros Payku solo se confirman automáticamente.'});";
   src=src.replace(needle,guard+needle);
 }
+// An online Payku attempt might still be authorized remotely; block cancellation
+// until it is reconciled to avoid a paid-but-cancelled order and stock reversal.
+if(!src.includes('DATOYA_PAYKU_BLOCK_CANCEL_V1')){
+  const clientNeedle="if(String(o.payment_status)==='paid')return res.status(409).json({error:'Este pedido ya figura pagado. La cancelación requiere gestionar la devolución con el negocio.'});";
+  const merchantNeedle="if(next==='cancelled'&&String(o.payment_status)==='paid')return res.status(409).json({error:'Este pedido ya figura pagado. Gestiona la devolución antes de cancelarlo.'});";
+  if(!src.includes(clientNeedle)||!src.includes(merchantNeedle))
+    throw new Error('Faltan protecciones de cancelación de pedidos para Payku');
+  const clientGuard="/* DATOYA_PAYKU_BLOCK_CANCEL_V1 */"+
+    "if(db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id))return res.status(409).json({error:'Hay un pago online iniciado; verifica su resultado antes de cancelar el pedido.'});";
+  const merchantGuard="/* DATOYA_PAYKU_BLOCK_MERCHANT_CANCEL_V1 */"+
+    "if(next==='cancelled'&&db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id))return res.status(409).json({error:'Hay un pago Payku iniciado. Contacta soporte para cancelar con seguridad.'});";
+  src=src.replace(clientNeedle,clientNeedle+clientGuard);
+  src=src.replace(merchantNeedle,merchantNeedle+merchantGuard);
+}
+
 fs.writeFileSync(server,src);
 console.log('[DatoYa] Payku Marketplace preparado; permanece desactivado sin credenciales y contrato aprobados.');
