@@ -7,8 +7,31 @@ function config(env=process.env){
   const sandbox=String(env.PAYKU_MARKETPLACE_ENV||'sandbox').toLowerCase()!=='production';
   const credentials=!!String(env.PAYKU_MARKETPLACE_PUBLIC_TOKEN||'').trim();
   const approved=flag(env.PAYKU_MARKETPLACE_CONTRACT_APPROVED)&&flag(env.PAYKU_MARKETPLACE_ZERO_SPLIT_APPROVED);
-  const enabled=flag(env.PAYKU_MARKETPLACE_ENABLED)&&credentials&&approved&&(sandbox||flag(env.PAYKU_MARKETPLACE_LIVE_ALLOWED));
-  return {sandbox,approved,enabled,credentials,origin:sandbox?TEST:LIVE,commission_pct:0,seller_pct:100};
+  const key=String(env.PAYKU_MARKETPLACE_ENCRYPTION_KEY||'');
+  const encryption_ready=/^[A-Za-z0-9+/]{43}=$/.test(key)&&Buffer.from(key,'base64').length===32;
+  const enabled=flag(env.PAYKU_MARKETPLACE_ENABLED)&&credentials&&approved&&encryption_ready&&(sandbox||flag(env.PAYKU_MARKETPLACE_LIVE_ALLOWED));
+  return {sandbox,approved,enabled,credentials,encryption_ready,origin:sandbox?TEST:LIVE,commission_pct:0,seller_pct:100};
+}
+function keyFor(env=process.env){
+  const raw=String(env.PAYKU_MARKETPLACE_ENCRYPTION_KEY||'');
+  if(!/^[A-Za-z0-9+/]{43}=$/.test(raw))throw httpError('Payku necesita una clave de cifrado segura',503);
+  const key=Buffer.from(raw,'base64');
+  if(key.length!==32)throw httpError('Clave de cifrado Payku inválida',503);
+  return key;
+}
+function sealToken(businessId,token,env=process.env){
+  const key=keyFor(env),iv=crypto.randomBytes(12);
+  const cipher=crypto.createCipheriv('aes-256-gcm',key,iv);
+  cipher.setAAD(Buffer.from('datoya:payku:marketplace:'+Number(businessId)));
+  const encrypted=Buffer.concat([cipher.update(String(token),'utf8'),cipher.final()]);
+  return JSON.stringify({version:1,iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:encrypted.toString('base64')});
+}
+function unsealToken(businessId,sealed,env=process.env){
+  const value=JSON.parse(String(sealed||''));if(value.version!==1)throw httpError('Credencial Payku inválida',503);
+  const decipher=crypto.createDecipheriv('aes-256-gcm',keyFor(env),Buffer.from(value.iv,'base64'));
+  decipher.setAAD(Buffer.from('datoya:payku:marketplace:'+Number(businessId)));
+  decipher.setAuthTag(Buffer.from(value.tag,'base64'));
+  return Buffer.concat([decipher.update(Buffer.from(value.data,'base64')),decipher.final()]).toString('utf8');
 }
 function httpError(message,status=502){const e=new Error(message);e.status=status;return e;}
 function checkoutUrl(value,sandbox){
@@ -95,4 +118,4 @@ async function checkTransaction(transactionId,env=process.env,transport=global.f
   if(!/^trx[a-z0-9]{8,40}$/i.test(String(transactionId||'')))throw httpError('Identificador Payku inválido',400);
   return request('GET','/api/transaction/'+encodeURIComponent(transactionId),undefined,env,transport);
 }
-module.exports={config,request,sellerInput,createSeller,createAffiliation,startCheckout,checkTransaction,verifyPayment,checkoutUrl};
+module.exports={config,request,sellerInput,createSeller,createAffiliation,startCheckout,checkTransaction,verifyPayment,checkoutUrl,sealToken,unsealToken};
