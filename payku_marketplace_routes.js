@@ -167,6 +167,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     res.json({provider:'payku_mall',enabled:c.mall_enabled,sandbox:c.sandbox,approved:c.approved,
       credentials:c.credentials,customer_service_fee_percent:2,
       sellers:db.prepare('SELECT status,COUNT(*) AS count FROM payku_marketplace_sellers GROUP BY status').all(),
-      payments:db.prepare('SELECT status,COUNT(*) AS count FROM payku_marketplace_transactions GROUP BY status').all()});
+      payments:db.prepare('SELECT status,COUNT(*) AS count FROM payku_marketplace_transactions GROUP BY status').all(),
+      confirmed_gross:db.prepare("SELECT COALESCE(SUM(service_fee),0) AS datoya_fee_gross_clp,COALESCE(SUM(business_amount),0) AS business_gross_clp,COALESCE(SUM(amount),0) AS customer_paid_gross_clp FROM payku_marketplace_transactions WHERE status='paid'").get()});
   });
 };
