@@ -56,7 +56,7 @@
         const card=document.getElementById('dy-order-'+Number(o.id));
         if(!card||o.status==='cancelled')continue;
         const s=await api('/orders/'+Number(o.id)+'/mp-split/status').catch(()=>null);
-        if(!s)return;
+        if(!s)continue;
         const q=s.quote;
         if(!q||q.rate_percent!==2||!Number.isInteger(q.checkout_total)||!Number.isInteger(q.service_fee))continue;
         const wasPaid=s.paid&&o.payment_method==='mercadopago_split';
