@@ -111,10 +111,12 @@
     try{
       const {orders=[]}=await api('/orders/mine');
       for(const order of orders){
-        if(order.status==='cancelled'||order.payment_status==='paid')continue;
+        if(order.status==='cancelled'||(order.payment_status==='paid'&&order.payment_method!=='payku_mall'))continue;
         const card=document.getElementById('dy-order-'+Number(order.id));if(!card)continue;
         const state=await api('/orders/'+Number(order.id)+'/payku/status').catch(()=>null);
-        if(!state||!state.available||state.paid)continue;
+        if(!state)continue;
+        const alreadyPaid=state.paid&&order.payment_method==='payku_mall';
+        if(!alreadyPaid&&(!state.available||state.paid))continue;
         const q=state.quote;
         if(!q||q.rate_percent!==2||!Number.isSafeInteger(q.checkout_total)||
           !Number.isSafeInteger(q.service_fee)||q.service_fee<1||
@@ -128,6 +130,11 @@
           '<div><span>Tarifa de servicio DatoYa (2%)</span><strong>'+clp(q.service_fee)+'</strong></div>'+
           '<div class="dy-payku-total"><span>Total a pagar</span><strong>'+clp(q.checkout_total)+'</strong></div>'+
           '<small>El negocio recibe el valor asignado a su venta antes de los costos del procesador.</small>';
+        if(alreadyPaid){
+          summary.querySelector('b').textContent='✅ Pago Payku confirmado';
+          if(host===card)card.prepend(summary);else host.before(summary);
+          continue;
+        }
         if(host===card)card.prepend(summary);else host.before(summary);
         const initialLabel='💳 Pagar '+clp(q.checkout_total)+' con Payku';
         const b=el('button',{type:'button',class:'btn btn-primary btn-sm dy-order-payku'},initialLabel);
