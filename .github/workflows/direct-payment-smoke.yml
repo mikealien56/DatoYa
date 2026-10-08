@@ -1,0 +1,45 @@
+name: DatoYa direct-payment order smoke
+on:
+  pull_request:
+    branches: ["main"]
+jobs:
+  order-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install test dependencies
+        run: npm install
+      - name: Check simplified payment UI
+        run: |
+          node --check direct_merchant_payments_ui.js
+          node --check direct_merchant_payments_assets.js
+          grep -q 'Elige cómo quieres cobrar' direct_merchant_payments_ui.js
+          grep -q 'Pagos online con Khipu (opcional)' direct_merchant_payments_ui.js
+          grep -q 'Guardar y comenzar a recibir pedidos' direct_merchant_payments_ui.js
+      - name: Start test server and test orders
+        env:
+          AUTH_TEST_MODE: "true"
+          DEMO_MODE: "false"
+          PORT: "3000"
+          ADMIN_EMAIL: "admin-direct-payments-ci@datoya.invalid"
+          ADMIN_PASSWORD: "DatoYa-CI-Direct-Payments-2026"
+        run: |
+          npm start >/tmp/datoya-direct-payments-ci.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" >/dev/null 2>&1 || true' EXIT
+          READY=0
+          for i in $(seq 1 120); do
+            if curl -fsS http://localhost:3000/api/market/categories >/dev/null 2>&1; then READY=1; break; fi
+            if ! kill -0 "$PID" >/dev/null 2>&1; then
+              cat /tmp/datoya-direct-payments-ci.log
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/datoya-direct-payments-ci.log; exit 1; fi
+          curl -fsS http://localhost:3000/direct_merchant_payments_ui.js | grep -q 'Elige cómo quieres cobrar'
+          bash test_order_integrity_flow.sh

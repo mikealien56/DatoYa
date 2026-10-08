@@ -31,38 +31,28 @@
       </form>`;
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
         <section class="dy-business-dashboard-hero dy-direct-pay-hero">
-          <div><span>PAGOS</span><h1>El dinero va directo a ${h(b.name||'tu negocio')}</h1><p>DatoYa organiza pedidos y estados, pero no cobra ni retiene dinero de tus ventas.</p></div>
+          <div><span>PAGOS</span><h1>Elige cómo quieres cobrar</h1><p>${h(b.name||'Tu negocio')} puede recibir pedidos sin registrar una pasarela. El pago se coordina directamente con tus clientes. DatoYa no procesa el dinero de la venta.</p></div>
           <div class="dy-direct-pay-badge"><span>✓</span><div><b>Sin comisión por venta</b><small>DatoYa cobra solo sus servicios opcionales</small></div></div>
         </section>
 
         <section class="dy-direct-pay-summary">
-          <div><span>✅</span><strong>${paid}</strong><b>Pagos registrados</b><small>Marcados por tu negocio</small></div>
-          <div><span>⏳</span><strong>${pending}</strong><b>Pendientes</b><small>Pedidos aún sin pago confirmado</small></div>
+          <div><span>✅</span><strong>${paid}</strong><b>Pagos confirmados</b><small>Por tu negocio o por un proveedor conectado</small></div>
+          <div><span>⏳</span><strong>${pending}</strong><b>Pagos pendientes</b><small>Verifica en tu banco antes de marcarlos pagados</small></div>
           <div><span>💸</span><strong>0%</strong><b>Comisión DatoYa</b><small>Sobre tus ventas</small></div>
         </section>
 
-        <section class="dy-business-card dy-khipu-direct-card">
-          <div class="dy-card-head"><div><span>KHIPU DEL NEGOCIO</span><h2>Recibe pagos Khipu directamente</h2><p>Cada negocio usa su propia cuenta Khipu. El dinero de la compra entra directamente a tu cuenta de cobro; DatoYa no recibe ni retiene ese dinero.</p></div><span class="dy-khipu-direct-state ${k.connected?'ok':'pending'}">${k.connected?'✓ Conectado':'○ No conectado'}</span></div>
-          <div class="dy-khipu-direct-steps">
-            <div><span>1</span><b>Crea o activa tu cuenta Khipu</b><small>Asocia allí la cuenta bancaria donde recibirás los pagos.</small></div>
-            <div><span>2</span><b>Obtén tus 3 credenciales</b><small>ID de cobrador, Llave y Nueva API Key, desde “Para integrar Khipu a tu sitio web”.</small></div>
-            <div><span>3</span><b>Conecta Khipu aquí</b><small>DatoYa crea el cobro con tu cuenta y confirma el pago automáticamente.</small></div>
-          </div>
-          ${k.connected?`<div class="dy-khipu-connected-box"><span>✓</span><div><b>Khipu está conectado</b><small>ID de cobrador: ${h(k.receiver_id||'—')} · ${k.receiver_verified?'Cuenta verificada con un cobro Khipu':'La API Key fue validada; el ID se comprobará automáticamente con el primer cobro.'}</small></div></div>
-          <details class="dy-khipu-update"><summary>Actualizar credenciales</summary>${khipuForm}</details>
-          <button class="btn btn-outline btn-block" type="button" id="dy-khipu-direct-disconnect">Desconectar Khipu</button>`:khipuForm}
-        </section>
+
 
         <section class="dy-business-card dy-direct-pay-settings">
-          <div class="dy-card-head"><div><span>OTRAS FORMAS DE PAGO</span><h2>¿Cómo más pueden pagarte?</h2><p>También puedes ofrecer pago al retirar, al recibir, transferencia u otro enlace propio.</p></div></div>
+          <div class="dy-card-head"><div><span>FÁCIL Y SIN CONFIGURACIONES</span><h2>¿Cómo quieres recibir los pagos?</h2><p>Activa los métodos que aceptarás. No necesitas Khipu ni Payku para comenzar a recibir pedidos.</p></div></div>
           <form id="dy-direct-pay-form">
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_at_pickup" ${s.pay_at_pickup?'checked':''}><span>🛍️</span><div><b>Pago al retirar</b><small>El cliente paga directamente cuando retira.</small></div></label>
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_on_delivery" ${s.pay_on_delivery?'checked':''}><span>🚚</span><div><b>Pago al recibir despacho</b><small>Para pedidos con despacho propio.</small></div></label>
-            <label class="dy-direct-pay-toggle"><input type="checkbox" name="transfer_enabled" ${s.transfer_enabled?'checked':''}><span>🏦</span><div><b>Transferencia directa</b><small>La coordinación y recepción del pago es entre cliente y negocio.</small></div></label>
-            <label class="dy-direct-pay-toggle"><input id="dy-external-pay-enabled" type="checkbox" name="external_payment_enabled" ${s.external_payment_enabled?'checked':''}><span>🔗</span><div><b>Mi propio enlace de pago</b><small>Si ya usas un proveedor de pagos, pega aquí tu enlace https://.</small></div></label>
+            <label class="dy-direct-pay-toggle"><input type="checkbox" name="transfer_enabled" ${s.transfer_enabled?'checked':''}><span>🏦</span><div><b>Transferencia al negocio</b><small>Comparte tus datos bancarios con el cliente por un canal seguro y verifica el abono antes de marcar el pedido pagado.</small></div></label>
+            <label class="dy-direct-pay-toggle"><input id="dy-external-pay-enabled" type="checkbox" name="external_payment_enabled" ${s.external_payment_enabled?'checked':''}><span>🔗</span><div><b>Ya tengo un enlace para cobrar</b><small>Opcional: si tu negocio ya dispone de un enlace de pago HTTPS.</small></div></label>
             <div class="field dy-direct-pay-url" id="dy-external-pay-url-wrap" ${s.external_payment_enabled?'':'hidden'}><label>Enlace de pago del negocio</label><input type="url" name="external_payment_url" value="${h(s.external_payment_url||'')}" placeholder="https://..." maxlength="500"><small>El dinero va a tu proveedor/cuenta, no a DatoYa.</small></div>
-            <label class="dy-direct-pay-toggle warning"><input type="checkbox" name="prepayment_required" ${s.prepayment_required?'checked':''}><span>🛡️</span><div><b>Exigir pago antes de preparar</b><small>Útil para reducir pedidos falsos. DatoYa no permitirá pasar a “Preparando” hasta que marques el pago como recibido.</small></div></label>
-            <button class="btn btn-primary btn-block" type="submit">Guardar formas de pago</button>
+            <details class="dy-direct-pay-prepay"><summary>⚙️ Opción avanzada: exigir pago previo</summary><label class="dy-direct-pay-toggle warning"><input type="checkbox" name="prepayment_required" ${s.prepayment_required?'checked':''}><span>🛡️</span><div><b>Exigir pago antes de preparar</b><small>DatoYa bloqueará el estado “Preparando” hasta que marques el pago como recibido. No lo actives si tus clientes pagan al retirar o al recibir.</small></div></label></details>
+            <p class="dy-direct-pay-tip">💡 Consejo: activa “Pago al retirar” para empezar sin configuraciones. Para transferencias, confirma siempre el dinero en tu banco antes de marcar un pedido como pagado.</p><button class="btn btn-primary btn-block" type="submit">Guardar y comenzar a recibir pedidos</button>
           </form>
         </section>
 
@@ -70,6 +60,21 @@
           <div class="dy-card-head"><div><span>FLUJO RECOMENDADO</span><h2>Pedido seguro sin que DatoYa toque el dinero</h2></div></div>
           <div class="dy-direct-pay-flow"><div><span>1</span><b>Cliente pide</b><small>DatoYa registra el pedido.</small></div><i>→</i><div><span>2</span><b>Tú confirmas</b><small>Decides si aceptarlo.</small></div><i>→</i><div><span>3</span><b>Cliente te paga</b><small>Directamente a tu negocio.</small></div><i>→</i><div><span>4</span><b>Preparas</b><small>Si exiges prepago, solo después de marcar pagado.</small></div></div>
         </section>
+
+        <details class="dy-direct-pay-advanced"><summary>⚙️ Pagos online con Khipu (opcional) ${k.connected?'· ya conectado':''}</summary>
+          <p>No hace falta usar Khipu para cobrar al retirar, por transferencia o al entregar. Si ya tienes una cuenta conectada, seguirá disponible para tus clientes.</p>
+        <section class="dy-business-card dy-khipu-direct-card">
+          <div class="dy-card-head"><div><span>OPCIONAL</span><h2>Khipu de tu negocio</h2><p>Solo si ya utilizas Khipu y quieres ofrecer pagos online. No necesitas conectarlo para aceptar pedidos con los otros métodos.</p></div><span class="dy-khipu-direct-state ${k.connected?'ok':'pending'}">${k.connected?'✓ Conectado':'○ No conectado'}</span></div>
+          <div class="dy-khipu-direct-steps">
+            <div><span>1</span><b>Crea o activa tu cuenta Khipu</b><small>Asocia allí la cuenta bancaria donde recibirás los pagos.</small></div>
+            <div><span>2</span><b>Obtén las credenciales de tu cuenta</b><small>ID de cobrador, Llave y Nueva API Key, desde “Para integrar Khipu a tu sitio web”.</small></div>
+            <div><span>3</span><b>Conecta Khipu aquí</b><small>DatoYa crea el cobro con tu cuenta y confirma el pago automáticamente.</small></div>
+          </div>
+          ${k.connected?`<div class="dy-khipu-connected-box"><span>✓</span><div><b>Khipu está conectado</b><small>ID de cobrador: ${h(k.receiver_id||'—')} · ${k.receiver_verified?'Cuenta verificada con un cobro Khipu':'La API Key fue validada; el ID se comprobará automáticamente con el primer cobro.'}</small></div></div>
+          <details class="dy-khipu-update"><summary>Actualizar credenciales</summary>${khipuForm}</details>
+          <button class="btn btn-outline btn-block" type="button" id="dy-khipu-direct-disconnect">Desconectar Khipu</button>`:khipuForm}
+        </section>
+        </details>
 
         <section class="dy-direct-pay-note"><span>ℹ️</span><div><b>Khipu en DatoYa queda para servicios DatoYa</b><p>Impulso, Impulso+ y Premium pueden pagarse a DatoYa. Los pedidos de tus clientes no usan la cuenta Khipu de DatoYa.</p></div></section>
       </div>`;
@@ -119,7 +124,7 @@
           toast?.('Formas de pago guardadas','ok');
           renderDirectPayments(id);
         }catch(err){
-          if(btn){btn.disabled=false;btn.textContent='Guardar formas de pago';}
+          if(btn){btn.disabled=false;btn.textContent='Guardar y comenzar a recibir pedidos';}
           toast?.(err.message||'No se pudo guardar','err');
         }
       });
@@ -137,21 +142,24 @@
     const s=data.settings||{},parts=[];
     if(o.fulfillment_method==='pickup'&&s.pay_at_pickup)parts.push('🛍️ Pago al retirar');
     if(o.fulfillment_method==='delivery'&&s.pay_on_delivery)parts.push('🚚 Pago al recibir');
-    if(s.transfer_enabled)parts.push('🏦 Transferencia directa');
+    if(s.transfer_enabled)parts.push('🏦 Transferencia al negocio');
     const k=data.khipu||{};
     if(k.available)parts.push('🏦 Khipu');
     if(s.external_payment_enabled&&s.external_payment_url)parts.push('🔗 Enlace de pago del negocio');
     const wa=String(data.order?.whatsapp||'').replace(/\D/g,'');
     const waHref=wa?'https://wa.me/'+wa+'?text='+encodeURIComponent('Hola, consulto por el pago de mi pedido '+String(o.reference||'')):'';
+    const phone=String(data.order?.phone||'').replace(/[^+\d]/g,'');
+    const telHref=!waHref&&phone?'tel:'+phone:'';
     return `<div class="dy-direct-customer-pay">
-      <div><b>💳 Pago directo a ${h(data.order?.business_name||o.business_name||'este negocio')}</b><p>${s.prepayment_required&&String(o.payment_status)!=='paid'?'Este negocio solicita pago antes de preparar el pedido.':'DatoYa no recibe este dinero.'}</p></div>
+      <div><b>💳 Paga directamente a ${h(data.order?.business_name||o.business_name||'este negocio')}</b><p>${s.prepayment_required&&String(o.payment_status)!=='paid'?'Este negocio solicita pago antes de preparar el pedido.':'Coordina el pago con el negocio. DatoYa no recibe ese dinero.'}</p></div>
       <div class="dy-direct-customer-methods">${parts.map(x=>'<span>'+h(x)+'</span>').join('')}</div>
       <div class="dy-direct-customer-actions">
         ${k.available&&String(o.payment_status)!=='paid'?`<button class="btn btn-primary btn-sm" type="button" onclick="dyPayBusinessKhipu(${Number(o.id)},this)">Pagar con Khipu</button>`:''}
         ${s.external_payment_enabled&&s.external_payment_url&&String(o.payment_status)!=='paid'?`<a class="btn btn-outline btn-sm" href="${h(s.external_payment_url)}" target="_blank" rel="noopener noreferrer">Otro enlace de pago</a>`:''}
-        ${waHref&&String(o.payment_status)!=='paid'?`<a class="btn btn-outline btn-sm" href="${h(waHref)}" target="_blank" rel="noopener noreferrer">Coordinar pago</a>`:''}
+        ${waHref&&String(o.payment_status)!=='paid'?`<a class="btn btn-primary btn-sm" href="${h(waHref)}" target="_blank" rel="noopener noreferrer">Hablar con el negocio</a>`:''}
+        ${telHref&&String(o.payment_status)!=='paid'?`<a class="btn btn-outline btn-sm" href="${h(telHref)}">Llamar al negocio</a>`:''}
       </div>
-      ${String(o.payment_status)==='paid'?'<small class="paid">✅ El negocio registró este pago como recibido.</small>':''}
+      ${String(o.payment_status)==='paid'?'<small class="paid">✅ Pago confirmado.</small>':'<small class="dy-direct-pay-reminder">Si transfieres, solicita los datos al negocio y conserva tu comprobante. El pedido se marca pagado tras su verificación.</small>'}
     </div>`;
   }
 
