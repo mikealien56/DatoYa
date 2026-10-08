@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict');
 const {test}=require('node:test');
 const p=require('./payku_marketplace_service');
+const fee=require('./datoya_service_fee');
 const env={
   PAYKU_MARKETPLACE_ENV:'sandbox',PAYKU_MARKETPLACE_ENABLED:'true',
   PAYKU_MARKETPLACE_CONTRACT_APPROVED:'true',
@@ -80,4 +81,70 @@ test('affiliation tokens are encrypted per business and cannot be cross-used',()
   assert(!cipher.includes(token));
   assert.throws(()=>p.unsealToken(6,cipher,env));
   assert.equal(p.config({...env,PAYKU_MARKETPLACE_ENCRYPTION_KEY:''}).enabled,false);
+});
+
+
+test('2% charged only on products in CLP; delivery is not surcharged',()=>{
+  assert.deepEqual(fee.quote({subtotal:20000,delivery_fee:0,total:20000}),{
+    currency:'CLP',rate_percent:2,products_amount:20000,
+    delivery_fee:0,business_amount:20000,service_fee:400,
+    checkout_total:20400,payer:'customer',provider:'payku_mall'
+  });
+  const withDelivery=fee.quote({subtotal:20000,delivery_fee:1500,total:21500});
+  assert.equal(withDelivery.service_fee,400);
+  assert.equal(withDelivery.business_amount,21500);
+  assert.equal(withDelivery.checkout_total,21900);
+  assert.equal(fee.quote({subtotal:125,delivery_fee:0,total:125}).service_fee,3);
+  assert.throws(()=>fee.quote({subtotal:20000,delivery_fee:0,total:100}));
+  assert.throws(()=>fee.quote({subtotal:-100,delivery_fee:0,total:-100}));
+});
+const mallEnv={...env,
+  PAYKU_MALL_SERVICE_FEE_APPROVED:'true',
+  PAYKU_MARKETPLACE_PRIVATE_TOKEN:'example-private-token-for-tests-only'};
+test('Mall fee cannot activate without private token and approved split',()=>{
+  assert.equal(p.config(env).mall_enabled,false);
+  assert.equal(p.config({...mallEnv,PAYKU_MALL_SERVICE_FEE_APPROVED:'false'}).mall_enabled,false);
+  assert.equal(p.config({...mallEnv,PAYKU_MARKETPLACE_PRIVATE_TOKEN:''}).mall_enabled,false);
+  assert.equal(p.config(mallEnv).mall_enabled,true);
+});
+test('Payku Mall sends one payment with exact seller amount and DatoYa fee',async()=>{
+  const calls=[];
+  async function provider(url,options){
+    calls.push({url,options});
+    const body=JSON.parse(options.body);
+    return {status:200,ok:true,text:async()=>JSON.stringify({
+      status:'success',id:'malld200058ab44739ddee2adcd2f5',
+      url:'https://des.payku.cl/gateway/mall/malld200058ab44739ddee2adcd2f5',
+      individual_orders:body.merchant.map(m=>({merchant:m[0],amount:m[1],subject:m[2],event:null,individual_order:m[4]}))
+    })};
+  }
+  const request={order_id:12,business_amount:20000,service_fee:400,
+    email:'cliente@ejemplo.cl',affiliation_id:'sucaab7865dceaff49d8b3',base:'https://datoya.cl'};
+  const result=await p.startMallCheckout(request,mallEnv,provider);
+  assert.equal(result.transaction_id,'malld200058ab44739ddee2adcd2f5');
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].url,'https://des.payku.cl/api/mall');
+  const body=JSON.parse(calls[0].options.body);
+  assert.equal(body.order,12);
+  assert.equal(body.merchant.length,2);
+  assert.equal(body.merchant[0][1],20000);
+  assert.equal(body.merchant[1][1],400);
+  assert.equal(body.merchant[0][0],'sucaab7865dceaff49d8b3');
+  assert.equal(body.merchant[1][0],mallEnv.PAYKU_MARKETPLACE_PUBLIC_TOKEN);
+  assert.equal(calls[0].options.headers.Sign,p.mallSignature('/api/mall',body,mallEnv.PAYKU_MARKETPLACE_PRIVATE_TOKEN));
+});
+test('Payku Mall payment verifies split and rejects tampered merchant allocation',()=>{
+  const expected={transaction_id:'malld200058ab44739ddee2adcd2f5',
+    order_id:12,business_amount:20000,service_fee:400};
+  const input={id:expected.transaction_id,status:'success',amount:'20400',
+    merchant:[
+      {subject:'Venta DatoYa DY12',amount:20000},
+      {subject:'Servicio DatoYa DY12',amount:400}
+    ]};
+  assert.deepEqual(p.verifyMall(input,expected),{validated:true,paid:true,state:'paid'});
+  assert.equal(p.verifyMall({...input,amount:'20399'},expected).validated,false);
+  assert.equal(p.verifyMall({...input,merchant:[input.merchant[0],{...input.merchant[1],amount:350}]},expected).validated,false);
+  assert.equal(p.verifyMall({...input,id:'malldevil'},expected).validated,false);
+  assert.equal(p.verifyMall({...input,status:'rejected'},expected).paid,false);
+  assert.equal(p.verifyMall({...input,status:'refunded'},expected).state,'refunded');
 });
