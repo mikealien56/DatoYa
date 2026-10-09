@@ -43,6 +43,8 @@
           }catch(e){b.disabled=false;b.textContent='Vincular Mercado Pago';toast?.(e.message||'Error de conexión','err')}
         });
         section.appendChild(b);
+        if(!c.checkout)section.appendChild(node('small','dy-mp-sub',
+          'Vincular tu cuenta no habilita todavía cobros reales. DatoYa debe completar primero las comprobaciones del Split 1:1.'));
       }else{
         section.appendChild(node('p','dy-mp-note',
           'Estamos configurando Mercado Pago Split 1:1. Puedes seguir recibiendo pagos al retirar, al entregar o por transferencia.'));

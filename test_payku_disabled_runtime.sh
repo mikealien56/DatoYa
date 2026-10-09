@@ -32,7 +32,7 @@ for path in \
   [ "$code" = 401 ] || { echo "Unexpected public access $path HTTP $code"; exit 1; }
 done
 curl -fsS "http://localhost:$PORT/payku_marketplace_ui.js" | grep -q 'dy-payku-card'
-curl -fsS "http://localhost:$PORT/" | grep -q '/payku_marketplace_ui.js'
+if curl -fsS "http://localhost:$PORT/" | grep -q '/payku_marketplace_ui.js'; then echo 'Retired Payku UI unexpectedly embedded in app'; exit 1; fi
 status=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/api/payku/marketplace/notify?order=INVALID")
 [ "$status" = 200 ] || { echo "Untrusted callback error HTTP $status"; exit 1; }
-echo "PAYKU RUNTIME OK: disabled by default; private routes protected; UI served"
+echo "PAYKU RUNTIME OK: disabled by default; private routes protected; legacy file served but not embedded in the application"

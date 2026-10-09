@@ -9,7 +9,7 @@ if(fs.existsSync(idx)){
   let html=fs.readFileSync(idx,'utf8');
   html=html.replace(/<link[^>]+href="\/payku_marketplace\.css[^"]*"[^>]*>\s*/g,'')
     .replace(/<script[^>]+src="\/payku_marketplace_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</head>','<link rel="stylesheet" href="/payku_marketplace.css?v=20261008-2">\n</head>');
-  html=html.replace('</body>','<script src="/payku_marketplace_ui.js?v=20261008-2"></script>\n</body>');
+  // Retire Payku UI while retaining compatibility for old transaction/history data.
+  // Mercado Pago Split is installed separately by mp_split_assets.js.
   fs.writeFileSync(idx,html);
 }
