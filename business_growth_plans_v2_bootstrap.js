@@ -126,7 +126,6 @@ app.get('/api/businesses/:id/growth-plans',auth,(req,res)=>{
   const membership=__dyGrowthMembership(id);
   const pending=db.prepare("SELECT * FROM business_growth_plan_payments WHERE business_id=? AND status='pending' ORDER BY id DESC LIMIT 1").get(id)||null;
   const productCount=Number((db.prepare('SELECT COUNT(*) c FROM products WHERE business_id=?').get(id)||{}).c||0);
-  const mode=typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed()?'development':'blocked';
   const tier=membership?membership.tier:'free';
   res.json({
     business:{id:b.id,name:b.name,status:b.status},
@@ -136,8 +135,12 @@ app.get('/api/businesses/:id/growth-plans',auth,(req,res)=>{
     offers:__dyGrowthOffers(),
     durations:[1,7,15,30],
     config:{
-      checkout_enabled:typeof __khConfigured==='function'&&__khConfigured()&&mode==='development',
-      checkout_mode:mode,live_payments_allowed:false,payment_provider:'khipu'
+      // Mercado Pago subscriptions are separate from the seller's MP Split 1:1 account.
+      // No recurring checkout may be offered before dedicated authorization,
+      // webhook/payment verification, and renewal/cancellation are complete.
+      checkout_enabled:false,checkout_mode:'configuration_pending',
+      live_payments_allowed:false,payment_provider:'mercadopago_subscriptions',
+      recurring_enabled:false,legacy_khipu_checkout_enabled:false
     }
   });
 });
@@ -151,43 +154,25 @@ app.get('/api/businesses/:id/growth-access',auth,(req,res)=>{
   res.json({plan:membership?'impulso':'free',tier,membership,usage:{products:productCount},access,limits:{products:access.catalog_limit}});
 });
 
-app.post('/api/businesses/:id/growth-plans/checkout',auth,async(req,res)=>{try{
+// Guardrail: do not create legacy Khipu charges when the business chooses a DatoYa plan.
+// The Mercado Pago Subscriptions API requires a dedicated, verified integration.
+// Business owners can inspect plans, but nobody is charged or enabled via this endpoint.
+app.post('/api/businesses/:id/growth-plans/checkout',auth,(req,res)=>{
   const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
   if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
-  const rawTier=String(req.body?.tier||''),tier=__dyGrowthTierKey(rawTier),days=Number(req.body?.days||0);
-  if(!['impulso','impulso_plus','premium'].includes(rawTier))return res.status(400).json({error:'Plan inválido'});
+  const tier=String(req.body?.tier||''),days=Number(req.body?.days||0);
+  if(!['impulso','impulso_plus','premium'].includes(tier))return res.status(400).json({error:'Plan inválido'});
   if(![1,7,15,30].includes(days))return res.status(400).json({error:'Duración inválida'});
-  if(typeof __khConfigured!=='function'||!__khConfigured())return res.status(503).json({error:'Khipu todavía no está configurado en DatoYa'});
-  if(typeof __khDevelopmentAllowed!=='function'||!__khDevelopmentAllowed())return res.status(409).json({error:'El cobro Khipu de servicios DatoYa todavía no está habilitado para dinero real.',code:'KHIPU_SERVICE_LIVE_BLOCKED'});
-  const amount=__dyGrowthPrice(tier,days);
-  if(amount<=0)return res.status(409).json({error:'El precio del plan no está configurado'});
-  const reference='DY-GROWTH-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(2).toString('hex').toUpperCase();
-  const base=String(process.env.PUBLIC_BASE_URL||((req.protocol||'https')+'://'+req.get('host'))).replace(/\/+$/,'');
-  const meta=__dyGrowthTierCatalog[tier];
-  const payload={
-    amount,currency:'CLP',
-    subject:('DatoYa '+meta.label+' · '+days+' día'+(days===1?'':'s')).slice(0,255),
-    transaction_id:reference,
-    custom:JSON.stringify({type:'datoya_growth_plan',business_id:id,tier,duration_days:days,reference}),
-    body:('Servicio DatoYa '+meta.label+' por '+days+' día'+(days===1?'':'s')+' para '+b.name).slice(0,5120),
-    payer_name:String(req.user.name||'').slice(0,100),payer_email:String(req.user.email||'').slice(0,150),
-    return_url:base+'/#/mi-negocio-plan/'+id,cancel_url:base+'/#/mi-negocio-plan/'+id,
-    notify_url:base+'/api/khipu/webhook',notify_api_version:'3.0',send_email:false
-  };
-  const data=await __khApi('POST','/v3/payments',payload),paymentUrl=__khSafePaymentUrl(data.payment_url);
-  if(!data.payment_id||!paymentUrl)return res.status(502).json({error:'Khipu no devolvió un checkout válido'});
-  const verify=await __khApi('GET','/v3/payments/'+encodeURIComponent(data.payment_id));
-  if(String(verify.receiver_id||'')!==String(process.env.KHIPU_RECEIVER_ID||''))return res.status(502).json({error:'La cuenta Khipu devuelta no corresponde a DatoYa'});
-  const now=__dyImpulseNow();
-  db.prepare("INSERT INTO business_growth_plan_payments(reference,business_id,tier,duration_days,amount,status,payment_id,checkout_url,provider,provider_status,created_at,updated_at) VALUES(?,?,?,?,?,'pending',?,?,'khipu',?,?,?)")
-    .run(reference,id,tier,days,amount,String(data.payment_id),String(paymentUrl),String(verify.status||'pending'),now,now);
-  res.json({ok:true,checkout_url:String(paymentUrl),reference,provider:'khipu',payment_id:String(data.payment_id),tier,days,amount,mode:'development'});
-}catch(e){console.error('[DatoYa][Growth checkout]',e.status||'',e.provider||e.message||e);res.status(e.status||500).json({error:e.message||'No se pudo iniciar Khipu'});}});
+  return res.status(503).json({
+    error:'Las suscripciones de Mercado Pago están en preparación. No se ha generado ningún cobro.',
+    code:'MP_SUBSCRIPTIONS_NOT_READY',provider:'mercadopago_subscriptions',checkout_enabled:false
+  });
+});
 
 app.post('/api/businesses/:id/growth-plans/sync',auth,async(req,res)=>{try{
   const id=Number(req.params.id),b=__dyOwnBusiness(req.user.id,id);
   if(!b)return res.status(403).json({error:'Este negocio no pertenece a tu cuenta'});
-  const row=db.prepare("SELECT * FROM business_growth_plan_payments WHERE business_id=? AND status='pending' ORDER BY id DESC LIMIT 1").get(id);
+  const row=db.prepare("SELECT * FROM business_growth_plan_payments WHERE business_id=? AND provider='khipu' AND status='pending' ORDER BY id DESC LIMIT 1").get(id);
   if(!row)return res.json({ok:true,updated:false,membership:__dyGrowthMembership(id)});
   if(typeof __khConfigured!=='function'||!__khConfigured())return res.status(503).json({error:'Khipu todavía no está configurado'});
   const payment=await __khApi('GET','/v3/payments/'+encodeURIComponent(row.payment_id));
