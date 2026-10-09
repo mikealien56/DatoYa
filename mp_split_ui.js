@@ -7,8 +7,13 @@
   if(base)routes['mi-negocio-pagos']=async function(id){
     const result=await base.apply(this,arguments);
     if(!ME||ME.account_type!=='business')return result;
-    const host=document.querySelector('.dy-direct-pay-settings')||document.querySelector('.dy-payku-card');
+    // Ensure MP appears even if a future version changes the payment settings block.
+    const host=document.querySelector('.dy-direct-pay-settings')||
+      document.querySelector('.dy-payku-card')||
+      document.querySelector('.dy-direct-pay-hero')||
+      document.querySelector('.dy-business-dashboard-hero');
     if(!host)return result;
+    document.querySelectorAll('.dy-mp-split-card').forEach(card=>card.remove());
     const section=node('section','dy-business-card dy-mp-split-card');
     section.textContent='Revisando disponibilidad de Mercado Pago…';
     host.before(section);
