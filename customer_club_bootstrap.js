@@ -106,7 +106,7 @@ if(!src.includes('DATOYA_CUSTOMER_CLUB_V1')){
   function __dyClubInjected(){
 // ============ DATOYA_CUSTOMER_CLUB_V1 ============
 function __dyClubUser(userId){
-  return db.prepare("SELECT id,name,email,phone,role,account_type,comuna_id FROM users WHERE id=? AND is_active=1").get(Number(userId))||null;
+  return db.prepare("SELECT u.id,u.name,u.email,u.phone,u.role,COALESCE(t.account_type,CASE WHEN u.role='admin' THEN 'admin' ELSE 'customer' END) AS account_type,u.comuna_id FROM users u LEFT JOIN market_account_types t ON t.user_id=u.id WHERE u.id=? AND u.is_active=1").get(Number(userId))||null;
 }
 function __dyClubCustomer(req,res){
   const u=__dyClubUser(req.user&&req.user.id);
