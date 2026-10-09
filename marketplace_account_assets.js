@@ -12,6 +12,6 @@ if(fs.existsSync(idx)){
   html=html.replace(/<script[^>]+src="\/marketplace_account_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<link[^>]+href="\/founder_welcome\.css[^"]*"[^>]*>\s*/g,'').replace(/<script[^>]+src="\/founder_welcome_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_account.css?v=20260930-khipu1">\n<link rel="stylesheet" href="/founder_welcome.css?v=20260930-1">\n</head>');
-  html=html.replace('</body>','<script src="/founder_welcome_ui.js?v=20260930-2"></script>\n<script src="/marketplace_account_ui.js?v=20260930-khipu1"></script>\n</body>');
+  html=html.replace('</body>','<script src="/founder_welcome_ui.js?v=20260930-2"></script>\n<script src="/marketplace_account_ui.js?v=20261009-hours1"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
