@@ -31,20 +31,20 @@
       </form>`;
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
         <section class="dy-business-dashboard-hero dy-direct-pay-hero">
-          <div><span>PAGOS</span><h1>Elige cómo quieres cobrar</h1><p>${h(b.name||'Tu negocio')} puede recibir pedidos sin registrar una pasarela. El pago se coordina directamente con tus clientes. DatoYa no procesa el dinero de la venta.</p></div>
-          <div class="dy-direct-pay-badge"><span>✓</span><div><b>Sin comisión por venta</b><small>DatoYa cobra solo sus servicios opcionales</small></div></div>
+          <div><span>PAGOS</span><h1>¿Cómo quieres cobrar?</h1><p>${h(b.name||'Tu negocio')} puede recibir pagos al retirar, al entregar o por transferencia. Para pagos online, estamos preparando Mercado Pago Split 1:1; vincular la cuenta no activa todavía los cobros reales.</p></div>
+          <div class="dy-direct-pay-badge"><span>💳</span><div><b>Mercado Pago Split 1:1</b><small>Al pagar online, el comprador tendrá una tarifa DatoYa del 2% sobre productos. Mercado Pago aplica sus propias tarifas al negocio.</small></div></div>
         </section>
 
         <section class="dy-direct-pay-summary">
           <div><span>✅</span><strong>${paid}</strong><b>Pagos confirmados</b><small>Por tu negocio o por un proveedor conectado</small></div>
           <div><span>⏳</span><strong>${pending}</strong><b>Pagos pendientes</b><small>Verifica en tu banco antes de marcarlos pagados</small></div>
-          <div><span>💸</span><strong>0%</strong><b>Comisión DatoYa</b><small>Sobre tus ventas</small></div>
+          <div><span>💸</span><strong>2%</strong><b>Tarifa DatoYa</b><small>Sobre productos, a cargo del comprador solo en el futuro pago online con Mercado Pago; no aplica a pagos directos.</small></div>
         </section>
 
 
 
         <section class="dy-business-card dy-direct-pay-settings">
-          <div class="dy-card-head"><div><span>FÁCIL Y SIN CONFIGURACIONES</span><h2>¿Cómo quieres recibir los pagos?</h2><p>Activa los métodos que aceptarás. No necesitas Khipu ni Payku para comenzar a recibir pedidos.</p></div></div>
+          <div class="dy-card-head"><div><span>FÁCIL Y SIN CONFIGURACIONES</span><h2>¿Cómo quieres recibir los pagos?</h2><p>Activa los medios de pago directo que aceptarás. Mercado Pago se vincula en la sección superior y seguirá sin cobros reales hasta completar las pruebas.</p></div></div>
           <form id="dy-direct-pay-form">
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_at_pickup" ${s.pay_at_pickup?'checked':''}><span>🛍️</span><div><b>Pago al retirar</b><small>El cliente paga directamente cuando retira.</small></div></label>
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_on_delivery" ${s.pay_on_delivery?'checked':''}><span>🚚</span><div><b>Pago al recibir despacho</b><small>Para pedidos con despacho propio.</small></div></label>
@@ -61,22 +61,16 @@
           <div class="dy-direct-pay-flow"><div><span>1</span><b>Cliente pide</b><small>DatoYa registra el pedido.</small></div><i>→</i><div><span>2</span><b>Tú confirmas</b><small>Decides si aceptarlo.</small></div><i>→</i><div><span>3</span><b>Cliente te paga</b><small>Directamente a tu negocio.</small></div><i>→</i><div><span>4</span><b>Preparas</b><small>Si exiges prepago, solo después de marcar pagado.</small></div></div>
         </section>
 
-        <details class="dy-direct-pay-advanced"><summary>⚙️ Pagos online con Khipu (opcional) ${k.connected?'· ya conectado':''}</summary>
-          <p>No hace falta usar Khipu para cobrar al retirar, por transferencia o al entregar. Si ya tienes una cuenta conectada, seguirá disponible para tus clientes.</p>
-        <section class="dy-business-card dy-khipu-direct-card">
-          <div class="dy-card-head"><div><span>OPCIONAL</span><h2>Khipu de tu negocio</h2><p>Solo si ya utilizas Khipu y quieres ofrecer pagos online. No necesitas conectarlo para aceptar pedidos con los otros métodos.</p></div><span class="dy-khipu-direct-state ${k.connected?'ok':'pending'}">${k.connected?'✓ Conectado':'○ No conectado'}</span></div>
-          <div class="dy-khipu-direct-steps">
-            <div><span>1</span><b>Crea o activa tu cuenta Khipu</b><small>Asocia allí la cuenta bancaria donde recibirás los pagos.</small></div>
-            <div><span>2</span><b>Obtén las credenciales de tu cuenta</b><small>ID de cobrador, Llave y Nueva API Key, desde “Para integrar Khipu a tu sitio web”.</small></div>
-            <div><span>3</span><b>Conecta Khipu aquí</b><small>DatoYa crea el cobro con tu cuenta y confirma el pago automáticamente.</small></div>
-          </div>
-          ${k.connected?`<div class="dy-khipu-connected-box"><span>✓</span><div><b>Khipu está conectado</b><small>ID de cobrador: ${h(k.receiver_id||'—')} · ${k.receiver_verified?'Cuenta verificada con un cobro Khipu':'La API Key fue validada; el ID se comprobará automáticamente con el primer cobro.'}</small></div></div>
-          <details class="dy-khipu-update"><summary>Actualizar credenciales</summary>${khipuForm}</details>
-          <button class="btn btn-outline btn-block" type="button" id="dy-khipu-direct-disconnect">Desconectar Khipu</button>`:khipuForm}
-        </section>
-        </details>
-
-        <section class="dy-direct-pay-note"><span>ℹ️</span><div><b>Khipu en DatoYa queda para servicios DatoYa</b><p>Impulso, Impulso+ y Premium pueden pagarse a DatoYa. Los pedidos de tus clientes no usan la cuenta Khipu de DatoYa.</p></div></section>
+        ${k.connected?`<details class="dy-direct-pay-advanced"><summary>⚙️ Administrar conexión anterior de Khipu</summary>
+          <section class="dy-business-card dy-khipu-direct-card">
+            <h2>Cuenta Khipu vinculada anteriormente</h2>
+            <p>DatoYa está migrando los cobros online a Mercado Pago. Esta conexión anterior se conserva para revisar pagos existentes; no es necesaria para nuevos negocios.</p>
+            <div class="dy-khipu-connected-box"><span>✓</span><div><b>Conexión anterior</b><small>ID de cobrador: ${h(k.receiver_id||'—')}</small></div></div>
+            <details class="dy-khipu-update"><summary>Administrar credenciales anteriores</summary>${khipuForm}</details>
+            <button class="btn btn-outline btn-block" type="button" id="dy-khipu-direct-disconnect">Desconectar Khipu</button>
+          </section>
+        </details>`:''}
+        <section class="dy-direct-pay-note"><span>ℹ️</span><div><b>Mercado Pago será el medio de pago online</b><p>El Split 1:1 es para ventas a clientes. La compra y renovación de planes Impulso, Impulso+ y Premium tendrá un sistema de cobro separado que todavía está en preparación.</p></div></section>
       </div>`;
       document.getElementById('dy-khipu-direct-form')?.addEventListener('submit',async e=>{
         e.preventDefault();
@@ -199,8 +193,8 @@
       const b=x.querySelector('b'),small=x.querySelector('small'),icon=x.querySelector('span');
       if(b&&b.textContent.trim()==='Khipu'){
         if(icon)icon.textContent='💳';
-        b.textContent='Cobro directo';
-        if(small)small.textContent='Las ventas se pagan al negocio';
+        b.textContent='Formas de pago';
+        if(small)small.textContent='Pago directo disponible · Mercado Pago en preparación';
       }
     });
   }
