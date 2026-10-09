@@ -59,7 +59,9 @@ grep -q "products" current_legal_consent_enforcement_bootstrap.js || fail 'Publi
 grep -q "weekly-impulses" current_legal_consent_enforcement_bootstrap.js || fail 'Impulso semanal no está cubierto por puerta legal'
 grep -q "khipu.*checkout" current_legal_consent_enforcement_bootstrap.js || fail 'Checkout Khipu no está cubierto por puerta legal'
 if grep -Eqi 'mercadopago|marketplace_payments' current_legal_consent_enforcement_bootstrap.js email_verification_enforcement_bootstrap.js; then fail 'Guardas legales todavía mencionan Mercado Pago'; fi
-if grep -Eqi 'mercadopago|Mercado Pago' legal_final_ui.js account_security_bootstrap.js; then fail 'Textos legales o seguridad todavía mencionan Mercado Pago'; fi
+grep -q '2% sobre el subtotal de productos' legal_final_ui.js || fail 'Términos de pagos no revelan el cargo DatoYa al comprador'
+grep -q 'Mercado Pago' legal_final_ui.js || fail 'Términos de pagos deben informar proveedor disponible'
+if grep -Eqi 'mercadopago|Mercado Pago' account_security_bootstrap.js; then fail 'Seguridad de cuentas contiene referencias al proveedor de pagos'; fi
 grep -q "2026-09-25-marketplace2" marketplace_legal_version_fix.js || fail 'Versión legal vigente no corresponde al 25-09-2026'
 grep -q "if(req.path==='/khipu/webhook') return next();" account_security_bootstrap.js || fail 'Origin guard no reconoce webhook Khipu'
 # Beta privada: RBAC, propiedad e IDOR deben seguir protegidos en backend.

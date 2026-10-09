@@ -15,7 +15,9 @@ grep -q "Cargando formas de pago" direct_merchant_payments_ui.js || fail "Pagos 
 grep -q "No pudimos cargar los pagos" direct_merchant_payments_ui.js || fail "Pagos directos no tiene estado de error"
 grep -q "Reintentar" direct_merchant_payments_ui.js || fail "Pagos directos no permite reintento"
 grep -q "puede recibir pagos al retirar, al entregar o por transferencia" direct_merchant_payments_ui.js || fail "UI no identifica formas de pago directo del negocio"
-grep -q "tarifa DatoYa del 2% sobre productos" direct_merchant_payments_ui.js || fail "UI omite la tarifa DatoYa prevista para pagos online"
+grep -q "Conecta tu cuenta para ofrecer pagos online" direct_merchant_payments_ui.js || fail "Panel de pagos no muestra conexión simple"
+grep -q "2% sobre el subtotal de productos" legal_final_ui.js || fail "La tarifa del servicio debe quedar explicada en Términos de pagos"
+grep -q "Cargo por servicio en compras online" legal_final_ui.js || fail "Faltan condiciones comerciales para el comprador"
 
 grep -q "planLoading" business_growth_plans_v2_ui.js || fail "Growth Plans V2 no muestra carga explícita"
 grep -q "checkoutBusy" business_growth_plans_v2_ui.js || fail "Growth Plans V2 permite doble clic"

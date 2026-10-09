@@ -31,20 +31,19 @@
       </form>`;
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
         <section class="dy-business-dashboard-hero dy-direct-pay-hero">
-          <div><span>PAGOS</span><h1>¿Cómo quieres cobrar?</h1><p>${h(b.name||'Tu negocio')} puede recibir pagos al retirar, al entregar o por transferencia. Para pagos online, estamos preparando Mercado Pago Split 1:1; vincular la cuenta no activa todavía los cobros reales.</p></div>
-          <div class="dy-direct-pay-badge"><span>💳</span><div><b>Mercado Pago Split 1:1</b><small>Al pagar online, el comprador tendrá una tarifa DatoYa del 2% sobre productos. Mercado Pago aplica sus propias tarifas al negocio.</small></div></div>
+          <div><span>PAGOS</span><h1>¿Cómo quieres cobrar?</h1><p>${h(b.name||'Tu negocio')} puede recibir pagos al retirar, al entregar o por transferencia. Conecta Mercado Pago para habilitar los pagos online cuando estén disponibles.</p></div>
+          <div class="dy-direct-pay-badge"><span>💳</span><div><b>Mercado Pago</b><small>Conecta tu cuenta para ofrecer pagos online.</small></div></div>
         </section>
 
         <section class="dy-direct-pay-summary">
           <div><span>✅</span><strong>${paid}</strong><b>Pagos confirmados</b><small>Por tu negocio o por un proveedor conectado</small></div>
           <div><span>⏳</span><strong>${pending}</strong><b>Pagos pendientes</b><small>Verifica en tu banco antes de marcarlos pagados</small></div>
-          <div><span>💸</span><strong>2%</strong><b>Tarifa DatoYa</b><small>Sobre productos, a cargo del comprador solo en el futuro pago online con Mercado Pago; no aplica a pagos directos.</small></div>
         </section>
 
 
 
         <section class="dy-business-card dy-direct-pay-settings">
-          <div class="dy-card-head"><div><span>FÁCIL Y SIN CONFIGURACIONES</span><h2>¿Cómo quieres recibir los pagos?</h2><p>Activa los medios de pago directo que aceptarás. Mercado Pago se vincula en la sección superior y seguirá sin cobros reales hasta completar las pruebas.</p></div></div>
+          <div class="dy-card-head"><div><span>FÁCIL Y SIN CONFIGURACIONES</span><h2>¿Cómo quieres recibir los pagos?</h2><p>Activa los medios de pago directo que aceptarás. Para pagos online, utiliza Mercado Pago.</p></div></div>
           <form id="dy-direct-pay-form">
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_at_pickup" ${s.pay_at_pickup?'checked':''}><span>🛍️</span><div><b>Pago al retirar</b><small>El cliente paga directamente cuando retira.</small></div></label>
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_on_delivery" ${s.pay_on_delivery?'checked':''}><span>🚚</span><div><b>Pago al recibir despacho</b><small>Para pedidos con despacho propio.</small></div></label>
@@ -70,7 +69,6 @@
             <button class="btn btn-outline btn-block" type="button" id="dy-khipu-direct-disconnect">Desconectar Khipu</button>
           </section>
         </details>`:''}
-        <section class="dy-direct-pay-note"><span>ℹ️</span><div><b>Mercado Pago será el medio de pago online</b><p>El Split 1:1 es para ventas a clientes. La compra y renovación de planes Impulso, Impulso+ y Premium tendrá un sistema de cobro separado que todavía está en preparación.</p></div></section>
       </div>`;
       document.getElementById('dy-khipu-direct-form')?.addEventListener('submit',async e=>{
         e.preventDefault();

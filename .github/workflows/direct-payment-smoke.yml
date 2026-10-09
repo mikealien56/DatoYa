@@ -18,7 +18,7 @@ jobs:
           node --check direct_merchant_payments_ui.js
           node --check direct_merchant_payments_assets.js
           grep -q '¿Cómo quieres cobrar?' direct_merchant_payments_ui.js
-          grep -q 'Mercado Pago Split 1:1' direct_merchant_payments_ui.js
+          grep -q 'Conecta tu cuenta para ofrecer pagos online' direct_merchant_payments_ui.js
           grep -q 'Guardar y comenzar a recibir pedidos' direct_merchant_payments_ui.js
       - name: Start test server and test orders
         env:
