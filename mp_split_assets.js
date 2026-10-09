@@ -12,7 +12,7 @@ if(fs.existsSync(idx)){
   s=s.replace(/<link[^>]*href="\/mp_split\.css[^"]*"[^>]*>\s*/g,'')
     .replace(/<script[^>]*src="\/mp_split_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
   if(!s.includes('</head>')||!s.includes('</body>'))throw new Error('Falta HTML para MP');
-  s=s.replace('</head>','<link rel="stylesheet" href="/mp_split.css?v=20261008-1">\n</head>');
-  s=s.replace('</body>','<script src="/mp_split_ui.js?v=20261008-1"></script>\n</body>');
+  s=s.replace('</head>','<link rel="stylesheet" href="/mp_split.css?v=20261009-2">\n</head>');
+  s=s.replace('</body>','<script src="/mp_split_ui.js?v=20261009-2"></script>\n</body>');
   fs.writeFileSync(idx,s);
 }
