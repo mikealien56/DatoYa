@@ -20,18 +20,13 @@
     try{
       const [s,c]=await Promise.all([api('/businesses/'+Number(id)+'/mp-split'),api('/mp-split/config')]);
       section.replaceChildren();
-      section.appendChild(node('h2','', '💳 Mercado Pago — Split 1:1'));
-      section.appendChild(node('p','',
-        'El cliente paga online en un solo paso. DatoYa cobra el 2% sobre productos y el negocio recibe su venta antes de las tarifas de Mercado Pago.'));
+      section.appendChild(node('h2','', '💳 Mercado Pago'));
+      section.appendChild(node('p','dy-mp-intro','Conecta tu cuenta para recibir pagos online en DatoYa.'));
       if(s.connected){
-        section.appendChild(node('p','dy-mp-state-ok','✅ Tu cuenta está vinculada con Mercado Pago.'));
-        if(!c.checkout)section.appendChild(node('p','dy-mp-note',
-          'Vinculación lista. DatoYa todavía no habilita cobros reales hasta completar verificaciones.'));
-        else section.appendChild(node('p','dy-mp-state-ok','Los pagos están habilitados para este comercio.'));
+        section.appendChild(node('p','dy-mp-state-ok','✅ Cuenta conectada'));
+        if(!c.checkout)section.appendChild(node('small','dy-mp-sub','Pagos online disponibles próximamente.'));
       }else if(c.onboarding){
-        section.appendChild(node('p','dy-mp-note',
-          'Vincula tu cuenta verificada con Mercado Pago; no compartes tu contraseña ni claves API con DatoYa.'));
-        const b=node('button','btn btn-primary','Vincular Mercado Pago');
+        const b=node('button','btn btn-primary','Conectar Mercado Pago');
         b.type='button';
         b.addEventListener('click',async()=>{
           b.disabled=true;b.textContent='Conectando…';
@@ -40,16 +35,18 @@
             const u=new URL(d.url);
             if(u.protocol!=='https:'||u.hostname!=='auth.mercadopago.cl')throw new Error('Destino no permitido');
             location.href=u.toString();
-          }catch(e){b.disabled=false;b.textContent='Vincular Mercado Pago';toast?.(e.message||'Error de conexión','err')}
+          }catch(e){b.disabled=false;b.textContent='Conectar Mercado Pago';toast?.(e.message||'No se pudo conectar tu cuenta','err')}
         });
         section.appendChild(b);
-        if(!c.checkout)section.appendChild(node('small','dy-mp-sub',
-          'Vincular tu cuenta no habilita todavía cobros reales. DatoYa debe completar primero las comprobaciones del Split 1:1.'));
       }else{
-        section.appendChild(node('p','dy-mp-note',
-          'Estamos configurando Mercado Pago Split 1:1. Puedes seguir recibiendo pagos al retirar, al entregar o por transferencia.'));
+        section.appendChild(node('p','dy-mp-sub','La conexión estará disponible próximamente.'));
       }
-      section.appendChild(node('small','dy-mp-sub','La tarifa del procesador es distinta del 2% de servicio de DatoYa.'));
+      const conditions=node('p','dy-mp-sub dy-mp-terms');
+      const terms=document.createElement('a');
+      terms.href='#/terminos';
+      terms.textContent='Términos y condiciones de pagos';
+      conditions.appendChild(terms);
+      section.appendChild(conditions);
     }catch(e){section.textContent='No pudimos comprobar la conexión con Mercado Pago. Puedes seguir usando los pagos directos.'}
     return result;
   };
