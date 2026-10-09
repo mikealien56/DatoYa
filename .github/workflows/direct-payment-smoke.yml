@@ -17,8 +17,8 @@ jobs:
         run: |
           node --check direct_merchant_payments_ui.js
           node --check direct_merchant_payments_assets.js
-          grep -q 'Elige cómo quieres cobrar' direct_merchant_payments_ui.js
-          grep -q 'Pagos online con Khipu (opcional)' direct_merchant_payments_ui.js
+          grep -q '¿Cómo quieres cobrar?' direct_merchant_payments_ui.js
+          grep -q 'Mercado Pago Split 1:1' direct_merchant_payments_ui.js
           grep -q 'Guardar y comenzar a recibir pedidos' direct_merchant_payments_ui.js
       - name: Start test server and test orders
         env:
@@ -41,5 +41,5 @@ jobs:
             sleep 1
           done
           if [ "$READY" -ne 1 ]; then cat /tmp/datoya-direct-payments-ci.log; exit 1; fi
-          curl -fsS http://localhost:3000/direct_merchant_payments_ui.js | grep -q 'Elige cómo quieres cobrar'
+          curl -fsS http://localhost:3000/direct_merchant_payments_ui.js | grep -q '¿Cómo quieres cobrar?'
           bash test_order_integrity_flow.sh
