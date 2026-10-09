@@ -80,7 +80,7 @@
       '<button class="btn '+(offer.key==='impulso'?'btn-outline':'btn-primary')+' btn-block" '+(canCheckout?'':'disabled')+' onclick="dyStartGrowthCheckout('+Number(data.business.id)+',\''+offer.key+'\')">'+
         (isActive?'Extender '+h(meta.label):'Activar '+h(meta.label))+
       '</button>'+
-      (!canCheckout?'<small class="dy-growth-disabled">Cobro Khipu aún no habilitado para dinero real.</small>':'')+
+      (!canCheckout?'<small class="dy-growth-disabled">Mercado Pago: contratación y renovación automática en preparación. No se realizará ningún cobro.</small>':'')+
     '</section>';
   }
   function renderPlan(data){
@@ -91,6 +91,7 @@
     view.innerHTML='<div class="dy-growth-page">'+
       '<a class="dy-growth-back" href="#/mi-negocio/'+id+'">← Volver a '+h(data.business.name)+'</a>'+
       '<section class="dy-growth-hero '+(m?'active':'')+'"><div><span>CRECE SIN ENTREGAR UN % DE TUS VENTAS</span><h1>'+(m?h(current.icon+' '+current.label+' activo'):'DatoYa Gratis para vender. Impulsos para crecer.')+'</h1><p>'+(m?'Tu beneficio está vigente hasta el '+h(date(m.expires_at))+'. Puedes extenderlo cuando quieras.':'DatoYa no cobra comisión por tus ventas. Elige un impulso solo cuando quieras más alcance y herramientas.')+'</p></div><div class="dy-growth-current"><b>'+(m?h(current.label):'PLAN GRATIS')+'</b><small>'+(m?(Number(m.offer_days||m.days_granted||0)+' días contratados'):'$0 · sin comisión')+'</small></div></section>'+
+      '<section class="dy-growth-note"><span>💳</span><div><b>Planes DatoYa · Mercado Pago</b><p>Estamos preparando el cobro de planes Impulso, Impulso+ y Premium con Mercado Pago. Los pagos recurrentes mensuales y anuales aún no están habilitados; por ahora no se cobra ningún plan desde esta pantalla.</p></div></section>'+
       '<section class="dy-growth-free-strip"><div><span>🆓</span><div><b>DatoYa Gratis</b><p>Perfil, pedidos, horarios, retiro/despacho, QR, promociones normales y estadísticas básicas.</p></div></div><strong>$0</strong></section>'+
       '<section class="dy-growth-duration"><div><span>1</span><h2>¿Por cuánto tiempo quieres impulsarte?</h2><p>Primero elige duración. Después escoge el nivel que más te conviene.</p></div><div class="dy-growth-duration-buttons">'+
         [1,7,15,30].map(d=>'<button class="'+(d===days?'active':'')+'" onclick="dyGrowthSelectDays('+d+')"><b>'+d+'</b><small>'+ (d===1?'día':'días')+'</small></button>').join('')+
@@ -101,7 +102,7 @@
         rows.map(r=>'<div class="row"><span>'+h(r[0])+'</span><strong>'+h(r[1])+'</strong><strong>'+h(r[2])+'</strong><strong>'+h(r[3])+'</strong><strong>'+h(r[4])+'</strong></div>').join('')+
       '</div></section>'+
       '<section class="dy-growth-note"><span>💳</span><div><b>La plata de las ventas sigue siendo del negocio</b><p>Estos cobros corresponden únicamente a servicios DatoYa. El pago de los pedidos de clientes no entra a la cuenta de DatoYa.</p></div></section>'+
-      (data.pending_payment?'<section class="dy-growth-pending"><div><span>⏳</span><div><b>Hay un pago pendiente</b><p>Si ya terminaste en Khipu, actualiza el estado para activar tu impulso.</p></div></div><button class="btn btn-outline" onclick="dySyncGrowthPayment('+id+')">Actualizar pago</button></section>':'')+
+      (data.pending_payment?'<section class="dy-growth-pending"><div><span>⏳</span><div><b>Hay un pago pendiente</b><p>Si tenías un pago anterior pendiente, puedes comprobar su estado. No se iniciarán cobros nuevos por Khipu.</p></div></div><button class="btn btn-outline" onclick="dySyncGrowthPayment('+id+')">Actualizar pago</button></section>':'')+
       '</div>';
     window.__datoyaBusinessHubFrame?.(id,'plan');
   }
@@ -132,8 +133,11 @@
     checkoutBusy=true;
     try{
       const r=await api('/businesses/'+Number(id)+'/growth-plans/checkout',{method:'POST',body:{tier,days:selectedDays.value}});
-      if(!r.checkout_url)throw new Error('Khipu no devolvió la página de pago');
-      location.href=r.checkout_url;
+      if(!r.checkout_url)throw new Error('Mercado Pago todavía no permite completar el pago del plan');
+      const url=new URL(r.checkout_url);
+      if(url.protocol!=='https:'||!['mercadopago.cl','www.mercadopago.cl','mercadopago.com','www.mercadopago.com'].includes(url.hostname.toLowerCase()))
+        throw new Error('La dirección de Mercado Pago no es válida');
+      location.href=url.toString();
     }catch(e){
       checkoutBusy=false;toast?.(e.message||'No se pudo iniciar el pago','err');
     }
