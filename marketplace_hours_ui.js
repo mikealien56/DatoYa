@@ -34,10 +34,10 @@
           <div><b>${label}</b><small class="dy-hours-day-state">${on?'Edita las horas':'Día sin atención'}</small></div>
           <label class="dy-hours-day-toggle"><input type="checkbox" name="${key}_enabled" ${on?'checked':''}><span>${on?'Abierto':'Cerrado'}</span></label>
         </div>
-        <div class="dy-hours-times ${on?'':'disabled'}">
-          <label><span>Abre</span><input type="time" name="${key}_open" value="${h(v?.open||'09:00')}" ${on?'':'disabled'}></label>
+        <div class="dy-hours-times">
+          <label><span>Abre</span><input type="time" name="${key}_open" value="${h(v?.open||'09:00')}" aria-label="Apertura ${label}"></label>
           <span class="dy-hours-arrow">→</span>
-          <label><span>Cierra</span><input type="time" name="${key}_close" value="${h(v?.close||'18:00')}" ${on?'':'disabled'}></label>
+          <label><span>Cierra</span><input type="time" name="${key}_close" value="${h(v?.close||'18:00')}" aria-label="Cierre ${label}"></label>
         </div>
       </article>`;
     }).join('');
@@ -50,7 +50,7 @@
 
       <section class="dy-hours-main-card">
         <div class="dy-hours-toolbar">
-          <div><b>Semana editable</b><small>Activa cada día y ajusta sus horas. No hay horarios fijos obligatorios.</small></div>
+          <div><b>Semana editable</b><small>Edita la hora de cualquier día; al cambiarla se marca como Abierto. También puedes activar o cerrar días manualmente.</small></div>
           <div><button type="button" class="btn btn-outline btn-sm" id="dy-close-sunday">Cerrar domingo</button></div>
         </div>
         <form id="dy-hours-form">
@@ -71,10 +71,16 @@
       const on=!!enabled.checked;
       card.classList.toggle('open-day',on);card.classList.toggle('closed-day',!on);
       card.querySelector('.dy-hours-day-state').textContent=on?'Edita las horas':'Día sin atención';const toggleText=card.querySelector('.dy-hours-day-toggle span');if(toggleText)toggleText.textContent=on?'Abierto':'Cerrado';
-      card.querySelector('.dy-hours-times')?.classList.toggle('disabled',!on);
-      form.elements[key+'_open'].disabled=!on;form.elements[key+'_close'].disabled=!on;
     }
-    days.forEach(([key])=>form.elements[key+'_enabled']?.addEventListener('change',()=>syncDay(key)));
+    days.forEach(([key])=>{
+      const toggle=form.elements[key+'_enabled'];
+      toggle?.addEventListener('change',()=>syncDay(key));
+      for(const suffix of ['_open','_close']){
+        form.elements[key+suffix]?.addEventListener('change',()=>{
+          if(toggle&&!toggle.checked){toggle.checked=true;syncDay(key);}
+        });
+      }
+    });
 
     document.getElementById('dy-close-sunday')?.addEventListener('click',()=>{
       form.elements.sun_enabled.checked=false;syncDay('sun');toast?.('Domingo marcado como cerrado','ok');
