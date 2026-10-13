@@ -117,3 +117,35 @@ test('OAuth can prepare verified seller credentials in test mode without grantin
   assert.equal(mp.oauthMatchesMode({user_id:'notnumeric',live_mode:true},'production'),false);
   assert.equal(mp.config({...env,MP_SPLIT_MODE:'production'}).checkout,false);
 });
+
+test('seller identity check calls documented API with bearer token and matches account id',async()=>{
+  const token='APP_USR-valid-seller-access-token-123456';
+  let calls=0;
+  const mock=async(url,opts)=>{
+    calls++;
+    assert.equal(url,'https://api.mercadolibre.com/users/me');
+    assert.equal(opts.method,'GET');
+    assert.equal(opts.headers.Authorization,'Bearer '+token);
+    assert.equal(opts.redirect,'error');
+    return {ok:true,status:200,text:async()=>JSON.stringify({id:11223344,nickname:'EXAMPLE'})};
+  };
+  assert.deepEqual(await mp.verifySellerIdentity(token,'11223344',mock),{valid:true});
+  assert.equal(calls,1);
+  await assert.rejects(mp.verifySellerIdentity(token,'987654',mock),e=>e.status===409);
+  await assert.rejects(mp.verifySellerIdentity('not-a-valid-token','11223344',mock),e=>e.status===409);
+});
+test('seller verification rejects revoked permissions and provider errors safely',async()=>{
+  const token='APP_USR-seller-token-valid-value-12345';
+  await assert.rejects(mp.verifySellerIdentity(token,'11223344',async()=>({ok:false,status:401})),e=>e.status===409);
+  await assert.rejects(mp.verifySellerIdentity(token,'11223344',async()=>({ok:false,status:503})),e=>e.status===503);
+  await assert.rejects(mp.verifySellerIdentity(token,'11223344',async()=>({ok:true,status:200,text:async()=>'{broken'})),e=>e.status===503);
+});
+test('seller web route never enables checkout without verified provider identity',()=>{
+  const fs=require('fs');
+  const route=fs.readFileSync(require('path').join(__dirname,'mp_split_routes.js'),'utf8');
+  assert.ok(route.includes("app.post('/api/businesses/:id/mp-split/verify',auth"));
+  assert.ok(route.includes('await mp.verifySellerIdentity(token,s.seller_user_id)'));
+  assert.ok(route.includes('await mp.verifySellerIdentity(creds.access_token,creds.user_id)'));
+  assert.ok(route.includes('!s.verified_at||!b'));
+  assert.ok(route.includes('&&s.verified_at&&b'));
+});
