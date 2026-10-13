@@ -14,3 +14,13 @@
 .dy-direct-pay-advanced>.dy-business-card{margin:10px 0 0;box-shadow:none}
 .dy-direct-pay-reminder{display:block;color:#475569;margin-top:9px;line-height:1.5}
 @media(max-width:700px){.dy-direct-pay-advanced{padding:12px}.dy-direct-pay-settings .dy-card-head{gap:6px}}
+
+/* Mercado Pago first; older/direct payment methods remain safely available on demand. */
+.dy-direct-pay-options{display:block;margin-top:14px;padding:0;overflow:hidden}
+.dy-direct-pay-options>summary{cursor:pointer;display:list-item;list-style-position:inside;padding:18px 20px;color:#0B3A82;font-size:16px;font-weight:800}
+.dy-direct-pay-options>summary span{font-size:13px;color:#64748b;font-weight:500}
+.dy-direct-pay-options[open]>summary{border-bottom:1px solid #e2e8f0}
+.dy-direct-pay-options-inner{padding:16px;display:grid;gap:14px}
+.dy-direct-pay-options-inner .dy-direct-pay-settings{margin:0;padding:0;border:0;box-shadow:none;background:transparent}
+.dy-direct-pay-options-inner>.dy-business-card{margin:0;box-shadow:none;border:1px solid #e2e8f0}
+@media(max-width:700px){.dy-direct-pay-options>summary{padding:16px}.dy-direct-pay-options-inner{padding:12px}}
