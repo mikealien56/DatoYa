@@ -19,6 +19,17 @@ function config(env=process.env){
   return {appId,configured,onboarding,checkout,mode,site,callback:site+'/api/mp-split/oauth/callback'};
 }
 function err(message,status=502){const e=new Error(message);e.status=status;return e}
+// A merchant may connect while DatoYa reviews its shop. Approval is still mandatory
+// before accepting any real order or payment.
+function canConnectBusiness(status){
+  return ['draft','pending_review','active','paused'].includes(String(status||''));
+}
+// In test mode OAuth can prepare an authentic seller account without enabling charges.
+// Checkout validates the seller's live_mode separately and production remains strict.
+function oauthMatchesMode(creds,mode){
+  return !!creds&&/^\d+$/.test(String(creds.user_id||''))&&
+    (mode!=='production'||creds.live_mode===true);
+}
 function cipherKey(env){const b=Buffer.from(String(env.MP_SPLIT_ENCRYPTION_KEY||''),'base64');if(b.length!==32)throw err('Clave de cifrado MP inválida',503);return b}
 function seal(businessId,obj,env=process.env){
   const iv=crypto.randomBytes(12);
@@ -166,4 +177,4 @@ function validWebhook({headers,query},env=process.env){
   return actual.length===expected.length&&crypto.timingSafeEqual(expected,actual);
 }
 module.exports={config,seal,open,api,oauth,authUrl,connect,renew,checkoutUrl,
-  preferenceBody,createPreference,verifyPreference,verifyPayment,verifyMerchantOrder,validWebhook};
+  preferenceBody,createPreference,verifyPreference,verifyPayment,verifyMerchantOrder,validWebhook,canConnectBusiness,oauthMatchesMode};
