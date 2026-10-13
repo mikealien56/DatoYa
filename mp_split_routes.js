@@ -12,18 +12,24 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     .get(Number(uid),Number(id))||null;
   const attempt=id=>db.prepare('SELECT * FROM mp_split_attempts WHERE order_id=?').get(Number(id))||null;
   const statusErr=(res,e)=>res.status([400,401,403,404,409,503,504].includes(e.status)?e.status:502).json({error:e.message||'No fue posible completar la operación'});
-  async function access(s){
+  async function access(s,{verificationOnly=false}={}){
     if(!s||!s.credential_blob)throw Object.assign(new Error('El negocio debe vincular su cuenta de Mercado Pago'),{status:503});
     let saved=mp.open(s.business_id,s.credential_blob);
+    if(String(saved.user_id)!==String(s.seller_user_id))
+      throw Object.assign(new Error('La cuenta autorizada no coincide; vuelve a conectarla'),{status:409});
     if(Date.now()+5*60*1000>Number(saved.expires_at||0)){
       const updated=await mp.renew(saved);
-      if(updated.user_id!==String(s.seller_user_id)||updated.live_mode!==(ready().mode==='production'))
+      if(updated.user_id!==String(s.seller_user_id)||
+          (!verificationOnly&&updated.live_mode!==(ready().mode==='production'))||
+          (ready().mode==='production'&&!updated.live_mode))
         throw Object.assign(new Error('La cuenta autorizada no coincide; vincula nuevamente'),{status:409});
       db.prepare('UPDATE mp_split_sellers SET credential_blob=?,updated_at=? WHERE business_id=?')
         .run(mp.seal(s.business_id,updated),new Date().toISOString(),s.business_id);
       saved=updated;
     }
-    if(saved.live_mode!==(ready().mode==='production'))throw Object.assign(new Error('Las credenciales no corresponden al modo de cobro'),{status:409});
+    if((!verificationOnly&&saved.live_mode!==(ready().mode==='production'))||
+       (ready().mode==='production'&&!saved.live_mode))
+      throw Object.assign(new Error('Las credenciales no corresponden al modo de cobro'),{status:409});
     return saved.access_token;
   }
   async function sync(t,knownPaymentId){
@@ -84,12 +90,34 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
       try{
         const credential=mp.open(b.id,s.credential_blob);
         valid=String(credential.user_id)===String(s.seller_user_id)&&/^\d+$/.test(String(credential.user_id));
-        checkoutReady=valid&&credential.live_mode===(c.mode==='production')&&b.status==='active'&&c.checkout;
+        checkoutReady=valid&&!!s.verified_at&&credential.live_mode===(c.mode==='production')&&b.status==='active'&&c.checkout;
       }catch(e){console.warn('[DatoYa] MP Split: la conexión debe revisarse para negocio',b.id)}
     }
-    res.json({status:valid?'connected':s?'reconnect_required':'not_connected',
-      connected:valid,checkout_enabled:checkoutReady,mode:c.mode,
-      last_connected_at:valid?s.updated_at:null});
+    const verified=valid&&!!s.verified_at;
+    res.json({status:verified?'connected':valid?'verification_required':s?'reconnect_required':'not_connected',
+      connected:verified,linked:valid,verified,verified_at:verified?s.verified_at:null,
+      checkout_enabled:checkoutReady,mode:c.mode,last_connected_at:valid?s.updated_at:null});
+  });
+  // On-demand provider verification for previously linked businesses. Never exposes a token.
+  app.post('/api/businesses/:id/mp-split/verify',auth,async(req,res)=>{
+    const b=owned(req.user.id,req.params.id);
+    if(!b)return res.status(403).json({error:'Negocio no autorizado'});
+    const s=seller(b.id),c=ready();
+    if(!s)return res.status(404).json({error:'Conecta primero tu cuenta Mercado Pago'});
+    if(!c.configured)return res.status(503).json({error:'La verificación de Mercado Pago no está disponible'});
+    try{
+      const token=await access(s,{verificationOnly:true});
+      await mp.verifySellerIdentity(token,s.seller_user_id);
+      const now=new Date().toISOString();
+      db.prepare('UPDATE mp_split_sellers SET verified_at=? WHERE business_id=? AND seller_user_id=?')
+        .run(now,b.id,s.seller_user_id);
+      return res.json({connected:true,verified:true,verified_at:now,checkout_enabled:false});
+    }catch(e){
+      // A rejected/revoked identity is no longer trusted; intermittent outages
+      // keep the last successful check to avoid destroying legitimate connections.
+      if(e.status===409)db.prepare('UPDATE mp_split_sellers SET verified_at=NULL WHERE business_id=?').run(b.id);
+      return statusErr(res,e);
+    }
   });
   app.get('/api/businesses/:id/mp-split/connect',auth,(req,res)=>{
     const b=owned(req.user.id,req.params.id);
@@ -120,9 +148,11 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     try{
       const creds=await mp.connect(req.query.code);
       if(!mp.oauthMatchesMode(creds,ready().mode))return fail(st.business_id);
+      // Confirm the provider returned the same seller identity before persisting a link.
+      await mp.verifySellerIdentity(creds.access_token,creds.user_id);
       const blob=mp.seal(b.id,creds),now=new Date().toISOString();
-      db.prepare('INSERT INTO mp_split_sellers(business_id,seller_user_id,credential_blob,updated_at) VALUES(?,?,?,?) ON CONFLICT(business_id) DO UPDATE SET seller_user_id=excluded.seller_user_id,credential_blob=excluded.credential_blob,updated_at=excluded.updated_at')
-        .run(b.id,creds.user_id,blob,now);
+      db.prepare('INSERT INTO mp_split_sellers(business_id,seller_user_id,credential_blob,updated_at,verified_at) VALUES(?,?,?,?,?) ON CONFLICT(business_id) DO UPDATE SET seller_user_id=excluded.seller_user_id,credential_blob=excluded.credential_blob,updated_at=excluded.updated_at,verified_at=excluded.verified_at')
+        .run(b.id,creds.user_id,blob,now,now);
       return res.redirect(303,landing(b.id,true));
     }catch(e){console.warn('[DatoYa] No se pudo vincular MP Split:',e.message);return fail(st.business_id)}
   });
@@ -135,7 +165,8 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
       try{await sync(t)}catch(e){console.warn('[DatoYa] MP Split pendiente de conciliación:',e.message)}
     }
     const fresh=attempt(o.id);
-    res.json({available:!!(c.checkout&&s&&o.status!=='cancelled'&&o.payment_status==='pending'&&!db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id)),
+    const b=db.prepare('SELECT status FROM businesses WHERE id=?').get(o.business_id);
+    res.json({available:!!(c.checkout&&s&&s.verified_at&&b&&b.status==='active'&&o.status!=='cancelled'&&o.payment_status==='pending'&&!db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id)),
       quote:price,checkout_started:!!fresh,payment_status:fresh?fresh.status:'not_started',
       paid:o.payment_status==='paid'||!!fresh&&fresh.status==='paid',
       checkout_url:fresh&&fresh.status==='pending'?fresh.checkout_url:null});
@@ -146,7 +177,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     if(o.status==='cancelled'||o.payment_status!=='pending')return res.status(409).json({error:'El pedido ya no está pendiente de pago'});
     const c=ready(),s=seller(o.business_id);
     const b=db.prepare('SELECT status FROM businesses WHERE id=?').get(o.business_id);
-    if(!c.checkout||!s||!b||b.status!=='active')return res.status(503).json({error:'Este negocio aún no tiene Mercado Pago Split habilitado'});
+    if(!c.checkout||!s||!s.verified_at||!b||b.status!=='active')return res.status(503).json({error:'Este negocio aún no tiene Mercado Pago Split habilitado'});
     if(db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id))
       return res.status(409).json({error:'Existe un intento de pago de Payku; requiere conciliación'});
     let price;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)})}catch(e){return res.status(400).json({error:'Importes del pedido inconsistentes'})}

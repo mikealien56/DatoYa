@@ -24,13 +24,8 @@
       section.replaceChildren();
       section.appendChild(node('h2','', '💳 Mercado Pago'));
       section.appendChild(node('p','dy-mp-intro','Conecta tu cuenta para recibir pagos online en DatoYa.'));
-      if(s.connected){
-        section.appendChild(node('p','dy-mp-state-ok','✅ Cuenta conectada'));
-        if(!c.checkout)section.appendChild(node('small','dy-mp-sub','Pagos online disponibles próximamente.'));
-      }else if(c.onboarding){
-        if(s.status==='reconnect_required')section.appendChild(node('p','dy-mp-sub','La conexión anterior debe actualizarse.'));
-        const b=node('button','btn btn-primary',s.status==='reconnect_required'?'Volver a conectar':'Conectar Mercado Pago');
-        b.type='button';
+      const addConnect=(label,cls='btn btn-primary')=>{
+        const b=node('button',cls,label);b.type='button';
         b.addEventListener('click',async()=>{
           b.disabled=true;b.textContent='Conectando…';
           try{
@@ -38,9 +33,37 @@
             const u=new URL(d.url);
             if(u.protocol!=='https:'||u.hostname!=='auth.mercadopago.cl')throw new Error('Destino no permitido');
             location.href=u.toString();
-          }catch(e){b.disabled=false;b.textContent=s.status==='reconnect_required'?'Volver a conectar':'Conectar Mercado Pago';toast?.(e.message||'No se pudo conectar tu cuenta','err')}
+          }catch(e){b.disabled=false;b.textContent=label;toast?.(e.message||'No se pudo conectar tu cuenta','err')}
         });
         section.appendChild(b);
+      };
+      const addVerify=()=>{
+        const b=node('button','btn btn-outline btn-sm','Verificar conexión');b.type='button';
+        b.addEventListener('click',async()=>{
+          b.disabled=true;b.textContent='Verificando…';
+          try{
+            const result=await api('/businesses/'+Number(id)+'/mp-split/verify',{method:'POST'});
+            if(!result.verified)throw new Error('No pudimos verificar esta cuenta');
+            toast?.('Cuenta Mercado Pago verificada','ok');
+            await routes['mi-negocio-pagos'](id);
+          }catch(e){
+            toast?.(e.message||'No pudimos comprobar Mercado Pago','err');
+            await routes['mi-negocio-pagos'](id);
+          }
+        });
+        section.appendChild(b);
+      };
+      if(s.connected&&s.verified){
+        section.appendChild(node('p','dy-mp-state-ok','✅ Cuenta conectada y verificada'));
+        if(!s.checkout_enabled)section.appendChild(node('small','dy-mp-sub','Pagos online disponibles próximamente.'));
+        addVerify();
+      }else if(s.status==='verification_required'){
+        section.appendChild(node('p','dy-mp-sub','Cuenta vinculada. Falta confirmar la conexión con Mercado Pago.'));
+        addVerify();
+        if(c.onboarding)addConnect('Volver a conectar','btn btn-outline btn-sm');
+      }else if(c.onboarding){
+        if(s.status==='reconnect_required')section.appendChild(node('p','dy-mp-sub','La conexión anterior debe actualizarse.'));
+        addConnect(s.status==='reconnect_required'?'Volver a conectar':'Conectar Mercado Pago');
       }else{
         section.appendChild(node('p','dy-mp-sub','La conexión estará disponible próximamente.'));
       }
