@@ -132,7 +132,7 @@ test('seller identity check calls documented API with bearer token and matches a
   assert.deepEqual(await mp.verifySellerIdentity(token,'11223344',mock),{valid:true});
   assert.equal(calls,1);
   await assert.rejects(mp.verifySellerIdentity(token,'987654',mock),e=>e.status===409);
-  await assert.rejects(mp.verifySellerIdentity('not-a-valid-token','11223344',mock),e=>e.status===409);
+  await assert.rejects(mp.verifySellerIdentity('short','11223344',mock),e=>e.status===409);
 });
 test('seller verification rejects revoked permissions and provider errors safely',async()=>{
   const token='APP_USR-seller-token-valid-value-12345';
