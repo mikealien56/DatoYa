@@ -8,7 +8,9 @@
     const result=await base.apply(this,arguments);
     if(!ME||ME.account_type!=='business')return result;
     // Ensure MP appears even if a future version changes the payment settings block.
-    const host=document.querySelector('.dy-direct-pay-settings')||
+    const host=document.querySelector('.dy-direct-pay-summary')||
+      document.querySelector('.dy-direct-pay-options')||
+      document.querySelector('.dy-direct-pay-settings')||
       document.querySelector('.dy-payku-card')||
       document.querySelector('.dy-direct-pay-hero')||
       document.querySelector('.dy-business-dashboard-hero');
