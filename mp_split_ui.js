@@ -26,7 +26,8 @@
         section.appendChild(node('p','dy-mp-state-ok','✅ Cuenta conectada'));
         if(!c.checkout)section.appendChild(node('small','dy-mp-sub','Pagos online disponibles próximamente.'));
       }else if(c.onboarding){
-        const b=node('button','btn btn-primary','Conectar Mercado Pago');
+        if(s.status==='reconnect_required')section.appendChild(node('p','dy-mp-sub','La conexión anterior debe actualizarse.'));
+        const b=node('button','btn btn-primary',s.status==='reconnect_required'?'Volver a conectar':'Conectar Mercado Pago');
         b.type='button';
         b.addEventListener('click',async()=>{
           b.disabled=true;b.textContent='Conectando…';
@@ -35,7 +36,7 @@
             const u=new URL(d.url);
             if(u.protocol!=='https:'||u.hostname!=='auth.mercadopago.cl')throw new Error('Destino no permitido');
             location.href=u.toString();
-          }catch(e){b.disabled=false;b.textContent='Conectar Mercado Pago';toast?.(e.message||'No se pudo conectar tu cuenta','err')}
+          }catch(e){b.disabled=false;b.textContent=s.status==='reconnect_required'?'Volver a conectar':'Conectar Mercado Pago';toast?.(e.message||'No se pudo conectar tu cuenta','err')}
         });
         section.appendChild(b);
       }else{
@@ -47,6 +48,16 @@
       terms.textContent='Términos y condiciones de pagos';
       conditions.appendChild(terms);
       section.appendChild(conditions);
+      const result=new URLSearchParams(location.search).get('mp_connection');
+      if(result==='failed'){
+        section.appendChild(node('p','dy-mp-sub','No se completó la vinculación. Puedes intentarlo nuevamente.'));
+      }
+      if(result==='connected'&&s.connected&&typeof toast==='function')toast('Cuenta Mercado Pago conectada','ok');
+      if(result==='failed'&&typeof toast==='function')toast('No se pudo conectar Mercado Pago. Inténtalo otra vez.','err');
+      if(result==='connected'||result==='failed'){
+        const url=new URL(location.href);url.searchParams.delete('mp_connection');
+        history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+      }
     }catch(e){section.textContent='No pudimos comprobar la conexión con Mercado Pago. Puedes seguir usando los pagos directos.'}
     return result;
   };
