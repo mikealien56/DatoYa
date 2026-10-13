@@ -99,3 +99,21 @@ test('approved payment must belong to exact Mercado Pago merchant order and spli
   assert.equal(mp.verifyMerchantOrder({...order,total_amount:20000},expected,778899),false);
   assert.equal(mp.verifyMerchantOrder({...order,payments:[{id:123,status:'approved'}]},expected,778899),false);
 });
+
+test('merchant accounts can link during approval review but cannot link when suspended',()=>{
+  assert.equal(mp.canConnectBusiness('pending_review'),true);
+  assert.equal(mp.canConnectBusiness('draft'),true);
+  assert.equal(mp.canConnectBusiness('active'),true);
+  assert.equal(mp.canConnectBusiness('paused'),true);
+  assert.equal(mp.canConnectBusiness('rejected'),false);
+  assert.equal(mp.canConnectBusiness('suspended'),false);
+});
+test('OAuth can prepare verified seller credentials in test mode without granting checkout',()=>{
+  const creds={user_id:'123456789',live_mode:true};
+  assert.equal(mp.oauthMatchesMode(creds,'test'),true);
+  assert.equal(mp.oauthMatchesMode({...creds,live_mode:false},'test'),true);
+  assert.equal(mp.oauthMatchesMode({...creds,live_mode:false},'production'),false);
+  assert.equal(mp.oauthMatchesMode(creds,'production'),true);
+  assert.equal(mp.oauthMatchesMode({user_id:'notnumeric',live_mode:true},'production'),false);
+  assert.equal(mp.config({...env,MP_SPLIT_MODE:'production'}).checkout,false);
+});
