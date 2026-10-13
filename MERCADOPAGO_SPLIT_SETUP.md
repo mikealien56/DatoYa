@@ -96,3 +96,8 @@ No se crea una compra o cargo automáticamente desde el despliegue. El comprador
 - <https://www.mercadopago.cl/developers/es/docs/security/oauth/creation>
 - <https://www.mercadopago.cl/developers/es/reference/online-payments/checkout-pro-preferences/overview>
 - <https://www.mercadopago.cl/developers/es/docs/split-payments/additional-content/your-integrations/notifications/webhooks>
+
+## Preparación de cuentas aún en revisión
+Se permite que un negocio en estado `pending_review` o `draft` autorice su cuenta mediante OAuth, para que pueda completar el alta sin esperar a la aprobación comercial. Esto **no habilita compras**: cualquier checkout nuevo requiere que el negocio esté `active`, las credenciales coincidan con el modo autorizado y las banderas de cobros sigan sus controles. Los negocios suspendidos y rechazados no pueden iniciar nuevas vinculaciones.
+
+El retorno del proveedor usa una marca de resultado en la URL para mostrar un mensaje en el panel Pagos sin exponer tokens ni códigos de autorización; la interfaz elimina esa marca después de mostrar el estado.

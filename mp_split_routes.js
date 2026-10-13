@@ -78,14 +78,23 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
   });
   app.get('/api/businesses/:id/mp-split',auth,(req,res)=>{
     const b=owned(req.user.id,req.params.id);if(!b)return res.status(403).json({error:'Negocio no autorizado'});
-    const s=seller(b.id),c=ready();res.json({status:s?'connected':'not_connected',
-      connected:!!s,checkout_enabled:c.checkout,mode:c.mode,
-      last_connected_at:s?s.updated_at:null});
+    const s=seller(b.id),c=ready();
+    let valid=false,checkoutReady=false;
+    if(s&&c.configured){
+      try{
+        const credential=mp.open(b.id,s.credential_blob);
+        valid=String(credential.user_id)===String(s.seller_user_id)&&/^\d+$/.test(String(credential.user_id));
+        checkoutReady=valid&&credential.live_mode===(c.mode==='production')&&b.status==='active'&&c.checkout;
+      }catch(e){console.warn('[DatoYa] MP Split: la conexión debe revisarse para negocio',b.id)}
+    }
+    res.json({status:valid?'connected':s?'reconnect_required':'not_connected',
+      connected:valid,checkout_enabled:checkoutReady,mode:c.mode,
+      last_connected_at:valid?s.updated_at:null});
   });
   app.get('/api/businesses/:id/mp-split/connect',auth,(req,res)=>{
     const b=owned(req.user.id,req.params.id);
     if(!b)return res.status(403).json({error:'Negocio no autorizado'});
-    if(b.status!=='active')return res.status(409).json({error:'El negocio debe estar aprobado'});
+    if(!mp.canConnectBusiness(b.status))return res.status(409).json({error:'No es posible vincular una cuenta mientras el negocio esté rechazado o suspendido'});
     if(!ready().onboarding)return res.status(503).json({error:'Mercado Pago aún no tiene credenciales de integración configuradas'});
     const state=crypto.randomBytes(32).toString('hex'),expires=Date.now()+9*60*1000;
     db.prepare('INSERT INTO mp_split_oauth_states(state,business_id,expires_at) VALUES(?,?,?)')
@@ -93,23 +102,29 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     res.json({url:mp.authUrl(state)});
   });
   app.get('/api/mp-split/oauth/callback',async(req,res)=>{
-    const fail=()=>res.redirect(303,ready().site+'/#/perfil');
+    const landing=(businessId,success)=>{
+      const id=Number(businessId||0);
+      if(!Number.isSafeInteger(id)||id<1)return ready().site+'/#/perfil';
+      return ready().site+'/?mp_connection='+(success?'connected':'failed')+'#/mi-negocio-pagos/'+id;
+    };
+    const fail=businessId=>res.redirect(303,landing(businessId,false));
     if(!ready().onboarding||typeof req.query.state!=='string'||!/^[-\w]{32,180}$/.test(req.query.state))return fail();
     const st=db.prepare('SELECT * FROM mp_split_oauth_states WHERE state=?').get(req.query.state);
-    if(!st||Number(st.expires_at)<Date.now())return fail();
+    if(!st)return fail();
+    if(Number(st.expires_at)<Date.now())return fail(st.business_id);
     // One-time CSRF nonce: consume before exchanging the provider code.
     const consumed=db.prepare('DELETE FROM mp_split_oauth_states WHERE state=?').run(req.query.state);
-    if(!Number(consumed.changes||0))return fail();
+    if(!Number(consumed.changes||0))return fail(st.business_id);
     const b=db.prepare('SELECT id,status FROM businesses WHERE id=?').get(st.business_id);
-    if(!b||b.status!=='active'||typeof req.query.code!=='string'||!req.query.code)return fail();
+    if(!b||!mp.canConnectBusiness(b.status)||typeof req.query.code!=='string'||!req.query.code)return fail(st.business_id);
     try{
       const creds=await mp.connect(req.query.code);
-      if(creds.live_mode!==(ready().mode==='production'))return fail();
+      if(!mp.oauthMatchesMode(creds,ready().mode))return fail(st.business_id);
       const blob=mp.seal(b.id,creds),now=new Date().toISOString();
       db.prepare('INSERT INTO mp_split_sellers(business_id,seller_user_id,credential_blob,updated_at) VALUES(?,?,?,?) ON CONFLICT(business_id) DO UPDATE SET seller_user_id=excluded.seller_user_id,credential_blob=excluded.credential_blob,updated_at=excluded.updated_at')
         .run(b.id,creds.user_id,blob,now);
-      return res.redirect(303,ready().site+'/#/mi-negocio-pagos/'+b.id);
-    }catch(e){console.warn('[DatoYa] No se pudo vincular MP Split:',e.message);return fail()}
+      return res.redirect(303,landing(b.id,true));
+    }catch(e){console.warn('[DatoYa] No se pudo vincular MP Split:',e.message);return fail(st.business_id)}
   });
   app.get('/api/orders/:id/mp-split/status',auth,async(req,res)=>{
     const o=order(req.user.id,req.params.id);
@@ -130,7 +145,8 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     if(o.status==='cancelled'||o.payment_status!=='pending')return res.status(409).json({error:'El pedido ya no está pendiente de pago'});
     const c=ready(),s=seller(o.business_id);
-    if(!c.checkout||!s)return res.status(503).json({error:'Este negocio aún no tiene Mercado Pago Split habilitado'});
+    const b=db.prepare('SELECT status FROM businesses WHERE id=?').get(o.business_id);
+    if(!c.checkout||!s||!b||b.status!=='active')return res.status(503).json({error:'Este negocio aún no tiene Mercado Pago Split habilitado'});
     if(db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id))
       return res.status(409).json({error:'Existe un intento de pago de Payku; requiere conciliación'});
     let price;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)})}catch(e){return res.status(400).json({error:'Importes del pedido inconsistentes'})}
