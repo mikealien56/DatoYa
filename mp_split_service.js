@@ -99,6 +99,32 @@ async function renew(creds,env=process.env,transport=global.fetch){
   return oauth({client_id:c.appId,client_secret:String(env.MP_SPLIT_CLIENT_SECRET),
     grant_type:'refresh_token',refresh_token:creds.refresh_token},transport);
 }
+
+// Verify the account identity with the provider, never with browser-supplied data.
+// Mercado Pago documents https://api.mercadolibre.com/users/me for bearer-token identity.
+async function verifySellerIdentity(accessToken,expectedSellerId,transport=global.fetch){
+  if(!/^[\w-]{16,300}$/.test(String(accessToken||'')))throw err('La conexión Mercado Pago no está vigente',409);
+  if(!/^\d{1,25}$/.test(String(expectedSellerId||'')))throw err('Identificador de vendedor inválido',409);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  try{
+    const response=await transport('https://api.mercadolibre.com/users/me',{
+      method:'GET',headers:{Authorization:'Bearer '+accessToken,Accept:'application/json'},
+      signal:controller.signal,redirect:'error'
+    });
+    if(response.status===401||response.status===403)
+      throw err('Mercado Pago solicita volver a autorizar esta cuenta',409);
+    if(!response.ok)throw err('No pudimos consultar Mercado Pago. Intenta más tarde',503);
+    let data;try{data=JSON.parse(await response.text())}catch(_){throw err('Mercado Pago respondió con información inválida',503)}
+    if(!data||String(data.id)!==String(expectedSellerId))
+      throw err('La cuenta autorizada no coincide con el negocio. Vuelve a conectarla',409);
+    return {valid:true};
+  }catch(e){
+    if(e.name==='AbortError')throw err('Mercado Pago no respondió a tiempo. Intenta más tarde',504);
+    if(e.status)throw e;
+    throw err('No fue posible verificar la conexión con Mercado Pago',503);
+  }finally{clearTimeout(timer)}
+}
+
 function checkoutUrl(input){
   const u=new URL(String(input||''));
   if(u.protocol!=='https:'||!['www.mercadopago.cl','www.mercadopago.com','mercadopago.cl','mercadopago.com'].includes(u.hostname.toLowerCase()))
@@ -177,4 +203,4 @@ function validWebhook({headers,query},env=process.env){
   return actual.length===expected.length&&crypto.timingSafeEqual(expected,actual);
 }
 module.exports={config,seal,open,api,oauth,authUrl,connect,renew,checkoutUrl,
-  preferenceBody,createPreference,verifyPreference,verifyPayment,verifyMerchantOrder,validWebhook,canConnectBusiness,oauthMatchesMode};
+  preferenceBody,createPreference,verifyPreference,verifyPayment,verifyMerchantOrder,validWebhook,canConnectBusiness,oauthMatchesMode,verifySellerIdentity};
