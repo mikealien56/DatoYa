@@ -101,3 +101,10 @@ No se crea una compra o cargo automáticamente desde el despliegue. El comprador
 Se permite que un negocio en estado `pending_review` o `draft` autorice su cuenta mediante OAuth, para que pueda completar el alta sin esperar a la aprobación comercial. Esto **no habilita compras**: cualquier checkout nuevo requiere que el negocio esté `active`, las credenciales coincidan con el modo autorizado y las banderas de cobros sigan sus controles. Los negocios suspendidos y rechazados no pueden iniciar nuevas vinculaciones.
 
 El retorno del proveedor usa una marca de resultado en la URL para mostrar un mensaje en el panel Pagos sin exponer tokens ni códigos de autorización; la interfaz elimina esa marca después de mostrar el estado.
+
+## Verificación adicional de la identidad del vendedor (13-10-2026)
+La autorización OAuth no equivale por sí sola a una verificación actual del vendedor. Antes de registrar una nueva vinculación DatoYa consulta, desde el servidor y con el Access Token del comercio, la API documentada `GET https://api.mercadolibre.com/users/me`, y comprueba que `id` coincida con `user_id` entregado por OAuth. No guarda el nombre, el email ni devuelve el token al navegador.
+
+Las conexiones históricas conservan sus credenciales cifradas, pero quedan como **pendientes de verificación**, sin desbloquear pagos, hasta que el titular del negocio use «Verificar conexión». La ruta protegida es `POST /api/businesses/:id/mp-split/verify`; solo el dueño autenticado puede invocarla. La verificación consulta la identidad del proveedor, renueva el token si fuese necesario y registra `verified_at` cuando coincide.
+
+Un rechazo por identidad/permiso invalida `verified_at`; un fallo transitorio de red mantiene los datos previos y no realiza cobros. La exigencia de negocio activo y las banderas de producción permanecen vigentes; el checkout no se habilita por verificar la cuenta.
