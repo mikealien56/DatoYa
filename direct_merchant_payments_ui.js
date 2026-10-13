@@ -31,7 +31,7 @@
       </form>`;
       view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
         <section class="dy-business-dashboard-hero dy-direct-pay-hero">
-          <div><span>PAGOS</span><h1>¿Cómo quieres cobrar?</h1><p>${h(b.name||'Tu negocio')} puede recibir pagos al retirar, al entregar o por transferencia. Conecta Mercado Pago para habilitar los pagos online cuando estén disponibles.</p></div>
+          <div><span>PAGOS</span><h1>Recibe pagos con Mercado Pago</h1><p>Conecta tu cuenta para gestionar los pagos online de ${h(b.name||'tu negocio')}. Los cobros estarán disponibles cuando DatoYa complete su activación.</p></div>
           <div class="dy-direct-pay-badge"><span>💳</span><div><b>Mercado Pago</b><small>Conecta tu cuenta para ofrecer pagos online.</small></div></div>
         </section>
 
@@ -42,7 +42,7 @@
 
 
 
-        <section class="dy-business-card dy-direct-pay-settings">
+        <details class="dy-business-card dy-direct-pay-options"><summary>Otros medios de pago <span>(opcional)</span></summary><div class="dy-direct-pay-options-inner"><section class="dy-direct-pay-settings">
           <div class="dy-card-head"><div><span>FÁCIL Y SIN CONFIGURACIONES</span><h2>¿Cómo quieres recibir los pagos?</h2><p>Activa los medios de pago directo que aceptarás. Para pagos online, utiliza Mercado Pago.</p></div></div>
           <form id="dy-direct-pay-form">
             <label class="dy-direct-pay-toggle"><input type="checkbox" name="pay_at_pickup" ${s.pay_at_pickup?'checked':''}><span>🛍️</span><div><b>Pago al retirar</b><small>El cliente paga directamente cuando retira.</small></div></label>
@@ -58,7 +58,7 @@
         <section class="dy-business-card">
           <div class="dy-card-head"><div><span>FLUJO RECOMENDADO</span><h2>Pedido seguro sin que DatoYa toque el dinero</h2></div></div>
           <div class="dy-direct-pay-flow"><div><span>1</span><b>Cliente pide</b><small>DatoYa registra el pedido.</small></div><i>→</i><div><span>2</span><b>Tú confirmas</b><small>Decides si aceptarlo.</small></div><i>→</i><div><span>3</span><b>Cliente te paga</b><small>Directamente a tu negocio.</small></div><i>→</i><div><span>4</span><b>Preparas</b><small>Si exiges prepago, solo después de marcar pagado.</small></div></div>
-        </section>
+        </section></div></details>
 
         ${k.connected?`<details class="dy-direct-pay-advanced"><summary>⚙️ Administrar conexión anterior de Khipu</summary>
           <section class="dy-business-card dy-khipu-direct-card">
