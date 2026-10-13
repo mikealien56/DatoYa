@@ -17,7 +17,8 @@ jobs:
         run: |
           node --check direct_merchant_payments_ui.js
           node --check direct_merchant_payments_assets.js
-          grep -q '¿Cómo quieres cobrar?' direct_merchant_payments_ui.js
+          grep -q 'Recibe pagos con Mercado Pago' direct_merchant_payments_ui.js
+          grep -q 'Otros medios de pago' direct_merchant_payments_ui.js
           grep -q 'Conecta tu cuenta para ofrecer pagos online' direct_merchant_payments_ui.js
           grep -q 'Guardar y comenzar a recibir pedidos' direct_merchant_payments_ui.js
       - name: Start test server and test orders
@@ -41,5 +42,5 @@ jobs:
             sleep 1
           done
           if [ "$READY" -ne 1 ]; then cat /tmp/datoya-direct-payments-ci.log; exit 1; fi
-          curl -fsS http://localhost:3000/direct_merchant_payments_ui.js | grep -q '¿Cómo quieres cobrar?'
+          curl -fsS http://localhost:3000/direct_merchant_payments_ui.js | grep -q 'Recibe pagos con Mercado Pago'
           bash test_order_integrity_flow.sh
