@@ -15,6 +15,11 @@ db.exec(
   "preference_id TEXT UNIQUE,checkout_url TEXT,payment_id TEXT UNIQUE,"+
   "status TEXT NOT NULL DEFAULT 'creating',created_at TEXT NOT NULL,updated_at TEXT NOT NULL);"
 );
+// Historical linked accounts have not yet been checked against the provider.
+// A nullable timestamp preserves their credentials but never marks them verified by assumption.
+try{db.exec("ALTER TABLE mp_split_sellers ADD COLUMN verified_at TEXT");}catch(e){
+  if(!/duplicate column|already exists/i.test(String(e.message||'')))throw e;
+}
 const p=path.join(__dirname,'server.js');let src=fs.readFileSync(p,'utf8');
 if(!src.includes('DATOYA_MP_SPLIT_1TO1_V1')){
   const marker='// ============ MISC ============';
