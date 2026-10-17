@@ -5,5 +5,5 @@ const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){let h=fs.readFileSync(idx,'utf8');
 h=h.replace(/<link[^>]+href="\/direct_merchant_payments\.css[^"]*"[^>]*>\s*/g,'').replace(/<script[^>]+src="\/direct_merchant_payments_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
 h=h.replace('</head>','<link rel="stylesheet" href="/direct_merchant_payments.css?v=20261013-compact1">\n</head>');
-h=h.replace('</body>','<script src="/direct_merchant_payments_ui.js?v=20261013-compact1"></script>\n</body>');
+h=h.replace('</body>','<script src="/direct_merchant_payments_ui.js?v=20261017-central1"></script>\n</body>');
 fs.writeFileSync(idx,h);}
