@@ -37,7 +37,7 @@
             '<div class="dy-club-info-hero-actions">'+
               '<button type="button" class="btn btn-light" onclick="document.getElementById(\'club-beneficios\')?.scrollIntoView({behavior:\'smooth\',block:\'start\'})">Descubrir beneficios</button>'+
             '</div>'+
-            '<p class="dy-club-price-clarity">DatoYa Gratis siempre estará disponible. Club es opcional, sin renovación automática.</p>'+
+            '<p class="dy-club-price-clarity">DatoYa Gratis siempre estará disponible. Club es opcional. Sin renovación automática.</p>'+
           '</div>'+
         '</section>'+
         membershipNote+
