@@ -64,7 +64,7 @@
       ['hours','#/mi-negocio-horarios/'+id,'🕒','Horarios',false],
       ['promos','#/mi-negocio-promociones/'+id,'🏷️','Promociones',false],
       ['coupons','#/mi-negocio-cupones/'+id,'🎟️','Cupones',false],
-      ['impulse',paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id,'⚡','Impulso Ahora',!paid],
+      ['impulse','#/impulso-ahora/'+id,'⚡','Impulso Ahora',false],
       ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
       ['pulse',paid?'#/mi-negocio-pulso/'+id:'#/mi-negocio-plan/'+id,'📍','Pulso Local',!paid],
       ['radar',paid?'#/mi-negocio-radar/'+id:'#/mi-negocio-plan/'+id,'🎯','Radar',!paid],
@@ -126,7 +126,7 @@
           <div class="dy-dashboard-actions">
             <a href="#/mi-negocio-pedidos/${id}"><span>🧾</span><div><b>Gestionar pedidos</b><small>${activeOrders?activeOrders+' pedido(s) requieren seguimiento':'No hay pedidos pendientes'}</small></div><em>→</em></a>
             <a href="#/mi-negocio-productos/${id}"><span>📦</span><div><b>Catálogo y stock</b><small>${lowStock?lowStock+' producto(s) con stock bajo':'Stock sin alertas críticas'}</small></div><em>→</em></a>
-            <a href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}" class="${paid?'':'dy-premium-link'}"><span>${paid?'⚡':'🔒'}</span><div><b>Impulso Ahora</b><small>${paid?'Publica una venta por horario y stock real':'Incluido con DatoYa Impulso'}</small></div><em>→</em></a>
+            <a href="#/impulso-ahora/${id}" class=""><span>⚡</span><div><b>Impulso Ahora</b><small>${paid?'Publica una venta por horario y stock real':'1 Impulso gratis de 24 horas al mes'}</small></div><em>→</em></a>
             <a href="#/mi-negocio-lo-busco-ya/${id}" class="${wantedPending?'attention':''}"><span>🙋</span><div><b>Lo Busco Ya</b><small>${wantedPending?wantedPending+' solicitud(es) compatibles por responder':'Sin solicitudes pendientes'}</small></div><em>→</em></a>
             <a href="#/mi-negocio-soporte/${id}"><span>📨</span><div><b>Soporte DatoYa</b><small>${openSupport?openSupport+' caso(s) abiertos':'Todo al día'}</small></div><em>→</em></a>
           </div>
@@ -161,7 +161,7 @@
           <div class="dy-card-head"><div><span>CRECIMIENTO</span><h2>Haz que te encuentren</h2></div></div>
           <div class="dy-dashboard-growth">
             <a href="#/mi-negocio-promociones/${id}"><span>🏷️</span><b>Promociones</b><small>Revisa qué campañas generan actividad.</small></a>
-            <a href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}" class="${paid?'':'dy-premium-link'}"><span>${paid?'⚡':'🔒'}</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Requiere DatoYa Impulso.'}</small></a>
+            <a href="#/impulso-ahora/${id}" class=""><span>⚡</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Gratis 24 horas una vez al mes. oYa Impulso.'}</small></a>
             <a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso de la semana</b><small>Prepara una oferta destacada.</small></a>
           </div>
         </section>
@@ -348,7 +348,7 @@
     view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
       <section class="dy-business-dashboard-hero"><div><span>PROMOCIONES</span><h1>Haz que ${h(b.name)} destaque</h1><p>Dos formatos distintos para vender más sin perder el control de precio y stock.</p></div></section>
       <div class="dy-dashboard-grid">
-        <section class="dy-business-card dy-promo-choice ${paid?'':'locked'}"><span>${paid?'⚡':'🔒'}</span><h2>Impulso Ahora</h2><p>Para productos que quieres mover hoy: horario, stock real y últimas unidades. <b>${paid?'Incluido en tu plan.':'Requiere DatoYa Impulso.'}</b></p><div class="dy-promo-mini"><b>${paid?impulses.filter(x=>!['ended','sold_out','cancelled'].includes(x.status)).length:'—'}</b><small>${paid?'activos ahora':'premium'}</small></div><a class="btn ${paid?'btn-primary':'btn-outline'} btn-block" href="${paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id}">${paid?'Administrar Impulso Ahora':'Ver DatoYa Impulso'}</a></section>
+        <section class="dy-business-card dy-promo-choice"><span>⚡</span><h2>${paid?'Impulso Ahora':'Tu Impulso gratis mensual'}</h2><p>${paid?'Destaca productos usando tu plan de crecimiento.':'1 Impulso gratis de 24 horas al mes. Elige destacar un producto o liquidar stock con un descuento real.'}</p><div class="dy-promo-mini"><b>${impulses.filter(x=>!['ended','sold_out','cancelled'].includes(x.status)).length}</b><small>impulsos en curso</small></div><a class="btn btn-primary btn-block" href="#/impulso-ahora/${id}">${paid?'Administrar Impulso Ahora':'Usar mi Impulso gratis'}</a></section>
         <section class="dy-business-card dy-promo-choice"><span>⭐</span><h2>Impulso de la semana</h2><p>Destacado especial <b>aparte de la membresía</b>. Puede contratarse por campaña o ser regalado por DatoYa.</p><div class="dy-promo-mini"><b>${weekly.filter(x=>['pending_review','scheduled','active','invited'].includes(x.status)).length}</b><small>en curso</small></div><a class="btn btn-outline btn-block" href="#/impulso-semanal-nuevo/${id}">Preparar oferta semanal</a></section>
       </div>
       <section class="dy-business-card"><div class="dy-card-head"><div><span>ÚLTIMOS 30 DÍAS</span><h2>Rendimiento promocional ${paid?'':'🔒'}</h2><p>${paid?'Solo actividad registrada realmente por DatoYa.':'El análisis detallado de promociones está incluido con DatoYa Impulso.'}</p></div>${paid?'':'<a class="btn btn-outline btn-sm" href="#/mi-negocio-plan/'+id+'">Desbloquear</a>'}</div>${paid?'<div class="dy-promo-performance">':'<div class="dy-premium-inline-lock"><span>🔒</span><b>Estadísticas avanzadas</b><p>Activa DatoYa Impulso para ver vistas, clics, carritos, pedidos y ventas atribuidas a tus promociones.</p></div><div style="display:none">'}<article><b>⚡ Impulso Ahora</b><div><span><strong>${Number(now.impressions||0)}</strong> vistas</span><span><strong>${Number(now.clicks||0)}</strong> clics</span><span><strong>${Number(now.add_cart||0)}</strong> al carrito</span><span><strong>${Number(now.orders||0)}</strong> pedidos</span><span><strong>${money(now.revenue||0)}</strong> ventas</span></div></article><article><b>⭐ Impulso semanal</b><div><span><strong>${Number(week.impressions||0)}</strong> vistas</span><span><strong>${Number(week.clicks||0)}</strong> clics</span><span><strong>${Number(week.add_cart||0)}</strong> al carrito</span><span><strong>${Number(week.orders||0)}</strong> pedidos</span><span><strong>${money(week.revenue||0)}</strong> ventas</span></div></article></div></section>
