@@ -1,0 +1,24 @@
+name: DatoYa centralized marketplace payments
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  central-payments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate frontend and payment safety syntax
+        run: |
+          node --check datoya_central_payment_policy_bootstrap.js
+          node --check direct_merchant_payments_ui.js
+          node --check mp_split_ui.js
+          node --check marketplace_commerce_ui.js
+          node --check marketplace_weekly_ui.js
+          node --check marketplace_weekly_bootstrap.js
+      - name: Prove no bypass of verified DatoYa checkout
+        run: node --test test_central_marketplace_payment_policy.js
