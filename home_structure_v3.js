@@ -19,7 +19,7 @@
           <article class="free"><div><span>🆓</span><h3>DatoYa Gratis</h3><strong>$0</strong><small>Siempre disponible</small></div><ul><li>Perfil y horarios</li><li>Catálogo básico</li><li>Pedidos por DatoYa</li><li>QR, retiro y despacho</li><li>Estadísticas básicas</li></ul></article>
           <article><div><span>⚡</span><h3>Impulso</h3><strong>Desde ${price('impulso',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Más visibilidad</li><li>Impulso Ahora</li><li>Promoción destacada</li><li>Más capacidad de catálogo</li></ul></article>
           <article class="plus"><div><span>⚡⚡</span><h3>Impulso+</h3><strong>Desde ${price('impulso_plus',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso</li><li>Pulso Local</li><li>Estadísticas avanzadas</li><li>Prioridad en señales de demanda</li></ul></article>
-          <article class="premium"><div><span>🚀</span><h3>Premium</h3><strong>Desde ${price('premium',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso+</li><li>Radar de oportunidades</li><li>Máxima exposición patrocinada</li><li>Herramientas avanzadas de crecimiento</li></ul></article>
+          <article class="premium"><div><span>🚀</span><h3>Premium</h3><strong>Desde ${price('premium',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso+</li><li>Herramientas para destacar productos</li><li>Máxima exposición patrocinada</li><li>Herramientas avanzadas de crecimiento</li></ul></article>
         </div>
         <div class="dy-home-plan-actions"><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio gratis</a><a class="btn btn-outline" href="#/login">Ya tengo negocio</a><small>💳 Pagos online por DatoYa · cargo de servicio 2% informado al comprador</small></div>`;
     }catch(_){
@@ -28,27 +28,30 @@
   }
 
   async function renderClub(host){
-    let p={prices:{7:990,30:1990},free_hunts:1,club_hunts:10,no_auto_renew:true};
+    let p={prices:{30:3990},no_auto_renew:true};
     try{p=await api('/public/club');}catch(_){}
+    const monthly=money(p.prices?.[30]??3990);
     host.innerHTML=`
       <div class="dy-home-club-showcase">
         <div class="dy-home-club-visual">
-          <img src="/brand/datoya-club-card-v13.webp?v=20261003-13" alt="Tarjeta DatoYa Club" loading="eager" decoding="async" fetchpriority="high" width="1000" height="666">
+          <picture class="dy-premium-club-art">
+            <source srcset="/brand/datoya-club-card.avif?v=20261017-simplificado1" type="image/avif">
+            <img src="/brand/datoya-club-card-v13.webp?v=20261017-simplificado1" alt="Tarjeta DatoYa Club" width="1000" height="646" fetchpriority="high" decoding="async">
+          </picture>
         </div>
         <div class="dy-home-club-copy">
           <span class="dy-home-club-kicker">DATOYA CLUB</span>
-          <h2>Más oportunidades. Menos búsqueda.</h2>
-          <p>DatoYa Club es un pase opcional para quienes quieren que DatoYa quede atento a lo que buscan, a su precio objetivo y a nuevas oportunidades cerca de ellos.</p>
+          <h2>Precios exclusivos para socios.</h2>
+          <p>Encuentra productos participantes con un <strong>Precio Club especial</strong>. Cada negocio decide qué artículos ofrecer a un valor preferencial.</p>
           <div class="dy-home-club-benefits">
-            <div><b>Caza Ya + Precio Meta</b><small>Define qué buscas y cuánto quieres pagar.</small></div>
-            <div><b>Radar Silencioso</b><small>Recibe avisos cuando aparece una coincidencia útil.</small></div>
-            <div><b>Junta DatoYa</b><small>Suma tu interés a necesidades reales de tu zona.</small></div>
+            <div><b>Precios Club</b><small>Precios especiales en productos seleccionados.</small></div>
+            <div><b>Ofertas de negocios locales</b><small>Descubre comercios y descuentos disponibles en DatoYa.</small></div>
           </div>
           <div class="dy-home-club-actions">
             <a class="btn btn-primary" href="#/club-info">Conoce más</a>
-            <div class="dy-home-club-prices"><b>7 días ${money(p.prices?.[7]||990)}</b><b>30 días ${money(p.prices?.[30]||1990)}</b></div>
+            <div class="dy-home-club-prices"><b>${monthly} / 30 días</b></div>
           </div>
-          <small class="dy-home-club-note">DatoYa Gratis sigue disponible. Club no se renueva automáticamente.</small>
+          <small class="dy-home-club-note">DatoYa Gratis sigue disponible. Sin renovación automática.</small>
         </div>
       </div>`;
   }
@@ -63,7 +66,7 @@
         <p>Una sola idea, dos caminos simples.</p>
       </div>
       <div class="dy-home-flow-grid">
-        <article><div class="icon">🛍️</div><small>CLIENTE</small><h3>Busca → pide → paga al negocio</h3><p>Encuentra opciones cercanas, haz tu pedido y coordina el pago directamente con el comercio.</p><a href="#/buscar/_">Buscar cerca de mí →</a></article>
+        <article><div class="icon">🛍️</div><small>CLIENTE</small><h3>Busca → elige → paga en DatoYa</h3><p>Encuentra negocios cercanos y compra dentro de DatoYa cuando esté habilitado Mercado Pago.</p><a href="#/buscar/_">Buscar cerca de mí →</a></article>
         <article id="como-funciona-negocios"><div class="icon">🏪</div><small>NEGOCIO</small><h3>Publica → recibe pedidos → cobra por DatoYa</h3><p>Crea tu presencia gratis. Si quieres más alcance, activas herramientas de crecimiento por días.</p><a href="#/registrar-negocio">Publicar mi negocio →</a></article>
       </div>
       <div class="dy-home-money-rule"><span>💳</span><div><b>El pago de la compra se realiza dentro de DatoYa</b><p>Cuando se habiliten los cobros online, pagarás mediante Mercado Pago dentro del proceso de DatoYa, con el cargo de servicio visible antes de confirmar.</p></div></div>`;
@@ -77,7 +80,7 @@
 
     const title=hero.querySelector('h1'),copy=hero.querySelector('.dy-hero-copy>p');
     if(title)title.innerHTML='Encuentra lo que buscas <span>cerca de ti</span>';
-    if(copy)copy.textContent='Negocios, productos, promociones y necesidades locales en un solo lugar. Busca en DatoYa y paga directamente al negocio.';
+    if(copy)copy.textContent='Negocios, productos, promociones y necesidades locales en un solo lugar. Busca en DatoYa y paga dentro de la plataforma cuando esté habilitado Mercado Pago.';
     const kicker=hero.querySelector('.dy-kicker');if(kicker)kicker.textContent='📍 Lo que buscas, cerca de ti';
 
     compactHow(how);

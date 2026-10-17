@@ -41,3 +41,30 @@
 /* Club card visibility hardening */
 .dy-home-club-visual img{visibility:visible!important;opacity:1!important;max-width:560px;width:100%;height:auto;aspect-ratio:1000/666;object-fit:contain}
 @media(max-width:820px){.dy-home-club-visual img{max-width:500px}}
+
+
+/* Home Club V3: versión premium unificada, tarjeta siempre arriba. */
+.dy-home-club-showcase{
+  display:flex!important;flex-direction:column!important;grid-template-columns:none!important;
+  align-items:stretch!important;gap:14px!important;width:100%!important;max-width:100%!important;
+  min-width:0!important;box-sizing:border-box!important;overflow:hidden!important
+}
+.dy-home-club-showcase .dy-home-club-visual{
+  width:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important
+}
+.dy-home-club-showcase .dy-premium-club-art{display:block!important;max-width:680px!important;width:100%!important;min-width:0!important;margin:auto}
+.dy-home-club-showcase .dy-premium-club-art img{
+  width:100%!important;max-width:100%!important;height:auto!important;aspect-ratio:1000/646!important;
+  object-fit:contain!important;visibility:visible!important;opacity:1!important;transform:none!important
+}
+.dy-home-club-showcase .dy-home-club-copy{min-width:0!important;max-width:100%!important;width:100%!important;box-sizing:border-box!important}
+.dy-home-club-showcase .dy-home-club-copy h2{
+  font-size:clamp(27px,6vw,40px)!important;line-height:1.12!important;
+  max-width:100%!important;overflow-wrap:break-word!important;white-space:normal!important
+}
+.dy-home-club-showcase .dy-home-club-copy p{max-width:100%;overflow-wrap:break-word}
+@media(max-width:640px){
+  .dy-home-club-showcase{gap:10px!important}
+  .dy-home-club-showcase .dy-home-club-benefits{gap:7px}
+}

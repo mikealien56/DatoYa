@@ -270,7 +270,7 @@ function __dyClubHuntLimit(userId){
   return base+(member?__dyClubGiftBonus(userId,'hunt_slots'):0);
 }
 function __dyClubOverview(userId){
-  const u=__dyClubUser(userId),m=__dyClubMembership(userId);if(m)__dyClubEnsureSurprises(userId);const hunts=__dyClubHuntRows(userId),active=hunts.filter(x=>x.status==='active');
+  const u=__dyClubUser(userId),m=__dyClubMembership(userId);const hunts=__dyClubHuntRows(userId),active=hunts.filter(x=>x.status==='active');
   let opportunities=[],potentialSavings=0;
   for(const hunt of active){
     const products=__dyClubScanHunt(hunt,false);
@@ -313,6 +313,7 @@ app.get('/api/club/overview',auth,(req,res)=>{
 });
 
 app.post('/api/club/hunts',auth,(req,res)=>{
+  return res.status(410).json({error:'Esta función se retiró. DatoYa Club ahora ofrece Precios Club exclusivos.',code:'CLUB_OLD_FEATURE_RETIRED'});
   const u=__dyClubCustomer(req,res);if(!u)return;
   const query=String(req.body?.query||'').trim().slice(0,100);if(query.length<2)return res.status(400).json({error:'Escribe qué quieres que DatoYa busque'});
   const maxPrice=req.body?.max_price==null||req.body?.max_price===''?null:Math.round(Number(req.body.max_price));
@@ -334,6 +335,7 @@ app.delete('/api/club/hunts/:id',auth,(req,res)=>{
 });
 
 app.post('/api/club/juntas',auth,(req,res)=>{
+  return res.status(410).json({error:'Esta función se retiró. DatoYa Club ahora ofrece Precios Club exclusivos.',code:'CLUB_OLD_FEATURE_RETIRED'});
   const u=__dyClubCustomer(req,res);if(!u)return;
   const label=String(req.body?.label||'').trim().slice(0,100);if(label.length<2)return res.status(400).json({error:'Escribe qué te interesa'});
   const key=__dyClubNorm(label);if(key.length<2)return res.status(400).json({error:'Escribe una búsqueda más clara'});
@@ -435,16 +437,8 @@ app.get('/api/businesses/:id/junta-demand',auth,(req,res)=>{
   res.json({tier,area:b.comuna_id||null,demand:rows.map(x=>({label:x.label,people:Number(x.people||0)}))});
 });
 
-try{
-  if(!global.__datoyaClubScanner){
-    global.__datoyaClubScanner=setInterval(__dyClubScanAll,10*60*1000);
-    global.__datoyaClubScanner.unref&&global.__datoyaClubScanner.unref();
-  }
-  if(!global.__datoyaClubTurboScanner){
-    global.__datoyaClubTurboScanner=setInterval(__dyClubTurboScanAll,3*60*1000);
-    global.__datoyaClubTurboScanner.unref&&global.__datoyaClubTurboScanner.unref();
-  }
-}catch(_){}
+// Herramientas antiguas retiradas: sin escaneo programado ni avisos automáticos.
+
 // ============ FIN DATOYA_CUSTOMER_CLUB_V1 ============
 }
   const injection=__dyClubInjected.toString().replace(/^function __dyClubInjected\(\)\{\n?/,'').replace(/\n?\}$/,'');
@@ -476,4 +470,4 @@ if(!src.includes('DATOYA_CUSTOMER_CLUB_WEBHOOK_V1')){
 }
 
 fs.writeFileSync(serverFile,src);
-console.log('[DatoYa] Club cliente preparado: Caza Ya, Junta DatoYa y Radar.');
+console.log('[DatoYa] Club clientes: membresías y Precios Club preparados; herramientas de búsqueda antiguas desactivadas.');
