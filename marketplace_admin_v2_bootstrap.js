@@ -198,9 +198,9 @@ app.get('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)
     impulso_paid_catalog_limit:Number(getSetting('impulso_paid_catalog_limit','200')),
     weekly_impulse_days:Number(getSetting('weekly_impulse_days','7')),
     live_payments_allowed:false,
-    impulso_checkout_enabled:typeof __khConfigured==='function'&&__khConfigured()&&typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed(),
-    payment_provider:'khipu',
-    khipu_mode:typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed()?'development':'blocked'
+    impulso_checkout_enabled:false,
+    payment_provider:'mercadopago_subscriptions',
+    khipu_mode:'retired'
   }});
 });
 app.put('/api/admin/marketplace-v2/settings',auth,requireRole('admin'),(req,res)=>{
@@ -239,10 +239,10 @@ app.get('/api/businesses/:id/impulso-plan',auth,(req,res)=>{
     annual_price:__dyMoneySetting('impulso_annual_price',89990),
     free_catalog_limit:freeLimit,
     paid_catalog_limit:paidLimit,
-    checkout_enabled:typeof __khConfigured==='function'&&__khConfigured()&&mode==='development',
-    checkout_mode:mode,
+    checkout_enabled:false,
+    checkout_mode:'preparing',
     live_payments_allowed:false,
-    payment_provider:'khipu'
+    payment_provider:'mercadopago_subscriptions'
   }});
 });
 
