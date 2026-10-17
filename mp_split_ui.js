@@ -83,7 +83,7 @@
         const url=new URL(location.href);url.searchParams.delete('mp_connection');
         history.replaceState(history.state,'',url.pathname+url.search+url.hash);
       }
-    }catch(e){section.textContent='No pudimos comprobar la conexión con Mercado Pago. Puedes seguir usando los pagos directos.'}
+    }catch(e){section.textContent='No pudimos comprobar la conexión con Mercado Pago. No se realizarán cobros hasta restablecer la verificación.'}
     return result;
   };
   // The cart never offers cash, transfer, or external payment links.
