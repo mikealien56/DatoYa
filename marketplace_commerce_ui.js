@@ -116,4 +116,78 @@
   const previousBusiness=routes['mi-negocio'];if(previousBusiness)routes['mi-negocio']=async function(id){await previousBusiness.apply(this,arguments);const tools=document.querySelector('.dy-business-tools');if(tools&&!tools.querySelector('[data-commerce-tool]')){tools.insertAdjacentHTML('afterbegin',`<a data-commerce-tool href="#/impulso-ahora/${Number(id)}"><span>⚡</span><b>Impulso Ahora</b><small>Vende por horario y stock real.</small></a><a data-commerce-tool href="#/mi-negocio-pedidos/${Number(id)}"><span>📦</span><b>Pedidos</b><small>Gestiona compras de tus clientes.</small></a>`);}};
   const previousProfile=routes.perfil;if(previousProfile)routes.perfil=async function(){await previousProfile.apply(this,arguments);if(!isCustomerAccount())return;const top=document.querySelector('.dy-account-top');if(top&&!document.getElementById('dy-my-orders-link')){const a=document.createElement('a');a.id='dy-my-orders-link';a.className='btn btn-outline';a.href='#/pedidos';a.textContent='📦 Mis pedidos';top.appendChild(a);}};
   addEventListener('hashchange',()=>setTimeout(renderCartBubble,0));renderCartBubble();
+
+  // DatoYa Gratis: 1 Impulso de 24h por mes, independiente de los planes de pago.
+  const __dyPaidImpulsePage=routes['impulso-ahora'];
+  if(__dyPaidImpulsePage)routes['impulso-ahora']=async function(id){
+    if(!requireBusinessAccount())return;
+    const bid=Number(id||0);if(!bid)return;
+    let entitlement;
+    try{entitlement=await api('/businesses/'+bid+'/free-monthly-impulse');}
+    catch(err){return __dyPaidImpulsePage.apply(this,arguments);}
+    if(!entitlement.is_free_plan)return __dyPaidImpulsePage.apply(this,arguments);
+    let manage,existing;
+    try{
+      [manage,existing]=await Promise.all([api('/businesses/'+bid+'/manage'),api('/businesses/'+bid+'/impulses')]);
+    }catch(err){view.innerHTML='<div class="dy-commerce-page"><h2>No pudimos cargar tus productos</h2><p>'+h(err.message||'Intenta nuevamente')+'</p></div>';return;}
+    const business=manage.business||{},products=(manage.products||[]).filter(p=>p.active&&(!p.stock_tracking||Number(p.stock||0)>0));
+    const monthName=new Date().toLocaleDateString('es-CL',{month:'long',year:'numeric',timeZone:'America/Santiago'});
+    const allowed=entitlement.available&&products.length>0;
+    const originalProducts=products.map(p=>{
+      const regular=Number(p.price||0),promo=Number(p.promo_price||0);
+      const sale=promo>0&&promo<regular&&p.promo_is_active!==false?promo:regular;
+      return '<option value="'+Number(p.id)+'" data-price="'+sale+'" data-stock="'+(p.stock_tracking?Number(p.stock||0):20)+'">'+h(p.name)+' · '+money(sale)+'</option>';
+    }).join('');
+    const owned=(existing.impulses||[]).filter(i=>i.reference?.startsWith('FIMP-')).slice(0,5);
+    view.innerHTML='<div class="dy-commerce-page dy-monthly-free-page">'+
+      '<a href="#/mi-negocio-promociones/'+bid+'" class="dy-public-back">← Promociones</a>'+
+      '<div class="dy-commerce-head"><span>⚡ BENEFICIO DEL PLAN GRATIS</span><h1>Tu Impulso gratis del mes</h1><p>Destaca un producto durante 24 horas, una vez al mes. No se acumula.</p></div>'+
+      '<div class="dy-free-impulse-status '+(entitlement.used?'used':'available')+'">'+
+        '<b>'+(entitlement.used?'✓ Impulso de '+h(monthName)+' utilizado':business.status!=='active'?'Primero activa tu negocio':'⚡ Tienes 1 Impulso disponible')+'</b>'+
+        '<small>'+(entitlement.used?'Tu próximo Impulso gratis estará disponible el mes siguiente.':'El contador inicia cuando publiques. No necesitas pagar ni contratar un plan.')+'</small>'+
+      '</div>'+
+      (entitlement.used?'<section class="dy-commerce-card"><h2>Tu Impulso del mes</h2>'+
+        (owned.length?owned.map(i=>'<article class="dy-free-impulse-record"><b>'+h(i.title)+'</b><span>'+h(i.sale_mode==='liquidation'?'🔥 Liquidación':'⭐ Producto destacado')+' · '+h(i.status)+'</span><small>Hasta '+h(new Date(i.ends_at).toLocaleString('es-CL'))+'</small></article>').join(''):'<p>El beneficio ya fue usado este mes.</p>')+
+        '</section>':business.status!=='active'?'<section class="dy-commerce-card"><p>Tu negocio debe estar aprobado para activar un Impulso gratuito.</p></section>':
+          '<section class="dy-commerce-card"><h2>¿Qué quieres hacer?</h2>'+
+          '<form id="dy-free-monthly-impulse-form" class="dy-account-form">'+
+            '<div class="dy-free-impulse-modes"><label><input type="radio" name="mode" value="highlight" checked><b>⭐ Destacar producto</b><small>Más visibilidad sin exigir descuento.</small></label>'+
+            '<label><input type="radio" name="mode" value="liquidation"><b>🔥 Liquidar stock</b><small>Publica una rebaja real en un producto.</small></label></div>'+
+            '<div class="field"><label>Producto publicado</label><select name="product_id" required><option value="">Elige un producto</option>'+originalProducts+'</select></div>'+
+            '<div id="dy-free-impulse-offer" class="field" hidden><label>Precio especial de liquidación (CLP)</label><input name="offer_price" type="number" min="1" step="1" placeholder="Debe ser menor al precio actual"><small>DatoYa mostrará el precio anterior real junto a tu oferta.</small></div>'+
+            '<div class="field"><label>Cantidad disponible para el Impulso</label><input name="stock" type="number" min="1" max="9999" step="1" required placeholder="Ej: 5"></div>'+
+            '<p class="dy-free-impulse-note">Se publica inmediatamente y termina a las 24 horas o cuando se agoten las unidades. Una vez activado, se considera utilizado aunque lo canceles.</p>'+
+            '<button type="submit" class="btn btn-primary btn-block" '+(allowed?'':'disabled')+'>⚡ Activar mi Impulso gratis</button>'+
+            (!products.length?'<p>Primero publica al menos un producto con disponibilidad. <a href="#/mi-negocio-productos/'+bid+'">Ir a productos</a></p>':'')+
+          '</form></section>')+
+      '<div class="dy-free-impulse-paid"><b>¿Quieres destacar productos por más tiempo?</b><p>Conoce el Impulso de la semana de 7 días y los planes Impulso de pago.</p><a class="btn btn-outline" href="#/mi-negocio-plan/'+bid+'">Conocer planes de crecimiento</a></div>'+
+    '</div>';
+    const form=document.getElementById('dy-free-monthly-impulse-form');if(!form)return;
+    const modeInputs=[...form.querySelectorAll('input[name="mode"]')],offer=document.getElementById('dy-free-impulse-offer');
+    const changeMode=()=>{
+      const liquidation=form.querySelector('input[name="mode"]:checked')?.value==='liquidation';
+      offer.hidden=!liquidation;offer.querySelector('input').required=liquidation;
+    };
+    modeInputs.forEach(x=>x.addEventListener('change',changeMode));changeMode();
+    form.elements.product_id?.addEventListener('change',()=>{
+      const o=form.elements.product_id.selectedOptions[0];
+      if(o?.value)form.elements.stock.value=String(Math.max(1,Number(o.dataset.stock||1)));
+    });
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();const btn=form.querySelector('button[type=submit]'),mode=form.querySelector('input[name="mode"]:checked')?.value;
+      const productId=Number(form.elements.product_id.value),stock=Number(form.elements.stock.value);
+      const offerPrice=mode==='liquidation'?Number(form.elements.offer_price.value):null;
+      const selected=form.elements.product_id.selectedOptions[0],regular=Number(selected?.dataset.price||0);
+      if(!productId||!Number.isInteger(stock)||stock<1)return toast?.('Elige producto y cantidad.','err');
+      if(mode==='liquidation'&&(!Number.isInteger(offerPrice)||offerPrice<1||offerPrice>=regular))return toast?.('La liquidación necesita un descuento real.','err');
+      if(!confirm('¿Activar tu único Impulso gratis de '+h(monthName)+' por 24 horas?'))return;
+      btn.disabled=true;btn.textContent='Activando…';
+      try{
+        await api('/businesses/'+bid+'/free-monthly-impulse',{method:'POST',body:{product_id:productId,mode,offer_price:offerPrice,stock}});
+        toast?.('¡Tu Impulso gratis ya está activo durante 24 horas!','ok');
+        routes['impulso-ahora'](bid);
+      }catch(err){btn.disabled=false;btn.textContent='⚡ Activar mi Impulso gratis';toast?.(err.message||'No se pudo activar Impulso','err');}
+    });
+  };
+
 })();
