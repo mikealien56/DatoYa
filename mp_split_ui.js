@@ -86,6 +86,41 @@
     }catch(e){section.textContent='No pudimos comprobar la conexión con Mercado Pago. Puedes seguir usando los pagos directos.'}
     return result;
   };
+  // The cart never offers cash, transfer, or external payment links.
+  // Gate the submit button on the same live readiness policy as the API.
+  const previousCart=routes.carrito;
+  if(previousCart)routes.carrito=async function(){
+    const rendered=await previousCart.apply(this,arguments);
+    const form=document.getElementById('dy-checkout-form');
+    if(!form)return rendered;
+    const submit=form.querySelector('button[type="submit"]');
+    const note=form.querySelector('.dy-commerce-note');
+    const subtotal=Number(form.dataset.subtotal||0);
+    const businessId=Number(form.dataset.businessId||0);
+    let ready=false,rate=2;
+    try{
+      const config=await api('/marketplace/central-payments/status?business_id='+businessId);
+      ready=config?.checkout_enabled===true;
+      rate=Number(config?.service_fee_percent||2);
+    }catch(_){}
+    if(!form.isConnected)return rendered;
+    const fee=Math.round(subtotal*rate/100);
+    if(note){
+      note.replaceChildren();
+      const heading=node('b','','Pago online en DatoYa'),text=node('p','',
+        ready?'Antes de pagar podrás revisar el total, incluido el servicio DatoYa. El dinero se procesa mediante Mercado Pago.':
+        'Las compras online aún no están habilitadas. Podrás pagar dentro de DatoYa cuando Mercado Pago complete su activación.');
+      note.append(heading,text);
+      if(Number.isSafeInteger(subtotal)&&subtotal>0){
+        note.appendChild(node('p','','Tarifa DatoYa ('+rate+'% de productos): '+clp(fee)+'. El despacho, cuando corresponda, se suma al total.'));
+      }
+    }
+    if(submit){
+      submit.disabled=!ready;
+      submit.textContent=ready?'Continuar al pago con Mercado Pago':'Pago online próximamente';
+    }
+    return rendered;
+  };
   const old=routes.pedidos;
   if(old)routes.pedidos=async function(){
     const result=await old.apply(this,arguments);
