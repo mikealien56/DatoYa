@@ -161,7 +161,7 @@
           <div class="dy-card-head"><div><span>CRECIMIENTO</span><h2>Haz que te encuentren</h2></div></div>
           <div class="dy-dashboard-growth">
             <a href="#/mi-negocio-promociones/${id}"><span>🏷️</span><b>Promociones</b><small>Revisa qué campañas generan actividad.</small></a>
-            <a href="#/impulso-ahora/${id}" class=""><span>⚡</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Gratis 24 horas una vez al mes. oYa Impulso.'}</small></a>
+            <a href="#/impulso-ahora/${id}" class=""><span>⚡</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Gratis 24 horas una vez al mes.'}</small></a>
             <a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso de la semana</b><small>Prepara una oferta destacada.</small></a>
           </div>
         </section>
