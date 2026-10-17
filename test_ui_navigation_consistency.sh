@@ -48,7 +48,7 @@ grep -q "Impulso de la semana" marketplace_admin_v2_ui.js || fail "Admin usa un 
 
 # Márgenes móviles: #view define el gutter y las páginas no lo duplican.
 grep -q "DATOYA MOBILE GUTTER CONSISTENCY V1" mobile_app_layout.css || fail "Falta normalización final de márgenes móviles"
-grep -q "datoya-shell-v94" service-worker.js || fail "PWA no refresca la auditoría UI"
+grep -Eq "datoya-shell-v(9[4-9]|[1-9][0-9]{2,})" service-worker.js || fail "PWA no refresca la auditoría UI"
 
 # Rutas críticas enlazadas desde el Panel Negocio deben existir.
 grep -q "routes\['mi-negocio-productos'\]" business_hub_ui.js || fail "Falta ruta Productos"
