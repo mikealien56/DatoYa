@@ -68,3 +68,12 @@
   .dy-home-club-showcase{gap:10px!important}
   .dy-home-club-showcase .dy-home-club-benefits{gap:7px}
 }
+
+/* WebP directo: sin <picture> ni columna reservada vacía. */
+.dy-home-club-showcase .dy-home-club-visual{min-height:210px!important;visibility:visible!important;opacity:1!important}
+.dy-home-club-showcase .dy-home-club-visual img.dy-premium-club-art{
+  display:block!important;position:relative!important;visibility:visible!important;opacity:1!important;
+  width:100%!important;max-width:520px!important;height:auto!important;min-height:1px!important;
+  aspect-ratio:520/347!important;object-fit:contain!important;transform:none!important;
+  filter:drop-shadow(0 14px 24px rgba(0,0,0,.2))!important
+}
