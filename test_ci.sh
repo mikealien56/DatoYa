@@ -96,11 +96,11 @@ grep -q "customer_club_bootstrap" production_start.js || { echo "DatoYa Club bac
 grep -q "customer_club_assets" production_start.js || { echo "DatoYa Club UI no publicada"; exit 1; }
 grep -q "DATOYA_CUSTOMER_CLUB_V1" customer_club_bootstrap.js || { echo "Falta backend DatoYa Club"; exit 1; }
 grep -q "DATOYA_CUSTOMER_CLUB_WEBHOOK_V1" customer_club_bootstrap.js || { echo "Falta webhook DatoYa Club"; exit 1; }
-grep -q "Caza Ya" customer_club_ui.js || { echo "Falta Caza Ya en Club"; exit 1; }
-grep -q "Junta DatoYa" customer_club_ui.js || { echo "Falta Junta DatoYa en Club"; exit 1; }
+! grep -Eq "Caza Ya|Radar Silencioso|Junta DatoYa|Precio Meta" customer_club_ui.js || { echo "Club todavía muestra herramientas antiguas"; exit 1; }
+grep -q "Precios exclusivos para socios" customer_club_ui.js || { echo "Falta propuesta premium simplificada"; exit 1; }
 grep -q "Sin renovación automática" customer_club_ui.js || { echo "Club no aclara renovación"; exit 1; }
 grep -q "customer_club_gifts" customer_club_bootstrap.js || { echo "Falta almacenamiento de Sorpresa Club"; exit 1; }
-grep -q "dyClubClaimGift" customer_club_ui.js || { echo "Cliente no puede abrir Sorpresa Club"; exit 1; }
+! grep -q "dyClubClaimGift" customer_club_ui.js || { echo "Club sigue mostrando regalos antiguos"; exit 1; }
 grep -q "__dyClubTurboScanAll" customer_club_bootstrap.js || { echo "Radar Turbo no tiene comportamiento real"; exit 1; }
 grep -q "#/admin/club" marketplace_admin_v2_ui.js || { echo "Admin no expone Club clientes"; exit 1; }
 grep -q "dyGiftCustomerClub" marketplace_admin_v2_ui.js || { echo "Admin no puede enviar Sorpresa Club"; exit 1; }
@@ -376,8 +376,8 @@ grep -q "Pago online mediante DatoYa" marketplace_admin_v2_ui.js || { echo "Admi
 # DatoYa Club público debe informar antes de pedir registro
 grep -q "routes\['club-info'\]=loadClubInfo" customer_club_ui.js || { echo "Falta página pública informativa de DatoYa Club"; exit 1; }
 grep -q 'href="#/club-info"' home_structure_v3.js || { echo "Home todavía no envía Club a Conoce más"; exit 1; }
-grep -q "DatoYa atento por ti" customer_club_ui.js || { echo "Página Club no explica qué es"; exit 1; }
-grep -q "CÓMO FUNCIONA" customer_club_ui.js || { echo "Página Club no explica funcionamiento"; exit 1; }
+grep -q "Precios exclusivos para socios" customer_club_ui.js || { echo "Página Club no explica qué es"; exit 1; }
+grep -q "ASÍ FUNCIONA" customer_club_ui.js || { echo "Página Club no explica precios para socios"; exit 1; }
 grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara con Gratis"; exit 1; }
 
 # Copy público: no explicar cómo gana dinero DatoYa
@@ -407,9 +407,9 @@ for i in 0 1 2 3 4; do test -s "brand/datoya-club-card.avif.b64.$i" || { echo "F
 test -s brand/datoya-club-card-v13.webp || { echo "Falta archivo WebP de la tarjeta Club v13"; exit 1; }
 grep -q 'datoya-club-card-v13.webp' home_structure_v3.js || { echo "Portada no usa la tarjeta WebP DatoYa Club v13"; exit 1; }
 grep -q 'Conoce más' home_structure_v3.js || { echo "Portada Club no enlaza a información"; exit 1; }
-grep -q 'DatoYa atento por ti' customer_club_ui.js || { echo "Página Conoce más Club no fue renovada"; exit 1; }
-grep -q 'CLUB EN UNA FRASE' customer_club_ui.js || { echo "Falta explicación breve de Club"; exit 1; }
-grep -q 'AHORRO CLUB' customer_club_ui.js || { echo "Falta explicar el ahorro de DatoYa Club"; exit 1; }
+grep -q 'Precios exclusivos para socios' customer_club_ui.js || { echo "Página Conoce más Club no fue renovada"; exit 1; }
+grep -q 'BENEFICIOS CLUB' customer_club_ui.js || { echo "Falta explicar beneficios de Club"; exit 1; }
+grep -q 'Precio normal' customer_club_ui.js || { echo "Falta explicación del Precio Club"; exit 1; }
 grep -q 'Precio Club' customer_club_ui.js || { echo "Falta explicar Precio Club"; exit 1; }
 grep -q 'premiumParts' customer_club_assets.js || { echo "Tarjeta premium Club no se reconstruye en /public/brand"; exit 1; }
 node --check home_structure_v3.js
