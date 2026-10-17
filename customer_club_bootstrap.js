@@ -309,7 +309,7 @@ app.get('/api/public/club',(req,res)=>{
 app.get('/api/club/overview',auth,(req,res)=>{
   const u=__dyClubCustomer(req,res);if(!u)return;
   const mode=typeof __khDevelopmentAllowed==='function'&&__khDevelopmentAllowed()?'development':'blocked';
-  res.json({...__dyClubOverview(u.id),config:{checkout_enabled:typeof __khConfigured==='function'&&__khConfigured()&&mode==='development',checkout_mode:mode,live_payments_allowed:false,no_auto_renew:true}});
+  res.json({...__dyClubOverview(u.id),config:{checkout_enabled:false,checkout_mode:'mercadopago_pendiente',live_payments_allowed:false,no_auto_renew:true}});
 });
 
 app.post('/api/club/hunts',auth,(req,res)=>{
