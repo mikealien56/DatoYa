@@ -29,13 +29,23 @@
         </section>
       </div>`;
       await window.__datoyaBusinessHubFrame?.(id,'payments');
-      polishLabels();
+      removeLegacyPaymentChoices();polishLabels();
     }catch(err){
       view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-direct-pay-loading error"><span>⚠️</span><h2>No pudimos cargar los pagos</h2><p>'+h(err.message||'Intenta nuevamente.')+'</p><button class="btn btn-primary" onclick="routes[\'mi-negocio-pagos\']('+id+')">Reintentar</button></section></div>';
       await window.__datoyaBusinessHubFrame?.(id,'payments');
     }
   }
   routes['mi-negocio-pagos']=renderCentralPayments;
+  function removeLegacyPaymentChoices(){
+    const triggers=['¿Cómo quieres recibir los pagos?','Pago al retirar','Pago al recibir despacho','Transferencia al negocio','Ya tengo un enlace para cobrar'];
+    document.querySelectorAll(['.dy-direct-','pay-options,.dy-direct-pay-settings,[data-direct-payment-settings]'].join('')).forEach(el=>el.remove());
+    document.querySelectorAll('h1,h2,h3').forEach(el=>{
+      if(triggers.some(s=>String(el.textContent||'').includes(s))){
+        const section=el.closest('section,.dy-business-card,.dy-payment-options');
+        if(section&&section.querySelectorAll('h1,h2,h3').length<4)section.remove();
+      }
+    });
+  }
   function polishLabels(){
     document.querySelectorAll('.dy-dashboard-growth a[href*="mi-negocio-pagos"]').forEach(a=>{
       const b=a.querySelector('b'),small=a.querySelector('small'),icon=a.querySelector('span');
@@ -53,7 +63,7 @@
     });
   }
   const old=routes['mi-negocio'];
-  if(old)routes['mi-negocio']=async function(id){const v=await old.apply(this,arguments);polishLabels();return v;};
+  if(old)routes['mi-negocio']=async function(id){const v=await old.apply(this,arguments);removeLegacyPaymentChoices();polishLabels();return v;};
   const oldConfig=routes['mi-negocio-configuracion'];
   if(oldConfig)routes['mi-negocio-configuracion']=async function(id){const v=await oldConfig.apply(this,arguments);polishLabels();return v;};
   window.dyPayBusinessKhipu=()=>toast?.('Los pagos de clientes se harán mediante DatoYa y Mercado Pago.','info');

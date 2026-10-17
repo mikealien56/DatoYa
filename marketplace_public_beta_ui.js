@@ -99,6 +99,7 @@
   }
   const activePromo=p=>!!p.promo_price&&p.promo_is_active!==false;
   const timedPromo=p=>activePromo(p)&&!!p.promo_starts_at&&!!p.promo_ends_at;
+  const clubPrice=p=>{const regular=Number(activePromo(p)?p.promo_price:p.price),club=Number(p.club_price||0);return club>0&&club<regular?club:null;};
   let promoCountdownTimer=null;
   function countdownText(endValue){
     const diff=new Date(endValue).getTime()-Date.now();
@@ -135,7 +136,7 @@
     const promo=activePromo(p)?p.promo_price:null,price=promo||p.price,timed=timedPromo(p),badge=p.datoya_exclusive&&promo?'🔒 SOLO EN DATOYA':kind==='promo'?(timed?'🔥 PROMO HOY':'🔥 OFERTA'):'DISPONIBLE';
     return `<article class="dy-live-card dy-real-product">
       <div class="dy-live-image dy-real-product-photo">${productPhoto(p)}<span class="dy-live-badge">${badge}</span>${p.stock_tracking?`<span class="dy-stock-badge">${Number(p.stock||0)>0?`Quedan ${Number(p.stock)}`:'Sin stock'}</span>`:''}${savedButton('product',p.id)}</div>
-      <div class="dy-live-body"><h3>${h(p.name)}</h3><p>${h(p.business_name||b?.name||'')} ${p.distance_km!=null?`· 📍 ${h(fmtDistance(p.distance_km))}`:''}</p>${timed?`<div class="dy-promo-countdown" data-dy-promo-end="${h(p.promo_ends_at)}">${h(countdownText(p.promo_ends_at))}</div>`:''}<div class="dy-live-price-row"><div class="dy-live-price"><strong>${money(price)}</strong>${promo?`<span class="dy-old-price">${money(p.price)}</span>`:''}</div><a class="dy-beta-link" href="#/negocio/${Number(p.business_id)}">Ver →</a></div></div>
+      <div class="dy-live-body"><h3>${h(p.name)}</h3><p>${h(p.business_name||b?.name||'')} ${p.distance_km!=null?`· 📍 ${h(fmtDistance(p.distance_km))}`:''}</p>${timed?`<div class="dy-promo-countdown" data-dy-promo-end="${h(p.promo_ends_at)}">${h(countdownText(p.promo_ends_at))}</div>`:''}<div class="dy-live-price-row"><div class="dy-live-price"><strong>${money(price)}</strong>${promo?`<span class="dy-old-price">${money(p.price)}</span>`:''}${clubPrice(p)?`<small class="dy-club-price-label">⭐ Club ${money(clubPrice(p))}</small>`:''}</div><a class="dy-beta-link" href="#/negocio/${Number(p.business_id)}">Ver →</a></div></div>
     </article>`;
   }
 
@@ -164,7 +165,7 @@
           <div class="dy-how-heading">
             <span class="dy-how-eyebrow">ASÍ FUNCIONA DATOYA</span>
             <h2 id="dy-how-title">Simple para comprar. Simple para vender.</h2>
-            <p>DatoYa conecta personas con negocios cercanos. El pedido se organiza aquí, pero el dinero de la venta va directo al negocio.</p>
+            <p>DatoYa conecta personas con negocios cercanos. Las compras online se realizan dentro de DatoYa mediante Mercado Pago, cuando la pasarela esté habilitada.</p>
           </div>
           <div class="dy-how-grid">
             <article class="dy-how-card customer">
@@ -173,7 +174,7 @@
                 <li><b>Busca lo que necesitas</b><span>Usa tu ubicación, categorías, promociones o Lo Busco Ya.</span></li>
                 <li><b>Elige un negocio</b><span>Revisa productos, precios, horarios, retiro y despacho.</span></li>
                 <li><b>Haz tu pedido</b><span>DatoYa registra el pedido y te avisa cuando cambia de estado.</span></li>
-                <li><b>Paga directamente al negocio</b><span>Retiro, despacho, transferencia o el medio que el comercio tenga habilitado.</span></li>
+                <li><b>Paga online de forma segura</b><span>Confirma tu compra en DatoYa con Mercado Pago cuando la pasarela esté habilitada.</span></li>
               </ol>
               <a class="btn btn-outline dy-how-cta" href="#/buscar/_">Explorar negocios →</a>
             </article>
@@ -182,7 +183,7 @@
               <ol class="dy-how-steps">
                 <li><b>Crea tu negocio gratis</b><span>Publica tu perfil, ubicación, horarios, productos y promociones.</span></li>
                 <li><b>Recibe pedidos reales</b><span>Confirma, prepara y completa pedidos desde tu panel.</span></li>
-                <li><b>Cobra directamente</b><span>El cliente te paga a ti. DatoYa no recibe ni retiene el dinero de la venta.</span></li>
+                <li><b>Vende desde DatoYa</b><span>Vincula tu cuenta Mercado Pago para recibir pagos de compras realizadas dentro de DatoYa.</span></li>
                 <li><b>Impúlsate solo si quieres</b><span>Impulso, Impulso+ y Premium agregan visibilidad y herramientas por 1, 7, 15 o 30 días.</span></li>
               </ol>
               <a class="btn btn-primary dy-how-cta" href="#/registrar-negocio">Registrar mi negocio →</a>
@@ -190,7 +191,7 @@
           </div>
           <div class="dy-how-promise">
             <div><span>💸</span><p><b>0% comisión DatoYa sobre tus ventas</b><small>Vender y recibir pedidos puede seguir siendo gratis.</small></p></div>
-            <div><span>🔒</span><p><b>El dinero no pasa por DatoYa</b><small>Los pagos de pedidos se hacen directamente al comercio.</small></p></div>
+            <div><span>🔒</span><p><b>Pago seguro dentro de DatoYa</b><small>Mercado Pago procesa las compras y DatoYa informa el cargo de servicio antes de pagar.</small></p></div>
             <div><span>⚡</span><p><b>Crecer es opcional</b><small>Un negocio puede seguir usando DatoYa Gratis sin contratar un impulso.</small></p></div>
           </div>
         </section>
@@ -271,7 +272,7 @@
       const exact=b.business_type!=='home_business'&&b.public_address_mode==='exact'&&b.address;
       const publicPlace=exact?`${b.address}${b.comuna?', '+b.comuna:''}`:[b.sector,b.comuna].filter(Boolean).join(', ');
       const wa=String(b.whatsapp||b.phone||'').replace(/\D/g,'');
-      view.innerHTML=`<div class="dy-public-page dy-store-page"><a class="dy-public-back" href="#/">← Volver</a><section class="dy-store-hero"><div class="dy-store-cover">${businessPhoto(b,items)}</div><div class="dy-store-info"><span>${b.business_type==='home_business'?'🏠 Emprendimiento desde casa':'🏬 Local físico'}${b.verified?' · ✓ Verificado':''}</span><h1>${h(b.name)}</h1><p>${h(b.description||'Negocio local en DatoYa.')}</p><div class="dy-store-meta"><span>📍 ${h(publicPlace||b.comuna||'Ubicación protegida')}</span>${b.opening_hours?`<span>🕒 ${h(b.opening_hours)}</span>`:''}<span>${b.pickup_enabled?'✓ Retiro disponible':''}${b.pickup_enabled&&b.delivery_enabled?' · ':''}${b.delivery_enabled?'✓ Despacho propio':''}</span></div><div class="dy-store-cats">${(b.categories||[]).map(c=>`<span>${h(c.icon)} ${h(c.name)}</span>`).join('')}</div><div class="dy-store-social-actions">${savedButton('business',b.id,'Guardar')}${followButton(b.id)}</div>${wa?`<a class="btn btn-primary" href="https://wa.me/${h(wa)}" target="_blank" rel="noopener">💬 Consultar por WhatsApp</a>`:''}${b.business_type==='home_business'?'<small class="dy-privacy-public">🔒 La dirección residencial exacta está protegida.</small>':''}</div></section><section><h2>Productos (${items.length})</h2><div class="dy-store-products">${items.length?items.map(p=>`<article class="dy-store-product" data-product-id="${Number(p.id)}"><div class="dy-store-product-image">${productPhoto(p)}${savedButton('product',p.id)}</div><div><span>${h(p.category_icon||'')} ${h(p.category_name||'')}</span><h3>${h(p.name)}</h3><p>${h(p.description||'')}</p><div class="dy-product-public-price">${p.datoya_exclusive&&activePromo(p)?'<span class="dy-exclusive-public">🔒 Solo en DatoYa</span>':''}${activePromo(p)?`<s>${money(p.price)}</s>`:''}<strong>${money(activePromo(p)?p.promo_price:p.price)}</strong>${timedPromo(p)?`<em class="dy-inline-countdown" data-dy-promo-end="${h(p.promo_ends_at)}">${h(countdownText(p.promo_ends_at))}</em>`:''}${p.stock_tracking?`<em>${Number(p.stock||0)>0?`${Number(p.stock)} disponibles`:'Sin stock'}</em>`:''}</div></div></article>`).join(''):emptyBlock('📦','Este negocio todavía no tiene productos visibles','Puede agregarlos desde Mi negocio.')}</div></section></div>`;
+      view.innerHTML=`<div class="dy-public-page dy-store-page"><a class="dy-public-back" href="#/">← Volver</a><section class="dy-store-hero"><div class="dy-store-cover">${businessPhoto(b,items)}</div><div class="dy-store-info"><span>${b.business_type==='home_business'?'🏠 Emprendimiento desde casa':'🏬 Local físico'}${b.verified?' · ✓ Verificado':''}</span><h1>${h(b.name)}</h1><p>${h(b.description||'Negocio local en DatoYa.')}</p><div class="dy-store-meta"><span>📍 ${h(publicPlace||b.comuna||'Ubicación protegida')}</span>${b.opening_hours?`<span>🕒 ${h(b.opening_hours)}</span>`:''}<span>${b.pickup_enabled?'✓ Retiro disponible':''}${b.pickup_enabled&&b.delivery_enabled?' · ':''}${b.delivery_enabled?'✓ Despacho propio':''}</span></div><div class="dy-store-cats">${(b.categories||[]).map(c=>`<span>${h(c.icon)} ${h(c.name)}</span>`).join('')}</div><div class="dy-store-social-actions">${savedButton('business',b.id,'Guardar')}${followButton(b.id)}</div>${wa?`<a class="btn btn-primary" href="https://wa.me/${h(wa)}" target="_blank" rel="noopener">💬 Consultar por WhatsApp</a>`:''}${b.business_type==='home_business'?'<small class="dy-privacy-public">🔒 La dirección residencial exacta está protegida.</small>':''}</div></section><section><h2>Productos (${items.length})</h2><div class="dy-store-products">${items.length?items.map(p=>`<article class="dy-store-product" data-product-id="${Number(p.id)}"><div class="dy-store-product-image">${productPhoto(p)}${savedButton('product',p.id)}</div><div><span>${h(p.category_icon||'')} ${h(p.category_name||'')}</span><h3>${h(p.name)}</h3><p>${h(p.description||'')}</p><div class="dy-product-public-price">${p.datoya_exclusive&&activePromo(p)?'<span class="dy-exclusive-public">🔒 Solo en DatoYa</span>':''}${activePromo(p)?`<s>${money(p.price)}</s>`:''}<strong>${money(activePromo(p)?p.promo_price:p.price)}</strong>${clubPrice(p)?`<span class="dy-club-price-label">⭐ Precio Club ${money(clubPrice(p))}</span>`:''}${timedPromo(p)?`<em class="dy-inline-countdown" data-dy-promo-end="${h(p.promo_ends_at)}">${h(countdownText(p.promo_ends_at))}</em>`:''}${p.stock_tracking?`<em>${Number(p.stock||0)>0?`${Number(p.stock)} disponibles`:'Sin stock'}</em>`:''}</div></div></article>`).join(''):emptyBlock('📦','Este negocio todavía no tiene productos visibles','Puede agregarlos desde Mi negocio.')}</div></section></div>`;
       bindSavedActions();
       bindPromoCountdowns();
     }catch(err){view.innerHTML=`<div class="dy-public-page"><a class="dy-public-back" href="#/">← Inicio</a>${emptyBlock('🏪','Negocio no disponible',err.message||'Intenta nuevamente.')}</div>`;}
