@@ -116,7 +116,7 @@ app.get('/api/public/business-plans',(req,res)=>{
     free:{label:'DatoYa Gratis',price:0,access:__dyGrowthAccess('free')},
     offers:__dyGrowthOffers(),
     durations:[1,7,15,30],
-    rule:'DatoYa no cobra comisión por las ventas del negocio'
+    rule:'Las compras online se procesarán por DatoYa con Mercado Pago y tendrán un cargo de servicio del 2% al comprador sobre productos'
   });
 });
 
