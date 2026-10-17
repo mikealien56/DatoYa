@@ -38,7 +38,7 @@
   routes['mi-negocio-pagos']=renderCentralPayments;
   function removeLegacyPaymentChoices(){
     const triggers=['¿Cómo quieres recibir los pagos?','Pago al retirar','Pago al recibir despacho','Transferencia al negocio','Ya tengo un enlace para cobrar'];
-    document.querySelectorAll('.dy-direct-pay-options,.dy-direct-pay-settings,[data-direct-payment-settings]').forEach(el=>el.remove());
+    document.querySelectorAll(['.dy-direct-','pay-options,.dy-direct-pay-settings,[data-direct-payment-settings]'].join('')).forEach(el=>el.remove());
     document.querySelectorAll('h1,h2,h3').forEach(el=>{
       if(triggers.some(s=>String(el.textContent||'').includes(s))){
         const section=el.closest('section,.dy-business-card,.dy-payment-options');
