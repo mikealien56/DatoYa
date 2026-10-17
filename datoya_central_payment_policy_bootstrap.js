@@ -42,7 +42,8 @@ app.use((req,res,next)=>{
     /^\/api\/businesses\/\d+\/featured-week\/checkout$/,
     /^\/api\/orders\/\d+\/business-khipu\/checkout$/,
     /^\/api\/orders\/\d+\/khipu\/checkout$/,
-    /^\/api\/orders\/\d+\/payku\/checkout$/
+    /^\/api\/orders\/\d+\/payku\/checkout$/,
+    /^\/api\/club\/checkout$/
   ];
   if(m==='POST'&&legacyChargePaths.some(re=>re.test(p)))
     return res.status(503).json({error:'Los cobros se realizarán únicamente con Mercado Pago desde DatoYa. Contratación en preparación.',code:'CENTRAL_PAYMENT_ONLY'});
