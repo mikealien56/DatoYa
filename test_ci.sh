@@ -25,6 +25,7 @@ bash test_ui_navigation_consistency.sh
 bash test_mobile_notifications.sh
 bash test_password_reset_links.sh
 bash test_business_loading_guards.sh
+node --test test_central_marketplace_payment_policy.js
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
 bash test_khipu_business_onboarding.sh
@@ -106,8 +107,8 @@ grep -q "dyGiftCustomerClub" marketplace_admin_v2_ui.js || { echo "Admin no pued
 grep -q "DATOYA_DIRECT_MERCHANT_PAYMENTS_V1" direct_merchant_payments_bootstrap.js || { echo "Falta backend de pagos directos"; exit 1; }
 grep -q "DATOYA_ORDER_KHIPU_DISABLED_V1" direct_merchant_payments_bootstrap.js || { echo "Checkout Khipu de pedidos no está bloqueado"; exit 1; }
 grep -q "ORDER_KHIPU_DISABLED_V1" khipu_payments_ui.js || { echo "Frontend aún intenta cobrar pedidos con Khipu"; exit 1; }
-grep -q "Exigir pago antes de preparar" direct_merchant_payments_ui.js || { echo "Falta protección de prepago en UI"; exit 1; }
-grep -q "Pagar con Khipu" direct_merchant_payments_ui.js || { echo "Cliente no puede pagar con el Khipu propio del negocio"; exit 1; }
+grep -q 'PROVIDER_PAYMENT_REQUIRED' datoya_central_payment_policy_bootstrap.js || { echo "No se evita marcar pago como recibido manualmente"; exit 1; }
+grep -q 'Mercado Pago en DatoYa' direct_merchant_payments_ui.js || { echo "El panel no centraliza los pagos en Mercado Pago"; exit 1; }
 grep -q "DATOYA_MERCHANT_KHIPU_CREDENTIAL_KEY" business_khipu_direct_bootstrap.js || { echo "Credenciales Khipu del negocio no están cifradas con clave dedicada"; exit 1; }
 grep -q "datoya_sales_commission_pct:0" business_khipu_direct_bootstrap.js || { echo "Khipu directo alteró el modelo 0% comisión por ventas"; exit 1; }
 grep -q "DATOYA_GROWTH_PLANS_V2" business_growth_plans_v2_bootstrap.js || { echo "Falta backend Growth Plans V2"; exit 1; }
@@ -166,7 +167,7 @@ done
 if [ "$READY" -ne 1 ]; then echo "Timeout esperando DatoYa"; cat /tmp/datoya-ci.log; exit 1; fi
 
 curl -fsS http://localhost:3000/health | grep -q '"ok":true'
-curl -fsS http://localhost:3000/api/public/business-plans | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["rule"].startswith("DatoYa no cobra comisión"); assert len(d["offers"])==3; assert d["durations"]==[1,7,15,30]' || { echo "Planes públicos de negocio incorrectos"; exit 1; }
+curl -fsS http://localhost:3000/api/public/business-plans | python3 -c 'import sys,json; d=json.load(sys.stdin); assert "cargo de servicio del 2%" in d["rule"]; assert len(d["offers"])==3; assert d["durations"]==[1,7,15,30]' || { echo "Planes públicos de negocio incorrectos"; exit 1; }
 curl -fsS http://localhost:3000/api/public/club | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["no_auto_renew"] is True; assert int(d["free_hunts"])>=1' || { echo "Club público incorrecto"; exit 1; }
 CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["categories"]))')
 [ "$CATS" -ge 20 ] || { echo "Catálogo comercial incompleto: $CATS"; exit 1; }
@@ -226,7 +227,7 @@ grep -q "Gratis vs DatoYa Impulso" business_impulse_plan_ui.js || { echo "Falta 
 grep -q "Hasta '+freeLimit" business_impulse_plan_ui.js || { echo "Falta mostrar límite del catálogo Gratis"; exit 1; }
 grep -q "impulso_paid_catalog_limit" marketplace_admin_v2_ui.js || { echo "Admin no puede configurar límite catálogo Impulso"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const plan=s.indexOf("business_impulse_plan_assets");const hub=s.indexOf("business_hub_assets");if(plan<0||hub<0||hub<plan){throw new Error("Panel Negocio 2.0 no carga al final de los módulos comerciales")}'
-echo "✅ Khipu reservado a servicios DatoYa; pedidos pagan directo al negocio"
+echo "✅ Pedidos nuevos solo con checkout online DatoYa / Mercado Pago; Khipu histórico protegido"
 echo "✅ Frontend comercial publicado"
 
 # Limpieza UX: evitar repetir CTAs y accesos que ya existen en la navegación principal.
@@ -291,7 +292,7 @@ grep -q "routes\['mi-negocio-soporte-caso'\]" business_support_ui.js || { echo "
 grep -q "routes.admin" admin_support_cases_ui.js || { echo "Falta panel admin de soporte"; exit 1; }
 grep -q "DATOYA_MARKETPLACE_ADMIN_V2" marketplace_admin_v2_bootstrap.js || { echo "Falta backend Admin marketplace V2"; exit 1; }
 grep -q "business_impulse_memberships" marketplace_admin_v2_bootstrap.js || { echo "Falta membresía DatoYa Impulso"; exit 1; }
-grep -q "checkout_enabled:typeof __khConfigured" marketplace_admin_v2_bootstrap.js || { echo "Falta control de checkout Khipu para Impulso"; exit 1; }
+grep -q 'checkout_enabled:false' marketplace_admin_v2_bootstrap.js || { echo "El plan legacy permite checkout antes de estar listo"; exit 1; }
 grep -q "api/businesses/:id/plan-access" marketplace_admin_v2_bootstrap.js || { echo "Falta API de permisos por plan"; exit 1; }
 grep -q "CATALOG_LIMIT_REACHED" marketplace_products_bootstrap.js || { echo "Falta límite real de productos por plan"; exit 1; }
 grep -q "IMPULSO_PLAN_REQUIRED" marketplace_commerce_bootstrap.js || { echo "Impulso Ahora no está protegido por membresía"; exit 1; }
@@ -311,7 +312,7 @@ grep -q "marketplace_growth_program_bootstrap" production_start.js || { echo "Pr
 grep -q "business_model:'no_commission'" marketplace_growth_program_bootstrap.js || { echo "Programa de crecimiento no declara modelo sin comisión"; exit 1; }
 grep -q "effective_rate:0" marketplace_growth_program_bootstrap.js || { echo "Todavía existe comisión efectiva en pedidos"; exit 1; }
 grep -q "home_structure_v3_assets" production_start.js || { echo "Home Structure V3 no está publicado"; exit 1; }
-grep -q "0% comisión DatoYa" home_structure_v3.js || { echo "Portada no explica el modelo sin comisión"; exit 1; }
+grep -q 'cargo de servicio 2%' home_structure_v3.js || { echo "Portada no informa el cargo online de DatoYa"; exit 1; }
 grep -q "DatoYa Club" home_structure_v3.js || { echo "Portada no explica Club"; exit 1; }
 grep -q "Impulso+" home_structure_v3.js || { echo "Portada no compara planes de negocio"; exit 1; }
 grep -q "marketplace_refunds_bootstrap" production_start.js || { echo "Devoluciones no están montadas"; exit 1; }
@@ -353,7 +354,7 @@ grep -q "Valida el código o QR de retiro" marketplace_order_integrity_bootstrap
 grep -q "ensureCheckoutRequestId" marketplace_commerce_ui.js || { echo "Frontend no conserva idempotencia del checkout"; exit 1; }
 grep -q "routes.retiro" marketplace_commerce_ui.js || { echo "Falta ruta de escaneo QR"; exit 1; }
 grep -q "DATOYA_ORDER_KHIPU_DISABLED_V1" direct_merchant_payments_bootstrap.js || { echo "Checkout Khipu de pedidos no está bloqueado"; exit 1; }
-grep -q "DatoYa no procesa el pago de las ventas de los negocios" direct_merchant_payments_bootstrap.js || { echo "Falta regla de pago directo al negocio"; exit 1; }
+grep -q 'MARKETPLACE_CHECKOUT_NOT_READY' datoya_central_payment_policy_bootstrap.js || { echo "Falta bloquear pedidos sin pago centralizado"; exit 1; }
 grep -q "app.post('/api/khipu/webhook'" server.js || { echo "Falta webhook Khipu para servicios DatoYa"; exit 1; }
 if grep -Eqi 'mercadopago|marketplace_payments_ui' public/index.html; then echo "El HTML público todavía referencia un proveedor de pago retirado"; exit 1; fi
 echo "✅ Checkout de pedidos sin Khipu; servicios DatoYa protegidos"
@@ -370,7 +371,7 @@ echo "DatoYa marketplace CI: OK"
 ! grep -q "GMV pagado" marketplace_admin_v2_ui.js || { echo "Admin aún usa GMV como ingreso DatoYa"; exit 1; }
 ! grep -q "Fee:" marketplace_admin_v2_ui.js || { echo "Pedidos Admin aún muestran fee DatoYa"; exit 1; }
 grep -q "Servicios propios, no ventas de terceros" marketplace_admin_v2_ui.js || { echo "Admin no explica ingresos propios"; exit 1; }
-grep -q "Pago directo al negocio" marketplace_admin_v2_ui.js || { echo "Admin pedidos no aclara pago directo"; exit 1; }
+grep -q "Pago online mediante DatoYa" marketplace_admin_v2_ui.js || { echo "Admin pedidos no indica cobro centralizado"; exit 1; }
 
 # DatoYa Club público debe informar antes de pedir registro
 grep -q "routes\['club-info'\]=loadClubInfo" customer_club_ui.js || { echo "Falta página pública informativa de DatoYa Club"; exit 1; }
@@ -383,7 +384,7 @@ grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara c
 ! grep -q "DatoYa gana por" home_structure_v3.js || { echo "La portada expone el modelo de ingresos de DatoYa"; exit 1; }
 ! grep -q "DatoYa cobra únicamente" marketplace_public_beta_ui.js || { echo "La portada explica cobros internos que no interesan al usuario"; exit 1; }
 ! grep -q "Club se paga a DatoYa" customer_club_ui.js || { echo "Club expone innecesariamente el flujo de ingreso de DatoYa"; exit 1; }
-grep -q "El pago de la compra es directo al negocio" home_structure_v3.js || { echo "Falta mensaje útil de pago directo para clientes"; exit 1; }
+grep -q "El pago de la compra se realiza dentro de DatoYa" home_structure_v3.js || { echo "Home no indica pago dentro de DatoYa"; exit 1; }
 
 # Despacho propio + ETA + seguimiento
 grep -q "marketplace_delivery_eta_bootstrap" production_start.js || { echo "ETA de despacho no está montado"; exit 1; }

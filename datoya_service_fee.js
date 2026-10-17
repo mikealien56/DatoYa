@@ -1,4 +1,4 @@
-// DatoYa: service fee charged exclusively to the online Payku buyer.
+// DatoYa: service fee on online checkout with Mercado Pago; charged to buyer.
 // All calculations use integer CLP values supplied by the SERVER order record.
 const RATE_PERCENT=2;
 function exact(value,label){
@@ -16,7 +16,7 @@ function quote({subtotal,delivery_fee=0,total}){
   return Object.freeze({
     currency:'CLP',rate_percent:RATE_PERCENT,products_amount:products,
     delivery_fee:shipping,business_amount:seller,service_fee,checkout_total,
-    payer:'customer',provider:'payku_mall'
+    payer:'customer',provider:'mercadopago_split'
   });
 }
 module.exports={RATE_PERCENT,quote};
