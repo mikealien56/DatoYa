@@ -336,7 +336,11 @@ grep -q "check-email" marketplace_growth_program_bootstrap.js || { echo "Invitac
 grep -q "invitee_email" marketplace_growth_program_bootstrap.js || { echo "Invitación Fundador no está ligada al correo"; exit 1; }
 grep -q "status='used'" marketplace_growth_program_bootstrap.js || { echo "Invitación Fundador no se consume"; exit 1; }
 grep -q "dyShareFounderInvite" marketplace_admin_v2_ui.js || { echo "Admin no puede compartir invitación Fundador"; exit 1; }
-grep -q "Solo en DatoYa" marketplace_business_ui.js || { echo "Negocio no puede marcar promoción exclusiva"; exit 1; }
+grep -q 'Precio solo para socios DatoYa Club' marketplace_business_ui.js || { echo "Falta campo exclusivo Club"; exit 1; }
+! grep -q 'name="promo_price"' marketplace_business_ui.js || { echo "El formulario sigue exigiendo tres precios"; exit 1; }
+! grep -q 'name="datoya_exclusive"' marketplace_business_ui.js || { echo "El formulario sigue ofreciendo precio para todos"; exit 1; }
+grep -q 'const regular=Number(p.price||0)' marketplace_commerce_ui.js || { echo "El carrito no utiliza precio normal"; exit 1; }
+grep -q '  return normal;' club_price_bootstrap.js || { echo "Checkout Club sigue acumulando descuento general"; exit 1; }
 grep -q "admin/fundadores" marketplace_admin_v2_ui.js || { echo "Admin no expone Fundadores"; exit 1; }
 grep -q "market_coupon_products" marketplace_coupons_bootstrap.js || { echo "Falta alcance por producto"; exit 1; }
 grep -q "market_coupon_categories" marketplace_coupons_bootstrap.js || { echo "Falta alcance por categoría"; exit 1; }
