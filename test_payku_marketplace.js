@@ -88,7 +88,7 @@ test('2% charged only on products in CLP; delivery is not surcharged',()=>{
   assert.deepEqual(fee.quote({subtotal:20000,delivery_fee:0,total:20000}),{
     currency:'CLP',rate_percent:2,products_amount:20000,
     delivery_fee:0,business_amount:20000,service_fee:400,
-    checkout_total:20400,payer:'customer',provider:'payku_mall'
+    checkout_total:20400,payer:'customer',provider:'mercadopago_split'
   });
   const withDelivery=fee.quote({subtotal:20000,delivery_fee:1500,total:21500});
   assert.equal(withDelivery.service_fee,400);
