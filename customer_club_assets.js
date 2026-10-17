@@ -21,9 +21,18 @@ if(premiumParts.every(fs.existsSync)){
   fs.writeFileSync(path.join(brandDir,'datoya-club-card.avif'),Buffer.from(encoded,'base64'));
 }
 
+// Tarjeta Club WebP compatible con Android, 520 x 347.
+const visibleParts=[0,1,2,3].map(i=>path.join(__dirname,'brand','datoya-club-card-v10.webp.b64.'+i));
+if(!visibleParts.every(fs.existsSync))throw new Error('Faltan fragmentos de la tarjeta Club WebP');
+const visibleBinary=Buffer.from(visibleParts.map(p=>fs.readFileSync(p,'utf8').trim()).join(''),'base64');
+const isWebp=visibleBinary.length>20000&&visibleBinary.subarray(0,4).toString('ascii')==='RIFF'&&visibleBinary.subarray(8,12).toString('ascii')==='WEBP';
+if(!isWebp)throw new Error('Tarjeta DatoYa Club WebP inválida');
+fs.writeFileSync(path.join(brandDir,'datoya-club-card-visible.webp'),visibleBinary);
+console.log('[DatoYa] Tarjeta Club WebP visible publicada: '+visibleBinary.length+' bytes.');
+
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){let h=fs.readFileSync(idx,'utf8');
 h=h.replace(/<link[^>]+href="\/customer_club\.css[^"]*"[^>]*>\s*/g,'').replace(/<script[^>]+src="\/customer_club_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-h=h.replace('</head>','<link rel="stylesheet" href="/customer_club.css?v=20261017-simplificado1">\n</head>');
-h=h.replace('</body>','<script src="/customer_club_ui.js?v=20261017-simplificado1"></script>\n</body>');
+h=h.replace('</head>','<link rel="stylesheet" href="/customer_club.css?v=20261017-webpfix1">\n</head>');
+h=h.replace('</body>','<script src="/customer_club_ui.js?v=20261017-webpfix1"></script>\n</body>');
 fs.writeFileSync(idx,h);}
