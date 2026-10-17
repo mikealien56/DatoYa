@@ -20,3 +20,22 @@
   .dy-order-alert-note{grid-template-columns:auto 1fr}.dy-order-alert-note a{grid-column:2}
   .dy-order-progress{overflow-x:auto;grid-template-columns:repeat(5,minmax(72px,1fr));padding-bottom:8px}
 }
+
+/* Plan Gratis: Impulso mensual de 24 horas */
+.dy-monthly-free-page{max-width:780px!important;margin:0 auto!important}
+.dy-free-impulse-status{display:flex;flex-direction:column;gap:6px;margin:16px 0;padding:17px 19px;border-radius:16px;background:#e8fbf5;border:1px solid #a7e6ce;color:#075c55}
+.dy-free-impulse-status.used{background:#f2f5f9;border-color:#dbe3eb;color:#203951}
+.dy-free-impulse-status b{font-size:16px}
+.dy-free-impulse-status small{line-height:1.5}
+.dy-free-impulse-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:19px}
+.dy-free-impulse-modes label{border:1px solid #d7e1ed;padding:16px 13px;border-radius:16px;display:block;cursor:pointer;min-width:0}
+.dy-free-impulse-modes label:has(input:checked){background:#eafbfa;border-color:#189a8c;box-shadow:inset 0 0 0 1px #189a8c}
+.dy-free-impulse-modes b,.dy-free-impulse-modes small{display:block;line-height:1.42}
+.dy-free-impulse-modes b{color:#113661;margin:7px 0 5px}
+.dy-free-impulse-modes small{color:#66758a}
+.dy-free-impulse-note{font-size:12px;line-height:1.55;color:#64748b;margin:14px 0}
+.dy-free-impulse-record{display:flex;flex-direction:column;gap:5px;border-radius:12px;border:1px solid #e1e9f0;padding:13px;margin:8px 0}
+.dy-free-impulse-record b{color:#0b3a82}.dy-free-impulse-record span,.dy-free-impulse-record small{color:#687a8b}
+.dy-free-impulse-paid{padding:17px 18px;margin:19px 0;background:#f6f9fc;border-radius:16px;border:1px solid #dfe8f2}
+.dy-free-impulse-paid b{color:#0b3a82}.dy-free-impulse-paid p{margin:7px 0 14px;color:#64748b}
+@media(max-width:560px){.dy-free-impulse-modes{grid-template-columns:1fr}.dy-free-impulse-status{margin:13px 0}}

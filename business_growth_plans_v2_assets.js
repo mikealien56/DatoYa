@@ -4,6 +4,6 @@ for(const name of ['business_growth_plans_v2_ui.js','business_growth_plans_v2.cs
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){let h=fs.readFileSync(idx,'utf8');
 h=h.replace(/<link[^>]+href="\/business_growth_plans_v2\.css[^"]*"[^>]*>\s*/g,'').replace(/<script[^>]+src="\/business_growth_plans_v2_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-h=h.replace('</head>','<link rel="stylesheet" href="/business_growth_plans_v2.css?v=20261001-1">\n</head>');
-h=h.replace('</body>','<script src="/business_growth_plans_v2_ui.js?v=20261017-central1"></script>\n</body>');
+h=h.replace('</head>','<link rel="stylesheet" href="/business_growth_plans_v2.css?v=20261017-freeimpulse1">\n</head>');
+h=h.replace('</body>','<script src="/business_growth_plans_v2_ui.js?v=20261017-freeimpulse1"></script>\n</body>');
 fs.writeFileSync(idx,h);}

@@ -12,7 +12,7 @@ node --check support_center_ui.js
 node --check marketplace_admin_v2_ui.js
 
 # Panel Negocio: cada acceso debe llevar a su sección real.
-grep -Fq "paid?'#/impulso-ahora/'+id:'#/mi-negocio-plan/'+id" business_hub_ui.js || fail "Impulso bloqueado no redirige a Plan"
+grep -Fq "['impulse','#/impulso-ahora/'+id" business_hub_ui.js || fail "Plan Gratis no puede acceder a su Impulso mensual"
 grep -q "Vista pública" business_hub_ui.js || fail "Falta nombre claro para la vista pública"
 grep -q "Datos del negocio" business_hub_ui.js || fail "Negocio no publicado no redirige a sus datos"
 grep -Fq "b.status==='active'&&b.slug" business_hub_ui.js || fail "Se ofrece vista pública a negocios no publicados"
