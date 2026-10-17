@@ -151,7 +151,7 @@
     try{
       const {categories,businesses,products}=await loadMarketplace();
       await loadSavedState();
-      const activePromos=products.filter(p=>!!clubPrice(p)&&(!p.stock_tracking||Number(p.stock)>0)),promos=activePromos.slice(0,6),promoHeading='⭐ Precios exclusivos DatoYa Club',promoCopy='Precios especiales elegidos por los negocios, disponibles solo para socios con Club activo.';
+      const activePromos=products.filter(p=>!!clubPrice(p)&&(!p.stock_tracking||Number(p.stock)>0)),promos=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).slice(0,8),promoHeading='Productos de tu zona',promoCopy='Encuentra productos reales de comercios cercanos a su precio normal; los socios Club acceden a precios especiales cuando estén disponibles.';
       const exclusivePromos=activePromos.slice(0,6);
       const featureZone=Number(loc.comunaId||businesses[0]?.comuna_id||0);
       let featuredBusiness=null;
@@ -201,7 +201,7 @@
 
         <section class="dy-section" id="local-categories"><div class="dy-section-head"><div><h2>¿Qué necesitas hoy?</h2><p>Categorías reales usadas por los negocios de DatoYa.</p></div><button class="dy-see-all" type="button" id="dy-beta-all">Ver todo →</button></div><div class="dy-category-strip">${categories.map(c=>`<button class="dy-category" type="button" data-dy-beta-category="${Number(c.id)}"><span class="dy-category-icon">${h(c.icon)}</span><b>${h(c.name)}</b></button>`).join('')}</div></section>
         <section class="dy-section dy-live-section" id="impulso-ahora"><div class="dy-section-head"><div><h2>⚡ Impulso Ahora</h2><p>Ventas por tiempo y stock aparecerán aquí cuando un negocio publique un Impulso Ahora.</p></div></div>${emptyBlock('⚡','Sin Impulsos Ahora activos en esta zona','No mostramos ofertas ficticias. Este espacio se llenará solo con publicaciones reales.')}</section>
-        <section class="dy-section" id="promociones"><div class="dy-section-head"><div><h2>${promoHeading}</h2><p>${promoCopy}</p></div></div><div class="dy-live-grid" id="dy-beta-promos">${promos.length?promos.map(p=>productCard(p,businesses,'promo')).join(''):emptyBlock('🏷️','Aún no hay precios exclusivos Club','Cuando un negocio elija un Precio Club, aparecerá aquí.')}</div></section>
+        <section class="dy-section" id="promociones"><div class="dy-section-head"><div><h2>${promoHeading}</h2><p>${promoCopy}</p></div></div><div class="dy-live-grid" id="dy-beta-promos">${promos.length?promos.map(p=>productCard(p,businesses,'promo')).join(''):emptyBlock('🏷️','Aún no hay productos publicados','Cuando un negocio publique un producto, aparecerá aquí.')}</div></section>
         <section class="dy-section" id="negocios-cerca"><div class="dy-section-head"><div><h2>📍 Negocios cerca de ti</h2><p>${loc.comunaId||loc.lat!=null?'Resultados según tu zona guardada.':'Elige tu ubicación para ver resultados de tu zona.'}</p></div><label class="dy-radius-control">Radio <select id="dy-radius-select" aria-label="Radio de búsqueda">${[1,3,5,10].map(km=>`<option value="${km}" ${loc.radius===km?'selected':''}>${km} km</option>`).join('')}</select></label></div><div class="dy-card-grid" id="dy-beta-businesses">${visibleBusinesses.length?visibleBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Todavía no hay negocios aprobados en esta zona','Puedes registrar uno para comenzar la prueba.',`<a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>`)}</div></section>
 
       </div>`;
@@ -227,7 +227,7 @@
       const matchingBusinessIds=new Set(businesses.filter(b=>(b.categories||[]).some(c=>Number(c.id)===id)).map(b=>Number(b.id)));
       const matchingProducts=products.filter(p=>Number(p.category_id)===id||matchingBusinessIds.has(Number(p.business_id)));
       document.querySelectorAll('#dy-beta-businesses [data-beta-business]').forEach(el=>el.style.display=matchingBusinessIds.has(Number(el.dataset.betaBusiness))?'':'none');
-      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){const active=matchingProducts.filter(p=>!!clubPrice(p));promoGrid.innerHTML=active.slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin Precios Club en esta categoría','Sí puede haber negocios disponibles más abajo.');bindSavedActions();bindPromoCountdowns();}
+      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){const active=matchingProducts.filter(p=>!p.stock_tracking||Number(p.stock||0)>0);promoGrid.innerHTML=active.slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin productos en esta categoría','Sí puede haber negocios disponibles más abajo.');bindSavedActions();bindPromoCountdowns();}
       const category=categories.find(c=>Number(c.id)===id);if(category)trackSearch(category.name,id,matchingBusinessIds.size+matchingProducts.length);
       document.getElementById('negocios-cerca')?.scrollIntoView({behavior:'smooth',block:'start'});
     }));
