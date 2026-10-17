@@ -189,6 +189,8 @@ echo "✅ Autorización base"
 
 echo "=== E2E Cliente + Negocio ==="
 bash test_two_accounts_flow.sh
+echo "=== E2E Impulso mensual gratuito ==="
+bash test_free_monthly_impulse_flow.sh
 echo "=== E2E readiness beta ==="
 bash test_beta_readiness_flow.sh
 echo "=== E2E integridad de pedidos ==="
@@ -222,7 +224,7 @@ grep -q "routes\['mi-negocio-estadisticas'\]" business_hub_ui.js || { echo "Falt
 grep -q "routes\['mi-negocio-configuracion'\]" business_hub_ui.js || { echo "Falta área Configuración del Panel Negocio 2.0"; exit 1; }
 grep -q "DATOYA NEGOCIOS" business_hub_ui.js || { echo "Falta identidad DatoYa Negocios"; exit 1; }
 grep -q "renderPremiumLock" business_hub_ui.js || { echo "Falta pantalla de candado premium"; exit 1; }
-grep -q "Incluido con DatoYa Impulso" business_hub_ui.js || { echo "Falta identificar funciones premium en Panel Negocio"; exit 1; }
+grep -q "Tu Impulso gratis mensual" business_hub_ui.js || { echo "Falta acceso a Impulso gratuito en Panel Negocio"; exit 1; }
 grep -q "Gratis vs DatoYa Impulso" business_impulse_plan_ui.js || { echo "Falta comparación clara de planes"; exit 1; }
 grep -q "Hasta '+freeLimit" business_impulse_plan_ui.js || { echo "Falta mostrar límite del catálogo Gratis"; exit 1; }
 grep -q "impulso_paid_catalog_limit" marketplace_admin_v2_ui.js || { echo "Admin no puede configurar límite catálogo Impulso"; exit 1; }
