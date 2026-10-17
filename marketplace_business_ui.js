@@ -89,7 +89,7 @@
         '<div class="dy-growth-business-stats"><div><b>'+remaining+'</b><small>pedidos de lanzamiento restantes</small></div><div><b>'+Number(g.referrals?.rewarded||0)+'</b><small>referidos que calificaron</small></div></div>'+
         (founder&&p.founder_code?'<div class="dy-founder-share"><span>Tu código para invitar negocios</span><b>'+h(p.founder_code)+'</b><button class="btn btn-outline btn-sm" type="button" data-copy-founder>Copiar código</button><small>Cuando un negocio invitado llegue a 5 pedidos completados, ganas días extra de DatoYa Impulso.</small></div>':'')+
         '<div class="dy-growth-rate-line"><span>Cargo de servicio online</span><b>2% sobre productos · a cargo del comprador</b></div>'+
-        '<div class="dy-growth-rate-line"><span>🔒 Solo en DatoYa</span><b>Beneficio de visibilidad para ofertas exclusivas</b></div>';
+        '<div class="dy-growth-rate-line"><span>⭐ DatoYa Club</span><b>Precio especial opcional para socios en productos elegidos por tu negocio</b></div>';
       hero.insertAdjacentElement('afterend',card);
       card.querySelector('[data-copy-founder]')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(String(p.founder_code));toast?.('Código copiado','ok')}catch(_){toast?.('Código: '+p.founder_code,'info')}});
     }catch(_){}
