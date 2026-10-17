@@ -161,6 +161,7 @@ if(!source.includes('DATOYA WEEKLY IMPULSE V1')){
     "  const row=db.prepare('SELECT wi.*,b.owner_user_id,b.name AS business_name FROM weekly_impulses wi JOIN businesses b ON b.id=wi.business_id WHERE wi.id=?').get(id);",
     "  if(!row) return res.status(404).json({error:'Oferta no encontrada'});",
     "  if(row.status!=='pending_review') return res.status(400).json({error:'La oferta no esta pendiente de revision'});",
+    "  if(row.placement_type!=='gifted' && !(process.env.AUTH_TEST_MODE==='true' && process.env.NODE_ENV!=='production' && !process.env.RENDER_SERVICE_ID)) return res.status(409).json({error:'Este Impulso de la semana requiere un pago confirmado en DatoYa antes de aprobarse',code:'WEEKLY_PAYMENT_REQUIRED'});",
     "  if(!row.original_image_data) return res.status(400).json({error:'La oferta no tiene foto original'});",
     "  const type=['paid','gifted','launch'].includes(String(req.body?.placement_type))?String(req.body.placement_type):(row.placement_type==='gifted'?'gifted':'paid');",
     '  const start=req.body?.starts_at?new Date(req.body.starts_at):new Date();',
