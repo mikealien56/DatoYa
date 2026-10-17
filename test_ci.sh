@@ -25,6 +25,7 @@ bash test_ui_navigation_consistency.sh
 bash test_mobile_notifications.sh
 bash test_password_reset_links.sh
 bash test_business_loading_guards.sh
+node --test test_central_marketplace_payment_policy.js
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
 bash test_khipu_business_onboarding.sh
