@@ -165,7 +165,7 @@
           <div class="dy-how-heading">
             <span class="dy-how-eyebrow">ASÍ FUNCIONA DATOYA</span>
             <h2 id="dy-how-title">Simple para comprar. Simple para vender.</h2>
-            <p>DatoYa conecta personas con negocios cercanos. El pedido se organiza aquí, pero el dinero de la venta va directo al negocio.</p>
+            <p>DatoYa conecta personas con negocios cercanos. Las compras online se realizan dentro de DatoYa mediante Mercado Pago, cuando la pasarela esté habilitada.</p>
           </div>
           <div class="dy-how-grid">
             <article class="dy-how-card customer">
@@ -174,7 +174,7 @@
                 <li><b>Busca lo que necesitas</b><span>Usa tu ubicación, categorías, promociones o Lo Busco Ya.</span></li>
                 <li><b>Elige un negocio</b><span>Revisa productos, precios, horarios, retiro y despacho.</span></li>
                 <li><b>Haz tu pedido</b><span>DatoYa registra el pedido y te avisa cuando cambia de estado.</span></li>
-                <li><b>Paga directamente al negocio</b><span>Retiro, despacho, transferencia o el medio que el comercio tenga habilitado.</span></li>
+                <li><b>Paga online de forma segura</b><span>Confirma tu compra en DatoYa con Mercado Pago cuando la pasarela esté habilitada.</span></li>
               </ol>
               <a class="btn btn-outline dy-how-cta" href="#/buscar/_">Explorar negocios →</a>
             </article>
@@ -183,7 +183,7 @@
               <ol class="dy-how-steps">
                 <li><b>Crea tu negocio gratis</b><span>Publica tu perfil, ubicación, horarios, productos y promociones.</span></li>
                 <li><b>Recibe pedidos reales</b><span>Confirma, prepara y completa pedidos desde tu panel.</span></li>
-                <li><b>Cobra directamente</b><span>El cliente te paga a ti. DatoYa no recibe ni retiene el dinero de la venta.</span></li>
+                <li><b>Vende desde DatoYa</b><span>Vincula tu cuenta Mercado Pago para recibir pagos de compras realizadas dentro de DatoYa.</span></li>
                 <li><b>Impúlsate solo si quieres</b><span>Impulso, Impulso+ y Premium agregan visibilidad y herramientas por 1, 7, 15 o 30 días.</span></li>
               </ol>
               <a class="btn btn-primary dy-how-cta" href="#/registrar-negocio">Registrar mi negocio →</a>
@@ -191,7 +191,7 @@
           </div>
           <div class="dy-how-promise">
             <div><span>💸</span><p><b>0% comisión DatoYa sobre tus ventas</b><small>Vender y recibir pedidos puede seguir siendo gratis.</small></p></div>
-            <div><span>🔒</span><p><b>El dinero no pasa por DatoYa</b><small>Los pagos de pedidos se hacen directamente al comercio.</small></p></div>
+            <div><span>🔒</span><p><b>Pago seguro dentro de DatoYa</b><small>Mercado Pago procesa las compras y DatoYa informa el cargo de servicio antes de pagar.</small></p></div>
             <div><span>⚡</span><p><b>Crecer es opcional</b><small>Un negocio puede seguir usando DatoYa Gratis sin contratar un impulso.</small></p></div>
           </div>
         </section>
