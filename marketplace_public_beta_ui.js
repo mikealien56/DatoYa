@@ -97,9 +97,9 @@
     if(!tokens.length)return true;
     return tokens.every(token=>[token,...(SEARCH_ALIASES[token]||[])].map(searchNormalize).filter(Boolean).some(v=>hay.includes(v)));
   }
-  const activePromo=p=>!!p.promo_price&&p.promo_is_active!==false;
+  const activePromo=p=>false; // Precio general promocional retirado del catálogo
   const timedPromo=p=>activePromo(p)&&!!p.promo_starts_at&&!!p.promo_ends_at;
-  const clubPrice=p=>{const regular=Number(activePromo(p)?p.promo_price:p.price),club=Number(p.club_price||0);return club>0&&club<regular?club:null;};
+  const clubPrice=p=>{const regular=Number(p.price||0),club=Number(p.club_price||0);return club>0&&club<regular?club:null;};
   let promoCountdownTimer=null;
   function countdownText(endValue){
     const diff=new Date(endValue).getTime()-Date.now();
@@ -133,10 +133,10 @@
 
   function productCard(p,businesses,kind='product'){
     const b=businesses.find(x=>Number(x.id)===Number(p.business_id));
-    const promo=activePromo(p)?p.promo_price:null,price=promo||p.price,timed=timedPromo(p),badge=p.datoya_exclusive&&promo?'🔒 SOLO EN DATOYA':kind==='promo'?(timed?'🔥 PROMO HOY':'🔥 OFERTA'):'DISPONIBLE';
+    const price=Number(p.price||0),badge=clubPrice(p)?'⭐ EXCLUSIVO DATOYA CLUB':'DISPONIBLE';
     return `<article class="dy-live-card dy-real-product">
       <div class="dy-live-image dy-real-product-photo">${productPhoto(p)}<span class="dy-live-badge">${badge}</span>${p.stock_tracking?`<span class="dy-stock-badge">${Number(p.stock||0)>0?`Quedan ${Number(p.stock)}`:'Sin stock'}</span>`:''}${savedButton('product',p.id)}</div>
-      <div class="dy-live-body"><h3>${h(p.name)}</h3><p>${h(p.business_name||b?.name||'')} ${p.distance_km!=null?`· 📍 ${h(fmtDistance(p.distance_km))}`:''}</p>${timed?`<div class="dy-promo-countdown" data-dy-promo-end="${h(p.promo_ends_at)}">${h(countdownText(p.promo_ends_at))}</div>`:''}<div class="dy-live-price-row"><div class="dy-live-price"><strong>${money(price)}</strong>${promo?`<span class="dy-old-price">${money(p.price)}</span>`:''}${clubPrice(p)?`<small class="dy-club-price-label">⭐ Club ${money(clubPrice(p))}</small>`:''}</div><a class="dy-beta-link" href="#/negocio/${Number(p.business_id)}">Ver →</a></div></div>
+      <div class="dy-live-body"><h3>${h(p.name)}</h3><p>${h(p.business_name||b?.name||'')} ${p.distance_km!=null?`· 📍 ${h(fmtDistance(p.distance_km))}`:''}</p><div class="dy-live-price-row"><div class="dy-live-price"><strong>${money(price)}</strong>${clubPrice(p)?`<small class="dy-club-price-label">⭐ Club ${money(clubPrice(p))}</small>`:''}</div><a class="dy-beta-link" href="#/negocio/${Number(p.business_id)}">Ver →</a></div></div>
     </article>`;
   }
 
@@ -151,8 +151,8 @@
     try{
       const {categories,businesses,products}=await loadMarketplace();
       await loadSavedState();
-      const activePromos=products.filter(p=>activePromo(p)&&(!p.stock_tracking||Number(p.stock)>0)),todayPromos=activePromos.filter(timedPromo).slice(0,6),promos=todayPromos.length?todayPromos:activePromos.slice(0,6),promoHeading=todayPromos.length?'🔥 Promos de hoy':'🔥 Promociones cerca de ti',promoCopy=todayPromos.length?'Ofertas con tiempo limitado activas ahora en tu zona.':'Precios promocionales creados por negocios aprobados.';
-      const exclusivePromos=activePromos.filter(p=>Number(p.datoya_exclusive)===1).slice(0,6);
+      const activePromos=products.filter(p=>!!clubPrice(p)&&(!p.stock_tracking||Number(p.stock)>0)),promos=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).slice(0,8),promoHeading='Productos de tu zona',promoCopy='Encuentra productos reales de comercios cercanos a su precio normal; los socios Club acceden a precios especiales cuando estén disponibles.';
+      const exclusivePromos=activePromos.slice(0,6);
       const featureZone=Number(loc.comunaId||businesses[0]?.comuna_id||0);
       let featuredBusiness=null;
       if(featureZone){try{const result=await api('/featured-business/active?comuna_id='+featureZone);featuredBusiness=businesses.find(b=>Number(b.id)===Number(result.business?.id))||null;}catch(_){/* El resto de la portada sigue disponible. */}}
@@ -195,13 +195,13 @@
             <div><span>⚡</span><p><b>Crecer es opcional</b><small>Un negocio puede seguir usando DatoYa Gratis sin contratar un impulso.</small></p></div>
           </div>
         </section>
-        <section class="dy-section dy-exclusive-section" id="solo-datoya" aria-labelledby="dy-exclusive-title"><div class="dy-exclusive-intro"><span class="dy-exclusive-eyebrow">🔒 SOLO EN DATOYA</span><h2 id="dy-exclusive-title">Ofertas exclusivas para ti</h2><p>Promociones especiales de negocios de tu zona, disponibles al pedir por DatoYa.</p></div>${exclusivePromos.length?`<div class="dy-live-grid">${exclusivePromos.map(p=>productCard(p,businesses,'promo')).join('')}</div>`:`<div class="dy-exclusive-soon">Próximamente verás aquí las primeras ofertas exclusivas de tu zona. <a href="#/buscar/_">Explorar negocios →</a></div>`}</section>
+        <section class="dy-section dy-exclusive-section" id="solo-datoya" aria-labelledby="dy-exclusive-title"><div class="dy-exclusive-intro"><span class="dy-exclusive-eyebrow">⭐ EXCLUSIVO DATOYA CLUB</span><h2 id="dy-exclusive-title">Precios especiales solo para socios</h2><p>Los negocios eligen un precio exclusivo para miembros Club. El resto de los clientes mantiene el precio normal.</p></div>${exclusivePromos.length?`<div class="dy-live-grid">${exclusivePromos.map(p=>productCard(p,businesses,'promo')).join('')}</div>`:`<div class="dy-exclusive-soon">Pronto aparecerán los primeros productos con Precio Club de tu zona. <a href="#/buscar/_">Explorar negocios →</a></div>`}</section>
         <section class="dy-section dy-featured-week" id="negocio-destacado"><div class="dy-featured-week-head"><span>⭐ ESPACIO DESTACADO</span><h2>Negocio destacado de la semana</h2><p>${featuredBusiness?'Conoce este negocio local. Espacio promocionado por DatoYa.':'Pronto conocerás aquí un negocio de tu zona.'}</p></div>${featuredBusiness?`<div class="dy-featured-week-card"><div class="dy-featured-week-photo">${businessPhoto(featuredBusiness,products)}</div><div><span class="dy-featured-week-label">${'Publicidad · 7 días'}</span><h3>${h(featuredBusiness.name)}</h3><p>${h(featuredBusiness.comuna||'Negocio local')}</p><a href="#/negocio/${Number(featuredBusiness.id)}" class="btn btn-primary">Conocer negocio →</a></div></div>`:`<div class="dy-featured-week-soon">Un espacio para negocios aprobados que quieran mostrarse durante siete días. <a href="#/registrar-negocio">Tengo un negocio →</a></div>`}</section>
         ${ME&&(ME.role==='admin'||ME.account_type==='admin')?'':`<section class="dy-section dy-wanted-intro" id="lo-busco-ya-demo" aria-labelledby="dy-wanted-intro-title"><div><span class="dy-wanted-intro-kicker">🙋 LO BUSCO YA</span><h2 id="dy-wanted-intro-title">Cuéntanos qué necesitas y recibe respuestas de negocios cercanos</h2><p>Publica los detalles, elige tu zona y revisa las respuestas en tu cuenta cliente.</p><a class="btn btn-primary" href="${!ME?'#/registro':isCustomerAccount()?'#/lo-busco-ya':'#/perfil'}">${!ME?'Crear cuenta cliente':isCustomerAccount()?'Publicar lo que busco':'Ver mi cuenta'}</a></div><div class="dy-wanted-example"><span>Ejemplo de cómo funciona</span><blockquote>“Busco una torta para 10 personas para este sábado.”</blockquote><ol><li>Publicas lo que buscas y cuándo lo necesitas.</li><li>Los negocios compatibles pueden responderte.</li><li>Revisas las opciones y eliges con quién comprar.</li></ol><small>Tu dirección exacta y tus datos privados no se publican.</small></div></section>`}
 
         <section class="dy-section" id="local-categories"><div class="dy-section-head"><div><h2>¿Qué necesitas hoy?</h2><p>Categorías reales usadas por los negocios de DatoYa.</p></div><button class="dy-see-all" type="button" id="dy-beta-all">Ver todo →</button></div><div class="dy-category-strip">${categories.map(c=>`<button class="dy-category" type="button" data-dy-beta-category="${Number(c.id)}"><span class="dy-category-icon">${h(c.icon)}</span><b>${h(c.name)}</b></button>`).join('')}</div></section>
         <section class="dy-section dy-live-section" id="impulso-ahora"><div class="dy-section-head"><div><h2>⚡ Impulso Ahora</h2><p>Ventas por tiempo y stock aparecerán aquí cuando un negocio publique un Impulso Ahora.</p></div></div>${emptyBlock('⚡','Sin Impulsos Ahora activos en esta zona','No mostramos ofertas ficticias. Este espacio se llenará solo con publicaciones reales.')}</section>
-        <section class="dy-section" id="promociones"><div class="dy-section-head"><div><h2>${promoHeading}</h2><p>${promoCopy}</p></div></div><div class="dy-live-grid" id="dy-beta-promos">${promos.length?promos.map(p=>productCard(p,businesses,'promo')).join(''):emptyBlock('🏷️','Aún no hay promociones reales','Cuando un negocio publique un precio oferta, aparecerá aquí.')}</div></section>
+        <section class="dy-section" id="promociones"><div class="dy-section-head"><div><h2>${promoHeading}</h2><p>${promoCopy}</p></div></div><div class="dy-live-grid" id="dy-beta-promos">${promos.length?promos.map(p=>productCard(p,businesses,'promo')).join(''):emptyBlock('🏷️','Aún no hay productos publicados','Cuando un negocio publique un producto, aparecerá aquí.')}</div></section>
         <section class="dy-section" id="negocios-cerca"><div class="dy-section-head"><div><h2>📍 Negocios cerca de ti</h2><p>${loc.comunaId||loc.lat!=null?'Resultados según tu zona guardada.':'Elige tu ubicación para ver resultados de tu zona.'}</p></div><label class="dy-radius-control">Radio <select id="dy-radius-select" aria-label="Radio de búsqueda">${[1,3,5,10].map(km=>`<option value="${km}" ${loc.radius===km?'selected':''}>${km} km</option>`).join('')}</select></label></div><div class="dy-card-grid" id="dy-beta-businesses">${visibleBusinesses.length?visibleBusinesses.map(b=>businessCard(b,products)).join(''):emptyBlock('🏪','Todavía no hay negocios aprobados en esta zona','Puedes registrar uno para comenzar la prueba.',`<a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>`)}</div></section>
 
       </div>`;
@@ -227,7 +227,7 @@
       const matchingBusinessIds=new Set(businesses.filter(b=>(b.categories||[]).some(c=>Number(c.id)===id)).map(b=>Number(b.id)));
       const matchingProducts=products.filter(p=>Number(p.category_id)===id||matchingBusinessIds.has(Number(p.business_id)));
       document.querySelectorAll('#dy-beta-businesses [data-beta-business]').forEach(el=>el.style.display=matchingBusinessIds.has(Number(el.dataset.betaBusiness))?'':'none');
-      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){const active=matchingProducts.filter(activePromo),timed=active.filter(timedPromo);promoGrid.innerHTML=(timed.length?timed:active).slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin promociones en esta categoría','Sí puede haber negocios disponibles más abajo.');bindSavedActions();bindPromoCountdowns();}
+      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){const active=matchingProducts.filter(p=>!p.stock_tracking||Number(p.stock||0)>0);promoGrid.innerHTML=active.slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin productos en esta categoría','Sí puede haber negocios disponibles más abajo.');bindSavedActions();bindPromoCountdowns();}
       const category=categories.find(c=>Number(c.id)===id);if(category)trackSearch(category.name,id,matchingBusinessIds.size+matchingProducts.length);
       document.getElementById('negocios-cerca')?.scrollIntoView({behavior:'smooth',block:'start'});
     }));

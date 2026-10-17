@@ -48,7 +48,7 @@
     const p=storeContext?.products?.find(x=>Number(x.id)===Number(id)),b=storeContext?.business;
     if(!p||!b)return toast?.('Producto no disponible','err');
     if(p.stock_tracking&&Number(p.stock||0)<=0)return toast?.('Producto sin stock','err');
-    const regular=Number(p.promo_is_active!==false&&Number(p.promo_price||0)>0?p.promo_price:p.price);
+    const regular=Number(p.price||0);
     const club=Number(p.club_price||0);
     let price=regular,clubApplied=false;
     if(ME&&isCustomerAccount()&&club>0&&club<regular){
