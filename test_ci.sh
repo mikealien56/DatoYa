@@ -167,7 +167,7 @@ done
 if [ "$READY" -ne 1 ]; then echo "Timeout esperando DatoYa"; cat /tmp/datoya-ci.log; exit 1; fi
 
 curl -fsS http://localhost:3000/health | grep -q '"ok":true'
-curl -fsS http://localhost:3000/api/public/business-plans | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["rule"].startswith("DatoYa no cobra comisión"); assert len(d["offers"])==3; assert d["durations"]==[1,7,15,30]' || { echo "Planes públicos de negocio incorrectos"; exit 1; }
+curl -fsS http://localhost:3000/api/public/business-plans | python3 -c 'import sys,json; d=json.load(sys.stdin); assert "cargo de servicio del 2%" in d["rule"]; assert len(d["offers"])==3; assert d["durations"]==[1,7,15,30]' || { echo "Planes públicos de negocio incorrectos"; exit 1; }
 curl -fsS http://localhost:3000/api/public/club | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["no_auto_renew"] is True; assert int(d["free_hunts"])>=1' || { echo "Club público incorrecto"; exit 1; }
 CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["categories"]))')
 [ "$CATS" -ge 20 ] || { echo "Catálogo comercial incompleto: $CATS"; exit 1; }
@@ -227,7 +227,7 @@ grep -q "Gratis vs DatoYa Impulso" business_impulse_plan_ui.js || { echo "Falta 
 grep -q "Hasta '+freeLimit" business_impulse_plan_ui.js || { echo "Falta mostrar límite del catálogo Gratis"; exit 1; }
 grep -q "impulso_paid_catalog_limit" marketplace_admin_v2_ui.js || { echo "Admin no puede configurar límite catálogo Impulso"; exit 1; }
 node -e 'const s=require("fs").readFileSync("production_start.js","utf8");const plan=s.indexOf("business_impulse_plan_assets");const hub=s.indexOf("business_hub_assets");if(plan<0||hub<0||hub<plan){throw new Error("Panel Negocio 2.0 no carga al final de los módulos comerciales")}'
-echo "✅ Khipu reservado a servicios DatoYa; pedidos pagan directo al negocio"
+echo "✅ Pedidos nuevos solo con checkout online DatoYa / Mercado Pago; Khipu histórico protegido"
 echo "✅ Frontend comercial publicado"
 
 # Limpieza UX: evitar repetir CTAs y accesos que ya existen en la navegación principal.
@@ -312,7 +312,7 @@ grep -q "marketplace_growth_program_bootstrap" production_start.js || { echo "Pr
 grep -q "business_model:'no_commission'" marketplace_growth_program_bootstrap.js || { echo "Programa de crecimiento no declara modelo sin comisión"; exit 1; }
 grep -q "effective_rate:0" marketplace_growth_program_bootstrap.js || { echo "Todavía existe comisión efectiva en pedidos"; exit 1; }
 grep -q "home_structure_v3_assets" production_start.js || { echo "Home Structure V3 no está publicado"; exit 1; }
-grep -q "0% comisión DatoYa" home_structure_v3.js || { echo "Portada no explica el modelo sin comisión"; exit 1; }
+grep -q 'cargo de servicio 2%' home_structure_v3.js || { echo "Portada no informa el cargo online de DatoYa"; exit 1; }
 grep -q "DatoYa Club" home_structure_v3.js || { echo "Portada no explica Club"; exit 1; }
 grep -q "Impulso+" home_structure_v3.js || { echo "Portada no compara planes de negocio"; exit 1; }
 grep -q "marketplace_refunds_bootstrap" production_start.js || { echo "Devoluciones no están montadas"; exit 1; }
