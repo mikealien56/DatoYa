@@ -1,4 +1,4 @@
-name: DatoYa direct-payment order smoke
+name: DatoYa central-payment order smoke
 on:
   pull_request:
     branches: ["main"]
@@ -17,10 +17,10 @@ jobs:
         run: |
           node --check direct_merchant_payments_ui.js
           node --check direct_merchant_payments_assets.js
-          grep -q 'Recibe pagos con Mercado Pago' direct_merchant_payments_ui.js
-          grep -q 'Otros medios de pago' direct_merchant_payments_ui.js
-          grep -q 'Conecta tu cuenta para ofrecer pagos online' direct_merchant_payments_ui.js
-          grep -q 'Guardar y comenzar a recibir pedidos' direct_merchant_payments_ui.js
+          grep -q 'Mercado Pago en DatoYa' direct_merchant_payments_ui.js
+          grep -q 'DATOYA_CENTRAL_MARKETPLACE_PAYMENTS_20261017' datoya_central_payment_policy_bootstrap.js
+          ! grep -q 'Otros medios de pago' direct_merchant_payments_ui.js
+          grep -q 'Pago online en DatoYa' marketplace_commerce_ui.js
       - name: Start test server and test orders
         env:
           AUTH_TEST_MODE: "true"
@@ -42,5 +42,5 @@ jobs:
             sleep 1
           done
           if [ "$READY" -ne 1 ]; then cat /tmp/datoya-direct-payments-ci.log; exit 1; fi
-          curl -fsS http://localhost:3000/direct_merchant_payments_ui.js | grep -q 'Recibe pagos con Mercado Pago'
+          curl -fsS http://localhost:3000/direct_merchant_payments_ui.js | grep -q 'Mercado Pago en DatoYa'
           bash test_order_integrity_flow.sh
