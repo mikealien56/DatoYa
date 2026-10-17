@@ -162,3 +162,17 @@
   .dy-club-premium-simple .dy-club-simple-actions .btn{width:100%;text-align:center}
   .dy-club-premium-simple .dy-club-info-hero-copy h1{font-size:clamp(27px,7.6vw,37px)!important}
 }
+
+/* Tarjeta Club WebP visible: evita dimensiones nulas en Android. */
+.dy-club-premium-simple .dy-club-info-card-art{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:100%!important;min-width:0!important;min-height:210px!important;
+  visibility:visible!important;opacity:1!important;
+}
+.dy-club-premium-simple .dy-club-info-card-art img.dy-premium-club-art{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  flex:none!important;position:relative!important;max-width:min(100%,520px)!important;
+  width:100%!important;height:auto!important;min-height:1px!important;
+  aspect-ratio:520/347!important;object-fit:contain!important;
+  transform:none!important;filter:drop-shadow(0 14px 24px rgba(0,0,0,.2))!important;
+}
