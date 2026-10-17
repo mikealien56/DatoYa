@@ -21,10 +21,10 @@
       return '<section class="dy-club-active-strip"><div><span>⭐</span><div><b>Club activo</b><small>Hasta '+h(date(d.membership.expires_at))+' · no se renueva solo</small></div></div><button class="btn btn-outline" onclick="dyClubBuy(30)">Extender 30 días</button></section>';
     }
     const enabled=!!d.config?.checkout_enabled;
-    return '<section class="dy-club-passes"><div class="dy-club-pass-copy"><span>PASES CLUB</span><h2>Prueba cuando te haga sentido</h2><p>No hay suscripción escondida: compras días de Club y después vuelves a Gratis si no renuevas.</p></div>'+
+    return '<section class="dy-club-passes"><div class="dy-club-pass-copy"><span>PASES CLUB</span><h2>Beneficios cuando más te sirvan</h2><p>No hay suscripción escondida: compras días de Club y después vuelves a Gratis si no renuevas.</p></div>'+
       '<div class="dy-club-pass-grid">'+
         '<article><small>PRUEBA</small><h3>7 días</h3><strong>'+money(d.prices?.[7]||990)+'</strong><p>Para probar Caza Ya con varias necesidades.</p><button class="btn btn-outline btn-block" '+(enabled?'':'disabled')+' onclick="dyClubBuy(7)">Activar 7 días</button></article>'+
-        '<article class="recommended"><em>MÁS CONVENIENTE</em><small>PASE COMPLETO</small><h3>30 días</h3><strong>'+money(d.prices?.[30]||1990)+'</strong><p>Radar activo durante todo el mes, sin renovación automática.</p><button class="btn btn-primary btn-block" '+(enabled?'':'disabled')+' onclick="dyClubBuy(30)">Activar 30 días</button></article>'+
+        '<article class="recommended"><em>MÁS CONVENIENTE</em><small>PASE COMPLETO</small><h3>30 días</h3><strong>'+money(d.prices?.[30]||3990)+'</strong><p>Radar activo durante todo el mes, sin renovación automática.</p><button class="btn btn-primary btn-block" '+(enabled?'':'disabled')+' onclick="dyClubBuy(30)">Activar 30 días</button></article>'+
       '</div>'+
       (!enabled?'<div class="dy-club-dev-note">🧪 El diseño y flujo Club ya están listos; el cobro real de Club sigue bloqueado mientras se termina la integración segura con Mercado Pago.</div>':'')+
     '</section>';
@@ -98,10 +98,10 @@
       view.innerHTML='<div class="dy-club-page dy-club-info-v2">'+
         '<a class="dy-public-back" href="#/">← Volver a DatoYa</a>'+
         '<section class="dy-club-info-hero-v2">'+
-          '<div class="dy-club-info-card-art"><img src="/brand/datoya-club-card-v13.webp?v=20261003-13" alt="Tarjeta DatoYa Club"></div>'+
-          '<div class="dy-club-info-hero-copy"><span>DATOYA CLUB</span><h1>DatoYa atento por ti</h1><p>Club es un pase opcional que agrega herramientas para seguir lo que buscas, fijar un precio objetivo, detectar nuevas oportunidades y aprovechar beneficios especiales cuando un negocio ofrezca Precio Club.</p><div class="dy-club-info-hero-actions"><a class="btn btn-light" href="#club-beneficios">Ver beneficios</a><small>DatoYa Gratis sigue disponible siempre</small></div></div>'+
+          '<div class="dy-club-info-card-art"><picture><source srcset="/brand/datoya-club-card.avif?v=20261017-premium1" type="image/avif"><img src="/brand/datoya-club-card-v13.webp?v=20261017-premium1" alt="Tarjeta premium DatoYa Club: compra local, ahorra más y descubre juntos" width="1000" height="646" fetchpriority="high" decoding="async"></picture></div>'+
+          '<div class="dy-club-info-hero-copy"><span>DATOYA CLUB</span><h1>Beneficios exclusivos por $3.990 al mes</h1><p>Únete a DatoYa Club y descubre una experiencia mejorada: <b>Precios Club</b> en productos participantes, beneficios especiales y herramientas para encontrar mejores oportunidades cerca de ti.</p><div class="dy-club-info-hero-actions"><a class="btn btn-light" href="#club-beneficios">Descubrir beneficios</a><small>DatoYa Gratis seguirá disponible para todos. Club es opcional.</small></div><p class="dy-club-price-clarity">Pase de 30 días, sin renovación automática. Su contratación estará disponible al habilitar Mercado Pago.</p></div>'+
         '</section>'+
-        '<section class="dy-club-info-summary"><span>CLUB EN UNA FRASE</span><h2>Tú defines qué buscas. DatoYa queda atento.</h2><p>No necesitas Club para explorar negocios ni hacer pedidos. Club sirve para automatizar parte de esa búsqueda y darte más herramientas para detectar oportunidades locales.</p></section>'+
+        '<section class="dy-club-info-summary"><span>CLUB EN UNA FRASE</span><h2>DatoYa atento por ti: más beneficios a tu alcance.</h2><p>No necesitas Club para explorar negocios ni hacer pedidos. Club sirve para automatizar parte de esa búsqueda y darte más herramientas para detectar oportunidades locales.</p></section>'+
         '<section id="club-beneficios" class="dy-club-lab dy-club-info-benefits-v2"><div class="dy-club-section-head"><span>BENEFICIOS</span><h2>Qué agrega DatoYa Club</h2><p>Herramientas pensadas para buscar menos y aprovechar mejor lo que aparece cerca de ti.</p></div>'+
           '<div class="dy-club-feature-grid dy-club-feature-grid-v2">'+
             '<article><i>01</i><b>Caza Ya</b><p>Deja búsquedas activas para que DatoYa siga revisando coincidencias por ti.</p><small>Gratis: '+Number(p.free_hunts||1)+' · Club: hasta '+Number(p.club_hunts||10)+'</small></article>'+
@@ -130,11 +130,11 @@
           '<div><small>DATOYA GRATIS</small><h3>Para usar DatoYa normalmente</h3><p>Buscar productos y negocios, hacer pedidos, usar Lo Busco Ya, favoritos, alertas básicas y una Caza de prueba.</p></div>'+
           '<div><small>DATOYA CLUB</small><h3>Para dejar a DatoYa más atento</h3><p>Todo lo de Gratis, más Cazas activas, Precio Meta, Radar Silencioso, Junta DatoYa y beneficios Club.</p></div>'+
         '</div></section>'+
-        '<section class="dy-club-passes dy-club-passes-v2"><div class="dy-club-pass-copy"><span>PASES CLUB</span><h2>Actívalo solo cuando te sirva</h2><p>Son pases por tiempo y no tienen renovación automática.</p></div><div class="dy-club-pass-grid">'+
+        '<section class="dy-club-passes dy-club-passes-v2"><div class="dy-club-pass-copy"><span>PASES CLUB</span><h2>Tu acceso Club por $3.990 al mes</h2><p>Son pases por tiempo y no tienen renovación automática.</p></div><div class="dy-club-pass-grid">'+
           '<article><small>7 DÍAS</small><h3>'+money(p.prices?.[7]||990)+'</h3><p>Una semana para conocer y probar las herramientas Club.</p></article>'+
-          '<article class="recommended"><em>MÁS CONVENIENTE</em><small>30 DÍAS</small><h3>'+money(p.prices?.[30]||1990)+'</h3><p>Un mes para mantener varias Cazas y Radar trabajando por ti.</p></article>'+
+          '<article class="recommended"><em>MÁS CONVENIENTE</em><small>30 DÍAS</small><h3>'+money(p.prices?.[30]||3990)+'</h3><p>Un mes para mantener varias Cazas y Radar trabajando por ti.</p></article>'+
         '</div></section>'+
-        '<section class="dy-club-info-rules-v2"><div><b>Sin renovación automática</b><p>Cuando termina el pase, vuelves a DatoYa Gratis.</p></div><div><b>La compra sigue siendo con el negocio</b><p>Club no cambia quién vende ni cómo se gestiona tu pedido.</p></div><div><b>Tú decides</b><p>Las alertas y coincidencias son información para ayudarte; la decisión de compra siempre es tuya.</p></div></section>'+
+        '<section class="dy-club-info-rules-v2"><div><b>Sin renovación automática</b><p>Cuando termina el pase, vuelves a DatoYa Gratis.</p></div><div><b>Pago protegido dentro de DatoYa</b><p>Cuando esté habilitado, Mercado Pago procesará las compras online. Club no cambia quién vende el producto.</p></div><div><b>Tú decides</b><p>Las alertas y coincidencias son información para ayudarte; la decisión de compra siempre es tuya.</p></div></section>'+
         accountNote+
         '<section class="dy-club-info-cta"><div><b>Conoce DatoYa gratis y activa Club cuando quieras más herramientas.</b><p>No necesitas pagar para seguir explorando negocios y productos.</p></div><div>'+cta+'</div></section>'+
       '</div>';
@@ -207,7 +207,7 @@
     const root=document.querySelector('.dy-account-page,.dy-profile-page,#view>div');
     if(root&&!document.getElementById('dy-club-profile-card')){
       const s=document.createElement('section');s.id='dy-club-profile-card';s.className='dy-club-profile-card';
-      s.innerHTML='<div><img class="dy-club-profile-brand" src="/brand/datoya-club-card-v13.webp?v=20261003-13" alt="DatoYa Club"><div><b>DatoYa Club</b><p>Activa Caza Ya, Precio Meta y Junta DatoYa. Tu primera Caza es gratis.</p></div></div><a href="#/club">Ver Club →</a>';
+      s.innerHTML='<div><img class="dy-club-profile-brand" src="/brand/datoya-club-card.avif?v=20261017-premium1" onerror="this.onerror=null;this.src=\'/brand/datoya-club-card-v13.webp?v=20261017-premium1\'" alt="DatoYa Club"><div><b>DatoYa Club</b><p>Activa Caza Ya, Precio Meta y Junta DatoYa. Tu primera Caza es gratis.</p></div></div><a href="#/club">Ver Club →</a>';
       root.appendChild(s);
     }
   }
@@ -218,7 +218,7 @@
     if(ME&&(ME.account_type==='business'||ME.role==='admin'))return;
     const anchor=document.getElementById('como-funciona');if(!anchor||document.getElementById('dy-club-home'))return;
     const s=document.createElement('section');s.id='dy-club-home';s.className='dy-section dy-club-home';
-    s.innerHTML='<div class="dy-club-home-brand"><img src="/brand/datoya-club-card-v13.webp?v=20261003-13" alt="DatoYa Club"></div><div class="dy-club-home-copy"><span>DATOYA CLUB</span><h2>Más oportunidades. Menos búsqueda.</h2><p>Activa herramientas para que DatoYa quede atento a lo que buscas y a tu precio objetivo.</p><div><a class="btn btn-primary" href="#/club-info">Conoce más</a><small>DatoYa Gratis sigue disponible · sin renovación automática</small></div></div>';
+    s.innerHTML='<div class="dy-club-home-brand"><img src="/brand/datoya-club-card.avif?v=20261017-premium1" onerror="this.onerror=null;this.src=\'/brand/datoya-club-card-v13.webp?v=20261017-premium1\'" alt="DatoYa Club"></div><div class="dy-club-home-copy"><span>DATOYA CLUB</span><h2>Más oportunidades. Menos búsqueda.</h2><p>Activa herramientas para que DatoYa quede atento a lo que buscas y a tu precio objetivo.</p><div><a class="btn btn-primary" href="#/club-info">Conoce más</a><small>DatoYa Gratis sigue disponible · sin renovación automática</small></div></div>';
     anchor.insertAdjacentElement('afterend',s);
   }
   addEventListener('datoya:market-home-rendered',()=>setTimeout(addHomeClub,0));

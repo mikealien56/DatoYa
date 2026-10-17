@@ -92,7 +92,7 @@ db.exec("CREATE TABLE IF NOT EXISTS customer_club_memberships (\n"+
 
 const settings={
   customer_club_7_price:'990',
-  customer_club_30_price:'1990',
+  customer_club_30_price:'3990',
   customer_club_free_hunts:'1',
   customer_club_paid_hunts:'10'
 };
@@ -121,7 +121,7 @@ function __dyClubMembership(userId){
   return db.prepare("SELECT * FROM customer_club_memberships WHERE user_id=? AND status='active' AND expires_at>? ORDER BY expires_at DESC,id DESC LIMIT 1").get(Number(userId),now)||null;
 }
 function __dyClubPrice(days){
-  days=Number(days);const def=days===7?990:1990;
+  days=Number(days);const def=days===7?990:3990;
   const n=Number(getSetting('customer_club_'+days+'_price',String(def)));
   return Number.isFinite(n)&&n>=0?Math.round(n):def;
 }
