@@ -163,7 +163,7 @@ if(!source.includes('DATOYA WEEKLY IMPULSE V1')){
     "  if(row.status!=='pending_review') return res.status(400).json({error:'La oferta no esta pendiente de revision'});",
     "  if(row.placement_type!=='gifted' && !(process.env.AUTH_TEST_MODE==='true' && process.env.NODE_ENV!=='production' && !process.env.RENDER_SERVICE_ID)) return res.status(409).json({error:'Este Impulso de la semana requiere un pago confirmado en DatoYa antes de aprobarse',code:'WEEKLY_PAYMENT_REQUIRED'});",
     "  if(!row.original_image_data) return res.status(400).json({error:'La oferta no tiene foto original'});",
-    "  const type=['paid','gifted','launch'].includes(String(req.body?.placement_type))?String(req.body.placement_type):(row.placement_type==='gifted'?'gifted':'paid');",
+    "  const type=row.placement_type==='gifted'?'gifted':(['paid','launch'].includes(String(req.body?.placement_type))?String(req.body.placement_type):'paid');",
     '  const start=req.body?.starts_at?new Date(req.body.starts_at):new Date();',
     '  if(Number.isNaN(start.getTime())) return res.status(400).json({error:"Fecha de inicio invalida"});',
     '  const end=req.body?.ends_at?new Date(req.body.ends_at):new Date(start.getTime()+7*24*60*60*1000);',
