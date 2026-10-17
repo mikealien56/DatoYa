@@ -13,15 +13,15 @@
         <div class="dy-home-v3-head">
           <span>🏪 PARA NEGOCIOS</span>
           <h2>Empieza gratis. Paga solo cuando quieras crecer más.</h2>
-          <p>DatoYa no cobra comisión por tus ventas. Los planes pagados son herramientas opcionales de visibilidad y crecimiento.</p>
+          <p>Los pagos de clientes se gestionarán online mediante DatoYa y Mercado Pago. Los planes de crecimiento son opcionales.</p>
         </div>
         <div class="dy-home-plan-table">
-          <article class="free"><div><span>🆓</span><h3>DatoYa Gratis</h3><strong>$0</strong><small>Siempre disponible</small></div><ul><li>Perfil y horarios</li><li>Catálogo básico</li><li>Pedidos sin comisión</li><li>QR, retiro y despacho</li><li>Estadísticas básicas</li></ul></article>
+          <article class="free"><div><span>🆓</span><h3>DatoYa Gratis</h3><strong>$0</strong><small>Siempre disponible</small></div><ul><li>Perfil y horarios</li><li>Catálogo básico</li><li>Pedidos por DatoYa</li><li>QR, retiro y despacho</li><li>Estadísticas básicas</li></ul></article>
           <article><div><span>⚡</span><h3>Impulso</h3><strong>Desde ${price('impulso',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Más visibilidad</li><li>Impulso Ahora</li><li>Promoción destacada</li><li>Más capacidad de catálogo</li></ul></article>
           <article class="plus"><div><span>⚡⚡</span><h3>Impulso+</h3><strong>Desde ${price('impulso_plus',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso</li><li>Pulso Local</li><li>Estadísticas avanzadas</li><li>Prioridad en señales de demanda</li></ul></article>
           <article class="premium"><div><span>🚀</span><h3>Premium</h3><strong>Desde ${price('premium',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso+</li><li>Radar de oportunidades</li><li>Máxima exposición patrocinada</li><li>Herramientas avanzadas de crecimiento</li></ul></article>
         </div>
-        <div class="dy-home-plan-actions"><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio gratis</a><a class="btn btn-outline" href="#/login">Ya tengo negocio</a><small>💸 0% comisión DatoYa sobre las ventas</small></div>`;
+        <div class="dy-home-plan-actions"><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio gratis</a><a class="btn btn-outline" href="#/login">Ya tengo negocio</a><small>💳 Pagos online por DatoYa · cargo de servicio 2% informado al comprador</small></div>`;
     }catch(_){
       host.innerHTML='<div class="dy-home-v3-head"><span>🏪 PARA NEGOCIOS</span><h2>Publica gratis y crece cuando tú quieras</h2><p>Los planes de crecimiento son opcionales y nunca reemplazan el acceso gratuito.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>';
     }
@@ -64,9 +64,9 @@
       </div>
       <div class="dy-home-flow-grid">
         <article><div class="icon">🛍️</div><small>CLIENTE</small><h3>Busca → pide → paga al negocio</h3><p>Encuentra opciones cercanas, haz tu pedido y coordina el pago directamente con el comercio.</p><a href="#/buscar/_">Buscar cerca de mí →</a></article>
-        <article id="como-funciona-negocios"><div class="icon">🏪</div><small>NEGOCIO</small><h3>Publica → recibe pedidos → cobra directo</h3><p>Crea tu presencia gratis. Si quieres más alcance, activas herramientas de crecimiento por días.</p><a href="#/registrar-negocio">Publicar mi negocio →</a></article>
+        <article id="como-funciona-negocios"><div class="icon">🏪</div><small>NEGOCIO</small><h3>Publica → recibe pedidos → cobra por DatoYa</h3><p>Crea tu presencia gratis. Si quieres más alcance, activas herramientas de crecimiento por días.</p><a href="#/registrar-negocio">Publicar mi negocio →</a></article>
       </div>
-      <div class="dy-home-money-rule"><span>💳</span><div><b>El pago de la compra es directo al negocio</b><p>DatoYa te ayuda a encontrar, pedir y coordinar con comercios cercanos de forma simple y transparente.</p></div></div>`;
+      <div class="dy-home-money-rule"><span>💳</span><div><b>El pago de la compra se realiza dentro de DatoYa</b><p>Cuando se habiliten los cobros online, pagarás mediante Mercado Pago dentro del proceso de DatoYa, con el cargo de servicio visible antes de confirmar.</p></div></div>`;
   }
 
   function restructureHome(){
