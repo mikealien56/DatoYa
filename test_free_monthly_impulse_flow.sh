@@ -23,7 +23,10 @@ B1="$(new_business one)"
 curl -fsS -b "$ADMIN" -H 'Content-Type: application/json' -X PUT "$BASE/api/admin/marketplace/businesses/$B1/status" -d '{"status":"active"}' >/dev/null
 P1="$(new_product "$B1" 20000)"
 echo "1/6 Cupo mensual Plan Gratis"
-curl -fsS -b "$USER" "$BASE/api/businesses/$B1/free-monthly-impulse" | python3 -c 'import sys,json;d=json.load(sys.stdin);assert d["is_free_plan"] and d["available"] and d["duration_hours"]==24 and not d["used"]'
+curl -sS -b "$USER" -D "$TMP/headers" "$BASE/api/businesses/$B1/free-monthly-impulse" -o "$TMP/first-response"
+head -n 8 "$TMP/headers"
+head -c 240 "$TMP/first-response"; echo
+python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["is_free_plan"] and d["available"] and d["duration_hours"]==24 and not d["used"]' "$TMP/first-response"
 echo "2/6 Descuento inválido no consume cupo"
 CODE="$(curl -s -b "$USER" -o "$TMP/invalid" -w '%{http_code}' -H 'Content-Type: application/json' -X POST "$BASE/api/businesses/$B1/free-monthly-impulse" -d "{\"product_id\":$P1,\"mode\":\"liquidation\",\"offer_price\":20000,\"stock\":3}")"
 [ "$CODE" = "400" ] || die "aceptó liquidación sin descuento $CODE"
