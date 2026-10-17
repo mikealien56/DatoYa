@@ -12,7 +12,7 @@
     return '<section class="dy-club-hero '+(active?'active':'')+'">'+
       '<div><span>⭐ DATOYA CLUB</span><h1>'+(active?'DatoYa está atento por ti.':'No pagas por comprar. Pagas para que DatoYa esté atento por ti.')+'</h1>'+
       '<p>'+(active?'Tu pase está activo hasta '+h(date(m.expires_at))+'. Caza Ya y Radar pueden seguir tus necesidades locales.':'DatoYa Gratis sigue funcionando. Club es un pase opcional para automatizar búsquedas, detectar oportunidades y aprovechar señales locales antes.')+'</p>'+
-      '<div class="dy-club-hero-tags"><b>Sin comisión en compras</b><b>Sin renovación automática</b><b>Tu pago del pedido va al negocio</b></div></div>'+
+      '<div class="dy-club-hero-tags"><b>Cargo de servicio informado al pagar</b><b>Sin renovación automática</b><b>Pagos protegidos mediante Mercado Pago</b></div></div>'+
       '<div class="dy-club-stamp"><strong>'+(active?'CLUB ACTIVO':'GRATIS + CLUB OPCIONAL')+'</strong><small>'+(active?(Number(m.days_granted||0)+' días de pase'):'Tú decides cuándo activarlo')+'</small></div>'+
     '</section>';
   }
@@ -26,7 +26,7 @@
         '<article><small>PRUEBA</small><h3>7 días</h3><strong>'+money(d.prices?.[7]||990)+'</strong><p>Para probar Caza Ya con varias necesidades.</p><button class="btn btn-outline btn-block" '+(enabled?'':'disabled')+' onclick="dyClubBuy(7)">Activar 7 días</button></article>'+
         '<article class="recommended"><em>MÁS CONVENIENTE</em><small>PASE COMPLETO</small><h3>30 días</h3><strong>'+money(d.prices?.[30]||1990)+'</strong><p>Radar activo durante todo el mes, sin renovación automática.</p><button class="btn btn-primary btn-block" '+(enabled?'':'disabled')+' onclick="dyClubBuy(30)">Activar 30 días</button></article>'+
       '</div>'+
-      (!enabled?'<div class="dy-club-dev-note">🧪 El diseño y flujo Club ya están listos; el cobro real sigue bloqueado mientras Khipu esté en modo desarrollo.</div>':'')+
+      (!enabled?'<div class="dy-club-dev-note">🧪 El diseño y flujo Club ya están listos; el cobro real de Club sigue bloqueado mientras se termina la integración segura con Mercado Pago.</div>':'')+
     '</section>';
   }
   function featureLab(d){
@@ -81,7 +81,7 @@
     view.innerHTML='<div class="dy-club-page"><a class="dy-public-back" href="#/perfil">← Mi cuenta</a>'+clubHero(d)+
       '<section class="dy-club-rule"><span>💙</span><div><b>La regla de Club</b><p>DatoYa Gratis nunca pierde búsqueda, pedidos ni acceso a negocios por no pagar. Club solo agrega automatización, prioridad futura y herramientas de oportunidad.</p></div></section>'+
       planCards(d)+giftsSection(d)+featureLab(d)+huntsSection(d)+opportunitiesSection(d)+juntasSection(d)+
-      '<section class="dy-club-footer-card"><div><span>🔐</span><div><b>Tu compra sigue siendo con el negocio</b><p>DatoYa Club es opcional. Los productos y pedidos se pagan directamente al comercio, igual que en la versión Gratis.</p></div></div></section>'+
+      '<section class="dy-club-footer-card"><div><span>🔐</span><div><b>Tus compras se pagan en DatoYa</b><p>DatoYa Club es opcional. Las compras online se procesan mediante Mercado Pago cuando la pasarela esté habilitada; el cargo de servicio se informa antes de pagar.</p></div></div></section>'+
     '</div>';
     bindForms();
   }
