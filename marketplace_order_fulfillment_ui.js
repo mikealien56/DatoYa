@@ -48,40 +48,103 @@
     }catch(err){if(btn){btn.disabled=false;btn.textContent=old;}toast?.(err.message,'err');}
   };
 
+  function qrData(raw){
+    const m=String(raw||'').match(/#\/(retiro|entrega)\/(\d+)\/(\d{6})(?:[/?#]|$)/i);
+    return m?{orderId:Number(m[2]),code:m[3]}:null;
+  }
+  async function decodeQrResult(raw,businessId,status){
+    const found=qrData(raw);
+    if(!found){
+      if(status)status.textContent='El QR no corresponde a una entrega de DatoYa. Prueba con el código de 6 dígitos.';
+      return false;
+    }
+    scannerBusy=true;
+    if(status)status.textContent='QR detectado. Verificando el pedido y su pago…';
+    const ok=await verifyCode(found.orderId,Number(businessId),found.code,null,'Validar');
+    if(!ok){
+      scannerBusy=false;
+      if(status)status.textContent='No pudimos validar ese QR. Revisa el pedido o usa el código manual.';
+    }
+    return ok;
+  }
   async function scanLoop(detector,video,businessId){
     if(!scannerStream||scannerBusy)return;
     try{
-      const codes=await detector.detect(video);
-      const raw=String(codes?.[0]?.rawValue||'');
-      const m=raw.match(/#\/(retiro|entrega)\/(\d+)\/(\d{6})/);
-      if(m){
-        scannerBusy=true;
-        const status=document.getElementById('dy-fulfillment-camera-status');if(status)status.textContent='QR detectado. Validando…';
-        const ok=await verifyCode(Number(m[2]),Number(businessId),m[3],null,'Validar');
-        if(!ok){scannerBusy=false;if(status)status.textContent='No se pudo validar. Enfoca nuevamente o usa el código manual.';}
+      if(video.readyState>=2){
+        const codes=await detector.detect(video);
+        if(codes?.length){
+          const status=document.getElementById('dy-fulfillment-camera-status');
+          const found=qrData(codes[0].rawValue);
+          if(found){await decodeQrResult(codes[0].rawValue,businessId,status);return;}
+        }
       }
-    }catch(_){}
-    if(scannerStream&&!scannerBusy)scannerTimer=setTimeout(()=>scanLoop(detector,video,businessId),250);
+    }catch(err){
+      if(err?.name==='NotSupportedError'){
+        const status=document.getElementById('dy-fulfillment-camera-status');
+        if(status)status.textContent='Esta cámara no puede leer QR en vivo. Prueba con la foto del QR o el código manual.';
+      }
+    }
+    if(scannerStream&&!scannerBusy)scannerTimer=setTimeout(()=>scanLoop(detector,video,businessId),350);
   }
-
+  async function qrDetector(){
+    if(typeof window.BarcodeDetector!=='function')throw new Error('Este navegador no admite la lectura automática de QR. Ingresa el código de 6 dígitos del pedido.');
+    const formats=typeof BarcodeDetector.getSupportedFormats==='function'
+      ?await BarcodeDetector.getSupportedFormats().catch(()=>[]):[];
+    if(formats.length&&!formats.includes('qr_code'))throw new Error('Este dispositivo no admite QR. Usa el código manual del pedido.');
+    return new BarcodeDetector({formats:['qr_code']});
+  }
+  window.dyScanFulfillmentPhoto=async(businessId,input)=>{
+    const status=document.getElementById('dy-fulfillment-camera-status'),file=input?.files?.[0];
+    if(!file)return;
+    let bitmap=null,url=null;
+    try{
+      const detector=await qrDetector();
+      if(typeof createImageBitmap==='function'){
+        bitmap=await createImageBitmap(file);
+      }else{
+        url=URL.createObjectURL(file);
+        bitmap=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('No se pudo abrir la foto'));img.src=url;});
+      }
+      const codes=await detector.detect(bitmap);
+      if(!codes?.length)throw new Error('No encontramos un QR legible en la foto. Acércate o ingresa el código manual.');
+      await decodeQrResult(codes[0].rawValue,businessId,status);
+    }catch(err){if(status)status.textContent=err?.message||'No pudimos leer la foto. Usa el código manual.';}
+    finally{if(bitmap?.close)bitmap.close();if(url)URL.revokeObjectURL(url);input.value='';}
+  };
   window.dyStartFulfillmentScanner=async businessId=>{
     const box=document.getElementById('dy-fulfillment-camera'),status=document.getElementById('dy-fulfillment-camera-status'),video=document.getElementById('dy-fulfillment-video');
     if(!box||!video)return;
-    box.hidden=false;
-    if(!navigator.mediaDevices?.getUserMedia||!('BarcodeDetector' in window)){
-      if(status)status.textContent='Este navegador no permite lector QR interno. Usa el código de 6 dígitos del cliente.';
-      return;
-    }
-    stopScanner();box.hidden=false;
+    stopScanner();box.hidden=false;video.hidden=true;
     try{
-      const formats=await BarcodeDetector.getSupportedFormats?.().catch(()=>[])||[];
-      if(formats.length&&!formats.includes('qr_code'))throw new Error('QR no compatible');
-      const detector=new BarcodeDetector({formats:['qr_code']});
-      scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-      video.srcObject=scannerStream;await video.play();
-      if(status)status.textContent='Enfoca el QR del cliente dentro de la cámara.';
-      scannerBusy=false;scannerTimer=setTimeout(()=>scanLoop(detector,video,Number(businessId)),200);
-    }catch(err){stopScanner();box.hidden=false;if(status)status.textContent='No pudimos abrir la cámara. Revisa el permiso o usa el código manual.';}
+      const detector=await qrDetector();
+      if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){
+        throw new Error('La cámara en vivo necesita un navegador seguro compatible. Prueba «Leer foto QR» o el código manual.');
+      }
+      try{
+        scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+      }catch(firstError){
+        if(['OverconstrainedError','NotFoundError'].includes(firstError?.name)){
+          scannerStream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+        }else throw firstError;
+      }
+      video.muted=true;
+      video.setAttribute('playsinline','');
+      video.setAttribute('webkit-playsinline','');
+      video.srcObject=scannerStream;
+      await video.play();
+      video.hidden=false;
+      if(status)status.textContent='Enfoca el QR del pedido. También puedes leer una foto o ingresar el código manual.';
+      scannerBusy=false;
+      scannerTimer=setTimeout(()=>scanLoop(detector,video,Number(businessId)),250);
+    }catch(err){
+      stopScanner();box.hidden=false;video.hidden=true;
+      const message={
+        NotAllowedError:'La cámara fue bloqueada por el navegador o la aplicación. Puedes abrir DatoYa en Chrome, usar una foto del QR o ingresar el código manual.',
+        NotFoundError:'No encontramos una cámara disponible. Usa la foto del QR o el código manual.',
+        NotReadableError:'Otra aplicación está usando la cámara. Ciérrala y vuelve a intentarlo.'
+      }[err?.name]||err?.message||'No pudimos abrir la cámara. Usa la foto del QR o el código manual.';
+      if(status)status.textContent=message;
+    }
   };
 
   const previousOrders=routes.pedidos;
@@ -113,9 +176,15 @@
     await previousMerchantOrders.apply(this,arguments);
     const businessId=Number(id||0);if(!businessId)return;
     const head=document.querySelector('.dy-commerce-head');
-    if(head&&!document.getElementById('dy-fulfillment-scanner')){
+    // No solicitar permisos ni mostrar una cámara gigante cuando no hay entregas pagadas listas.
+    let hasPaidReadyOrder=false;
+    try{
+      const data=await api('/businesses/'+businessId+'/orders');
+      hasPaidReadyOrder=(data.orders||[]).some(o=>o.status==='ready'&&o.payment_status==='paid');
+    }catch(_){}
+    if(head&&hasPaidReadyOrder&&!document.getElementById('dy-fulfillment-scanner')){
       const scanner=document.createElement('section');scanner.id='dy-fulfillment-scanner';scanner.className='dy-commerce-card';scanner.style.margin='14px 0';
-      scanner.innerHTML='<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b style="font-size:17px">📷 Escanear QR de entrega</b><p style="margin:4px 0 0;color:#64748b">Usa la cámara dentro de DatoYa para confirmar retiro o despacho.</p></div><button class="btn btn-primary btn-sm" type="button" onclick="dyStartFulfillmentScanner('+businessId+')">Abrir cámara</button></div><div id="dy-fulfillment-camera" hidden style="margin-top:14px"><video id="dy-fulfillment-video" playsinline muted style="width:100%;max-height:360px;object-fit:cover;border-radius:14px;background:#111"></video><p id="dy-fulfillment-camera-status" style="margin:8px 0;color:#64748b">Preparando cámara…</p><button class="btn btn-outline btn-sm" type="button" onclick="dyStopFulfillmentScanner()">Cerrar cámara</button></div>';
+      scanner.innerHTML='<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b style="font-size:17px">📷 Escanear QR de entrega</b><p style="margin:4px 0 0;color:#64748b">Usa la cámara dentro de DatoYa para confirmar retiro o despacho.</p></div><button class="btn btn-primary btn-sm" type="button" onclick="dyStartFulfillmentScanner('+businessId+')">Abrir cámara</button></div><div id="dy-fulfillment-camera" hidden style="margin-top:14px"><video id="dy-fulfillment-video" autoplay playsinline webkit-playsinline muted hidden style="width:100%;max-height:360px;object-fit:cover;border-radius:14px;background:#111"></video><p id="dy-fulfillment-camera-status" style="margin:8px 0;color:#64748b">Preparando cámara…</p><label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block">📷 Leer foto QR<input type="file" accept="image/*" capture="environment" hidden onchange="dyScanFulfillmentPhoto('+businessId+',this)"></label> <button class="btn btn-outline btn-sm" type="button" onclick="dyStopFulfillmentScanner()">Cerrar cámara</button></div>';
       head.insertAdjacentElement('afterend',scanner);
     }
 
