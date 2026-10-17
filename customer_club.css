@@ -103,3 +103,62 @@
   .dy-club-info-hero-copy h1{font-size:clamp(29px,8vw,38px);line-height:1.08}
   .dy-club-info-hero-copy>p:not(.dy-club-price-clarity){font-size:15px;line-height:1.55}
 }
+
+
+/* Club V3 — UNA tarjeta premium, sin columnas laterales ni desbordes en Android. */
+.dy-club-premium-simple{width:100%!important;max-width:940px!important;min-width:0!important;box-sizing:border-box!important;overflow-x:clip!important}
+.dy-club-premium-simple .dy-club-info-hero-v2{
+  display:flex!important;flex-direction:column!important;grid-template-columns:none!important;
+  align-items:stretch!important;gap:14px!important;width:100%!important;max-width:100%!important;
+  min-width:0!important;padding:clamp(16px,3vw,30px)!important;box-sizing:border-box!important;overflow:hidden!important
+}
+.dy-club-premium-simple .dy-club-info-card-art,
+.dy-club-premium-simple .dy-club-info-hero-copy,
+.dy-club-premium-simple .dy-premium-club-art{
+  display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;
+  position:relative!important;box-sizing:border-box!important;overflow:visible!important
+}
+.dy-club-premium-simple .dy-club-info-card-art{display:flex!important;justify-content:center!important}
+.dy-club-premium-simple .dy-premium-club-art{max-width:700px!important;margin:auto!important}
+.dy-club-premium-simple .dy-club-info-card-art picture img{
+  display:block!important;width:100%!important;max-width:100%!important;
+  height:auto!important;aspect-ratio:1000/646!important;object-fit:contain!important;
+  visibility:visible!important;opacity:1!important;transform:none!important;filter:drop-shadow(0 12px 25px rgba(0,0,0,.2))!important
+}
+.dy-club-premium-simple .dy-club-info-hero-copy{z-index:2!important}
+.dy-club-premium-simple .dy-club-info-hero-copy h1{
+  max-width:100%!important;width:auto!important;min-width:0!important;white-space:normal!important;
+  overflow-wrap:break-word!important;word-break:normal!important;
+  font-size:clamp(28px,5vw,42px)!important;line-height:1.13!important;margin:10px 0 11px!important
+}
+.dy-club-premium-simple .dy-club-info-hero-copy p{max-width:100%;white-space:normal;overflow-wrap:break-word}
+.dy-club-premium-simple .dy-club-info-hero-actions .btn{max-width:100%;box-sizing:border-box;cursor:pointer}
+.dy-club-premium-simple .dy-club-premium-price{font-size:clamp(26px,5vw,37px)!important;line-height:1.15!important;font-weight:900!important;color:#fff!important;opacity:1!important;margin:14px 0!important}
+.dy-club-premium-simple .dy-club-premium-price small{font-size:15px;font-weight:500;color:rgba(255,255,255,.78)}
+.dy-club-premium-simple .dy-club-simple-benefits,.dy-club-premium-simple .dy-club-simple-enroll{
+  padding:clamp(16px,3vw,24px);margin-top:16px;border:1px solid #dbe5ef;border-radius:22px;
+  background:#fff;box-sizing:border-box;min-width:0
+}
+.dy-club-premium-simple .dy-club-simple-benefit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:15px}
+.dy-club-premium-simple .dy-club-simple-benefit-grid article{padding:15px;border-radius:14px;background:#f4f8fc;border:1px solid #e0e9f2;min-width:0}
+.dy-club-premium-simple .dy-club-simple-benefit-grid article>span{font-size:24px}
+.dy-club-premium-simple .dy-club-simple-benefit-grid article>b{display:block;font-size:15px;color:#072b63;margin:8px 0 5px}
+.dy-club-premium-simple .dy-club-simple-benefit-grid article>p{margin:0;color:#64748b;line-height:1.55;font-size:13px}
+.dy-club-premium-simple .dy-club-savings{display:block;overflow:hidden}
+.dy-club-premium-simple .dy-club-savings .dy-club-price-example{max-width:480px;margin:14px 0}
+.dy-club-premium-simple .dy-club-simple-disclaimer{font-size:12px;opacity:.87;line-height:1.5}
+.dy-club-premium-simple .dy-club-simple-enroll{background:#f8fcff}
+.dy-club-premium-simple .dy-club-simple-enroll>span{font-size:11px;letter-spacing:.15em;color:#0f766e;font-weight:900}
+.dy-club-premium-simple .dy-club-simple-enroll h2{font-size:clamp(24px,4vw,32px);color:#072b63;margin:8px 0}
+.dy-club-premium-simple .dy-club-simple-enroll p{color:#52667c;line-height:1.5}
+.dy-club-premium-simple .dy-club-simple-enroll .dy-club-simple-pending{font-size:12px;color:#815b1d;background:#fff8ed;border-radius:10px;padding:12px}
+.dy-club-premium-simple .dy-club-simple-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:15px}
+.dy-club-premium-simple .dy-club-simple-actions .btn{max-width:100%;box-sizing:border-box}
+.dy-club-premium-simple .dy-club-member-status{background:#e8fbf8;color:#075e54;border-radius:14px;padding:16px;margin-top:14px}
+.dy-club-premium-simple .dy-club-member-status p{margin:6px 0 0}
+@media(max-width:740px){
+  .dy-club-premium-simple .dy-club-simple-benefit-grid{grid-template-columns:1fr}
+  .dy-club-premium-simple .dy-club-simple-actions{flex-direction:column;align-items:stretch}
+  .dy-club-premium-simple .dy-club-simple-actions .btn{width:100%;text-align:center}
+  .dy-club-premium-simple .dy-club-info-hero-copy h1{font-size:clamp(27px,7.6vw,37px)!important}
+}
