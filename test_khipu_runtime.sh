@@ -31,12 +31,12 @@ for i in $(seq 1 120); do
 done
 [ "$READY" -eq 1 ] || { cat "$LOG"; exit 1; }
 
-curl -fsS "http://localhost:$PORT/khipu_payments_ui.js" | grep -q "dyPayOrderKhipu"
 HTML=$(curl -fsS "http://localhost:$PORT/")
-printf '%s' "$HTML" | grep -q "/khipu_payments_ui.js"
-if printf '%s' "$HTML" | grep -Eqi 'mercadopago|marketplace_payments_ui'; then
-  echo "El HTML final todavía publica un proveedor retirado"
+if printf '%s' "$HTML" | grep -q "/khipu_payments_ui.js"; then
+  echo "El sitio nuevo no debe publicar pagos Khipu para clientes"
   exit 1
 fi
+printf '%s' "$HTML" | grep -q "/mp_split_ui.js"
+curl -fsS "http://localhost:$PORT/mp_split_ui.js" | grep -q 'Mercado Pago'
 
-echo "✅ Runtime Khipu publicado sin scripts de Mercado Pago"
+echo "✅ Legacy Khipu preservado para conciliación; checkout y UI nuevos usan Mercado Pago"
