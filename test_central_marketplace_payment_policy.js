@@ -67,3 +67,12 @@ test('QA bypass is unavailable on production or Render',()=>{
   assert.equal(harness({AUTH_TEST_MODE:'true',NODE_ENV:'production'}).request('POST',path).code,503);
   assert.equal(harness({AUTH_TEST_MODE:'true',RENDER_SERVICE_ID:'srv-prod'}).request('POST',path).code,503);
 });
+
+test('authenticated merchant transitions and pickup verification require paid order',()=>{
+  const fs=require('fs'),path=require('path');
+  const guard=fs.readFileSync(path.join(__dirname,'datoya_central_payment_policy_bootstrap.js'),'utf8');
+  const fulfillment=fs.readFileSync(path.join(__dirname,'marketplace_order_fulfillment_bootstrap.js'),'utf8');
+  assert.ok(guard.includes('DATOYA_CENTRAL_ORDER_RELEASE_GUARD'));
+  assert.ok(guard.includes("String(o.payment_status)!=='paid'"));
+  assert.ok(fulfillment.includes("code:'PROVIDER_PAYMENT_REQUIRED'"));
+});

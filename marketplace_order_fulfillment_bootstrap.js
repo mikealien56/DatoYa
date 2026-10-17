@@ -122,6 +122,9 @@ function __dyFulfillmentVerify(req,res,expectedMethod){
   const id=Number(req.params.id||0);
   const o=db.prepare('SELECT o.*,b.owner_user_id,b.name AS business_name FROM commerce_orders o JOIN businesses b ON b.id=o.business_id WHERE o.id=? AND b.owner_user_id=?').get(id,req.user.id);
   if(!o)return res.status(404).json({error:'Pedido no encontrado para tu negocio'});
+  // Codes never complete an unpaid production order.
+  if((process.env.AUTH_TEST_MODE!=='true'||process.env.NODE_ENV==='production'||!!process.env.RENDER_SERVICE_ID)&&String(o.payment_status)!=='paid')
+    return res.status(409).json({error:'El pago de este pedido debe confirmarse primero con Mercado Pago',code:'PROVIDER_PAYMENT_REQUIRED'});
   const method=String(o.fulfillment_method||'');
   if(!['pickup','delivery'].includes(method))return res.status(400).json({error:'Método de entrega inválido'});
   if(expectedMethod&&method!==expectedMethod)return res.status(400).json({error:expectedMethod==='delivery'?'Este pedido no usa despacho':'Este pedido no usa retiro'});

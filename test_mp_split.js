@@ -148,4 +148,7 @@ test('seller web route never enables checkout without verified provider identity
   assert.ok(route.includes('await mp.verifySellerIdentity(creds.access_token,creds.user_id)'));
   assert.ok(route.includes('!s.verified_at||!b'));
   assert.ok(route.includes('&&s.verified_at&&b'));
+  assert.ok(route.includes("DATOYA_CENTRAL_CHECKOUT_ENABLED==='true'"));
+  assert.ok(route.includes('!centralCheckout()||!s||!s.verified_at'));
+  assert.ok(route.includes('available:!!(centralCheckout()&&s&&s.verified_at'));
 });

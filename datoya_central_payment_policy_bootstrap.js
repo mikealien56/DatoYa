@@ -64,6 +64,15 @@ app.use((req,res,next)=>{
 // DATOYA_CENTRAL_MARKETPLACE_PAYMENTS_END
 `;
   source=source.replace(marker,marker+'\n'+patch);
+  // Merchant status transitions are authenticated; guard after the owned-order
+  // lookup rather than the public middleware to avoid revealing private orders.
+  const transition="const next=String(req.body?.status||''),allowed={new:['confirmed','cancelled'],confirmed:['preparing','cancelled'],preparing:['ready'],ready:['completed'],completed:[],cancelled:[]};";
+  if(source.includes(transition)&&!source.includes('DATOYA_CENTRAL_ORDER_RELEASE_GUARD')){
+    const guard="/* DATOYA_CENTRAL_ORDER_RELEASE_GUARD */if(!__dyMarketplaceTestOnly()&&next!=='cancelled'&&String(o.payment_status)!=='paid')return res.status(409).json({error:'El pago debe confirmarse por Mercado Pago antes de preparar el pedido.',code:'PROVIDER_PAYMENT_REQUIRED'});";
+    source=source.replace(transition,transition+guard);
+  }else if(!source.includes('DATOYA_CENTRAL_ORDER_RELEASE_GUARD')){
+    throw Error('No se encontró la ruta de avance de pedidos para proteger pagos');
+  }
   fs.writeFileSync(filename,source);
 }
 console.log('[DatoYa] Cobros centralizados: fuera pagos externos; checkout solo con autorización real, extras semanales pagados.');
