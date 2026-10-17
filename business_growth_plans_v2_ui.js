@@ -23,6 +23,7 @@
       'Retiro y despacho propio',
       'QR y enlace para compartir',
       'Promociones normales',
+      '⚡ 1 Impulso gratis de 24 horas por mes',
       'Estadísticas básicas',
       'Hasta '+Number(access.catalog_limit||20)+' productos'
     ];
@@ -92,7 +93,7 @@
       '<a class="dy-growth-back" href="#/mi-negocio/'+id+'">← Volver a '+h(data.business.name)+'</a>'+
       '<section class="dy-growth-hero '+(m?'active':'')+'"><div><span>PROMOCIONA TU NEGOCIO EN DATOYA</span><h1>'+(m?h(current.icon+' '+current.label+' activo'):'DatoYa Gratis para vender. Impulsos para crecer.')+'</h1><p>'+(m?'Tu beneficio está vigente hasta el '+h(date(m.expires_at))+'. Puedes extenderlo cuando quieras.':'Los pagos de productos se realizarán online mediante DatoYa y Mercado Pago. Elige un plan para obtener más alcance y herramientas.')+'</p></div><div class="dy-growth-current"><b>'+(m?h(current.label):'PLAN GRATIS')+'</b><small>'+(m?(Number(m.offer_days||m.days_granted||0)+' días contratados'):'$0 · sin comisión')+'</small></div></section>'+
       '<section class="dy-growth-note"><span>💳</span><div><b>Planes DatoYa · Mercado Pago</b><p>Estamos preparando el cobro de planes Impulso, Impulso+ y Premium con Mercado Pago. Los pagos recurrentes mensuales y anuales aún no están habilitados; por ahora no se cobra ningún plan desde esta pantalla.</p></div></section>'+
-      '<section class="dy-growth-free-strip"><div><span>🆓</span><div><b>DatoYa Gratis</b><p>Perfil, pedidos, horarios, retiro/despacho, QR, promociones normales y estadísticas básicas.</p></div></div><strong>$0</strong></section>'+
+      '<section class="dy-growth-free-strip"><div><span>🆓</span><div><b>DatoYa Gratis</b><p>Perfil, pedidos, horarios, retiro/despacho, QR y 1 Impulso gratis de 24 horas al mes.</p></div></div><strong>$0</strong></section>'+
       '<section class="dy-growth-duration"><div><span>1</span><h2>¿Por cuánto tiempo quieres impulsarte?</h2><p>Primero elige duración. Después escoge el nivel que más te conviene.</p></div><div class="dy-growth-duration-buttons">'+
         [1,7,15,30].map(d=>'<button class="'+(d===days?'active':'')+'" onclick="dyGrowthSelectDays('+d+')"><b>'+d+'</b><small>'+ (d===1?'día':'días')+'</small></button>').join('')+
       '</div></section>'+
