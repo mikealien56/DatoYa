@@ -107,7 +107,7 @@ grep -q "dyGiftCustomerClub" marketplace_admin_v2_ui.js || { echo "Admin no pued
 grep -q "DATOYA_DIRECT_MERCHANT_PAYMENTS_V1" direct_merchant_payments_bootstrap.js || { echo "Falta backend de pagos directos"; exit 1; }
 grep -q "DATOYA_ORDER_KHIPU_DISABLED_V1" direct_merchant_payments_bootstrap.js || { echo "Checkout Khipu de pedidos no está bloqueado"; exit 1; }
 grep -q "ORDER_KHIPU_DISABLED_V1" khipu_payments_ui.js || { echo "Frontend aún intenta cobrar pedidos con Khipu"; exit 1; }
-grep -q "Exigir pago antes de preparar" direct_merchant_payments_ui.js || { echo "Falta protección de prepago en UI"; exit 1; }
+grep -q 'PROVIDER_PAYMENT_REQUIRED' datoya_central_payment_policy_bootstrap.js || { echo "No se evita marcar pago como recibido manualmente"; exit 1; }
 grep -q 'Mercado Pago en DatoYa' direct_merchant_payments_ui.js || { echo "El panel no centraliza los pagos en Mercado Pago"; exit 1; }
 grep -q "DATOYA_MERCHANT_KHIPU_CREDENTIAL_KEY" business_khipu_direct_bootstrap.js || { echo "Credenciales Khipu del negocio no están cifradas con clave dedicada"; exit 1; }
 grep -q "datoya_sales_commission_pct:0" business_khipu_direct_bootstrap.js || { echo "Khipu directo alteró el modelo 0% comisión por ventas"; exit 1; }
