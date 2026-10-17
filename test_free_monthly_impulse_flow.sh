@@ -25,6 +25,8 @@ P1="$(new_product "$B1" 20000)"
 echo "Free impulse source diagnostic:"
 grep -n 'DATOYA_FREE_MONTHLY_IMPULSE_V1' server.js | head -n 4 || true
 grep -n "app.get('/api/businesses/:id/free-monthly-impulse'" server.js | head -n 2 || true
+grep -n "app.use((req, res) => res.sendFile" server.js | head -n 2 || true
+grep -n "app.get('/api/market/impulses'" server.js | head -n 2 || true
 echo "1/6 Cupo mensual Plan Gratis"
 curl -sS -b "$USER" -D "$TMP/headers" "$BASE/api/businesses/$B1/free-monthly-impulse" -o "$TMP/first-response"
 head -n 8 "$TMP/headers"
