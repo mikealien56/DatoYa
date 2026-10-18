@@ -9,7 +9,7 @@ if(fs.existsSync(idx)){
   let html=fs.readFileSync(idx,'utf8');
   html=html.replace(/<link[^>]+href="\/business_hub\.css[^"]*"[^>]*>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/business_hub_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</head>','<link rel="stylesheet" href="/business_hub.css?v=20261017-mobilefix1">\n</head>');
-  html=html.replace('</body>','<script src="/business_hub_ui.js?v=20261017-mobilefix1"></script>\n</body>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/business_hub.css?v=20261018-audit-clean1">\n</head>');
+  html=html.replace('</body>','<script src="/business_hub_ui.js?v=20261018-audit-clean1"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
