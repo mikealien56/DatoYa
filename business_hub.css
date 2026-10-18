@@ -136,3 +136,21 @@
   .dy-khipu-onboarding-card .dy-card-head{align-items:flex-start;flex-direction:column}
   .dy-khipu-onboarding-state{white-space:normal}
 }
+
+/* Evitar el parpadeo de la ficha antigua antes de montar la vista definitiva. */
+#view.dy-hub-pending{position:relative;min-height:260px}
+#view.dy-hub-pending .dy-business-page{visibility:hidden!important;pointer-events:none!important}
+#view.dy-hub-pending::before{
+  content:"Preparando tu negocio…";
+  position:absolute;z-index:25;top:26px;left:12px;right:12px;
+  max-width:660px;margin:auto;box-sizing:border-box;
+  background:#f8fbff;border:1px solid #dae6f4;
+  border-radius:18px;padding:27px 20px;
+  box-shadow:0 8px 30px rgba(11,58,130,.08);
+  text-align:center;color:#0b3a82;font-size:17px;font-weight:750
+}
+.dy-hub-loading{max-width:720px;margin:20px auto;min-height:140px}
+.dy-hub-loading .dy-business-card{text-align:center;padding:26px}
+.dy-hub-loading .dy-business-card>span{font-size:30px}
+.dy-hub-loading h2{margin:8px 0;color:#0b3a82;font-size:20px}
+.dy-hub-loading p{margin:0;color:#64748b;font-size:13px}

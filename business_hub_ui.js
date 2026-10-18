@@ -66,8 +66,6 @@
       ['coupons','#/mi-negocio-cupones/'+id,'🎟️','Cupones',false],
       ['impulse','#/impulso-ahora/'+id,'⚡','Impulso Ahora',false],
       ['stats','#/mi-negocio-estadisticas/'+id,'📊','Estadísticas',!paid],
-      ['pulse',paid?'#/mi-negocio-pulso/'+id:'#/mi-negocio-plan/'+id,'📍','Pulso Local',!paid],
-      ['radar',paid?'#/mi-negocio-radar/'+id:'#/mi-negocio-plan/'+id,'🎯','Radar',!paid],
       ['wanted','#/mi-negocio-lo-busco-ya/'+id,'🙋','Lo Busco Ya',false],
       ['support','#/mi-negocio-soporte/'+id,'📨','Soporte',false],
       ['public',b.status==='active'&&b.slug?'#/negocio/'+encodeURIComponent(b.slug):'#/mi-negocio-configuracion/'+id,'🏪',b.status==='active'?'Vista pública':'Datos del negocio',false],
@@ -84,6 +82,7 @@
   async function renderDashboard(id){
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
+    view.innerHTML='<div class="dy-business-dashboard dy-hub-loading" role="status"><div class="dy-business-card"><span>🏪</span><h2>Cargando tu negocio…</h2><p>Preparando el panel, los pedidos y las estadísticas.</p></div></div>';
     const [manage,ordersD,analyticsD,supportD,planD,khipuD,promoD,wantedD]=await Promise.all([
       getMeta(id,true),
       hubApi('/businesses/'+id+'/orders').catch(()=>({orders:[]})),
@@ -173,8 +172,12 @@
   async function renderLegacySection(id,mode){
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
-    await legacyManage(id);
-    const root=document.querySelector('.dy-business-page');if(!root)return;
+    const rootView=document.getElementById('view')||view;
+    rootView.classList.add('dy-hub-pending');
+    rootView.innerHTML='<div class="dy-hub-loading" role="status"><div class="dy-business-card"><span>🏪</span><h2>Cargando tu negocio…</h2><p>Preparando la pantalla final.</p></div></div>';
+    try{
+      await legacyManage(id);
+      const root=document.querySelector('.dy-business-page');if(!root)return;
     root.classList.add('dy-business-section-page');
     root.querySelector('.dy-business-stats')?.remove();
     root.querySelector('.dy-growth-share-card')?.remove();
@@ -207,6 +210,9 @@
       root.insertAdjacentHTML('beforeend',`<section class="dy-business-card dy-hub-config-tools"><div class="dy-card-head"><div><span>CONFIGURACIÓN ADICIONAL</span><h2>Conexiones y cuenta</h2><p>Herramientas relacionadas con la operación del negocio.</p></div></div><div class="dy-dashboard-growth"><a href="#/mi-negocio-pagos/${id}"><span>💳</span><b>Mercado Pago</b><small>Pagos online gestionados dentro de DatoYa.</small></a><a href="#/perfil"><span>👤</span><b>Cuenta</b><small>Datos y seguridad de acceso.</small></a></div></section>`);
     }
     await addHubFrame(id,mode==='products'?'products':'config');
+    }finally{
+      rootView.classList.remove('dy-hub-pending');
+    }
   }
 
   async function renderPayments(id,founderMode){
@@ -466,8 +472,8 @@
   routes['mi-negocio-productos']=id=>renderLegacySection(id,'products');
   routes['mi-negocio-configuracion']=id=>renderLegacySection(id,'config');
   routes['mi-negocio-pagos']=(id,mode)=>renderPayments(id,mode);
-  routes['mi-negocio-pulso']=id=>renderPulse(id);
-  routes['mi-negocio-radar']=id=>renderRadar(id);
+  routes['mi-negocio-pulso']=id=>{location.hash='#/mi-negocio-plan/'+Number(id||0);};
+  routes['mi-negocio-radar']=id=>{location.hash='#/mi-negocio-plan/'+Number(id||0);};
   routes['mi-negocio-lo-busco-ya']=id=>renderWanted(id);
   routes['mi-negocio-promociones']=id=>renderPromotions(id);
   routes['mi-negocio-estadisticas']=id=>renderStats(id);
@@ -492,6 +498,7 @@
   wrap('mi-negocio-plan','plan');
   wrap('mi-negocio-soporte','support');
   wrap('mi-negocio-soporte-caso','support');
-  wrap('impulso-ahora','impulse',{title:'Impulso Ahora',description:'Publica ofertas por horario y stock real para destacar lo que quieres vender hoy.'});
+  // Impulso Ahora también pertenece al Plan Gratis una vez al mes.
+  wrap('impulso-ahora','impulse');
   wrap('impulso-semanal-nuevo','promos');
 })();

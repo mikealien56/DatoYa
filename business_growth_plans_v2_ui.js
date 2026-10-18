@@ -22,7 +22,7 @@
       'Pedidos sin comisión de DatoYa',
       'Retiro y despacho propio',
       'QR y enlace para compartir',
-      'Promociones normales',
+      'Precio especial opcional solo para socios DatoYa Club',
       '⚡ 1 Impulso gratis de 24 horas por mes',
       'Estadísticas básicas',
       'Hasta '+Number(access.catalog_limit||20)+' productos'
@@ -38,15 +38,15 @@
     if(tier==='impulso_plus')return [
       'Todo lo de Impulso',
       '📊 Estadísticas avanzadas',
-      '📍 Pulso Local',
-      'Prioridad en Lo Busco Ya y DatoYa Alerta',
+      'Herramientas adicionales de visibilidad',
+      'Más exposición para productos destacados',
       'Avisos de interés y reposición',
       'Hasta 3 promociones destacadas',
       'Hasta '+Number(access.catalog_limit||200)+' productos'
     ];
     return [
       'Todo lo de Impulso+',
-      '🎯 Radar de oportunidades',
+      'Mayor alcance en espacios promocionados',
       'Máxima prioridad dentro de espacios impulsados',
       'Hasta 5 promociones destacadas',
       'Asistente de marketing y recuperación de clientes',
@@ -62,11 +62,11 @@
       ['Catálogo',String(data.free?.access?.catalog_limit||20),String(a.catalog_limit||80),String(p.catalog_limit||200),String(x.catalog_limit||500)],
       ['Impulso Ahora','—','✓','✓','✓'],
       ['Mayor visibilidad','—','✓','✓✓','✓✓✓'],
-      ['Promos destacadas','0',String(a.featured_promotions||1),String(p.featured_promotions||3),String(x.featured_promotions||5)],
+      ['Promos destacadas','1 gratis · 24h/mes',String(a.featured_promotions||1),String(p.featured_promotions||3),String(x.featured_promotions||5)],
       ['Estadísticas avanzadas','—','—','✓','✓'],
-      ['Pulso Local','—','—','✓','✓'],
-      ['Radar de oportunidades','—','—','—','✓'],
-      ['Prioridad DatoYa Alerta','—','—','✓','✓']
+      ['Opciones de visibilidad','Básica','Mayor','Avanzada','Máxima'],
+      ['Beneficios destacados','—','✓','✓✓','✓✓✓'],
+      ['Informes del negocio','Básicos','Resumen','Avanzados','Avanzados']
     ];
   }
   function planCard(data,offer){
@@ -98,10 +98,17 @@
         [1,7,15,30].map(d=>'<button class="'+(d===days?'active':'')+'" onclick="dyGrowthSelectDays('+d+')"><b>'+d+'</b><small>'+ (d===1?'día':'días')+'</small></button>').join('')+
       '</div></section>'+
       '<div class="dy-growth-plan-grid">'+(data.offers||[]).map(o=>planCard(data,o)).join('')+'</div>'+
-      '<section class="dy-growth-explain"><div><span>⚡</span><b>Impulso</b><p>Para que te vea más gente cerca durante un período puntual.</p></div><div><span>⚡⚡</span><b>Impulso+</b><p>Agrega datos y señales de demanda para tomar mejores decisiones.</p></div><div><span>🚀</span><b>Premium</b><p>Incluye Radar y las herramientas más completas de crecimiento.</p></div></section>'+
+      '<section class="dy-growth-explain"><div><span>⚡</span><b>Impulso</b><p>Para que te vea más gente cerca durante un período puntual.</p></div><div><span>⚡⚡</span><b>Impulso+</b><p>Agrega datos y señales de demanda para tomar mejores decisiones.</p></div><div><span>🚀</span><b>Premium</b><p>Máximo alcance en los espacios destacados de DatoYa.</p></div></section>'+
       '<section class="dy-growth-table-card"><div><span>COMPARACIÓN</span><h2>Qué incluye cada nivel</h2><p>DatoYa Gratis incluye las herramientas esenciales; los planes pagados agregan alcance y funciones. El cargo de servicio por compras online se informa por separado.</p></div><div class="dy-growth-table"><div class="head"><b>Función</b><b>Gratis</b><b>Impulso</b><b>Impulso+</b><b>Premium</b></div>'+
         rows.map(r=>'<div class="row"><span>'+h(r[0])+'</span><strong>'+h(r[1])+'</strong><strong>'+h(r[2])+'</strong><strong>'+h(r[3])+'</strong><strong>'+h(r[4])+'</strong></div>').join('')+
-      '</div></section>'+
+      '</div>'+
+         '<div class="dy-growth-mobile-comparison">'+
+           [{label:'Gratis',idx:1},{label:'Impulso',idx:2},{label:'Impulso+',idx:3},{label:'Premium',idx:4}].map((plan,i)=>
+             '<article class="dy-growth-mobile-plan '+(i===0?'base':'')+'">'+
+               '<h3>'+h(plan.label)+'</h3>'+
+               rows.map(r=>'<div class="dy-growth-mobile-feature"><span>'+h(r[0])+'</span><strong>'+h(r[plan.idx])+'</strong></div>').join('')+
+             '</article>').join('')+
+         '</div></section>'+
       '<section class="dy-growth-note"><span>💳</span><div><b>Pagos online dentro de DatoYa</b><p>Las compras se procesarán con Mercado Pago a través de DatoYa. El cliente conocerá el cargo por servicio antes de pagar. Los cobros reales todavía no están habilitados.</p></div></section>'+
       (data.pending_payment?'<section class="dy-growth-pending"><div><span>⏳</span><div><b>Hay un pago pendiente</b><p>Si tenías un pago anterior pendiente, puedes comprobar su estado. No se iniciarán cobros nuevos por Khipu.</p></div></div><button class="btn btn-outline" onclick="dySyncGrowthPayment('+id+')">Actualizar pago</button></section>':'')+
       '</div>';
@@ -160,10 +167,7 @@
     window.__datoyaBusinessHubFrame?.(Number(id),key);
   }
   const gated={
-    'impulso-ahora':{access:'impulse_now',key:'impulse',title:'Impulso Ahora',copy:'Activa una oferta por horario y stock real. Disponible desde Impulso.'},
-    'mi-negocio-estadisticas':{access:'advanced_analytics',key:'stats',title:'Estadísticas avanzadas',copy:'Conversiones, clics y rendimiento detallado están disponibles desde Impulso+.'},
-    'mi-negocio-pulso':{access:'local_pulse',key:'pulse',title:'Pulso Local',copy:'Descubre qué está buscando la gente de tu zona. Disponible desde Impulso+.'},
-    'mi-negocio-radar':{access:'opportunity_radar',key:'radar',title:'Radar de oportunidades',copy:'Detecta demanda con poca oferta visible. Disponible con Impulso Premium.'}
+    'mi-negocio-estadisticas':{access:'advanced_analytics',key:'stats',title:'Estadísticas avanzadas',copy:'Consulta el rendimiento detallado de tu negocio.'}
   };
   for(const [routeName,gate] of Object.entries(gated)){
     const base=routes[routeName];if(!base)continue;
@@ -177,12 +181,12 @@
   }
   async function applyTierNav(id,known){
     const data=known||await growthAccess(id);if(!data)return;
-    const checks={impulse:'impulse_now',stats:'advanced_analytics',pulse:'local_pulse',radar:'opportunity_radar'};
+    const checks={stats:'advanced_analytics'};
     for(const [key,feature] of Object.entries(checks)){
       const a=document.querySelector('.dy-business-hub-nav [data-hub-key="'+key+'"]');if(!a)continue;
       const allowed=!!data.access?.[feature];
       a.classList.toggle('locked',!allowed);
-      a.href=allowed?(key==='impulse'?'#/impulso-ahora/'+id:key==='stats'?'#/mi-negocio-estadisticas/'+id:key==='pulse'?'#/mi-negocio-pulso/'+id:'#/mi-negocio-radar/'+id):'#/mi-negocio-plan/'+id;
+      a.href=allowed?'#/mi-negocio-estadisticas/'+id:'#/mi-negocio-plan/'+id;
       const em=a.querySelector('em');
       if(!allowed&&!em)a.insertAdjacentHTML('beforeend','<em>🔒</em>');
       if(allowed&&em)em.remove();
