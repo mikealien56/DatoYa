@@ -35,10 +35,27 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Install Capacitor
+      - name: Install Capacitor with optional native Firebase push
+        env:
+          DATOYA_FIREBASE_GOOGLE_SERVICES_B64: ${{ secrets.DATOYA_FIREBASE_GOOGLE_SERVICES_B64 }}
         run: |
-          npm install --no-save @capacitor/core@latest @capacitor/android@latest @capacitor/cli@latest @capacitor/app@latest @capacitor/status-bar@latest @capacitor/splash-screen@latest
+          packages=(@capacitor/core@latest @capacitor/android@latest @capacitor/cli@latest @capacitor/app@latest @capacitor/status-bar@latest @capacitor/splash-screen@latest)
+          if [ -n "$DATOYA_FIREBASE_GOOGLE_SERVICES_B64" ]; then
+            packages+=(@capacitor/push-notifications@latest)
+          fi
+          npm install --no-save "${packages[@]}"
           npx cap add android
+          if [ -n "$DATOYA_FIREBASE_GOOGLE_SERVICES_B64" ]; then
+            printf '%s' "$DATOYA_FIREBASE_GOOGLE_SERVICES_B64" | base64 --decode > android/app/google-services.json
+            python3 - <<'PY'
+          import json
+          data=json.load(open('android/app/google-services.json'))
+          assert any(c.get('client_info',{}).get('android_client_info',{}).get('package_name')=='cl.datoya.app' for c in data.get('client',[])), 'Firebase: appId no coincide con cl.datoya.app'
+          print('Firebase Android configurado para el identificador correcto.')
+          PY
+          else
+            echo 'Firebase Android no configurado: APK se genera SIN notificaciones nativas; no se activan avisos ficticios.'
+          fi
 
       - name: Install image tooling
         run: python3 -m pip install --user Pillow
@@ -129,6 +146,8 @@ jobs:
               s=s.replace('<application', '    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera.any" android:required="false" />\n\n    <application', 1)
           if 'android.permission.ACCESS_COARSE_LOCATION' not in s:
               s=s.replace('<application', '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n\n    <application', 1)
+          if 'android.permission.POST_NOTIFICATIONS' not in s:
+              s=s.replace('<application', '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n\n    <application', 1)
           s=s.replace('android:label="@string/app_name"', 'android:label="@string/app_name" android:usesCleartextTraffic="false"')
           p.write_text(s)
           PY
@@ -232,10 +251,10 @@ jobs:
               raise SystemExit('No se encontró build.gradle de Android')
           s=p.read_text()
           import re
-          s=re.sub(r'versionCode\s+\d+', 'versionCode 7', s)
-          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.2"', s)
+          s=re.sub(r'versionCode\s+\d+', 'versionCode 8', s)
+          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.3"', s)
           p.write_text(s)
-          print('DatoYa Android versionCode=7 versionName=2.3.2')
+          print('DatoYa Android versionCode=8 versionName=2.3.3')
           PY
 
       - name: Verify native permissions
@@ -244,6 +263,7 @@ jobs:
           grep -q 'android.hardware.camera.any' android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.ACCESS_COARSE_LOCATION' android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.ACCESS_FINE_LOCATION' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
           grep -q 'ActivityCompat.requestPermissions' android/app/src/main/java/cl/datoya/app/MainActivity.java
           grep -q 'setGeolocationEnabled(true)' android/app/src/main/java/cl/datoya/app/MainActivity.java
 

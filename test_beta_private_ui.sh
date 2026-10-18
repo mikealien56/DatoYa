@@ -22,7 +22,7 @@ grep -q "Notification.requestPermission" beta_private_ui.js || { echo "Centro de
 grep -q "pushManager.subscribe" beta_private_ui.js || { echo "Falta suscripción Push del navegador"; exit 1; }
 grep -q "api('/push/subscribe'" beta_private_ui.js || { echo "Suscripción Push no se persiste en DatoYa"; exit 1; }
 grep -q "detachPushForLogout" beta_private_ui.js || { echo "Logout no desvincula Push de la cuenta"; exit 1; }
-grep -q "api('/push/test'" beta_private_ui.js || { echo "Falta prueba de aviso Push"; exit 1; }
+grep -Fq "push.native?'/push/native/test':'/push/test'" beta_private_ui.js || { echo "Falta prueba de avisos web y nativos"; exit 1; }
 grep -q "routes.favoritos" beta_private_ui.js
 grep -q "data-remove-favorite" beta_private_ui.js || { echo "Mis guardados no permite quitar favoritos"; exit 1; }
 grep -q "data-toggle-follow-notify" beta_private_ui.js || { echo "Mis guardados no permite controlar avisos"; exit 1; }

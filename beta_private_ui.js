@@ -16,15 +16,72 @@
   const priorAuth=typeof renderAuthArea==='function'?renderAuthArea:null;
   if(priorAuth)renderAuthArea=function(){const r=priorAuth.apply(this,arguments);setTimeout(()=>{refreshBell();syncExistingPush().catch(()=>{})},0);return r};
 
+
+  // Capacitor WebView no ofrece Web Push. Su canal compatible es Firebase nativo.
+  const isNativeAndroid=()=>!!(window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='android');
+  const nativePushPlugin=()=>{
+    const bridge=window.Capacitor;
+    if(!isNativeAndroid()||!bridge?.isPluginAvailable?.('PushNotifications'))return null;
+    return bridge.Plugins?.PushNotifications||bridge.registerPlugin?.('PushNotifications')||null;
+  };
+  const nativeTokenKey=()=> 'datoya_android_push_v1_'+String(ME?.id||ME?.user_id||'current');
+  const savedNativeToken=()=>{try{return localStorage.getItem(nativeTokenKey())||''}catch(_){return ''}};
+  const saveNativeToken=token=>{try{if(token)localStorage.setItem(nativeTokenKey(),token);else localStorage.removeItem(nativeTokenKey())}catch(_){}};
+  async function nativeState(){
+    const config=await api('/push/native/config'),plugin=nativePushPlugin();
+    if(!plugin)return {native:true,config,supported:false,permission:'unsupported',subscription:null,nativeUpdateRequired:true};
+    const result=await plugin.checkPermissions();
+    const permission=String(result?.receive||'prompt');
+    return {native:true,config,supported:true,permission,subscription:permission==='granted'&&config.registered_devices>0&&savedNativeToken()?{native:true}:null};
+  }
+  let nativeRegisterPromise=null;
+  async function registerNativePush({askPermission=false}={}){
+    if(nativeRegisterPromise)return nativeRegisterPromise;
+    nativeRegisterPromise=(async()=>{
+      const plugin=nativePushPlugin();
+      if(!plugin)throw new Error('Esta versión de DatoYa necesita una actualización para recibir avisos nativos');
+      const config=await api('/push/native/config');
+      if(!config.configured)throw new Error('Falta conectar Firebase a DatoYa para recibir avisos Android');
+      let perms=await plugin.checkPermissions();
+      if(perms.receive!=='granted'&&askPermission)perms=await plugin.requestPermissions();
+      if(perms.receive!=='granted')throw new Error(perms.receive==='denied'?'Autoriza las notificaciones en Ajustes → Aplicaciones → DatoYa':'Primero autoriza los avisos en tu dispositivo');
+      await plugin.createChannel?.({id:'datoya_updates',name:'Avisos DatoYa',description:'Pedidos, alertas y novedades importantes',importance:4,visibility:1}).catch(()=>{});
+      const token=await new Promise(async(resolve,reject)=>{
+        let settled=false,timer,okHandle=null,errorHandle=null;
+        const clean=()=>{clearTimeout(timer);try{okHandle?.remove?.()}catch(_){}try{errorHandle?.remove?.()}catch(_){}};
+        const done=(error,value)=>{if(settled)return;settled=true;clean();error?reject(error):resolve(value)};
+        try{
+          okHandle=await plugin.addListener('registration',event=>{const value=String(event?.value||'');value.length>=40?done(null,value):done(new Error('Firebase no entregó un token de dispositivo válido'))});
+          errorHandle=await plugin.addListener('registrationError',()=>done(new Error('No se pudo registrar este dispositivo con Firebase')));
+          timer=setTimeout(()=>done(new Error('El registro de notificaciones tardó demasiado')),15000);
+          await plugin.register();
+        }catch(error){done(error)}
+      });
+      await api('/push/native/subscribe',{method:'POST',body:{token,platform:'android'}});
+      saveNativeToken(token);
+      return {native:true};
+    })().finally(()=>{nativeRegisterPromise=null});
+    return nativeRegisterPromise;
+  }
+  if(isNativeAndroid()){
+    nativePushPlugin()?.addListener?.('pushNotificationActionPerformed',event=>{
+      const raw=String(event?.notification?.data?.url||'#/notificaciones');
+      location.hash=raw.startsWith('#/')?raw:'#/notificaciones';
+    }).catch(()=>{});
+    nativePushPlugin()?.addListener?.('pushNotificationReceived',()=>{refreshBell().catch(()=>{});}).catch(()=>{});
+  }
+
   const pushSupported=()=>('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
   function pushAppKey(value){const pad='='.repeat((4-String(value||'').length%4)%4),base64=(String(value||'')+pad).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),out=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
   async function pushState(){
+    if(isNativeAndroid())return nativeState();
     const config=await api('/push/config');
     if(!pushSupported())return {config,supported:false,permission:'unsupported',subscription:null};
     const reg=await navigator.serviceWorker.ready,subscription=await reg.pushManager.getSubscription();
     return {config,supported:true,permission:Notification.permission,subscription};
   }
   async function enablePush(config){
+    if(isNativeAndroid())return registerNativePush({askPermission:true});
     if(!pushSupported())throw new Error('Este navegador no admite notificaciones push');
     if(!config?.configured||!config?.public_key)throw new Error('Las notificaciones push aún no están habilitadas en DatoYa');
     if(Notification.permission==='denied')throw new Error('Los avisos están bloqueados en la configuración del navegador. Usa “Cómo activar avisos”.');
@@ -37,19 +94,38 @@
     return sub;
   }
   async function disablePush(){
+    if(isNativeAndroid()){
+      const token=savedNativeToken();
+      if(token)await api('/push/native/subscribe',{method:'DELETE',body:{token}});
+      saveNativeToken('');
+      await nativePushPlugin()?.unregister?.().catch(()=>{});
+      return;
+    }
     if(!pushSupported())return;
     const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
     if(sub){try{await api('/push/subscribe',{method:'DELETE',body:{endpoint:sub.endpoint}})}catch(_){}await sub.unsubscribe()}
   }
   async function syncExistingPush(){
-    if(!ME||!pushSupported()||Notification.permission!=='granted')return;
+    if(!ME)return;
+    if(isNativeAndroid()){
+      if(savedNativeToken()&&nativePushPlugin())await registerNativePush().catch(()=>{});
+      return;
+    }
+    if(!pushSupported()||Notification.permission!=='granted')return;
     const config=await api('/push/config');
     if(!config?.configured)return;
     const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
     if(sub)await api('/push/subscribe',{method:'POST',body:sub.toJSON()});
   }
   async function detachPushForLogout(){
-    if(!ME||!pushSupported()||Notification.permission!=='granted')return;
+    if(!ME)return;
+    if(isNativeAndroid()){
+      const token=savedNativeToken();
+      if(token)await api('/push/native/subscribe',{method:'DELETE',body:{token}}).catch(()=>{});
+      saveNativeToken('');
+      return;
+    }
+    if(!pushSupported()||Notification.permission!=='granted')return;
     const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
     if(sub)try{await api('/push/subscribe',{method:'DELETE',body:{endpoint:sub.endpoint}})}catch(_){}
   }
@@ -58,25 +134,27 @@
 
   routes.notificaciones=async function(){
     if(!ME){location.hash='#/login';return}
-    const [d,push]=await Promise.all([api('/notifications/summary'),pushState().catch(err=>({config:{configured:false},supported:pushSupported(),permission:pushSupported()?Notification.permission:'unsupported',subscription:null,error:String(err?.message||'No se pudo comprobar el estado de los avisos')}))]),rows=d.notifications||[];
+    const [d,push]=await Promise.all([api('/notifications/summary'),pushState().catch(err=>({native:isNativeAndroid(),config:{configured:false},supported:isNativeAndroid()?!!nativePushPlugin():pushSupported(),permission:isNativeAndroid()?'unknown':pushSupported()?Notification.permission:'unsupported',subscription:null,error:String(err?.message||'No se pudo comprobar el estado de los avisos')}))]),rows=d.notifications||[];
     const pushOn=!!push.subscription,pushReady=!!push.config?.configured,pushDenied=push.permission==='denied';
-    const pushStatus=push.error?'No pudimos comprobar completamente los avisos':!push.supported?'No disponible en este navegador':pushDenied?'Bloqueadas por el navegador':pushOn?'Activadas en este dispositivo':pushReady?'Disponibles para activar':'Pendientes de configuración';
-    const pushDetail=push.error?h(push.error):pushDenied?'El navegador bloqueó este permiso. Puedes volver a habilitarlo manualmente.':'Puedes cambiar esta configuración cuando quieras.';
+    const pushStatus=push.error?'No pudimos comprobar completamente los avisos':push.native&&!push.supported?'Esta versión Android requiere actualizar la app':!push.supported?'Este navegador no admite avisos push':pushDenied?'Notificaciones bloqueadas':pushOn?'Activadas en este dispositivo':push.native&&!pushReady?'Firebase pendiente de conectar':pushReady?'Disponibles para activar':'Pendientes de configuración';
+    const pushDetail=push.error?h(push.error):push.native&&!push.supported?'La versión actual no incluye el módulo nativo. Los avisos seguirán disponibles dentro de DatoYa.':push.native&&!pushReady?'Los avisos en segundo plano requieren activar Firebase y actualizar el APK.':pushDenied?'Actívalas desde Ajustes del teléfono o los permisos de Chrome.':'Puedes cambiar esta configuración cuando quieras.';
     const pushActions=pushOn
       ? '<button id="dy-push-disable" class="btn btn-outline btn-sm">Desactivar</button><button id="dy-push-test" class="btn btn-primary btn-sm">Probar aviso</button>'
-      : pushDenied
-        ? '<button id="dy-push-help" class="btn btn-primary btn-sm">Cómo activar avisos</button>'
+      : push.native&&(!push.supported||!pushReady)
+        ? '<button id="dy-push-help" class="btn btn-outline btn-sm">Cómo recibir avisos</button>'
+        : pushDenied
+          ? '<button id="dy-push-help" class="btn btn-primary btn-sm">Cómo activar avisos</button>'
         : push.error
           ? '<button id="dy-push-retry" class="btn btn-outline btn-sm">Reintentar</button>'
-          : `<button id="dy-push-enable" class="btn btn-primary btn-sm" ${(!push.supported||!pushReady)?'disabled':''}>${!pushReady&&push.supported?'Push pendiente de configuración':'Activar avisos'}</button>`;
-    view.innerHTML=`<div class="dy-beta-page"><header class="dy-beta-head"><div><span>CENTRO DATOYA</span><h1>Notificaciones</h1><p>Pedidos, soporte, alertas y novedades importantes en un solo lugar.</p></div>${d.unread?'<button id="dy-read-all" class="btn btn-outline btn-sm">Marcar todas como leídas</button>':''}</header><section class="dy-push-card"><div><span>📲 AVISOS EN TU TELÉFONO</span><b>Notificaciones push</b><small>${h(pushStatus)}. ${pushDetail}</small></div><div class="dy-push-actions">${pushActions}</div><div id="dy-push-help-box" class="dy-push-help" hidden><b>Permite las notificaciones desde el navegador</b><ol><li>Toca el icono de controles o candado junto a la dirección de datoya.cl.</li><li>Entra a Permisos o Configuración del sitio.</li><li>Cambia Notificaciones a Permitir.</li><li>Vuelve a DatoYa y recarga esta pantalla.</li></ol><small>Si usas DatoYa instalada como app, revisa también Ajustes del teléfono → Apps → DatoYa/Chrome → Notificaciones.</small></div></section><div class="dy-notification-list">${rows.length?rows.map(n=>`<a href="${h(n.link||'#/notificaciones')}" class="dy-notification ${n.read_at?'':'unread'}" data-notification-id="${Number(n.id)}"><span>${n.read_at?'○':'●'}</span><div><b>${h(n.text)}</b><small>${when(n.created_at)}</small></div><em>→</em></a>`).join(''):'<div class="dy-beta-empty"><span>🔔</span><h2>Todo al día</h2><p>Las novedades importantes aparecerán aquí.</p></div>'}</div></div>`;
+          : `<button id="dy-push-enable" class="btn btn-primary btn-sm" ${(!push.supported||!pushReady)?'disabled':''}>${!pushReady&&push.supported?'Avisos pendientes de configuración':'Activar avisos'}</button>`;
+    view.innerHTML=`<div class="dy-beta-page"><header class="dy-beta-head"><div><span>CENTRO DATOYA</span><h1>Notificaciones</h1><p>Pedidos, soporte, alertas y novedades importantes en un solo lugar.</p></div>${d.unread?'<button id="dy-read-all" class="btn btn-outline btn-sm">Marcar todas como leídas</button>':''}</header><section class="dy-push-card"><div><span>📲 AVISOS EN TU TELÉFONO</span><b>Notificaciones push</b><small>${h(pushStatus)}. ${pushDetail}</small></div><div class="dy-push-actions">${pushActions}</div><div id="dy-push-help-box" class="dy-push-help" hidden><b>${push.native?'Avisos en la aplicación Android':'Activa notificaciones en Chrome'}</b>${push.native?'<p>Tu APK necesita el módulo de Firebase para recibir notificaciones con la app cerrada. Mientras se publica la actualización, abre datoya.cl en Chrome para activar los avisos web. Los mensajes siguen llegando al Centro de Notificaciones de DatoYa.</p>':'<ol><li>Abre datoya.cl en Chrome.</li><li>Entra en Configuración del sitio → Notificaciones.</li><li>Selecciona Permitir y vuelve a esta pantalla.</li></ol>'}<small>En Android revisa también Ajustes → Aplicaciones → DatoYa o Chrome → Notificaciones.</small></div></section><div class="dy-notification-list">${rows.length?rows.map(n=>`<a href="${h(n.link||'#/notificaciones')}" class="dy-notification ${n.read_at?'':'unread'}" data-notification-id="${Number(n.id)}"><span>${n.read_at?'○':'●'}</span><div><b>${h(n.text)}</b><small>${when(n.created_at)}</small></div><em>→</em></a>`).join(''):'<div class="dy-beta-empty"><span>🔔</span><h2>Todo al día</h2><p>Las novedades importantes aparecerán aquí.</p></div>'}</div></div>`;
     document.getElementById('dy-read-all')?.addEventListener('click',async()=>{await api('/notifications/read-all',{method:'PUT'});await refreshBell();routes.notificaciones()});
     document.querySelectorAll('[data-notification-id]').forEach(a=>a.addEventListener('click',()=>api('/notifications/'+a.dataset.notificationId+'/read',{method:'PUT'}).catch(()=>{})));
     document.getElementById('dy-push-enable')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{await enablePush(push.config);toast?.('Avisos activados en este dispositivo','ok');routes.notificaciones()}catch(err){toast?.(err.message||'No se pudieron activar los avisos','err');e.currentTarget.disabled=false}});
-    document.getElementById('dy-push-help')?.addEventListener('click',()=>{const box=document.getElementById('dy-push-help-box');if(box){box.hidden=!box.hidden;box.scrollIntoView({behavior:'smooth',block:'nearest'})}toast?.('Los avisos están bloqueados por el navegador. Revisa los permisos del sitio.','err')});
+    document.getElementById('dy-push-help')?.addEventListener('click',()=>{const box=document.getElementById('dy-push-help-box');if(box){box.hidden=!box.hidden;box.scrollIntoView({behavior:'smooth',block:'nearest'})}toast?.(push.native?'Se necesita la versión Android con Firebase habilitado.':'Revisa los permisos de notificaciones de Chrome.','ok')});
     document.getElementById('dy-push-retry')?.addEventListener('click',()=>routes.notificaciones());
     document.getElementById('dy-push-disable')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{await disablePush();toast?.('Avisos desactivados en este dispositivo','ok');routes.notificaciones()}catch(err){toast?.(err.message||'No se pudieron desactivar los avisos','err');e.currentTarget.disabled=false}});
-    document.getElementById('dy-push-test')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{await api('/push/test',{method:'POST'});toast?.('Enviamos un aviso de prueba','ok')}catch(err){toast?.(err.message||'No se pudo enviar el aviso de prueba','err')}finally{e.currentTarget.disabled=false}});
+    document.getElementById('dy-push-test')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{const response=await api(push.native?'/push/native/test':'/push/test',{method:'POST'});if(!Number(response.sent||0))throw new Error('No hay dispositivos registrados para recibir este aviso');toast?.('Aviso enviado; revisa las notificaciones del teléfono','ok')}catch(err){toast?.(err.message||'No se pudo enviar el aviso de prueba','err')}finally{e.currentTarget.disabled=false}});
   };
 
   routes.alertas=async function(prefillTerm='',prefillCategory=0){
