@@ -21,7 +21,7 @@
           <article class="plus"><div><span>⚡⚡</span><h3>Impulso+</h3><strong>Desde ${price('impulso_plus',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso</li><li>Pulso Local</li><li>Estadísticas avanzadas</li><li>Prioridad en señales de demanda</li></ul></article>
           <article class="premium"><div><span>🚀</span><h3>Premium</h3><strong>Desde ${price('premium',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso+</li><li>Herramientas para destacar productos</li><li>Máxima exposición patrocinada</li><li>Herramientas avanzadas de crecimiento</li></ul></article>
         </div>
-        <div class="dy-home-plan-actions"><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio gratis</a><a class="btn btn-outline" href="#/login">Ya tengo negocio</a><small>💳 Pagos online por DatoYa · cargo de servicio 2% informado al comprador</small></div>`;
+        <div class="dy-home-plan-actions"><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio gratis</a><a class="btn btn-outline" href="#/login">Ya tengo negocio</a></div>`;
     }catch(_){
       host.innerHTML='<div class="dy-home-v3-head"><span>🏪 PARA NEGOCIOS</span><h2>Publica gratis y crece cuando tú quieras</h2><p>Los planes de crecimiento son opcionales y nunca reemplazan el acceso gratuito.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>';
     }
@@ -34,7 +34,7 @@
     host.innerHTML=`
       <div class="dy-home-club-showcase">
         <div class="dy-home-club-visual">
-          <img class="dy-premium-club-art" src="/brand/datoya-club-card-hq-1536.webp?v=20261018-clubhq1" alt="Tarjeta DatoYa Club" width="1536" height="1024" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null;this.src='/brand/datoya-club-card-v13.webp?v=20261017-webpfix1'">
+          <div class="dy-club-card-graphic" role="img" aria-label="Tarjeta DatoYa Club: precios exclusivos para socios"><div class="dy-club-graphic-head"><span class="dy-club-monogram">DY</span><div><strong>DATOYA</strong><b>CLUB</b></div></div><div class="dy-club-graphic-lines"><span>COMPRA LOCAL</span><span>✦</span><span>SOLO SOCIOS</span></div><div class="dy-club-graphic-foot"><span>PRECIOS EXCLUSIVOS</span><span>★ DATOYA</span></div></div>
         </div>
         <div class="dy-home-club-copy">
           <span class="dy-home-club-kicker">DATOYA CLUB</span>
@@ -66,7 +66,7 @@
         <article><div class="icon">🛍️</div><small>CLIENTE</small><h3>Busca → elige → paga en DatoYa</h3><p>Encuentra negocios cercanos y compra dentro de DatoYa cuando esté habilitado Mercado Pago.</p><a href="#/buscar/_">Buscar cerca de mí →</a></article>
         <article id="como-funciona-negocios"><div class="icon">🏪</div><small>NEGOCIO</small><h3>Publica → recibe pedidos → cobra por DatoYa</h3><p>Crea tu presencia gratis. Si quieres más alcance, activas herramientas de crecimiento por días.</p><a href="#/registrar-negocio">Publicar mi negocio →</a></article>
       </div>
-      <div class="dy-home-money-rule"><span>💳</span><div><b>El pago de la compra se realiza dentro de DatoYa</b><p>Cuando se habiliten los cobros online, pagarás mediante Mercado Pago dentro del proceso de DatoYa, con el cargo de servicio visible antes de confirmar.</p></div></div>`;
+      `;
   }
 
   function restructureHome(){
