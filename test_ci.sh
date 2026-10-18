@@ -401,7 +401,7 @@ grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara c
 ! grep -q "DatoYa gana por" home_structure_v3.js || { echo "La portada expone el modelo de ingresos de DatoYa"; exit 1; }
 ! grep -q "DatoYa cobra únicamente" marketplace_public_beta_ui.js || { echo "La portada explica cobros internos que no interesan al usuario"; exit 1; }
 ! grep -q "Club se paga a DatoYa" customer_club_ui.js || { echo "Club expone innecesariamente el flujo de ingreso de DatoYa"; exit 1; }
-grep -q "paga en DatoYa" home_structure_v3.js || { echo "Home no indica pago dentro de DatoYa"; exit 1; }
+grep -q 'compras online se realizan dentro de DatoYa' home_structure_v3.js || { echo "Home no indica pago dentro de DatoYa"; exit 1; }
 
 # Despacho propio + ETA + seguimiento
 grep -q "marketplace_delivery_eta_bootstrap" production_start.js || { echo "ETA de despacho no está montado"; exit 1; }
@@ -462,8 +462,8 @@ node --check home_structure_v3.js
 
 
 # UX Lo Busco Ya, Club sin precios ficticios y editor de fotografías local.
-! grep -Fq '\$19.990' customer_club_ui.js || { echo 'Club muestra ejemplo de precio antiguo'; exit 1; }
-! grep -Fq '\$24.990' customer_club_ui.js || { echo 'Club muestra precio ficticio antiguo'; exit 1; }
+! grep -Fq '$19.990' customer_club_ui.js || { echo 'Club muestra ejemplo de precio antiguo'; exit 1; }
+! grep -Fq '$24.990' customer_club_ui.js || { echo 'Club muestra precio ficticio antiguo'; exit 1; }
 grep -q 'routes.\x5blo-busco-ya' beta_private_ui.js || grep -q "lo-busco-ya" beta_private_ui.js || { echo 'Falta ruta Lo Busco Ya'; exit 1; }
 grep -q 'Lo necesito ahora' beta_private_ui.js || { echo 'Falta opción urgente de Lo Busco Ya'; exit 1; }
 grep -q 'notified_businesses' beta_private_features_bootstrap.js || { echo 'Falta aviso a negocios'; exit 1; }
