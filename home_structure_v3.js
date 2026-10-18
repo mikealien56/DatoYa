@@ -34,7 +34,7 @@
     host.innerHTML=`
       <div class="dy-home-club-showcase">
         <div class="dy-home-club-visual">
-          <img class="dy-premium-club-art" src="/brand/datoya-club-card-visible.webp?v=20261017-webpfix1" alt="Tarjeta DatoYa Club" width="520" height="347" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null;this.src='/brand/datoya-club-card-v13.webp?v=20261017-webpfix1'">
+          <img class="dy-premium-club-art" src="/brand/datoya-club-card-hq-1536.webp?v=20261018-clubhq1" alt="Tarjeta DatoYa Club" width="1536" height="1024" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null;this.src='/brand/datoya-club-card-v13.webp?v=20261017-webpfix1'">
         </div>
         <div class="dy-home-club-copy">
           <span class="dy-home-club-kicker">DATOYA CLUB</span>

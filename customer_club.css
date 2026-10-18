@@ -173,6 +173,6 @@
   display:block!important;visibility:visible!important;opacity:1!important;
   flex:none!important;position:relative!important;max-width:min(100%,520px)!important;
   width:100%!important;height:auto!important;min-height:1px!important;
-  aspect-ratio:520/347!important;object-fit:contain!important;
+  aspect-ratio:3/2!important;object-fit:contain!important;
   transform:none!important;filter:drop-shadow(0 14px 24px rgba(0,0,0,.2))!important;
 }

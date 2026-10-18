@@ -429,6 +429,19 @@ grep -q 'BENEFICIOS CLUB' customer_club_ui.js || { echo "Falta explicar benefici
 grep -q 'Precio normal' customer_club_ui.js || { echo "Falta explicación del Precio Club"; exit 1; }
 grep -q 'Precio Club' customer_club_ui.js || { echo "Falta explicar Precio Club"; exit 1; }
 grep -q 'premiumParts' customer_club_assets.js || { echo "Tarjeta premium Club no se reconstruye en /public/brand"; exit 1; }
+
+# Tarjeta Club original HQ: no debe ampliarse una miniatura en el Samsung.
+node - <<'NODE'
+const fs=require('fs');
+const b=fs.readFileSync('brand/datoya-club-card-hq-1536.webp');
+if(b.length<100000||b.toString('ascii',0,4)!=='RIFF'||b.toString('ascii',8,12)!=='WEBP')process.exit(1);
+console.log('Tarjeta Club HQ validada: '+b.length+' bytes');
+NODE
+grep -q 'datoya-club-card-hq-1536.webp' customer_club_ui.js || { echo "Mi Club no usa imagen original HQ"; exit 1; }
+grep -q 'datoya-club-card-hq-1536.webp' home_structure_v3.js || { echo "Portada Club no usa imagen original HQ"; exit 1; }
+node customer_club_assets.js
+test -s public/brand/datoya-club-card-hq-1536.webp || { echo "Tarjeta HQ no se publica en public/brand"; exit 1; }
+
 node --check home_structure_v3.js
 node --check customer_club_ui.js
 node --check customer_club_assets.js
