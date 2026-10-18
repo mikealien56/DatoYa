@@ -498,6 +498,7 @@
   wrap('mi-negocio-plan','plan');
   wrap('mi-negocio-soporte','support');
   wrap('mi-negocio-soporte-caso','support');
-  wrap('impulso-ahora','impulse',{title:'Impulso Ahora',description:'Publica ofertas por horario y stock real para destacar lo que quieres vender hoy.'});
+  // Impulso Ahora también pertenece al Plan Gratis una vez al mes.
+  wrap('impulso-ahora','impulse');
   wrap('impulso-semanal-nuevo','promos');
 })();
