@@ -459,3 +459,19 @@ node --check marketplace_business_ui.js
 node --check marketplace_public_beta_ui.js
 node --check customer_club_ui.js
 node --check home_structure_v3.js
+
+
+# UX Lo Busco Ya, Club sin precios ficticios y editor de fotografías local.
+! grep -Fq '\$19.990' customer_club_ui.js || { echo 'Club muestra ejemplo de precio antiguo'; exit 1; }
+! grep -Fq '\$24.990' customer_club_ui.js || { echo 'Club muestra precio ficticio antiguo'; exit 1; }
+grep -q 'routes.\x5blo-busco-ya' beta_private_ui.js || grep -q "lo-busco-ya" beta_private_ui.js || { echo 'Falta ruta Lo Busco Ya'; exit 1; }
+grep -q 'Lo necesito ahora' beta_private_ui.js || { echo 'Falta opción urgente de Lo Busco Ya'; exit 1; }
+grep -q 'notified_businesses' beta_private_features_bootstrap.js || { echo 'Falta aviso a negocios'; exit 1; }
+grep -q 'dy-wanted-how-link' home_structure_v3.js || { echo 'Falta enlace a Lo Busco Ya en Así funciona'; exit 1; }
+grep -q 'product_photo_studio.js' marketplace_business_assets.js || { echo 'Estudio de fotografía no se publica'; exit 1; }
+grep -q 'dy-open-studio' marketplace_business_ui.js || { echo 'Estudio no está integrado con productos'; exit 1; }
+grep -q 'cutSolidBackground' product_photo_studio.js || { echo 'Falta recorte local de fondo uniforme'; exit 1; }
+node --check product_photo_studio.js
+node --check beta_private_ui.js
+node --check home_structure_v3.js
+node --check customer_club_ui.js
