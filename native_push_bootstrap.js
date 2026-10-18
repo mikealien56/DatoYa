@@ -8,7 +8,7 @@ db.exec("CREATE INDEX IF NOT EXISTS idx_native_push_tokens_user ON native_push_t
 const serverPath=path.join(__dirname,'server.js');
 let src=fs.readFileSync(serverPath,'utf8');
 if(!src.includes('DATOYA NATIVE PUSH FCM V1')){
-const insert=String.raw\`
+const insert=String.raw`
 // ============ DATOYA NATIVE PUSH FCM V1 ============
 const __dyFcmCrypto=require('crypto');
 let __dyFcmCredentials=null,__dyFcmAccess=null;
@@ -105,7 +105,7 @@ app.post('/api/push/native/test',auth,async(req,res)=>{
   res.json({ok:true,sent:delivered.sent});
 });
 // ============ FIN DATOYA NATIVE PUSH FCM V1 ============
-\`;
+`;
 const marker='// ============ MISC ============';
 if(!src.includes(marker))throw Error('No se encontró ubicación de montaje para FCM');
 src=src.replace(marker,insert+'\n'+marker);
