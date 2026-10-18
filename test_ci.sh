@@ -117,7 +117,7 @@ grep -q "Impulso Premium" business_growth_plans_v2_ui.js || { echo "Falta nivel 
 grep -q "\[1,7,15,30\]" business_growth_plans_v2_ui.js || { echo "Faltan duraciones 1/7/15/30"; exit 1; }
 grep -q "app.get('/api/businesses/:id/khipu-onboarding'" khipu_business_onboarding_bootstrap.js
 grep -q "app.post('/api/businesses/:id/khipu-onboarding/start'" khipu_business_onboarding_bootstrap.js
-grep -q "No te pediremos claves bancarias" business_hub_ui.js
+grep -q "Conecta tu cuenta para recibir pagos online" direct_merchant_payments_ui.js || { echo "Pagos no explica la conexión actual"; exit 1; }
 grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_requests" postgres/012_commerce_refunds.sql
 grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_events" postgres/012_commerce_refunds.sql
 grep -q "Falta tabla PostgreSQL: commerce_refund_requests" postgres_migrate.js
