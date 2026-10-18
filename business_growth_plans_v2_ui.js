@@ -109,7 +109,7 @@
                rows.map(r=>'<div class="dy-growth-mobile-feature"><span>'+h(r[0])+'</span><strong>'+h(r[plan.idx])+'</strong></div>').join('')+
              '</article>').join('')+
          '</div></section>'+
-      '<section class="dy-growth-note"><span>💳</span><div><b>Pagos online dentro de DatoYa</b><p>Las compras se procesarán con Mercado Pago a través de DatoYa. El cliente conocerá el cargo por servicio antes de pagar. Los cobros reales todavía no están habilitados.</p></div></section>'+
+
       (data.pending_payment?'<section class="dy-growth-pending"><div><span>⏳</span><div><b>Hay un pago pendiente</b><p>Si tenías un pago anterior pendiente, puedes comprobar su estado. No se iniciarán cobros nuevos por Khipu.</p></div></div><button class="btn btn-outline" onclick="dySyncGrowthPayment('+id+')">Actualizar pago</button></section>':'')+
       '</div>';
     window.__datoyaBusinessHubFrame?.(id,'plan');

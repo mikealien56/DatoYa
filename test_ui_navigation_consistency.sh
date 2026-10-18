@@ -18,7 +18,8 @@ grep -q "Datos del negocio" business_hub_ui.js || fail "Negocio no publicado no 
 grep -Fq "b.status==='active'&&b.slug" business_hub_ui.js || fail "Se ofrece vista pública a negocios no publicados"
 grep -q "Cuenta y negocios" business_hub_ui.js || fail "El acceso de cuenta/selector tiene texto ambiguo"
 if grep -q "Operativo en TEST" business_hub_ui.js; then fail "El dashboard vuelve a exponer lenguaje TEST"; fi
-grep -q "Configurado · activación pendiente" business_hub_ui.js || fail "Estado Khipu no es claro para el negocio"
+grep -q 'dy-dashboard-payment-link' business_hub_ui.js || fail "Panel no incluye enlace vigente a Mercado Pago"
+if grep -q 'Khipu' business_hub_ui.js; then fail "Panel vuelve a usar integración Khipu antigua"; fi
 
 # Publicación: no ofrecer enlaces públicos imposibles.
 grep -Fq "businessPublic=cache?.business?.status==='active'&&!!slug" marketplace_business_ui.js || fail "Productos permiten Ver publicado antes de publicar el negocio"
@@ -52,7 +53,7 @@ grep -Eq "datoya-shell-v(9[4-9]|[1-9][0-9]{2,})" service-worker.js || fail "PWA 
 
 # Rutas críticas enlazadas desde el Panel Negocio deben existir.
 grep -q "routes\['mi-negocio-productos'\]" business_hub_ui.js || fail "Falta ruta Productos"
-grep -q "routes\['mi-negocio-pagos'\]" business_hub_ui.js || fail "Falta ruta Pagos"
+grep -q "routes\['mi-negocio-pagos'\]" direct_merchant_payments_ui.js || fail "Falta ruta Pagos Mercado Pago"
 grep -q "routes\['mi-negocio-promociones'\]" business_hub_ui.js || fail "Falta ruta Promociones"
 grep -q "routes\['mi-negocio-estadisticas'\]" business_hub_ui.js || fail "Falta ruta Estadísticas"
 grep -q "routes\['mi-negocio-horarios'\]" marketplace_hours_ui.js || fail "Falta ruta Horarios"

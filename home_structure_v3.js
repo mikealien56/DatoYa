@@ -97,7 +97,7 @@
     const categories=document.getElementById('local-categories');
     const promos=document.getElementById('promociones');
     const nearby=document.getElementById('negocios-cerca');
-    const wanted=document.getElementById('lo-busco-ya-demo');
+    const wanted=document.getElementById('lo-busco-ya-home');
     const impulse=document.getElementById('impulso-ahora');
     const exclusive=document.getElementById('solo-datoya');
     const featured=document.getElementById('negocio-destacado');

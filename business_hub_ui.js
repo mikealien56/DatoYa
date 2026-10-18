@@ -83,13 +83,12 @@
     if(!requireBusiness())return;
     id=Number(id||0);if(!id){location.hash='#/perfil';return;}
     view.innerHTML='<div class="dy-business-dashboard dy-hub-loading" role="status"><div class="dy-business-card"><span>🏪</span><h2>Cargando tu negocio…</h2><p>Preparando el panel, los pedidos y las estadísticas.</p></div></div>';
-    const [manage,ordersD,analyticsD,supportD,planD,khipuD,promoD,wantedD]=await Promise.all([
+    const [manage,ordersD,analyticsD,supportD,planD,promoD,wantedD]=await Promise.all([
       getMeta(id,true),
       hubApi('/businesses/'+id+'/orders').catch(()=>({orders:[]})),
       hubApi('/businesses/'+id+'/analytics?days=30').catch(()=>({events:{},orders:0,completed_orders:0,sales_completed:0})),
       hubApi('/businesses/'+id+'/support-cases').catch(()=>({stats:{},cases:[]})),
       hubApi('/businesses/'+id+'/impulso-plan').catch(()=>({membership:null,config:{}})),
-      hubApi('/khipu/status').catch(()=>({configured:false,mode:'blocked',live_payments_allowed:false})),
       hubApi('/businesses/'+id+'/promotion-analytics?days=30').catch(()=>({impulse_now:{summary:{}},weekly:{summary:{}}})),
       hubApi('/businesses/'+id+'/wanted').catch(()=>({requests:[],stats:{}}))
     ]);
@@ -136,7 +135,7 @@
           <div class="dy-dashboard-checks">
             <div><span>${b.status==='active'?'✅':'○'}</span><b>Negocio publicado</b><small>${h(statusLabel(b.status))}</small></div>
             <div><span>${products.some(p=>p.active)?'✅':'○'}</span><b>Productos visibles</b><small>${products.filter(p=>p.active).length} publicados</small></div>
-            <div><span>${khipuD.live_payments_allowed?'✅':khipuD.configured?'🟡':'○'}</span><b>Khipu</b><small>${khipuD.live_payments_allowed?'Cobros activos':khipuD.configured?'Configurado · activación pendiente':'No disponible'}</small></div>
+            <a href="#/mi-negocio-pagos/${id}" class="dy-dashboard-payment-link"><span>💳</span><b>Mercado Pago</b><small>Conectar o verificar cuenta para compras dentro de DatoYa</small></a>
             <div><span>${membership?'✅':'○'}</span><b>Plan</b><small>${membership?'DatoYa Impulso activo':'Gratis · '+products.length+'/'+catalogLimit+' productos'}</small></div>
           </div>
           <a class="btn btn-outline btn-block" href="#/mi-negocio-configuracion/${id}">Revisar configuración</a>
@@ -160,7 +159,6 @@
           <div class="dy-card-head"><div><span>CRECIMIENTO</span><h2>Haz que te encuentren</h2></div></div>
           <div class="dy-dashboard-growth">
             <a href="#/mi-negocio-promociones/${id}"><span>🏷️</span><b>Promociones</b><small>Revisa qué campañas generan actividad.</small></a>
-            <a href="#/impulso-ahora/${id}" class=""><span>⚡</span><b>Impulso Ahora</b><small>${paid?'Activa una oferta en tiempo real.':'Gratis 24 horas una vez al mes.'}</small></a>
             <a href="#/impulso-semanal-nuevo/${id}"><span>⭐</span><b>Impulso de la semana</b><small>Prepara una oferta destacada.</small></a>
           </div>
         </section>
@@ -213,130 +211,6 @@
     }finally{
       rootView.classList.remove('dy-hub-pending');
     }
-  }
-
-  async function renderPayments(id,founderMode){
-    founderMode=['existente','nueva'].includes(founderMode)?founderMode:null;
-    if(!requireBusiness())return;
-    id=Number(id||0);if(!id){location.hash='#/perfil';return;}
-    view.innerHTML='<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-loading"><b>💳 Cargando formas de pago…</b><small>Revisando los medios que tu negocio ofrece a sus clientes.</small></section></div>';
-    let meta={business:{}},khipu={},ordersD={orders:[]},onboardingD={onboarding:{status:'not_started'}};
-    try{
-      [meta,khipu,ordersD,onboardingD]=await Promise.all([
-        getMeta(id,true),
-        hubApi('/khipu/status'),
-        hubApi('/businesses/'+id+'/orders').catch(()=>({orders:[]})),
-        hubApi('/businesses/'+id+'/khipu-onboarding').catch(()=>({onboarding:{status:'not_started'}}))
-      ]);
-    }catch(err){
-      view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage"><section class="dy-business-card dy-payment-error"><span>⚠️</span><h2>No pudimos cargar Pagos</h2><p>${h(err?.message||'Intenta nuevamente.')}</p><button class="btn btn-primary" onclick="routes['mi-negocio-pagos'](${id})">Reintentar</button></section></div>`;
-      await addHubFrame(id,'payments');
-      return;
-    }
-    const b=meta.business||{},orders=ordersD.orders||[],on=onboardingD.onboarding||{status:'not_started'};
-    const paidOrders=orders.filter(x=>String(x.payment_status)==='paid');
-    const pendingOrders=orders.filter(x=>String(x.payment_status)!=='paid'&&!['cancelled'].includes(String(x.status)));
-    const paidTotal=paidOrders.reduce((sum,x)=>sum+Number(x.total||0),0);
-    const ready=!!khipu.configured&&khipu.mode==='development';
-    const activationLabels={
-      not_started:['⚪','Conecta Khipu','Completa una vez los datos para dejar tu negocio listo.'],
-      draft:['🟡','Datos guardados','Revisa los datos y prepara la activación.'],
-      ready_for_integrator:['🟠','Datos listos','DatoYa está esperando la habilitación integrador de Khipu.'],
-      pending_integrator:['🟠','Esperando habilitación de Khipu','Tus datos están preparados. Khipu debe habilitar a DatoYa como integrador antes de crear tu cuenta.'],
-      receiver_created:['🟡','Cuenta de cobro creada','Revisa tu correo para terminar la activación con Khipu.'],
-      pending_khipu_activation:['🟡','Esperando activación de Khipu','Revisa tu correo para terminar la activación con Khipu.'],
-      error:['🔴','Revisar conexión','Usa Soporte para revisar la conexión con Khipu.'],
-      bank_verification:['🟡','Falta validar banco','Revisa el correo de Khipu y vincula tu cuenta bancaria.'],
-      active:['🟢','Khipu conectado','Khipu validó tu cuenta. DatoYa mantiene los cobros reales bloqueados.'],
-      blocked:['🔴','Revisar activación','DatoYa necesita revisar la conexión con Khipu.']
-    };
-    const activation=activationLabels[on.status]||activationLabels.not_started;
-    const canEdit=!['active','bank_verification','receiver_created','pending_khipu_activation'].includes(on.status);
-    const onboardingForm=canEdit?`
-      <form id="dy-khipu-onboarding-form" class="dy-khipu-onboarding-form">
-        <div class="dy-khipu-form-grid">
-          <div class="field"><label>Nombre del titular</label><input name="owner_first_name" value="${h(on.owner_first_name||'')}" maxlength="80" required></div>
-          <div class="field"><label>Apellido del titular</label><input name="owner_last_name" value="${h(on.owner_last_name||'')}" maxlength="120" required></div>
-          <div class="field dy-khipu-wide"><label>Correo del titular</label><input name="owner_email" type="email" value="${h(on.owner_email||'')}" maxlength="180" required></div>
-          <div class="field"><label>RUT de facturación</label><input name="billing_identifier" value="${h(on.billing_identifier||'')}" maxlength="30" placeholder="12.345.678-9" required></div>
-          <div class="field"><label>Giro o actividad</label><input name="business_activity" value="${h(on.business_activity||'')}" maxlength="140" placeholder="Ej: Panadería" required></div>
-          <div class="field dy-khipu-wide"><label>Nombre o razón social</label><input name="billing_name" value="${h(on.billing_name||b.name||'')}" maxlength="180" required></div>
-          <div class="field"><label>Teléfono</label><input name="billing_phone" value="${h(on.billing_phone||'')}" maxlength="40" autocomplete="tel" required></div>
-          <div class="field"><label>Ciudad</label><input name="billing_city" value="${h(on.billing_city||'')}" maxlength="120" required></div>
-          <div class="field dy-khipu-wide"><label>Dirección de facturación</label><input name="billing_address" value="${h(on.billing_address||'')}" maxlength="220" required></div>
-          <div class="field dy-khipu-wide"><label>Región</label><input name="billing_region" value="${h(on.billing_region||'')}" maxlength="120" placeholder="Ej: O'Higgins" required></div>
-        </div>
-        <input type="hidden" name="contact_name" value="${h(on.contact_name||((on.owner_first_name||'')+' '+(on.owner_last_name||'')).trim())}">
-        <input type="hidden" name="contact_role" value="${h(on.contact_role||'Dueño/a del negocio')}">
-        <input type="hidden" name="contact_email" value="${h(on.contact_email||on.owner_email||'')}">
-        <input type="hidden" name="contact_phone" value="${h(on.contact_phone||on.billing_phone||'')}">
-        <div class="dy-khipu-privacy-note"><span>🔒</span><div><b>No te pediremos claves bancarias.</b><p>Cuando Khipu habilite la cuenta, el titular recibirá un correo para validar personalmente su cuenta bancaria.</p></div></div>
-        <button class="btn btn-primary btn-block" type="submit">Preparar activación de cobros</button>
-      </form>`:
-      `<div class="dy-khipu-next-step"><span>${activation[0]}</span><div><b>${activation[1]}</b><p>${activation[2]}</p></div></div>`;
-
-    view.innerHTML=`<div class="dy-business-dashboard dy-hub-subpage">
-      <section class="dy-business-dashboard-hero dy-payments-hero">
-        <div><span>PAGOS</span><h1>Formas de pago de ${h(b.name||'tu negocio')}</h1><p>Los clientes pagan directamente a tu negocio. DatoYa no recibe el dinero de la venta.</p></div>
-        <div class="dy-payments-provider-state ${on.status==='active'?'ok':ready?'ok':'warn'}"><span>🏦</span><div><b>Khipu</b><small>${on.status==='active'?'Khipu conectado':activation[1]}</small></div></div>
-      </section>
-
-      ${window.dyFounderUI?.paymentIntro(id,founderMode)||''}
-      <section class="dy-business-card dy-khipu-onboarding-card">
-        <div class="dy-card-head"><div><span>ACTIVAR COBROS</span><h2>Déjalo listo en 3 pasos</h2><p>DatoYa se encarga de la parte técnica. Tú solo revisas tus datos y Khipu valida tu cuenta bancaria.</p></div><span class="dy-khipu-onboarding-state status-${h(on.status)}">${activation[0]} ${activation[1]}</span></div>
-        <div class="dy-khipu-steps">
-          <div class="${on.status!=='not_started'?'done':''}"><span>1</span><b>Revisa tus datos</b><small>Usamos lo que ya cargaste en DatoYa.</small></div>
-          <div class="${['bank_verification','active'].includes(on.status)?'done':''}"><span>2</span><b>Correo de Khipu</b><small>El titular recibe la invitación de activación.</small></div>
-          <div class="${on.status==='active'?'done':''}"><span>3</span><b>Valida tu banco</b><small>La validación se hace directamente con Khipu.</small></div>
-        </div>
-        ${onboardingForm}
-      </section>
-
-      <section class="dy-payment-summary">
-        <div><span>✅</span><strong>${paidOrders.length}</strong><b>Pedidos pagados</b><small>${money(paidTotal)} confirmado</small></div>
-        <div><span>⏳</span><strong>${pendingOrders.length}</strong><b>Pagos pendientes</b><small>Pedidos aún sin pago confirmado</small></div>
-        <div><span>🛡️</span><strong>SEGURO</strong><b>Estado de activación</b><small>Los cobros reales se habilitarán solo cuando Khipu complete la activación</small></div>
-      </section>
-
-      <div class="dy-dashboard-grid">
-        <section class="dy-business-card dy-khipu-card">
-          <div class="dy-card-head"><div><span>PROVEEDOR</span><h2>Khipu</h2><p>Estado de preparación de los cobros de tu negocio.</p></div><span class="dy-khipu-dot ${on.status==='active'?'ok':'warn'}">${on.status==='active'?'Khipu conectado':'En preparación'}</span></div>
-          <div class="dy-payment-details">
-            <div><span>Configuración técnica</span><b>${khipu.configured?'Lista':'Pendiente'}</b></div>
-            <div><span>Pagos reales</span><b>${khipu.live_payments_allowed?'Habilitados':'Bloqueados'}</b></div>
-            <div><span>Comisión DatoYa por venta</span><b>0%</b></div>
-          </div>
-          <div class="dy-payment-info-note"><b>Antes de activar cobros</b><p>DatoYa mantendrá los cobros reales bloqueados hasta que Khipu habilite la modalidad integrador y el negocio complete su validación bancaria. No necesitas configurar claves técnicas.</p></div>
-        </section>
-
-        <section class="dy-business-card">
-          <div class="dy-card-head"><div><span>MOVIMIENTOS</span><h2>Pedidos y pagos</h2><p>Los cobros quedan ligados a cada pedido.</p></div></div>
-          ${orders.length?`<div class="dy-payment-order-list">${orders.slice(0,6).map(o=>`<a href="#/mi-negocio-pedidos/${id}"><div><b>${h(o.reference||'Pedido')}</b><small>${h(o.customer_name||'Cliente')}</small></div><div><strong>${money(o.total)}</strong><span class="${String(o.payment_status)==='paid'?'paid':'pending'}">${String(o.payment_status)==='paid'?'Pagado':'Pendiente'}</span></div></a>`).join('')}</div>`:'<div class="dy-empty-products"><span>🧾</span><b>Aún no hay movimientos</b><p>Cuando recibas pedidos, sus pagos aparecerán aquí.</p></div>'}
-          <a class="btn btn-outline btn-block" href="#/mi-negocio-pedidos/${id}">Ver todos los pedidos</a>
-        </section>
-      </div>
-    </div>`;
-
-    document.getElementById('dy-khipu-onboarding-form')?.addEventListener('submit',async e=>{
-      e.preventDefault();
-      const form=e.currentTarget,btn=form.querySelector('button[type="submit"]');
-      if(btn){btn.disabled=true;btn.textContent='Guardando…';}
-      try{
-        const body=Object.fromEntries(new FormData(form).entries());
-        body.contact_name=(body.owner_first_name+' '+body.owner_last_name).trim();
-        body.contact_email=body.owner_email;
-        body.contact_phone=body.billing_phone;
-        await hubApi('/businesses/'+id+'/khipu-onboarding',{method:'PUT',body});
-        const out=await hubApi('/businesses/'+id+'/khipu-onboarding/start',{method:'POST',body:{}});
-        toast?.(out.message||'Datos de cobro preparados','ok');
-        if(founderMode){location.hash='#/bienvenida-fundador/'+id;if(typeof route==='function')route();}
-        else routes['mi-negocio-pagos'](id);
-      }catch(err){
-        toast?.(err.message||'No pudimos preparar los cobros','err');
-        if(btn){btn.disabled=false;btn.textContent='Preparar activación de cobros';}
-      }
-    });
-    await addHubFrame(id,'payments');
   }
 
   async function renderPromotions(id){
@@ -471,7 +345,6 @@
   };
   routes['mi-negocio-productos']=id=>renderLegacySection(id,'products');
   routes['mi-negocio-configuracion']=id=>renderLegacySection(id,'config');
-  routes['mi-negocio-pagos']=(id,mode)=>renderPayments(id,mode);
   routes['mi-negocio-pulso']=id=>{location.hash='#/mi-negocio-plan/'+Number(id||0);};
   routes['mi-negocio-radar']=id=>{location.hash='#/mi-negocio-plan/'+Number(id||0);};
   routes['mi-negocio-lo-busco-ya']=id=>renderWanted(id);

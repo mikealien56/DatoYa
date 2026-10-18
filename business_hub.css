@@ -154,3 +154,10 @@
 .dy-hub-loading .dy-business-card>span{font-size:30px}
 .dy-hub-loading h2{margin:8px 0;color:#0b3a82;font-size:20px}
 .dy-hub-loading p{margin:0;color:#64748b;font-size:13px}
+
+/* Ficha de conexión de pago: mismo diseño que las verificaciones, enlace accesible. */
+.dy-dashboard-checks>a.dy-dashboard-payment-link{display:grid;grid-template-columns:32px 1fr;grid-template-areas:'icon label' 'icon small';column-gap:9px;align-items:center;border-bottom:1px solid #eef2f6;padding:10px 0;text-decoration:none;color:#233c5c;border-radius:8px}
+.dy-dashboard-checks>a.dy-dashboard-payment-link:hover{background:#f5fafb}
+.dy-dashboard-checks>a.dy-dashboard-payment-link>span{grid-area:icon;font-size:21px}
+.dy-dashboard-checks>a.dy-dashboard-payment-link>b{grid-area:label;color:#16375c}
+.dy-dashboard-checks>a.dy-dashboard-payment-link>small{grid-area:small;color:#68758a;line-height:1.45}

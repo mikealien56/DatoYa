@@ -117,7 +117,7 @@ grep -q "Impulso Premium" business_growth_plans_v2_ui.js || { echo "Falta nivel 
 grep -q "\[1,7,15,30\]" business_growth_plans_v2_ui.js || { echo "Faltan duraciones 1/7/15/30"; exit 1; }
 grep -q "app.get('/api/businesses/:id/khipu-onboarding'" khipu_business_onboarding_bootstrap.js
 grep -q "app.post('/api/businesses/:id/khipu-onboarding/start'" khipu_business_onboarding_bootstrap.js
-grep -q "No te pediremos claves bancarias" business_hub_ui.js
+grep -q "Conecta tu cuenta para recibir pagos online" direct_merchant_payments_ui.js || { echo "Pagos no explica la conexión actual"; exit 1; }
 grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_requests" postgres/012_commerce_refunds.sql
 grep -q "CREATE TABLE IF NOT EXISTS commerce_refund_events" postgres/012_commerce_refunds.sql
 grep -q "Falta tabla PostgreSQL: commerce_refund_requests" postgres_migrate.js
@@ -475,3 +475,35 @@ node --check product_photo_studio.js
 node --check beta_private_ui.js
 node --check home_structure_v3.js
 node --check customer_club_ui.js
+
+
+# Limpieza de contenido y rutas: no volver a mostrar pantallas obsoletas.
+node <<'NODE'
+const fs=require('fs'),assert=require('assert');
+const read=f=>fs.readFileSync(f,'utf8');
+const business=read('business_hub_ui.js'),beta=read('beta_private_ui.js'),about=read('marketplace_about_ui.js');
+const home=read('marketplace_public_beta_ui.js'),how=read('home_structure_v3.js'),plans=read('business_growth_plans_v2_ui.js'),tour=read('marketplace_guided_demo_ui.js'),html=read('public/index.html');
+const count=(s,t)=>s.split(t).length-1;
+assert(!business.includes('Khipu'),'Panel principal conserva Khipu obsoleto');
+assert(!business.includes('renderPayments('),'Queda vista antigua de pagos');
+assert(business.includes('Mercado Pago'),'Falta acceso a Mercado Pago');
+assert.equal(count(business,"routes['mi-negocio-lo-busco-ya']="),1,'Debe haber una sola ruta de negocios');
+assert.equal(count(beta,"routes['mi-negocio-lo-busco-ya']="),0,'Beta pisa la bandeja de negocios');
+assert(!about.includes('demo-negocio/')&&!about.includes('demoLinks'),'Conoce enlaza comercios DEMO retirados');
+assert(about.includes('#/lo-busco-ya')&&about.includes('#/buscar/_'),'Conoce no enlaza funciones reales');
+assert(!home.includes('0% comisión DatoYa sobre tus ventas'),'Portada expone cobros internos');
+assert(!home.includes('cargo de servicio antes de pagar'),'Portada repite detalles de cobros');
+assert(home.includes('lo-busco-ya-home')&&how.includes("getElementById('lo-busco-ya-home')"),'Anclaje Lo Busco Ya no coincide');
+assert(!plans.includes('<b>Pagos online dentro de DatoYa</b>'),'Planes tienen explicación de cobro repetida');
+assert(!tour.includes('DY-TEST')&&!tour.includes('Panadería Buen Día · DEMO'),'Recorrido conserva ejemplos viejos');
+for(const file of ['business_hub_ui.js','beta_private_ui.js','marketplace_about_ui.js','marketplace_public_beta_ui.js','home_structure_v3.js','business_growth_plans_v2_ui.js','direct_merchant_payments_ui.js','mp_split_ui.js']){
+ const pattern=new RegExp('src="/'+file.replaceAll('.','\\.')+'(?:\\?[^"]*)?"','g');
+ assert.equal((html.match(pattern)||[]).length,1,'Script duplicado o ausente: '+file);
+}
+assert(!html.includes('/marketplace_demo_showcase_ui.js'),'Escaparate DEMO publicado');
+console.log('UX audit: copy vigente, enlaces reales, rutas únicas y scripts sin duplicados.');
+NODE
+node --check business_hub_ui.js
+node --check marketplace_about_ui.js
+node --check marketplace_guided_demo_ui.js
+node --check business_growth_plans_v2_ui.js
