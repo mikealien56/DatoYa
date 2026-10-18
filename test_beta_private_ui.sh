@@ -11,8 +11,8 @@ grep -q "datoya_lat" beta_private_ui.js || { echo "DatoYa Alerta no usa ubicaci�
 grep -q "match.source_type" beta_private_ui.js || { echo "DatoYa Alerta no muestra origen de coincidencia"; exit 1; }
 grep -q "Avísame cuando aparezca" beta_private_ui.js || { echo "Búsqueda no ofrece crear alerta contextual"; exit 1; }
 grep -q "routes\['lo-busco-ya'\]" beta_private_ui.js
-grep -q "routes\['mi-negocio-lo-busco-ya'\]" beta_private_ui.js || { echo "Falta Lo Busco Ya en Panel Negocio"; exit 1; }
-grep -q "data-wanted-response" beta_private_ui.js || { echo "Falta formulario de respuesta Lo Busco Ya"; exit 1; }
+grep -q "routes\['mi-negocio-lo-busco-ya'\]" business_hub_ui.js || { echo "Falta Lo Busco Ya en Panel Negocio"; exit 1; }
+grep -q "dyReplyWanted" business_hub_ui.js || { echo "Falta formulario de respuesta Lo Busco Ya"; exit 1; }
 grep -q "Lo Busco Ya" business_hub_ui.js || { echo "Falta Lo Busco Ya en navegación del negocio"; exit 1; }
 grep -q "__datoyaBusinessHubFrame" business_hub_ui.js || { echo "Falta marco unificado para funciones beta de negocio"; exit 1; }
 grep -q "dy-notification-bell" beta_private_ui.js
