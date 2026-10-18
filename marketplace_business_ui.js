@@ -83,15 +83,18 @@
     try{
       const g=await api('/businesses/'+businessId+'/growth-program'),p=g.profile||{},hero=document.querySelector('.dy-business-hero');
       if(!hero||document.querySelector('.dy-growth-business-card'))return result;
-      const founder=Number(p.is_founder)===1,ref=!!p.referred_by_business_id,remaining=Math.max(0,Number(p.launch_free_order_limit||0)-Number(p.launch_free_orders_used||0));
-      const card=document.createElement('section');card.className='dy-business-card dy-growth-business-card';
-      card.innerHTML='<div class="dy-card-head"><div><span>CRECIMIENTO DATOYA</span><h2>'+(founder?'🏅 Negocio Fundador':ref?'🎁 Negocio invitado':'Beneficio de lanzamiento')+'</h2></div></div>'+
-        '<div class="dy-growth-business-stats"><div><b>'+remaining+'</b><small>pedidos de lanzamiento restantes</small></div><div><b>'+Number(g.referrals?.rewarded||0)+'</b><small>referidos que calificaron</small></div></div>'+
-        (founder&&p.founder_code?'<div class="dy-founder-share"><span>Tu código para invitar negocios</span><b>'+h(p.founder_code)+'</b><button class="btn btn-outline btn-sm" type="button" data-copy-founder>Copiar código</button><small>Cuando un negocio invitado llegue a 5 pedidos completados, ganas días extra de DatoYa Impulso.</small></div>':'')+
-        '<div class="dy-growth-rate-line"><span>Cargo de servicio online</span><b>2% sobre productos · a cargo del comprador</b></div>'+
-        '<div class="dy-growth-rate-line"><span>⭐ DatoYa Club</span><b>Precio especial opcional para socios en productos elegidos por tu negocio</b></div>';
+      // Fundador lo otorga DatoYa desde administración. No mostrar contadores vacíos
+      // ni invitaciones automáticas en el panel de un negocio sin beneficio real.
+      const founder=Number(p.is_founder)===1;
+      if(!founder)return result;
+      const allowance=Number(p.launch_free_order_limit||0);
+      const used=Math.max(0,Number(p.launch_free_orders_used||0));
+      const remaining=Math.max(0,allowance-used);
+      const card=document.createElement('section');
+      card.className='dy-business-card dy-growth-business-card dy-founder-award';
+      card.innerHTML='<div class="dy-founder-award-header"><span aria-hidden="true">🏅</span><div><small>RECONOCIMIENTO DE DATOYA</small><h2>Negocio Fundador</h2><p>Distinción especial otorgada por el equipo administrador de DatoYa.</p></div></div>'+
+        (remaining>0?'<div class="dy-founder-award-benefit"><span>Beneficio de lanzamiento activo</span><b>'+remaining+' pedido'+(remaining===1?'':'s')+' disponible'+(remaining===1?'':'s')+'</b></div>':'');
       hero.insertAdjacentElement('afterend',card);
-      card.querySelector('[data-copy-founder]')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(String(p.founder_code));toast?.('Código copiado','ok')}catch(_){toast?.('Código: '+p.founder_code,'info')}});
     }catch(_){}
     return result;
   };
