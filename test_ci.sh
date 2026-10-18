@@ -507,3 +507,27 @@ node --check business_hub_ui.js
 node --check marketplace_about_ui.js
 node --check marketplace_guided_demo_ui.js
 node --check business_growth_plans_v2_ui.js
+
+
+# Panel administrador mobile-first: sin pestañas deslizables ni CTA duplicado.
+node <<'NODE'
+const fs=require('fs'),assert=require('assert');
+const ui=fs.readFileSync('marketplace_admin_v2_ui.js','utf8');
+const css=fs.readFileSync('marketplace_admin_v2.css','utf8');
+const assets=fs.readFileSync('marketplace_admin_v2_assets.js','utf8');
+const worker=fs.readFileSync('service-worker.js','utf8');
+for(const s of ['data-admin-toggle','aria-expanded="false"','data-admin-close','data-admin-nav-link','dy-admin-menu-open','addEventListener(\'keydown\'','aria-current="page"'])
+ assert(ui.includes(s),'Admin: falta control accesible '+s);
+assert(ui.includes('dy-admin-nav-scrim')&&css.includes('translateX(-110%)'),'El menú móvil no está oculto fuera de pantalla');
+assert(css.includes('.dy-admin-v2.dy-admin-menu-open .dy-admin-v2-nav'),'El menú no se puede abrir');
+assert(css.includes('.dy-admin-v2 .dy-admin-kpis{grid-template-columns:repeat(2'),'Los KPIs se apilan mal en el móvil');
+assert(!ui.includes('Abrir DatoYa'),'La cabecera admin repite acceso al mismo sitio');
+assert(!ui.includes('El cargo por compras online se informa aparte.'),'Fundadores tiene un texto comercial antiguo');
+assert(ui.includes("api('/mp-split/config')"),'Finanzas no consulta el estado de pagos actual');
+assert(ui.includes('No equivalen a saldo disponible en Mercado Pago'),'Las finanzas no distinguen facturación de liquidación');
+assert(assets.includes('20261018-admin-menu1'),'Caché Admin no se renueva');
+assert(worker.includes('datoya-shell-v104'),'PWA no invalida su caché antiguo');
+console.log('Admin UX: menú único, móvil sin carrusel y finanzas Mercado Pago OK');
+NODE
+node --check marketplace_admin_v2_ui.js
+node --check marketplace_admin_v2_assets.js
