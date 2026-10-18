@@ -357,3 +357,57 @@
   .dy-admin-v2-nav a b{max-width:132px}
   .dy-admin-v2 .admin-grid{grid-template-columns:1fr 1fr}
 }
+
+/* Admin 2026: un solo menú, navegación accesible y tarjetas compactas en móvil. */
+.dy-admin-v2-head-main{display:flex;align-items:center;gap:14px;min-width:0}
+.dy-admin-menu-toggle,.dy-admin-nav-close,.dy-admin-nav-scrim{display:none}
+.dy-admin-v2-head h1{overflow-wrap:anywhere}
+.dy-admin-v2-content{min-width:0}
+.dy-admin-v2 .dy-admin-kpis strong{font-variant-numeric:tabular-nums}
+.dy-admin-v2 .dy-admin-nav-scroll a:focus-visible,.dy-admin-menu-toggle:focus-visible,.dy-admin-nav-close:focus-visible{
+ outline:3px solid #58d7c9;outline-offset:2px
+}
+@media(max-width:980px){
+ body.dy-admin-menu-active{overflow:hidden}
+ .dy-admin-v2{padding:12px 12px 125px}
+ .dy-admin-v2-layout{display:block}
+ .dy-admin-v2-head{padding:17px 16px;border-radius:20px;margin-bottom:13px}
+ .dy-admin-v2-head-main{flex:1;flex-direction:column;align-items:flex-start;gap:12px}
+ .dy-admin-v2-title>span{letter-spacing:.115em;font-size:10px}
+ .dy-admin-v2-head h1{font-size:clamp(23px,5.8vw,32px);letter-spacing:-.035em;line-height:1.13;margin:5px 0 7px}
+ .dy-admin-v2-head p{font-size:14px;line-height:1.47}
+ .dy-admin-v2-head-actions{display:none}
+ .dy-admin-menu-toggle{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:42px;min-width:106px;border:1px solid #b9d6de;border-radius:13px;background:#e9f7f6;color:#0c4b61;font:inherit;font-size:14px;font-weight:850;box-shadow:0 2px 8px #061f4520;cursor:pointer}
+ .dy-admin-menu-toggle span{font-size:22px;line-height:1}
+ .dy-admin-v2-nav{display:flex;position:fixed;inset:0 auto 0 0;top:0;width:min(86vw,345px);height:100dvh;max-height:100dvh;z-index:7502;flex-direction:column;transform:translateX(-110%);transition:transform .22s ease;visibility:hidden;pointer-events:none;box-shadow:12px 0 40px #051b3970;border:0;border-radius:0;overflow:hidden}
+ .dy-admin-v2.dy-admin-menu-open .dy-admin-v2-nav{transform:translateX(0);visibility:visible;pointer-events:auto}
+ .dy-admin-nav-brand{display:flex;flex:0 0 auto;gap:11px;padding:19px 15px 16px}
+ .dy-admin-nav-brand>div{flex:1}
+ .dy-admin-nav-close{display:grid;place-items:center;width:38px;height:38px;margin-left:auto;flex:none;border:1px solid #6685ae70;border-radius:12px;background:#ffffff16;color:white;font-size:22px;cursor:pointer}
+ .dy-admin-nav-scroll{display:block;flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;padding:10px 12px 40px;scrollbar-width:thin;overscroll-behavior:contain}
+ .dy-admin-nav-scroll section{display:block;margin:0 0 12px!important}
+ .dy-admin-nav-label{display:block;padding:9px 10px 5px;font-size:10px;letter-spacing:.1em}
+ .dy-admin-v2-nav a{display:flex;width:100%;min-height:46px;margin:3px 0;padding:10px 13px;background:transparent;font-size:14px;gap:12px;white-space:normal}
+ .dy-admin-v2-nav a b{white-space:normal;text-overflow:clip;max-width:none;line-height:1.4}
+ .dy-admin-v2-nav a span{width:23px;flex-basis:23px}
+ .dy-admin-v2-nav a.active{box-shadow:inset 4px 0 0 var(--dy-admin-teal)}
+ .dy-admin-nav-scrim{display:block;position:fixed;inset:0;z-index:7501;background:#06152ac9;border:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease}
+ .dy-admin-v2.dy-admin-menu-open .dy-admin-nav-scrim{opacity:1;visibility:visible;pointer-events:auto}
+}
+@media(max-width:600px){
+ .dy-admin-v2 .dy-admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .dy-admin-v2 .dy-admin-kpis:not(.finance)>:last-child:nth-child(odd){grid-column:span 2}
+ .dy-admin-v2 .dy-admin-kpis>a,.dy-admin-v2 .dy-admin-kpis>div{min-width:0;min-height:102px;padding:13px 12px;border-radius:17px;gap:2px}
+ .dy-admin-v2 .dy-admin-kpis strong{font-size:clamp(23px,5.7vw,31px);line-height:1.15}
+ .dy-admin-v2 .dy-admin-kpis span{margin-top:5px;font-size:13px;line-height:1.3}
+ .dy-admin-v2 .dy-admin-kpis small{margin-top:3px;font-size:11.5px;line-height:1.35}
+ .dy-admin-v2 .dy-admin-grid2{gap:11px}
+ .dy-admin-v2 .dy-admin-grid2>section{padding:16px 14px;border-radius:18px}
+ .dy-admin-v2-content>.card{padding:16px 14px}
+ .dy-admin-v2 .dy-admin-history{min-width:0}
+ .dy-admin-v2 .dy-admin-history>div{min-width:0;overflow-wrap:anywhere}
+ .dy-admin-v2 .dy-admin-row{gap:9px;padding:13px}
+ .dy-admin-v2 .dy-admin-row-actions{max-width:100%}
+ .dy-admin-v2 .dy-admin-row-actions button{max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){.dy-admin-v2-nav,.dy-admin-nav-scrim{transition:none!important}}
