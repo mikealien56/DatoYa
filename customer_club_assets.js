@@ -30,9 +30,17 @@ if(!isWebp)throw new Error('Tarjeta DatoYa Club WebP inválida');
 fs.writeFileSync(path.join(brandDir,'datoya-club-card-visible.webp'),visibleBinary);
 console.log('[DatoYa] Tarjeta Club WebP visible publicada: '+visibleBinary.length+' bytes.');
 
+// Publicar la tarjeta original DatoYa Club de alta nitidez (1536 x 1024).
+const clubHQ=path.join(__dirname,'brand','datoya-club-card-hq-1536.webp');
+if(!fs.existsSync(clubHQ))throw new Error('Falta imagen original DatoYa Club HQ');
+const clubHQBinary=fs.readFileSync(clubHQ);
+if(clubHQBinary.length<100000||clubHQBinary.subarray(0,4).toString('ascii')!=='RIFF'||clubHQBinary.subarray(8,12).toString('ascii')!=='WEBP')throw new Error('Tarjeta original DatoYa Club HQ inválida');
+fs.copyFileSync(clubHQ,path.join(brandDir,'datoya-club-card-hq-1536.webp'));
+console.log('[DatoYa] Tarjeta Club HQ 1536 publicada: '+clubHQBinary.length+' bytes.');
+
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){let h=fs.readFileSync(idx,'utf8');
 h=h.replace(/<link[^>]+href="\/customer_club\.css[^"]*"[^>]*>\s*/g,'').replace(/<script[^>]+src="\/customer_club_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-h=h.replace('</head>','<link rel="stylesheet" href="/customer_club.css?v=20261017-webpfix1">\n</head>');
-h=h.replace('</body>','<script src="/customer_club_ui.js?v=20261017-webpfix1"></script>\n</body>');
+h=h.replace('</head>','<link rel="stylesheet" href="/customer_club.css?v=20261018-clubhq1">\n</head>');
+h=h.replace('</body>','<script src="/customer_club_ui.js?v=20261018-clubhq1"></script>\n</body>');
 fs.writeFileSync(idx,h);}
