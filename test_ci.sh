@@ -531,3 +531,38 @@ console.log('Admin UX: menú único, móvil sin carrusel y finanzas Mercado Pago
 NODE
 node --check marketplace_admin_v2_ui.js
 node --check marketplace_admin_v2_assets.js
+
+
+# Android/Chrome: dos canales sin falsas promesas de Push en un WebView.
+node <<'NODE'
+const fs=require('fs'),assert=require('assert');
+const server=fs.readFileSync('native_push_bootstrap.js','utf8');
+const client=fs.readFileSync('beta_private_ui.js','utf8');
+const build=fs.readFileSync('.github/workflows/android-capacitor.yml','utf8');
+const startup=fs.readFileSync('production_start.js','utf8');
+assert(server.includes("native_push_tokens"),'Android: tabla por cuenta inexistente');
+assert(server.includes("POST")&&server.includes("/api/push/native/subscribe"),'Android: registro autenticado inexistente');
+assert(server.includes("DELETE")&&server.includes("push/native/subscribe"),'Android: desvinculación inexistente');
+assert(server.includes("https://fcm.googleapis.com/v1/projects/"),'Android: falta envío HTTP v1');
+assert(server.includes("https://oauth2.googleapis.com/token"),'Android: falta OAuth service account');
+assert(server.includes("global.__datoyaPushNotify="),'Notificaciones nativas no se integran con los eventos existentes');
+assert(server.includes("DATOYA_FCM_SERVICE_ACCOUNT_JSON_B64"),'La credencial del servidor no es configurable');
+assert(client.includes("isNativeAndroid()"),'La UI confunde WebView con navegador');
+assert(client.includes("push.native&&!push.supported"),'La UI no identifica APK sin módulo nativo');
+assert(client.includes("registerNativePush({askPermission:true})"),'No se puede solicitar permiso nativo');
+assert(client.includes("pushNotificationActionPerformed"),'No se abre el aviso al tocarlo');
+assert(client.includes("savedNativeToken()")&&client.includes("detachPushForLogout"),'Token Android no se separa al cerrar sesión');
+assert(client.includes("pushSupported()"),'Se eliminó Web Push del navegador');
+assert(client.includes("api('/push/config')"),'Falta configuración Web Push existente');
+assert(startup.includes("require('./push_notifications_bootstrap');require('./native_push_bootstrap');"),'Los canales no se montan en orden');
+assert(build.includes('@capacitor/push-notifications@latest')&&build.includes("DATOYA_FIREBASE_GOOGLE_SERVICES_B64"),'APK no puede recibir módulo Firebase');
+assert(build.includes('android.permission.POST_NOTIFICATIONS'),'Android 13+ no pide permisos correctamente');
+assert(build.includes('versionCode 8'),'La nueva APK no incrementa versión');
+assert(fs.existsSync('ANDROID_PUSH_SETUP.md'),'Faltan instrucciones de configuración segura');
+for(const exposed of ['DATOYA_FCM_SERVICE_ACCOUNT_JSON','DATOYA_FIREBASE_GOOGLE_SERVICES_B64']){
+ assert(!fs.readFileSync('capacitor-www/index.html','utf8').includes(exposed),'No exponer secretos en frontend');
+}
+console.log('Android FCM + Web Push: configuración protegida y migración segura.');
+NODE
+node --check native_push_bootstrap.js
+node --check beta_private_ui.js
