@@ -23,19 +23,48 @@
   const navItems=navGroups.flatMap(group=>group[1]);
   function nav(){
     const active=(location.hash||'#/admin').split('?')[0];
-    return '<aside class="dy-admin-v2-nav" aria-label="Navegación de administración">'+
-      '<div class="dy-admin-nav-brand"><span class="dy-admin-nav-mark">D</span><div><b>DatoYa Admin</b><small>Centro de control</small></div></div>'+
+    return '<aside class="dy-admin-v2-nav" id="dy-admin-main-menu" aria-label="Navegación de administración">'+
+      '<div class="dy-admin-nav-brand"><span class="dy-admin-nav-mark">D</span><div><b>DatoYa Admin</b><small>Centro de control</small></div><button type="button" class="dy-admin-nav-close" data-admin-close aria-label="Cerrar menú">✕</button></div>'+
       '<div class="dy-admin-nav-scroll">'+navGroups.map(([group,items])=>
         '<section><span class="dy-admin-nav-label">'+h(group)+'</span>'+
-        items.map(([href,icon,label])=>'<a href="'+href+'" class="'+(active===href?'active':'')+'"><span aria-hidden="true">'+icon+'</span><b>'+h(label)+'</b></a>').join('')+
+        items.map(([href,icon,label])=>'<a href="'+href+'" data-admin-nav-link class="'+(active===href?'active':'')+'" '+(active===href?'aria-current="page"':'')+'><span aria-hidden="true">'+icon+'</span><b>'+h(label)+'</b></a>').join('')+
         '</section>').join('')+'</div></aside>';
   }
   function shell(title,sub,body){
+    document.body.classList.remove('dy-admin-menu-active');
     view.innerHTML='<div class="dy-admin-v2">'+
-      '<header class="dy-admin-v2-head"><div class="dy-admin-v2-title"><span>ADMINISTRACIÓN DATOYA</span><h1>'+h(title)+'</h1><p>'+h(sub||'')+'</p></div>'+
-      '<div class="dy-admin-v2-head-actions"><span class="dy-admin-v2-role">🛡️ Administrador</span><a class="btn btn-outline btn-sm" href="#/">Abrir DatoYa</a></div></header>'+
-      '<div class="dy-admin-v2-layout">'+nav()+'<main class="dy-admin-v2-content">'+body+'</main></div></div>';
+      '<header class="dy-admin-v2-head"><div class="dy-admin-v2-head-main">'+
+      '<button class="dy-admin-menu-toggle" type="button" data-admin-toggle aria-expanded="false" aria-controls="dy-admin-main-menu"><span aria-hidden="true">☰</span> Menú</button>'+
+      '<div class="dy-admin-v2-title"><span>ADMINISTRACIÓN DATOYA</span><h1>'+h(title)+'</h1><p>'+h(sub||'')+'</p></div></div>'+
+      '<div class="dy-admin-v2-head-actions"><span class="dy-admin-v2-role">🛡️ Administrador</span></div></header>'+
+      '<div class="dy-admin-v2-layout"><button type="button" class="dy-admin-nav-scrim" data-admin-close aria-label="Cerrar menú de administración"></button>'+
+      nav()+'<main class="dy-admin-v2-content">'+body+'</main></div></div>';
   }
+  function closeAdminMenu(){
+    const root=view.querySelector('.dy-admin-v2');
+    root?.classList.remove('dy-admin-menu-open');
+    document.body.classList.remove('dy-admin-menu-active');
+    const toggle=root?.querySelector('[data-admin-toggle]');
+    if(toggle)toggle.setAttribute('aria-expanded','false');
+  }
+  document.addEventListener('click',e=>{
+    const toggle=e.target.closest?.('[data-admin-toggle]');
+    if(toggle&&view.contains(toggle)){
+      const root=toggle.closest('.dy-admin-v2'),opening=!root?.classList.contains('dy-admin-menu-open');
+      root?.classList.toggle('dy-admin-menu-open',opening);
+      document.body.classList.toggle('dy-admin-menu-active',opening);
+      toggle.setAttribute('aria-expanded',String(opening));
+      if(opening)root?.querySelector('[data-admin-close].dy-admin-nav-close')?.focus();
+      return;
+    }
+    if(e.target.closest?.('[data-admin-close],[data-admin-nav-link]')&&view.contains(e.target)){
+      const wasOpen=view.querySelector('.dy-admin-v2.dy-admin-menu-open');
+      closeAdminMenu();
+      if(e.target.closest?.('[data-admin-close]')&&wasOpen)view.querySelector('[data-admin-toggle]')?.focus();
+    }
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&view.querySelector('.dy-admin-v2.dy-admin-menu-open')){closeAdminMenu();view.querySelector('[data-admin-toggle]')?.focus();}});
+  addEventListener('hashchange',closeAdminMenu);
   window.__datoyaAdminV2Shell=shell;
   window.__datoyaAdminV2Nav=nav;
   const inputFilter=(placeholder)=>'<div class="dy-admin-filter"><input data-dy-search placeholder="'+h(placeholder)+'"></div>';
@@ -124,14 +153,14 @@
 
       if(tab==='finanzas'){
         const {summary:s,rows=[]}=await api('/admin/marketplace-v2/finance');
-        shell('Finanzas DatoYa','Aquí solo se contabiliza dinero que corresponde a servicios vendidos por DatoYa.',`
+        shell('Finanzas DatoYa','Movimientos registrados por servicios de la plataforma. No equivalen a saldo disponible en Mercado Pago.',`
           <div class="dy-admin-kpis finance">
             <div><strong>${money(s.datoya_revenue)}</strong><span>Ingresos DatoYa</span><small>Total de servicios propios</small></div>
             <div><strong>${money(s.impulso_revenue)}</strong><span>Planes negocio</span><small>Impulso / Impulso+ / Premium</small></div>
             <div><strong>${money(s.club_revenue)}</strong><span>DatoYa Club</span><small>Pases de clientes</small></div>
             <div><strong>${money(s.featured_revenue)}</strong><span>Destacados</span><small>Espacios promocionales pagados</small></div>
           </div>
-          <div class="card dy-admin-note"><b>💳 Regla financiera de DatoYa:</b> los pagos de clientes se procesarán mediante Mercado Pago integrado con DatoYa. El cargo de servicio (2% sobre productos) se informa al comprador antes del pago. Los cobros reales permanecen bloqueados hasta completar la verificación. Los fondos de venta corresponden al comercio.</div>
+          <div class="card dy-admin-note"><b>💳 Cobros y conciliación:</b> DatoYa utiliza Split 1:1 de Mercado Pago: el pago al vendedor y el ingreso de la plataforma se distribuyen por el proveedor una vez habilitados. Estos totales registrados no son un balance bancario ni confirman depósitos. Consulta el estado real y los retiros en la cuenta Mercado Pago vinculada a tu aplicación.</div>
           ${inputFilter('Buscar cliente, negocio o concepto')}
           <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.source_name,r.source_type,r.concept].join(' ').toLowerCase())}"><div><b>${h(r.concept)}</b><div class="small muted">${h(r.source_type)} · ${h(r.source_name)} · ${dt(r.created_at)}</div></div><div class="dy-admin-money-inline"><b>${money(r.amount)}</b><small>Ingreso DatoYa</small></div></article>`).join('')||'<div class="card"><p class="muted">Todavía no hay ingresos registrados por servicios DatoYa.</p></div>'}</div>`);
         wireSearch('[data-fin-row]');return;
@@ -169,7 +198,7 @@
           api('/admin/marketplace-v2/founders'),
           api('/admin/marketplace-v2/growth-settings')
         ]);
-        shell('🏅 Fundadores y crecimiento','Invitaciones, referidos y beneficios de crecimiento. El cargo por compras online se informa aparte.',`
+        shell('Fundadores y crecimiento','Invita negocios, revisa referidos y configura sus beneficios.',`
           <div class="dy-admin-kpis">
             <div><strong>${founders.length}</strong><span>Fundadores</span><small>Negocios invitados por DatoYa</small></div>
             <div><strong>${referrals.length}</strong><span>Referidos</span><small>${referrals.filter(x=>x.status==='rewarded').length} ya calificaron</small></div>
@@ -195,7 +224,6 @@
                 <div class="field"><label>Tope premio acumulado</label><input name="referral_reward_cap_days" type="number" min="0" max="730" value="${h(settings.referral_reward_cap_days??90)}"></div>
                 <button class="btn btn-primary" type="submit">Guardar beneficios</button>
               </form>
-              <div class="dy-admin-note" style="margin-top:12px"><b>Compras online:</b> DatoYa aplicará un cargo de servicio del 2% al comprador sobre productos; los planes, Club y espacios promocionales son servicios aparte.</div>
             </section>
           </div>
           <section class="card" style="margin-top:16px"><span class="small muted">NEGOCIOS FUNDADORES</span><h3>Quién entró como Fundador</h3><div class="dy-admin-list">${founders.map(f=>`<article class="card dy-admin-row"><div><b>🏅 ${h(f.business_name)}</b><div class="small muted">${h(f.owner_name||'')} · ${h(f.owner_email||'')}</div><div class="dy-admin-tags">${badge(f.founder_code||'Sin código','ok')} ${badge(Number(f.referral_count||0)+' referidos')} ${badge(Number(f.rewarded_referrals||0)+' calificados')} ${badge('+'+Number(f.founder_reward_days||0)+' días')}</div></div><div class="small muted">Beneficios de Fundador activos según configuración</div></article>`).join('')||'<p class="muted">Todavía no hay Fundadores.</p>'}</div></section>
@@ -236,7 +264,7 @@
         const {settings:s}=await api('/admin/marketplace-v2/settings');
         shell('Configuración','Parámetros del marketplace sin tocar código.',`
           <form id="dy-admin-settings" class="card dy-admin-settings">
-            <div class="card dy-admin-note" style="grid-column:1/-1"><b>Comisiones por nivel:</b> ahora se administran en <a href="#/admin/fundadores">🏅 Fundadores y crecimiento</a>. Ahí están Gratis, Solo en DatoYa, Impulso y sus topes.</div>
+            <div class="card dy-admin-note" style="grid-column:1/-1"><b>Configuración comercial:</b> aquí puedes ajustar precios de planes y límites del catálogo. Los beneficios de Fundadores se administran en <a href="#/admin/fundadores">Fundadores y crecimiento</a>.</div>
             <div class="field"><label>DatoYa Impulso mensual (CLP)</label><input name="impulso_monthly_price" type="number" min="0" value="${h(s.impulso_monthly_price)}"></div>
             <div class="field"><label>DatoYa Impulso 3 meses (CLP)</label><input name="impulso_quarterly_price" type="number" min="0" value="${h(s.impulso_quarterly_price)}"></div>
             <div class="field"><label>DatoYa Impulso anual (CLP)</label><input name="impulso_annual_price" type="number" min="0" value="${h(s.impulso_annual_price)}"></div>
