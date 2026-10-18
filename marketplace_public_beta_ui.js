@@ -69,7 +69,7 @@
   }
 
   const productPhoto=p=>p.image_data?`<img src="${p.image_data}" alt="${h(p.name)}" loading="lazy">`:'<div class="dy-real-placeholder">📦</div>';
-  const businessPhoto=(b,products)=>{const p=products.find(x=>Number(x.business_id)===Number(b.id)&&x.image_data);return p?`<img src="${p.image_data}" alt="${h(b.name)}" loading="lazy">`:'<div class="dy-real-placeholder">🏪</div>';};
+  const businessPhoto=(b,_products)=>{const cover=String(b.cover_image_data||'');if(/^data:image\/(?:jpeg|png|webp);base64,/.test(cover))return `<img src="${cover}" alt="Portada de ${h(b.name)}" loading="lazy" decoding="async">`;const initial=h(String(b.name||'N').trim().charAt(0).toLocaleUpperCase('es'));return `<div class="dy-business-brand-fallback" role="img" aria-label="${h(b.name)} sin foto de portada"><span class="dy-brand-emblem">${initial}</span><span class="dy-brand-fallback-name">${h(b.name)}</span><small>NEGOCIO LOCAL · DATOYA</small></div>`;};
   const categoryText=b=>(b.categories||[]).map(c=>`${c.icon||''} ${c.name}`).join(' · ')||'Negocio local';
   const searchNormalize=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').replace(/[^a-z0-9]+/g,' ').trim();
   const SEARCH_STOP=new Set(['necesito','busco','buscar','quiero','una','uno','un','de','del','la','el','los','las','para','por','favor','cerca','cercano','cercana','ahora','hoy','abierto','abierta','abiertos','abiertas']);
