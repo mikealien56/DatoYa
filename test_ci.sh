@@ -225,6 +225,17 @@ grep -q "routes\['mi-negocio-configuracion'\]" business_hub_ui.js || { echo "Fal
 grep -q "DATOYA NEGOCIOS" business_hub_ui.js || { echo "Falta identidad DatoYa Negocios"; exit 1; }
 grep -q "renderPremiumLock" business_hub_ui.js || { echo "Falta pantalla de candado premium"; exit 1; }
 grep -q "Tu Impulso gratis mensual" business_hub_ui.js || { echo "Falta acceso a Impulso gratuito en Panel Negocio"; exit 1; }
+
+grep -q 'if(!founder)return result' marketplace_business_ui.js || { echo "El bloque Fundador sigue mostrándose a todos"; exit 1; }
+grep -q 'dy-founder-award' marketplace_business.css || { echo "Falta diseño profesional Fundador"; exit 1; }
+grep -q 'dy-growth-mobile-comparison' business_growth_plans_v2_ui.js || { echo "Comparativa móvil no tiene tarjetas"; exit 1; }
+grep -q '.dy-growth-mobile-comparison{display:grid' business_growth_plans_v2.css || { echo "Comparativa móvil no es visible"; exit 1; }
+grep -q 'dy-hub-pending' business_hub_ui.js || { echo "Panel sigue mostrando vista intermedia"; exit 1; }
+grep -q 'dy-hub-pending .dy-business-page' business_hub.css || { echo "Vista intermedia no se oculta"; exit 1; }
+! grep -Fq "['radar'," business_hub_ui.js || { echo "Radar sigue en el menú del negocio"; exit 1; }
+! grep -Fq "['pulse'," business_hub_ui.js || { echo "Pulso sigue en el menú del negocio"; exit 1; }
+grep -Fq "wrap('impulso-ahora','impulse');" business_hub_ui.js || { echo "Impulso gratis bloqueado en el panel"; exit 1; }
+
 grep -q "Gratis vs DatoYa Impulso" business_impulse_plan_ui.js || { echo "Falta comparación clara de planes"; exit 1; }
 grep -q "Hasta '+freeLimit" business_impulse_plan_ui.js || { echo "Falta mostrar límite del catálogo Gratis"; exit 1; }
 grep -q "impulso_paid_catalog_limit" marketplace_admin_v2_ui.js || { echo "Admin no puede configurar límite catálogo Impulso"; exit 1; }
