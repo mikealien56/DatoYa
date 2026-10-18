@@ -325,7 +325,7 @@ grep -q "marketplace_growth_program_bootstrap" production_start.js || { echo "Pr
 grep -q "business_model:'no_commission'" marketplace_growth_program_bootstrap.js || { echo "Programa de crecimiento no declara modelo sin comisión"; exit 1; }
 grep -q "effective_rate:0" marketplace_growth_program_bootstrap.js || { echo "Todavía existe comisión efectiva en pedidos"; exit 1; }
 grep -q "home_structure_v3_assets" production_start.js || { echo "Home Structure V3 no está publicado"; exit 1; }
-grep -q 'cargo de servicio 2%' home_structure_v3.js || { echo "Portada no informa el cargo online de DatoYa"; exit 1; }
+! grep -q 'cargo de servicio 2%' home_structure_v3.js || { echo "Portada expone cargo interno que corresponde a Términos"; exit 1; }
 grep -q "DatoYa Club" home_structure_v3.js || { echo "Portada no explica Club"; exit 1; }
 grep -q "Impulso+" home_structure_v3.js || { echo "Portada no compara planes de negocio"; exit 1; }
 grep -q "marketplace_refunds_bootstrap" production_start.js || { echo "Devoluciones no están montadas"; exit 1; }
@@ -401,7 +401,7 @@ grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara c
 ! grep -q "DatoYa gana por" home_structure_v3.js || { echo "La portada expone el modelo de ingresos de DatoYa"; exit 1; }
 ! grep -q "DatoYa cobra únicamente" marketplace_public_beta_ui.js || { echo "La portada explica cobros internos que no interesan al usuario"; exit 1; }
 ! grep -q "Club se paga a DatoYa" customer_club_ui.js || { echo "Club expone innecesariamente el flujo de ingreso de DatoYa"; exit 1; }
-grep -q "El pago de la compra se realiza dentro de DatoYa" home_structure_v3.js || { echo "Home no indica pago dentro de DatoYa"; exit 1; }
+grep -q "paga en DatoYa" home_structure_v3.js || { echo "Home no indica pago dentro de DatoYa"; exit 1; }
 
 # Despacho propio + ETA + seguimiento
 grep -q "marketplace_delivery_eta_bootstrap" production_start.js || { echo "ETA de despacho no está montado"; exit 1; }
@@ -422,7 +422,7 @@ node --check marketplace_delivery_eta_assets.js
 for i in 0 1 2 3 4; do test -s "brand/datoya-club-card.avif.b64.$i" || { echo "Falta parte $i de la tarjeta premium Club"; exit 1; }; done
 # La portada pública utiliza la tarjeta WebP v13; AVIF se conserva como recurso opcional.
 test -s brand/datoya-club-card-v13.webp || { echo "Falta archivo WebP de la tarjeta Club v13"; exit 1; }
-grep -q 'datoya-club-card-v13.webp' home_structure_v3.js || { echo "Portada no usa la tarjeta WebP DatoYa Club v13"; exit 1; }
+grep -q 'dy-club-card-graphic' home_structure_v3.js || { echo "Portada Club no usa identidad HTML nítida"; exit 1; }
 grep -q 'Conoce más' home_structure_v3.js || { echo "Portada Club no enlaza a información"; exit 1; }
 grep -q 'Precios exclusivos para socios' customer_club_ui.js || { echo "Página Conoce más Club no fue renovada"; exit 1; }
 grep -q 'BENEFICIOS CLUB' customer_club_ui.js || { echo "Falta explicar beneficios de Club"; exit 1; }
@@ -437,8 +437,8 @@ const b=fs.readFileSync('brand/datoya-club-card-hq-1536.webp');
 if(b.length<100000||b.toString('ascii',0,4)!=='RIFF'||b.toString('ascii',8,12)!=='WEBP')process.exit(1);
 console.log('Tarjeta Club HQ validada: '+b.length+' bytes');
 NODE
-grep -q 'datoya-club-card-hq-1536.webp' customer_club_ui.js || { echo "Mi Club no usa imagen original HQ"; exit 1; }
-grep -q 'datoya-club-card-hq-1536.webp' home_structure_v3.js || { echo "Portada Club no usa imagen original HQ"; exit 1; }
+grep -q 'dy-club-card-graphic' customer_club_ui.js || { echo "Mi Club no usa identidad HTML nítida"; exit 1; }
+grep -q 'dy-club-card-graphic' home_structure_v3.js || { echo "Portada Club no usa identidad HTML nítida"; exit 1; }
 node customer_club_assets.js
 test -s public/brand/datoya-club-card-hq-1536.webp || { echo "Tarjeta HQ no se publica en public/brand"; exit 1; }
 
@@ -447,3 +447,15 @@ node --check customer_club_ui.js
 node --check customer_club_assets.js
 node customer_club_assets.js
 test -s public/brand/datoya-club-card.avif || { echo "No se generó la tarjeta AVIF pública"; exit 1; }
+
+# Regresión: fotos independientes, Club persistido en una sola operación y marca legible.
+grep -q 'cover_image_data' marketplace_products_bootstrap.js || { echo 'Falta portada independiente de negocio'; exit 1; }
+grep -q "app.put('/api/businesses/:id/cover'" marketplace_products_bootstrap.js || { echo 'Falta guardar portada propia'; exit 1; }
+! grep -q 'products.find(x=>Number(x.business_id)===Number(b.id)&&x.image_data)' marketplace_public_beta_ui.js || { echo 'La portada sigue reutilizando imagen de producto'; exit 1; }
+grep -q 'club_price,promo_price' marketplace_products_bootstrap.js || { echo 'Precio Club no se guarda con producto'; exit 1; }
+grep -q 'body.club_price=clubPrice' marketplace_business_ui.js || { echo 'Formulario no envía Club atómicamente'; exit 1; }
+node --check marketplace_products_bootstrap.js
+node --check marketplace_business_ui.js
+node --check marketplace_public_beta_ui.js
+node --check customer_club_ui.js
+node --check home_structure_v3.js
