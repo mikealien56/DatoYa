@@ -411,3 +411,17 @@
  .dy-admin-v2 .dy-admin-row-actions button{max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){.dy-admin-v2-nav,.dy-admin-nav-scrim{transition:none!important}}
+
+/* Finanzas: resumen técnico real, distinto de saldo cobrado. */
+.dy-admin-processor{display:grid;gap:14px;padding:19px 20px;margin-bottom:14px;border:1px solid #cfdfed;border-radius:20px;background:linear-gradient(145deg,#fff,#f7fbfc);box-shadow:0 7px 24px #1129440a}
+.dy-admin-processor-head{display:flex;align-items:flex-start;gap:11px}
+.dy-admin-processor-head>span{display:grid;place-items:center;width:45px;height:45px;flex:none;background:#edf5fb;border-radius:14px;font-size:23px}
+.dy-admin-processor-head small{font-size:10px;font-weight:850;letter-spacing:.1em;color:#08746b}
+.dy-admin-processor-head h3{margin:4px 0 5px;color:#0b376a;font-size:20px}
+.dy-admin-processor-head p{color:#576b83;font-size:13px;line-height:1.5;margin:0}
+.dy-admin-processor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.dy-admin-processor-grid>div{display:grid;gap:5px;padding:12px;border:1px solid #d9e5ee;border-radius:13px;background:#fff}
+.dy-admin-processor-grid span{color:#68788d;font-size:11px;font-weight:650}
+.dy-admin-processor-grid b{color:#102d51;font-size:13px;overflow-wrap:anywhere}
+.dy-admin-processor-help{border-top:1px solid #e3ebf1;padding-top:12px;margin:0;color:#62748a;font-size:12px;line-height:1.6}
+@media(max-width:600px){.dy-admin-processor{padding:15px 13px;border-radius:17px}.dy-admin-processor-grid{grid-template-columns:1fr 1fr}.dy-admin-processor-grid>div:last-child{grid-column:span 2}.dy-admin-processor-head h3{font-size:18px}.dy-admin-processor-grid>div{padding:11px}}
