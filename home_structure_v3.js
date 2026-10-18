@@ -63,7 +63,7 @@
         <p>Una sola idea, dos caminos simples.</p>
       </div>
       <div class="dy-home-flow-grid">
-        <article><div class="icon">🛍️</div><small>CLIENTE</small><h3>Busca, compra o publica lo que necesitas</h3><p>Descubre productos cercanos. Si no encuentras algo, usa Lo Busco Ya para que los negocios compatibles te respondan.</p><a href="#/buscar/_">Buscar cerca de mí →</a><a class="dy-wanted-how-link" href="#/lo-busco-ya">🙋 Publicar en Lo Busco Ya →</a></article>
+        <article><div class="icon">🛍️</div><small>CLIENTE</small><h3>Busca, compra o publica lo que necesitas</h3><p>Descubre productos cercanos. Si no encuentras algo, usa Lo Busco Ya para que los negocios compatibles te respondan. Las compras online se realizan dentro de DatoYa cuando esté habilitado Mercado Pago.</p><a href="#/buscar/_">Buscar cerca de mí →</a><a class="dy-wanted-how-link" href="#/lo-busco-ya">🙋 Publicar en Lo Busco Ya →</a></article>
         <article id="como-funciona-negocios"><div class="icon">🏪</div><small>NEGOCIO</small><h3>Publica → recibe pedidos → cobra por DatoYa</h3><p>Crea tu presencia gratis. Si quieres más alcance, activas herramientas de crecimiento por días.</p><a href="#/registrar-negocio">Publicar mi negocio →</a></article>
       </div>
       `;
