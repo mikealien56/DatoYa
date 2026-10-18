@@ -77,3 +77,6 @@
   aspect-ratio:3/2!important;object-fit:contain!important;transform:none!important;
   filter:drop-shadow(0 14px 24px rgba(0,0,0,.2))!important
 }
+
+/* Acceso claro a Lo Busco Ya desde Así funciona. */
+.dy-wanted-how-link{display:inline-flex!important;margin:10px 0 0;padding:10px 14px;border:1px solid #16a6a1;border-radius:12px;background:#e8fbf8;color:#086e70!important;font-weight:800!important;text-decoration:none}

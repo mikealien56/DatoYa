@@ -30,3 +30,29 @@
 .dy-cover-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:15px}
 .dy-brand-cover-editor input[type=file]{max-width:100%;font:inherit}
 @media(max-width:640px){.dy-cover-controls .btn{width:100%}.dy-brand-cover-preview{height:210px}.dy-product-row{box-shadow:0 6px 20px #081e4710;border-radius:18px}}
+
+/* Estudio de fotografía de productos: botones claros, previsualización local, móvil completo. */
+.dy-photo-studio-entry{display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin-top:11px}
+.dy-photo-studio-entry small{font-size:12px;line-height:1.5;color:#63748a}
+.dy-photo-studio-entry .btn{max-width:100%;white-space:normal}
+.dy-studio-open{overflow:hidden!important}
+.dy-studio-backdrop{position:fixed;z-index:100000;inset:0;background:rgba(5,18,39,.76);display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:14px;box-sizing:border-box}
+.dy-studio-panel{background:#fff;color:#122b4b;border-radius:25px;box-shadow:0 26px 70px #0006;width:min(100%,580px);max-height:calc(100dvh - 28px);overflow-y:auto;padding:20px;box-sizing:border-box}
+.dy-studio-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.dy-studio-head small{display:block;color:#0c817c;font-weight:900;font-size:10px;letter-spacing:.12em}
+.dy-studio-head h2{margin:5px 0 0;font-size:23px;line-height:1.2;color:#082d64}
+.dy-studio-head>button{display:grid;place-items:center;width:40px;height:40px;border-radius:13px;border:1px solid #dce3ed;background:#f7f9fc;color:#264060;font-size:20px;cursor:pointer}
+.dy-studio-preview{display:flex;align-items:center;justify-content:center;min-height:200px;max-height:38dvh;background:repeating-conic-gradient(#f3f5f8 0 25%,#fff 0 50%) 50%/20px 20px;border:1px solid #dce3ed;border-radius:18px;overflow:hidden;margin:15px 0 10px}
+.dy-studio-preview img{display:block;max-width:100%;max-height:37dvh;width:auto;height:auto;object-fit:contain}
+.dy-studio-info{min-height:22px;margin:0 0 12px;font-size:12px;color:#66768a;line-height:1.45}
+.dy-studio-backgrounds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.dy-studio-backgrounds button{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px;border:1px solid #dfe5ed;border-radius:13px;background:#fff;color:#183352;font-weight:750;font-size:12px;cursor:pointer}
+.dy-studio-backgrounds button.active{background:#edf8fb;border:2px solid #087f88;color:#083f5b}
+.dy-studio-backgrounds button i{width:23px;height:23px;flex:0 0 23px;border-radius:8px;border:1px solid #cbd5e1;box-shadow:inset 0 1px 4px #0001}
+.dy-studio-tool{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 12px;padding:12px 13px;border:1px solid #dce6ed;border-radius:15px;background:#f7fbfc}
+.dy-studio-tool b{display:block;font-size:13px;color:#163855}
+.dy-studio-tool small{display:block;max-width:295px;margin-top:4px;font-size:11px;color:#657588;line-height:1.4}
+.dy-studio-tool button{flex:none;white-space:normal}
+.dy-studio-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dy-studio-actions button{min-height:48px}
+@media(max-width:520px){.dy-studio-backdrop{padding:0;align-items:stretch}.dy-studio-panel{width:100%;max-height:100dvh;height:100dvh;border-radius:0;padding:16px 15px 26px}.dy-studio-preview{max-height:36dvh;min-height:165px}.dy-studio-preview img{max-height:35dvh}.dy-studio-tool{align-items:stretch;flex-direction:column}.dy-studio-tool button{width:100%}.dy-studio-backgrounds{grid-template-columns:repeat(3,1fr)}.dy-studio-actions{position:sticky;bottom:0;padding:11px 0;background:#fff}}

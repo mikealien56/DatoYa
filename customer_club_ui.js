@@ -48,10 +48,10 @@
         '</section>'+
         '<section class="dy-club-savings">'+
           '<div class="dy-club-section-head"><span>ASÍ FUNCIONA</span><h2>Un precio especial, sin complicaciones</h2><p>Algunos negocios ofrecerán precios exclusivos en productos seleccionados.</p></div>'+
-          '<div class="dy-club-price-example"><small>EJEMPLO ILUSTRATIVO · NO ES UNA OFERTA PUBLICADA</small>'+
-            '<div><span>Precio normal</span><b>$24.990</b></div>'+
-            '<div class="club"><span>Precio Club</span><strong>$19.990</strong></div>'+
-            '<div class="save"><span>La diferencia</span><b>$5.000</b></div>'+
+          '<div class="dy-club-price-example"><small>ASÍ SE VERÁ UN PRODUCTO PARTICIPANTE</small>'+
+            '<div><span>Precio normal</span><b>El precio que publica el negocio</b></div>'+
+            '<div class="club"><span>⭐ Precio Club</span><strong>Exclusivo para socios</strong></div>'+
+            '<div class="save"><span>El ahorro</span><b>Depende de cada producto</b></div>'+
           '</div>'+
           '<p class="dy-club-simple-disclaimer">Los precios y descuentos reales dependen de cada negocio. Para aplicar Precio Club al pagar es necesaria una membresía vigente.</p>'+
         '</section>'+

@@ -13,3 +13,10 @@
 .dy-push-card{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 14px;padding:15px 16px;border:1px solid #b9e9e2;border-radius:17px;background:#f0fdfa}.dy-push-card>div:first-child{display:grid;gap:3px}.dy-push-card span{font-size:10px;font-weight:900;letter-spacing:.07em;color:#0f766e}.dy-push-card b{font-size:16px;color:#0B3A82}.dy-push-card small{color:#64748b;line-height:1.4}.dy-push-actions{display:flex;gap:8px;flex-wrap:wrap}.dy-push-actions button:disabled{opacity:.55;cursor:not-allowed}
 .dy-push-help{grid-column:1/-1;margin-top:2px;padding:12px 14px;border:1px solid #b9e9e2;border-radius:13px;background:#fff;color:#475569}.dy-push-help[hidden]{display:none}.dy-push-help b{display:block;margin-bottom:6px;color:#072B63}.dy-push-help ol{margin:0 0 8px 20px;padding:0;display:grid;gap:4px;font-size:12px;line-height:1.45}.dy-push-help small{display:block;font-size:11px;line-height:1.45;color:#64748b}
 @media(max-width:700px){.dy-push-card{align-items:stretch;flex-direction:column}.dy-push-actions{display:grid;grid-template-columns:1fr 1fr}.dy-push-actions .btn:only-child{grid-column:1/-1}}
+
+/* Lo Busco Ya rápido: cantidad, urgencia y preferencia de entrega. */
+#dy-wanted-form [hidden]{display:none!important}
+#dy-wanted-form .dy-wanted-mini{display:flex;align-items:center;border-radius:13px;padding:11px;background:#f0faf9;color:#326665;font-size:12px;line-height:1.45}
+#dy-wanted-form select,#dy-wanted-form input,#dy-wanted-form textarea{max-width:100%;box-sizing:border-box}
+#dy-wanted-form button[type=submit]{min-height:49px;font-weight:800}
+@media(max-width:620px){#dy-wanted-form .dy-beta-grid{grid-template-columns:1fr}}
