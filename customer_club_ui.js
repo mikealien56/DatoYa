@@ -25,7 +25,7 @@
       '<main class="dy-club-page dy-club-info-v2 dy-club-premium-simple">'+
         '<a class="dy-public-back" href="'+back+'">← '+(current?'Mi cuenta':'Volver a DatoYa')+'</a>'+
         '<section class="dy-club-info-hero-v2">'+
-          '<div class="dy-club-info-card-art"><img class="dy-premium-club-art" src="/brand/datoya-club-card-hq-1536.webp?v=20261018-clubhq1" alt="Tarjeta DatoYa Club" width="1536" height="1024" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null;this.src=\'/brand/datoya-club-card-v13.webp?v=20261017-webpfix1\'"></div>'+
+          '<div class="dy-club-info-card-art"><div class="dy-club-card-graphic" role="img" aria-label="Tarjeta DatoYa Club: precios exclusivos para socios"><div class="dy-club-graphic-head"><span class="dy-club-monogram">DY</span><div><strong>DATOYA</strong><b>CLUB</b></div></div><div class="dy-club-graphic-lines"><span>COMPRA LOCAL</span><span>✦</span><span>SOLO SOCIOS</span></div><div class="dy-club-graphic-foot"><span>PRECIOS EXCLUSIVOS</span><span>★ DATOYA</span></div></div></div>'+
           '<div class="dy-club-info-hero-copy">'+
             '<span>DATOYA CLUB</span>'+
             '<h1>Precios exclusivos para socios</h1>'+
@@ -94,7 +94,7 @@
     if(!root||document.getElementById('dy-club-profile-card'))return;
     const s=document.createElement('section');
     s.id='dy-club-profile-card';s.className='dy-club-profile-card';
-    s.innerHTML='<div><img class="dy-club-profile-brand" src="/brand/datoya-club-card-hq-1536.webp?v=20261018-clubhq1" alt="DatoYa Club" onerror="this.onerror=null;this.src=\'/brand/datoya-club-card-v13.webp?v=20261017-webpfix1\'"><div><b>DatoYa Club</b><p>Precios exclusivos para socios en productos participantes.</p></div></div><a href="#/club">Ver Club →</a>';
+    s.innerHTML='<div><span class="dy-club-profile-brand">DY</span><div><b>DatoYa Club</b><p>Precios exclusivos para socios en productos participantes.</p></div></div><a href="#/club">Ver Club →</a>';
     root.appendChild(s);
   }
   const baseProfile=routes.perfil;
