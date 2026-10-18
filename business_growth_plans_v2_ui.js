@@ -167,10 +167,7 @@
     window.__datoyaBusinessHubFrame?.(Number(id),key);
   }
   const gated={
-    'impulso-ahora':{access:'impulse_now',key:'impulse',title:'Impulso Ahora',copy:'Activa una oferta por horario y stock real. Disponible desde Impulso.'},
-    'mi-negocio-estadisticas':{access:'advanced_analytics',key:'stats',title:'Estadísticas avanzadas',copy:'Conversiones, clics y rendimiento detallado están disponibles desde Impulso+.'},
-    'mi-negocio-pulso':{access:'local_pulse',key:'pulse',title:'Pulso Local',copy:'Descubre qué está buscando la gente de tu zona. Disponible desde Impulso+.'},
-    'mi-negocio-radar':{access:'opportunity_radar',key:'radar',title:'Herramientas de crecimiento',copy:'Conoce las alternativas de Impulso disponibles.'}
+    'mi-negocio-estadisticas':{access:'advanced_analytics',key:'stats',title:'Estadísticas avanzadas',copy:'Consulta el rendimiento detallado de tu negocio.'}
   };
   for(const [routeName,gate] of Object.entries(gated)){
     const base=routes[routeName];if(!base)continue;
@@ -184,12 +181,12 @@
   }
   async function applyTierNav(id,known){
     const data=known||await growthAccess(id);if(!data)return;
-    const checks={impulse:'impulse_now',stats:'advanced_analytics'};
+    const checks={stats:'advanced_analytics'};
     for(const [key,feature] of Object.entries(checks)){
       const a=document.querySelector('.dy-business-hub-nav [data-hub-key="'+key+'"]');if(!a)continue;
       const allowed=!!data.access?.[feature];
       a.classList.toggle('locked',!allowed);
-      a.href=allowed?(key==='impulse'?'#/impulso-ahora/'+id:key==='stats'?'#/mi-negocio-estadisticas/'+id:key==='pulse'?'#/mi-negocio-pulso/'+id:'#/mi-negocio-radar/'+id):'#/mi-negocio-plan/'+id;
+      a.href=allowed?'#/mi-negocio-estadisticas/'+id:'#/mi-negocio-plan/'+id;
       const em=a.querySelector('em');
       if(!allowed&&!em)a.insertAdjacentHTML('beforeend','<em>🔒</em>');
       if(allowed&&em)em.remove();
