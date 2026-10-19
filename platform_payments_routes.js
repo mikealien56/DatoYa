@@ -4,8 +4,8 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
   const allowed=()=>mp.config();
   const find=id=>db.prepare('SELECT * FROM platform_service_payments WHERE id=?').get(Number(id));
   const byRef=ref=>db.prepare('SELECT * FROM platform_service_payments WHERE reference=?').get(String(ref));
-  const fail=(res,e)=>res.status([400,403,404,409,502,503,504].includes(e.status)?e.status:503)
-    .json({error:e.message||'No se pudo completar el pago'});
+  const fail=(res,e)=>res.status([400,403,404,409,502,503,504].includes(e?.status)?e.status:503)
+    .json({error:e?.status?e.message:'No se pudo completar el pago; contacta soporte antes de reintentar.'});
   function owner(userId,businessId){
     return db.prepare("SELECT b.id,b.name,b.status FROM businesses b WHERE b.id=? AND b.owner_user_id=?")
       .get(Number(businessId),Number(userId));
@@ -122,8 +122,8 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
     const c=allowed();
     res.json({checkout_enabled:!!c.checkout,mode:c.mode,auto_renew:false,provider:'mercadopago'});
   });
-  app.post('/api/platform-payments/club/checkout',auth,(req,res)=>start(req,res,'club'));
-  app.post('/api/platform-payments/businesses/:businessId/checkout',auth,(req,res)=>start(req,res,'growth'));
+  app.post('/api/platform-payments/club/checkout',auth,(req,res)=>start(req,res,'club').catch(e=>fail(res,e)));
+  app.post('/api/platform-payments/businesses/:businessId/checkout',auth,(req,res)=>start(req,res,'growth').catch(e=>fail(res,e)));
   app.post('/api/platform-payments/club/sync',auth,async(req,res)=>{
     const u=helpers.clubUser(req,res);if(!u)return;
     const row=pending('club',u.id,null);
