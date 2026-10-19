@@ -87,7 +87,9 @@ function __dyGrowthAccess(tier){
     analytics_summary:true,advanced_analytics:rank>=2,local_pulse:rank>=2,
     wanted_priority:rank>=2,restock_alerts:rank>=2,datoya_alert_priority:rank>=2,
     opportunity_radar:rank>=3,marketing_assistant:rank>=3,customer_recovery:rank>=3,
-    boost_level:rank,weekly_impulse_included:false
+    boost_level:rank,weekly_impulse_included:false,
+    last_hour_monthly_free:1,
+    last_hour_quotas:rank===0?null:rank===1?{1:2,7:5,15:10,30:20}:rank===2?{1:4,7:10,15:20,30:40}:{1:6,7:20,15:40,30:80}
   };
 }
 function __dyGrowthActivate(businessId,days,tier,source,createdBy,amount,paymentReference){
