@@ -217,6 +217,36 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     try{await sync(t,paymentId)}catch(e){console.warn('[DatoYa] MP Split Webhook requiere conciliación:',e.message);return res.sendStatus(503)}
     return res.sendStatus(200);
   });
+  // Diagnóstico de pagos del lanzamiento: solo lectura y accesible únicamente a Admin.
+  app.get('/api/admin/payment-launch-readiness',auth,requireRole('admin'),(req,res)=>{
+    const config=ready();
+    const sellers=db.prepare("SELECT s.business_id,s.seller_user_id,s.credential_blob,s.verified_at,b.status FROM mp_split_sellers s JOIN businesses b ON b.id=s.business_id").all();
+    let verified=0,productionVerified=0;
+    for(const s of sellers){
+      if(!s.verified_at||s.status!=='active')continue;
+      verified++;
+      try{
+        const credential=mp.open(s.business_id,s.credential_blob);
+        if(credential.live_mode===true&&String(credential.user_id)===String(s.seller_user_id))productionVerified++;
+      }catch(_){}
+    }
+    const modeProduction=config.mode==='production';
+    const centralEnabled=process.env.DATOYA_CENTRAL_CHECKOUT_ENABLED==='true';
+    const purchasesEnabled=!!(modeProduction&&centralEnabled&&config.checkout&&productionVerified>0);
+    return res.json({
+      purchases:{
+        integration_configured:!!config.configured,environment:config.mode,
+        split_checkout_enabled:!!config.checkout,central_checkout_enabled:centralEnabled,
+        businesses_linked:sellers.length,businesses_verified:verified,
+        businesses_verified_in_production:productionVerified,
+        technically_enabled:purchasesEnabled,real_funds_reconciled:false
+      },
+      plans:{checkout_enabled:false,mode:'manual_periods',message:'Pendiente checkout Mercado Pago para Impulso / Impulso+ / Premium'},
+      club:{checkout_enabled:false,auto_renew:false,message:'Pendiente checkout Mercado Pago para DatoYa Club'},
+      featured_week:{checkout_enabled:false,message:'Pendiente cobro validado para espacios destacados'},
+      warning:'El estado técnico no confirma dinero recibido por la plataforma ni por los comercios.'
+    });
+  });
   app.get('/api/admin/mp-split/status',auth,requireRole('admin'),(req,res)=>{
     const c=ready();
     res.json({configured:c.configured,onboarding:c.onboarding,checkout:c.checkout,mode:c.mode,
