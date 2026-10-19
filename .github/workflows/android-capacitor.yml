@@ -43,8 +43,12 @@ jobs:
           if [ -n "$DATOYA_FIREBASE_GOOGLE_SERVICES_B64" ]; then
             packages+=(@capacitor/push-notifications@latest)
           fi
-          npm install --no-save "${packages[@]}"
+          # Capacitor descubre plugins nativos desde package.json; --no-save los
+          # deja instalados pero invisibles y produciría capacitor.plugins.json=[].
+          # Solo cambia el workspace temporal del runner, no el repositorio.
+          npm install --save --package-lock=false "${packages[@]}"
           npx cap add android
+          npx cap sync android
           if [ -n "$DATOYA_FIREBASE_GOOGLE_SERVICES_B64" ]; then
             python3 - <<'PY'
           import base64, json, os, pathlib, sys
@@ -278,6 +282,12 @@ jobs:
 
       - name: Verify native permissions
         run: |
+          # No aceptar un APK que compila pero omite el plugin del registro nativo.
+          test -s android/app/src/main/assets/capacitor.plugins.json
+          grep -q '@capacitor/push-notifications' android/app/src/main/assets/capacitor.plugins.json || {
+            echo '::error::Capacitor no registró el plugin de Firebase Push en la APK.'
+            exit 1
+          }
           grep -q 'android.permission.CAMERA' android/app/src/main/AndroidManifest.xml
           grep -q 'android.hardware.camera.any' android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.ACCESS_COARSE_LOCATION' android/app/src/main/AndroidManifest.xml
