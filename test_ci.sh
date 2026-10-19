@@ -205,6 +205,7 @@ echo "=== E2E Cliente + Negocio ==="
 bash test_two_accounts_flow.sh
 echo "=== E2E Impulso mensual gratuito ==="
 bash test_free_monthly_impulse_flow.sh
+bash test_last_hour_flow.sh
 echo "=== E2E readiness beta ==="
 bash test_beta_readiness_flow.sh
 echo "=== E2E integridad de pedidos ==="

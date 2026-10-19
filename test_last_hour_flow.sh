@@ -43,9 +43,22 @@ CODE="$(post_pack "$TMP/created.json" 2500)"
 ID="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["impulse_id"])' "$TMP/created.json")"
 echo 'Última Hora 5/8: portada pública muestra contenido y stock'
 curl -fsS "$BASE/api/market/last-hour?comuna_id=$C" | python3 -c 'import json,sys;d=json.load(sys.stdin);items=[p for p in d["offers"] if p["id"]==int(sys.argv[1])];assert len(items)==1; i=items[0];assert i["is_surprise_pack"] and i["item_count"]==5 and i["stock_remaining"]==3 and i["price"]==2500 and i["pickup_enabled"] and not i["delivery_enabled"]' "$ID"
-echo 'Última Hora 6/8: segundo pack no duplica beneficio gratuito'
+echo 'Última Hora 6/8: un solo pack mensual gratis'
 CODE="$(post_pack "$TMP/repeat.json" 2500)"
-[ "$CODE" = 409 ] || die "Duplicó Impulso del mes: $CODE"
+[ "$CODE" = 409 ] || die "Duplicó la publicación gratis de Última Hora: $CODE"
+echo 'Validar cupo independiente del Impulso gratis'
+curl -fsS -b "$OWNER" "$BASE/api/businesses/$B/free-monthly-impulse" | python3 -c 'import json,sys;assert json.load(sys.stdin)["available"],"Última Hora gratis no debe consumir Impulso Ahora gratis"'
+curl -fsS -b "$OWNER" "$BASE/api/businesses/$B/last-hour/quota" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["quota"]["tier"]=="free" and d["quota"]["used"]==1 and d["quota"]["remaining"]==0'
+echo 'Plan Impulso de un día: dos publicaciones adicionales'
+curl -fsS -b "$ADMIN" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/marketplace-v2/growth-plans/gift" -d "{\"business_id\":$B,\"tier\":\"impulso\",\"days\":1}" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["ok"]'
+curl -fsS -b "$OWNER" "$BASE/api/businesses/$B/last-hour/quota" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["quota"]["tier"]=="impulso" and d["quota"]["limit"]==2 and d["quota"]["remaining"]==2 and d["free_month"]["remaining"]==0'
+for n in 1 2; do
+  CODE="$(post_pack "$TMP/paid$n.json" 2000)"
+  [ "$CODE" = 201 ] || { cat "$TMP/paid$n.json"; die "Impulso no publicó el pack $n ($CODE)"; }
+done
+CODE="$(post_pack "$TMP/paid_excess.json" 2000)"
+[ "$CODE" = 409 ] || die "Impulso permitió más packs que los incluidos ($CODE)"
+curl -fsS -b "$OWNER" "$BASE/api/businesses/$B/last-hour/quota" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["quota"]["used"]==2 and d["quota"]["remaining"]==0'
 echo 'Última Hora 7/8: agotamiento saca la tarjeta de la sección'
 curl -fsS -b "$OWNER" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$B/impulses/$ID/stock" -d '{"stock_remaining":0}' >/dev/null
 curl -fsS "$BASE/api/market/last-hour?comuna_id=$C" | python3 -c 'import json,sys;assert int(sys.argv[1]) not in [p["id"] for p in json.load(sys.stdin)["offers"]]' "$ID"

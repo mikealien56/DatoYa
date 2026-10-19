@@ -7,7 +7,9 @@ db.exec([
  'CREATE TABLE IF NOT EXISTS dy_last_hour_packs (impulse_id INTEGER PRIMARY KEY REFERENCES impulse_now(id) ON DELETE CASCADE, item_count INTEGER NOT NULL, contents TEXT NOT NULL, pickup_until TEXT NOT NULL, created_at TEXT NOT NULL);',
  'CREATE TABLE IF NOT EXISTS dy_last_hour_alert_preferences (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, comuna_id INTEGER NOT NULL REFERENCES comunas(id), enabled INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);',
  'CREATE TABLE IF NOT EXISTS dy_last_hour_alert_deliveries (impulse_id INTEGER NOT NULL REFERENCES impulse_now(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, sent_at TEXT NOT NULL, PRIMARY KEY(impulse_id,user_id));',
- 'CREATE INDEX IF NOT EXISTS idx_dy_last_hour_alert_comuna ON dy_last_hour_alert_preferences(comuna_id,enabled);'
+ 'CREATE INDEX IF NOT EXISTS idx_dy_last_hour_alert_comuna ON dy_last_hour_alert_preferences(comuna_id,enabled);',
+ 'CREATE TABLE IF NOT EXISTS dy_last_hour_quota_slots (business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE, quota_key TEXT NOT NULL, slot_index INTEGER NOT NULL, impulse_id INTEGER NOT NULL UNIQUE REFERENCES impulse_now(id) ON DELETE CASCADE, created_at TEXT NOT NULL, PRIMARY KEY(business_id,quota_key,slot_index));',
+ 'CREATE INDEX IF NOT EXISTS idx_dy_last_hour_quota_usage ON dy_last_hour_quota_slots(business_id,quota_key);'
 ].join('\n'));
 
 function __installLastHour(app,db,auth,notify){
@@ -15,12 +17,41 @@ function __installLastHour(app,db,auth,notify){
   const nowIso=()=>new Date().toISOString();
   const membershipActive=id=>!!db.prepare("SELECT id FROM customer_club_memberships WHERE user_id=? AND status='active' AND expires_at>? LIMIT 1").get(id,nowIso());
   const owner=(id,userId)=>db.prepare("SELECT * FROM businesses WHERE id=? AND owner_user_id=? AND status='active'").get(Number(id),Number(userId));
-  const monthKey=()=>{
-    const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santiago',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+  const monthKey=(date=new Date())=>{
+    const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santiago',year:'numeric',month:'2-digit'}).formatToParts(date);
     return p.find(x=>x.type==='year').value+'-'+p.find(x=>x.type==='month').value;
   };
+
+  // Última Hora: beneficio independiente de Impulso Ahora, cupos adicionales por
+  // cada membresía pagada vigente y su duración original (1/7/15/30 días).
+  const planLimits={
+    impulso:{1:2,7:5,15:10,30:20},
+    impulso_plus:{1:4,7:10,15:20,30:40},
+    premium:{1:6,7:20,15:40,30:80}
+  };
+  function lastHourEntitlement(businessId){
+    const m=db.prepare("SELECT id,tier,offer_days,days_granted,starts_at,expires_at FROM business_impulse_memberships WHERE business_id=? AND status='active' AND expires_at>? ORDER BY expires_at DESC,id DESC LIMIT 1").get(businessId,nowIso());
+    if(!m)return {tier:'free',label:'DatoYa Gratis',quota_key:'free:'+monthKey(),limit:1,period:'calendar_month',duration_days:null,expires_at:null};
+    const tier=Object.hasOwn(planLimits,String(m.tier))?String(m.tier):'impulso_plus';
+    const offered=Number(m.offer_days||m.days_granted||30);
+    const days=[1,7,15,30].includes(offered)?offered:30;
+    return {tier,label:{impulso:'Impulso',impulso_plus:'Impulso+',premium:'Premium'}[tier],quota_key:'plan:'+Number(m.id),limit:planLimits[tier][days],period:'membership',duration_days:days,expires_at:m.expires_at,starts_at:m.starts_at};
+  }
+  function lastHourQuota(businessId,entitlement=lastHourEntitlement(businessId)){
+    const slots=Number((db.prepare("SELECT COUNT(*) AS c FROM dy_last_hour_quota_slots WHERE business_id=? AND quota_key=?").get(businessId,entitlement.quota_key)||{}).c||0);
+    // Cuenta publicaciones de la primera versión que aún no tenían cupo registrado.
+    const old=db.prepare("SELECT pk.impulse_id,pk.created_at FROM dy_last_hour_packs pk JOIN impulse_now i ON i.id=pk.impulse_id WHERE i.business_id=? AND i.reference LIKE ? AND NOT EXISTS(SELECT 1 FROM dy_last_hour_quota_slots qs WHERE qs.impulse_id=pk.impulse_id)").all(businessId,entitlement.tier==='free'?'FIMP-%':'LHR-%');
+    const migrated=old.filter(p=>{
+      if(entitlement.tier==='free')return monthKey(new Date(p.created_at))===monthKey();
+      const timestamp=new Date(p.created_at).getTime();
+      return timestamp>=new Date(entitlement.starts_at).getTime()&&timestamp<new Date(entitlement.expires_at).getTime();
+    }).length;
+    const used=slots+migrated;
+    return {...entitlement,used,remaining:Math.max(0,entitlement.limit-used)};
+  }
   function isCustomer(req,res){
-    if(String(req.user.account_type||'')!=='customer'||String(req.user.role||'')==='admin'){
+    const account=db.prepare('SELECT account_type FROM market_account_types WHERE user_id=?').get(Number(req.user.id));
+    if(String(account?.account_type||'customer')!=='customer'||String(req.user.role||'')==='admin'){
       res.status(403).json({error:'Las alertas son para cuentas Cliente'});
       return false;
     }
@@ -79,8 +110,14 @@ function __installLastHour(app,db,auth,notify){
     if(!Number.isSafeInteger(comuna)||comuna<1||!db.prepare('SELECT id FROM comunas WHERE id=?').get(comuna))return res.status(400).json({error:'Selecciona una comuna válida'});
     const time=nowIso();
     db.prepare('INSERT INTO dy_last_hour_alert_preferences(user_id,comuna_id,enabled,updated_at) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET comuna_id=excluded.comuna_id,enabled=excluded.enabled,updated_at=excluded.updated_at').run(req.user.id,comuna,enabled?1:0,time);
-    if(enabled)sendOptInAlerts();
+    if(enabled){try{sendOptInAlerts()}catch(e){console.warn('[DatoYa Última Hora] Al activar alertas:',String(e?.stack||e?.message||e).slice(0,400))}}
     res.json({ok:true,enabled,comuna_id:comuna});
+  });
+  app.get('/api/businesses/:id/last-hour/quota',auth,(req,res)=>{
+    const b=db.prepare("SELECT id FROM businesses WHERE id=? AND owner_user_id=?").get(Number(req.params.id),Number(req.user.id));
+    if(!b)return res.status(404).json({error:'Negocio no encontrado'});
+    res.set('Cache-Control','no-store');
+    res.json({quota:lastHourQuota(b.id),free_month:lastHourQuota(b.id,{tier:'free',label:'DatoYa Gratis',quota_key:'free:'+monthKey(),limit:1,period:'calendar_month',duration_days:null,expires_at:null}),plan_limits:planLimits});
   });
   app.post('/api/businesses/:id/last-hour/packs',auth,(req,res)=>{
     const b=owner(req.params.id,req.user.id);
@@ -98,32 +135,33 @@ function __installLastHour(app,db,auth,notify){
     if(!Number.isSafeInteger(price)||price<1||price>=Number(p.price))return res.status(400).json({error:'El precio de Última Hora debe ser menor que el precio normal del pack'});
     const deadline=new Date(x.pickup_until),now=Date.now(),end=deadline.getTime();
     if(!Number.isFinite(end)||end-now<30*60000||end-now>8*3600000)return res.status(400).json({error:'El retiro debe terminar entre 30 minutos y 8 horas desde ahora'});
-    const paid=!!db.prepare("SELECT id FROM business_impulse_memberships WHERE business_id=? AND status='active' AND expires_at>? LIMIT 1").get(b.id,nowIso());
-    const month=monthKey(),start=new Date(now).toISOString(),finish=deadline.toISOString();
-    const ref=(paid?'LHR-':'FIMP-')+crypto.randomBytes(7).toString('hex').toUpperCase();
+    const start=new Date(now).toISOString(),finish=deadline.toISOString();
+    const ref='LHR-'+crypto.randomBytes(7).toString('hex').toUpperCase();
     let id;
     try{
       id=db.transaction(()=>{
-        if(!paid){
-          const free=db.prepare('INSERT INTO business_free_impulse_months(business_id,month_key,created_at) VALUES(?,?,?) ON CONFLICT(business_id,month_key) DO NOTHING').run(b.id,month,start);
-          if(Number(free.changes||0)!==1)throw Error('FREE_IMPULSE_MONTH_USED');
-        }
+        const quota=lastHourQuota(b.id); // Validación en servidor y dentro de la transacción.
+        if(quota.remaining<=0)throw Error('LAST_HOUR_QUOTA_EXHAUSTED');
+        const usedSlots=db.prepare('SELECT MAX(slot_index) AS n FROM dy_last_hour_quota_slots WHERE business_id=? AND quota_key=?').get(b.id,quota.quota_key);
+        const slot=Math.max(quota.used,Number(usedSlots?.n||0))+1;
         db.prepare('INSERT INTO impulse_now(reference,business_id,product_id,title,description,price,old_price,stock_initial,stock_remaining,starts_at,ends_at,until_sold_out,sale_mode,pickup_enabled,delivery_enabled,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
           .run(ref,b.id,p.id,p.name,'Pack sorpresa: '+contents,price,Number(p.price),packs,packs,start,finish,1,'last_units',1,0,'active',start,start);
         const impulse=db.prepare('SELECT id FROM impulse_now WHERE reference=?').get(ref);
         if(!impulse)throw Error('No se creó la publicación');
         db.prepare('INSERT INTO dy_last_hour_packs(impulse_id,item_count,contents,pickup_until,created_at) VALUES(?,?,?,?,?)').run(impulse.id,items,contents,finish,start);
-        if(!paid)db.prepare('UPDATE business_free_impulse_months SET impulse_id=? WHERE business_id=? AND month_key=?').run(impulse.id,b.id,month);
+        // La clave única (negocio, período, cupo) impide exceder límites con envíos simultáneos.
+        db.prepare('INSERT INTO dy_last_hour_quota_slots(business_id,quota_key,slot_index,impulse_id,created_at) VALUES(?,?,?,?,?)').run(b.id,quota.quota_key,slot,impulse.id,start);
         return impulse.id;
       })();
     }catch(e){
-      if(String(e.message||'').includes('FREE_IMPULSE_MONTH_USED'))return res.status(409).json({error:'Ya utilizaste tu Impulso gratuito del mes. Para publicar más, activa DatoYa Impulso.',code:'FREE_IMPULSE_MONTH_USED'});
+      if(String(e.message||'').includes('LAST_HOUR_QUOTA_EXHAUSTED'))return res.status(409).json({error:'Agotaste las publicaciones de Última Hora incluidas en tu plan o período. Revisa las opciones de Impulso.',code:'LAST_HOUR_QUOTA_EXHAUSTED',quota:lastHourQuota(b.id)});
+      if(String(e.code||'').includes('23505')||/UNIQUE constraint|duplicate key|unique violation/i.test(String(e.message||'')))return res.status(409).json({error:'Otra publicación utilizó el último cupo. Actualiza e intenta nuevamente.',code:'LAST_HOUR_QUOTA_CONFLICT',quota:lastHourQuota(b.id)});
       console.error('[DatoYa Última Hora]',e.message);
       return res.status(500).json({error:'No se pudo publicar el pack'});
     }
     notify(req.user.id,'impulso','Tu pack Última Hora ya está publicado.','#/ultima-hora');
     try{sendOptInAlerts()}catch(e){console.warn('[DatoYa Última Hora] Notificaciones:',e.message)}
-    res.status(201).json({ok:true,impulse_id:id,reference:ref,ends_at:finish});
+    res.status(201).json({ok:true,impulse_id:id,reference:ref,ends_at:finish,quota:lastHourQuota(b.id)});
   });
   const ticker=setInterval(()=>{try{sendOptInAlerts()}catch(e){console.warn('[DatoYa Última Hora] Revisión:',e.message)}},60000);
   if(typeof ticker.unref==='function')ticker.unref();
