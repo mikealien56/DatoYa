@@ -30,6 +30,7 @@ bash test_business_loading_guards.sh
 node --test test_central_marketplace_payment_policy.js
 node --test test_payment_launch_readiness.js
 node --test test_platform_payments.js
+node --test test_platform_payments_activation.js
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
 bash test_khipu_business_onboarding.sh
