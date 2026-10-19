@@ -6,14 +6,16 @@
   const isHome=()=>!location.hash||location.hash==='#'||location.hash==='#/';
   const remainText=end=>{const ms=new Date(end).getTime()-Date.now();if(ms<=0)return'Finalizando';const m=Math.ceil(ms/60000);if(m<60)return m+' min';const hr=Math.floor(m/60),min=m%60;return hr+' h'+(min?' '+min+' min':'')};
   function renderEmpty(section){
-    section.innerHTML=`<div class="dy-section-head"><div><h2>⚡ Ahora cerca de ti</h2><p>Ofertas reales por horario y stock, cuando haya alguna activa en tu zona.</p></div></div><div class="dy-real-empty"><span>⚡</span><b>No hay Impulsos activos ahora</b><p>Mientras tanto puedes explorar negocios y promociones disponibles cerca de ti.</p><a class="btn btn-outline btn-sm" href="#/buscar/_">Explorar DatoYa</a></div>`;
+    section.innerHTML=`<div class="dy-section-head"><div><h2>⚡ Ahora cerca de ti</h2><p>Ofertas reales por horario y stock, cuando haya alguna activa en tu zona.</p></div></div><div class="dy-real-empty"><span>⚡</span><b>No hay otros Impulsos activos ahora</b><p>Mientras tanto puedes explorar negocios y promociones disponibles cerca de ti.</p><a class="btn btn-outline btn-sm" href="#/buscar/_">Explorar DatoYa</a></div>`;
   }
   async function render(){
     if(!isHome())return;
     const section=document.getElementById('impulso-ahora');if(!section)return;
     const comunaId=Number(localStorage.getItem('datoya_comuna_id')||0);
     try{
-      const r=await api('/market/impulses'+(comunaId?'?comuna_id='+comunaId:'')),items=r.impulses||[];
+      const r=await api('/market/impulses'+(comunaId?'?comuna_id='+comunaId:'')),all=r.impulses||[];
+      // Última Hora presenta estas promociones en un espacio propio para evitar tarjetas duplicadas.
+      const items=all.filter(i=>!(['last_units','liquidation'].includes(String(i.sale_mode))&&new Date(i.ends_at).getTime()-Date.now()<=8*3600000));
       window.__dyImpulseCache=items;
       // DATOYA_BUSINESS_BROWSE_ONLY_V1 — Negocio/Admin exploran ofertas, pero no compran con esa cuenta.
       const browseOnly=!!ME&&(ME.account_type==='business'||ME.account_type==='admin'||ME.role==='admin');
