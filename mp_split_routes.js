@@ -230,6 +230,8 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
         if(credential.live_mode===true&&String(credential.user_id)===String(s.seller_user_id))productionVerified++;
       }catch(_){}
     }
+    const platform=require('./platform_payments_service').config();
+    const platformProduction=platform.mode==='production'&&platform.checkout;
     const modeProduction=config.mode==='production';
     const centralEnabled=process.env.DATOYA_CENTRAL_CHECKOUT_ENABLED==='true';
     const purchasesEnabled=!!(modeProduction&&centralEnabled&&config.checkout&&productionVerified>0);
@@ -241,8 +243,8 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
         businesses_verified_in_production:productionVerified,
         technically_enabled:purchasesEnabled,real_funds_reconciled:false
       },
-      plans:{checkout_enabled:false,mode:'manual_periods',message:'Pendiente checkout Mercado Pago para Impulso / Impulso+ / Premium'},
-      club:{checkout_enabled:false,auto_renew:false,message:'Pendiente checkout Mercado Pago para DatoYa Club'},
+      plans:{checkout_enabled:platformProduction,mode:'manual_periods',provider_mode:platform.mode,message:platformProduction?'Checkout Pro de servicios propios habilitado; verificar cobros':'Pendiente autorización de Checkout Pro para planes'},
+      club:{checkout_enabled:platformProduction,auto_renew:false,provider_mode:platform.mode,message:platformProduction?'Checkout Pro de Club habilitado; verificar cobros':'Pendiente autorización de Checkout Pro para DatoYa Club'},
       featured_week:{checkout_enabled:false,message:'Pendiente cobro validado para espacios destacados'},
       warning:'El estado técnico no confirma dinero recibido por la plataforma ni por los comercios.'
     });
