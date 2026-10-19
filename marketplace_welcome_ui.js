@@ -28,7 +28,7 @@
       '<div class="dy-joined-content"><span class="dy-joined-eyebrow">✦ NUEVOS EN DATOYA</span>'+
       '<span class="dy-joined-empty-icon" aria-hidden="true">🏪</span>'+
       '<h2>¡Bienvenidos a DatoYa!</h2><p>'+(problem?'Pronto podrás descubrir los negocios que se suman.':'Aquí daremos la bienvenida a cada nuevo negocio aprobado.')+'</p>'+
-      '<a class="dy-joined-cta" href="#/registrar-negocio">Quiero ser el próximo <span aria-hidden="true">→</span></a></div></section>';
+      '<a class="dy-joined-cta" href="#/registrar-negocio">Registrar mi negocio <span aria-hidden="true">→</span></a></div></section>';
   }
   function slideHtml(b){
     const cover=String(b.cover_image_data||'');
