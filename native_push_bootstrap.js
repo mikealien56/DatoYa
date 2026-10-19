@@ -12,16 +12,28 @@ const insert=String.raw`
 // ============ DATOYA NATIVE PUSH FCM V1 ============
 const __dyFcmCrypto=require('crypto');
 let __dyFcmCredentials=null,__dyFcmAccess=null;
-try{
-  const raw=String(process.env.DATOYA_FCM_SERVICE_ACCOUNT_JSON||'').trim();
-  const b64=String(process.env.DATOYA_FCM_SERVICE_ACCOUNT_JSON_B64||'').trim();
-  const candidate=JSON.parse(raw||(b64?Buffer.from(b64,'base64').toString('utf8'):'null'));
-  if(candidate&&candidate.type==='service_account'&&
-    /^[a-z][a-z0-9-]{4,70}$/.test(String(candidate.project_id||''))&&
-    /@[^@\s]+\.iam\.gserviceaccount\.com$/.test(String(candidate.client_email||''))&&
-    /^-----BEGIN PRIVATE KEY-----/.test(String(candidate.private_key||'')))
-    __dyFcmCredentials=candidate;
-}catch(_){console.warn('[DatoYa][FCM] Configuración de servicio no válida; canal nativo desactivado.')}
+const __dyFcmRaw=String(process.env.DATOYA_FCM_SERVICE_ACCOUNT_JSON||'').trim();
+const __dyFcmB64=String(process.env.DATOYA_FCM_SERVICE_ACCOUNT_JSON_B64||'').trim();
+if(__dyFcmRaw||__dyFcmB64){
+  let candidate=null;
+  try{
+    candidate=JSON.parse(__dyFcmRaw||Buffer.from(__dyFcmB64,'base64').toString('utf8'));
+  }catch(_){
+    console.warn('[DatoYa][FCM] Credenciales recibidas pero JSON ilegible en '+(__dyFcmRaw?'DATOYA_FCM_SERVICE_ACCOUNT_JSON':'DATOYA_FCM_SERVICE_ACCOUNT_JSON_B64')+'. No se muestran valores privados.');
+  }
+  if(candidate){
+    const invalid=[];
+    if(candidate.type!=='service_account')invalid.push('type');
+    if(!/^[a-z][a-z0-9-]{4,70}$/.test(String(candidate.project_id||'')))invalid.push('project_id');
+    if(!/@[^@\s]+\.iam\.gserviceaccount\.com$/.test(String(candidate.client_email||'')))invalid.push('client_email');
+    if(!/^-----BEGIN PRIVATE KEY-----/.test(String(candidate.private_key||'')))invalid.push('private_key');
+    if(invalid.length)console.warn('[DatoYa][FCM] JSON legible pero campos inválidos: '+invalid.join(', ')+'. No se muestran valores privados.');
+    else{
+      __dyFcmCredentials=candidate;
+      console.log('[DatoYa][FCM] Credenciales de cuenta de servicio validadas; canal nativo habilitado.');
+    }
+  }
+}
 const __dyFcmReady=()=>!!__dyFcmCredentials;
 async function __dyFcmToken(){
   if(!__dyFcmReady())throw Error('FCM no configurado');
