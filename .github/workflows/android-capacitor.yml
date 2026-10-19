@@ -46,12 +46,26 @@ jobs:
           npm install --no-save "${packages[@]}"
           npx cap add android
           if [ -n "$DATOYA_FIREBASE_GOOGLE_SERVICES_B64" ]; then
-            printf '%s' "$DATOYA_FIREBASE_GOOGLE_SERVICES_B64" | base64 --decode > android/app/google-services.json
             python3 - <<'PY'
-          import json
-          data=json.load(open('android/app/google-services.json'))
-          assert any(c.get('client_info',{}).get('android_client_info',{}).get('package_name')=='cl.datoya.app' for c in data.get('client',[])), 'Firebase: appId no coincide con cl.datoya.app'
-          assert data.get('project_info',{}).get('project_id')=='datoya-d9669', 'Firebase: proyecto inesperado'
+          import base64, json, os, pathlib, sys
+          value=os.environ.get('DATOYA_FIREBASE_GOOGLE_SERVICES_B64','').strip()
+          try:
+              # Admite Base64 original y JSON Android pegado directamente desde móvil.
+              # No escribir ni imprimir nunca las credenciales en el registro.
+              if value.startswith('{'):
+                  data=json.loads(value)
+              else:
+                  data=json.loads(base64.b64decode(''.join(value.split()),validate=True))
+          except Exception:
+              print('::error::El secreto de GitHub no contiene un google-services.json válido. Sustituye TODO el valor por el texto Base64 correcto, sin encabezados ni comillas.', file=sys.stderr)
+              sys.exit(1)
+          if not any(c.get('client_info',{}).get('android_client_info',{}).get('package_name')=='cl.datoya.app' for c in data.get('client',[])):
+              print('::error::Firebase Android: paquete incorrecto. Debe ser cl.datoya.app.',file=sys.stderr)
+              sys.exit(1)
+          if data.get('project_info',{}).get('project_id')!='datoya-d9669':
+              print('::error::Firebase Android: proyecto incorrecto.',file=sys.stderr)
+              sys.exit(1)
+          pathlib.Path('android/app/google-services.json').write_text(json.dumps(data),encoding='utf-8')
           print('Firebase Android configurado para DatoYa (cl.datoya.app / datoya-d9669).')
           PY
           else
