@@ -50,7 +50,8 @@ function __installLastHour(app,db,auth,notify){
     return {...entitlement,used,remaining:Math.max(0,entitlement.limit-used)};
   }
   function isCustomer(req,res){
-    if(String(req.user.account_type||'')!=='customer'||String(req.user.role||'')==='admin'){
+    const account=db.prepare('SELECT account_type FROM market_account_types WHERE user_id=?').get(Number(req.user.id));
+    if(String(account?.account_type||'customer')!=='customer'||String(req.user.role||'')==='admin'){
       res.status(403).json({error:'Las alertas son para cuentas Cliente'});
       return false;
     }
