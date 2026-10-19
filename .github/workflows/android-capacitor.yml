@@ -215,11 +215,7 @@ jobs:
 
                   android.webkit.WebView webView = this.bridge.getWebView();
                   webView.getSettings().setGeolocationEnabled(true);
-                  // Identificar esta APK propia ante la web para evitar confundirla con Chrome.
-                  String datoyaUa = webView.getSettings().getUserAgentString();
-                  if (datoyaUa != null && !datoyaUa.contains("DatoYaCapacitorAndroid/")) {
-                      webView.getSettings().setUserAgentString(datoyaUa + " DatoYaCapacitorAndroid/2.3.4");
-                  }
+                  // La identificación la configura android.appendUserAgent antes de cargar la página.
 
                   boolean coarseGranted = ContextCompat.checkSelfPermission(
                       this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -279,10 +275,10 @@ jobs:
               raise SystemExit('No se encontró build.gradle de Android')
           s=p.read_text()
           import re
-          s=re.sub(r'versionCode\s+\d+', 'versionCode 9', s)
-          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.4"', s)
+          s=re.sub(r'versionCode\s+\d+', 'versionCode 10', s)
+          s=re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "2.3.5"', s)
           p.write_text(s)
-          print('DatoYa Android versionCode=9 versionName=2.3.4')
+          print('DatoYa Android versionCode=10 versionName=2.3.5')
           PY
 
       - name: Verify native permissions
