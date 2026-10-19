@@ -80,3 +80,57 @@
 
 /* Acceso claro a Lo Busco Ya desde Así funciona. */
 .dy-wanted-how-link{display:inline-flex!important;margin:10px 0 0;padding:10px 14px;border:1px solid #16a6a1;border-radius:12px;background:#e8fbf8;color:#086e70!important;font-weight:800!important;text-decoration:none}
+
+
+/* DatoYa · "Así funciona" simple y compacto, pensado para móvil. */
+.dy-home-v3-how .dy-home-v3-head{margin-bottom:16px}
+.dy-home-v3-how .dy-home-v3-head h2{max-width:650px;line-height:1.16}
+.dy-home-v3-how .dy-home-v3-head p{font-size:14px;line-height:1.45}
+.dy-home-v3-how .dy-home-flow-grid{gap:12px}
+.dy-home-v3-how .dy-home-flow-grid article{
+  display:flex;flex-direction:column;align-items:flex-start;
+  min-width:0;padding:22px;border-radius:22px;
+  border:1px solid #e5ebf1;background:#fff;
+  box-shadow:0 6px 22px rgba(16,45,81,.045)
+}
+.dy-home-v3-how .dy-home-flow-grid .icon{font-size:28px;line-height:1.2}
+.dy-home-v3-how .dy-home-flow-grid small{margin-top:12px;font-size:11px;letter-spacing:.085em}
+.dy-home-v3-how .dy-home-flow-grid h3{
+  font-size:clamp(19px,2.4vw,24px);line-height:1.2;
+  margin:8px 0;color:#0b3a82;letter-spacing:-.015em
+}
+.dy-home-v3-how .dy-home-flow-grid p{margin:0 0 16px;font-size:14px;line-height:1.55;max-width:38ch}
+.dy-home-how-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:auto}
+.dy-home-v3-how .dy-home-how-actions .dy-home-how-primary,
+.dy-home-v3-how .dy-home-how-actions .dy-wanted-how-link{
+  display:inline-flex!important;align-items:center;justify-content:center;
+  gap:7px;margin:0;padding:11px 13px;min-height:42px;
+  border-radius:13px;box-sizing:border-box;
+  font-size:13px;font-weight:850!important;text-decoration:none!important;
+  white-space:normal;text-align:center;line-height:1.25
+}
+.dy-home-v3-how .dy-home-how-actions .dy-home-how-primary{
+  background:#0b3a82;color:#fff!important;border:1px solid #0b3a82
+}
+.dy-home-v3-how .dy-home-how-actions .dy-wanted-how-link{
+  background:#e8faf6;color:#076c68!important;border:1px solid #96dcd0
+}
+.dy-home-v3-how .dy-home-how-actions a:focus-visible{outline:3px solid #17bfae;outline-offset:2px}
+.dy-home-how-payment-note{
+  margin:15px 2px 0!important;padding:10px 12px;
+  font-size:12px!important;line-height:1.45!important;
+  border-radius:12px;background:#f4f7fb;color:#61738a;
+}
+@media(max-width:700px){
+  .dy-home-v3-how{padding:14px 0 18px!important}
+  .dy-home-v3-how .dy-home-v3-head{margin-bottom:14px}
+  .dy-home-v3-how .dy-home-v3-head h2{font-size:29px;line-height:1.13}
+  .dy-home-v3-how .dy-home-flow-grid article{padding:19px 17px}
+  .dy-home-v3-how .dy-home-flow-grid h3{font-size:22px}
+  .dy-home-v3-how .dy-home-flow-grid p{font-size:14px}
+  .dy-home-how-actions{width:100%}
+  .dy-home-v3-how .dy-home-how-actions a{flex:1 1 auto}
+}
+@media(max-width:370px){
+  .dy-home-v3-how .dy-home-how-actions a{width:100%;flex-basis:100%}
+}
