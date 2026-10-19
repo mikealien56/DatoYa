@@ -151,6 +151,7 @@ if(!source.includes('DATOYA ORDER INTEGRITY V1')){
     "  if(o.fulfillment_method!=='pickup')return res.status(400).json({error:'Este pedido no usa retiro'});",
     "  if(o.status==='completed'&&o.pickup_verified_at)return res.json({ok:true,already_verified:true,business_id:o.business_id});",
     "  if(o.status!=='ready')return res.status(409).json({error:'El pedido debe estar listo para validar el retiro'});",
+    "  if(process.env.NODE_ENV==='production'&&String(o.payment_status)!=='paid')return res.status(409).json({error:'El pago de este pedido aún no está confirmado por Mercado Pago.'});",
     "  if(Number(o.pickup_attempts||0)>=10)return res.status(429).json({error:'Se agotaron los intentos de código para este pedido. Contacta soporte.'});",
     "  const code=String(req.body?.code||'').replace(/\\D/g,'').slice(0,6);",
     "  if(code!==String(o.pickup_code||'')){db.prepare('UPDATE commerce_orders SET pickup_attempts=pickup_attempts+1,updated_at=? WHERE id=?').run(new Date().toISOString(),o.id);return res.status(400).json({error:'Código de retiro incorrecto'});}",

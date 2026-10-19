@@ -129,6 +129,7 @@ function __dyFulfillmentVerify(req,res,expectedMethod){
   const verifiedAt=isPickup?o.pickup_verified_at:o.delivery_verified_at;
   if(o.status==='completed'&&verifiedAt)return res.json({ok:true,already_verified:true,status:'completed'});
   if(o.status!=='ready')return res.status(409).json({error:'El pedido debe estar listo para validar la entrega'});
+  if(process.env.NODE_ENV==='production'&&String(o.payment_status)!=='paid')return res.status(409).json({error:'El pago de este pedido aún no está confirmado por Mercado Pago.'});
   const attempts=Number(isPickup?o.pickup_attempts:o.delivery_attempts)||0;
   if(attempts>=10)return res.status(429).json({error:'Se agotaron los intentos de código para este pedido. Contacta soporte.'});
   const code=String(req.body&&req.body.code||'').replace(/\D/g,'').slice(0,6);
