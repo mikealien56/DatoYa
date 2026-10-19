@@ -7,3 +7,116 @@
 .dy-owner-preview-banner b{color:#17335b}
 .dy-owner-preview-banner small{color:#64748b;line-height:1.4}
 @media(max-width:700px){.dy-owner-preview-banner{align-items:stretch;flex-direction:column}.dy-owner-preview-banner .btn{width:100%}}
+
+
+/* DatoYa: tarjetas del catálogo público, foto separada de todo texto. */
+.dy-store-page .dy-store-products>.dy-store-product.dy-growth-product{
+  display:grid!important;
+  grid-template-columns:minmax(0,190px) minmax(0,1fr)!important;
+  align-items:stretch!important;
+  min-width:0!important;
+  height:auto!important;
+  overflow:hidden!important;
+  background:#fff!important;
+}
+.dy-store-page .dy-store-product.dy-growth-product>div:first-child{
+  position:relative!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:198px!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:hidden!important;
+  background:#edf3fa!important;
+}
+.dy-store-page .dy-store-product.dy-growth-product>div:first-child>img{
+  display:block!important;
+  position:static!important;
+  width:100%!important;
+  height:100%!important;
+  max-height:none!important;
+  object-fit:cover!important;
+}
+.dy-store-page .dy-store-product.dy-growth-product>div:nth-child(2){
+  display:flex!important;
+  flex-direction:column!important;
+  gap:7px!important;
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+  width:100%!important;
+  min-width:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:18px!important;
+  background:#fff!important;
+  color:#1b2b48!important;
+  opacity:1!important;
+  z-index:1!important;
+}
+.dy-store-page .dy-store-product.dy-growth-product>div:nth-child(2)>span{
+  display:block!important;
+  color:#53677d!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+}
+.dy-store-page .dy-store-product.dy-growth-product h3{
+  display:block!important;
+  position:static!important;
+  margin:0!important;
+  font-size:19px!important;
+  line-height:1.3!important;
+  color:#123567!important;
+  overflow-wrap:anywhere!important;
+}
+.dy-store-page .dy-store-product.dy-growth-product p{
+  display:block!important;
+  position:static!important;
+  margin:0!important;
+  color:#64748b!important;
+  line-height:1.5!important;
+  overflow-wrap:anywhere!important;
+}
+.dy-store-page .dy-store-product.dy-growth-product .dy-product-public-price{
+  display:flex!important;
+  position:static!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:8px!important;
+  margin:7px 0 2px!important;
+  background:transparent!important;
+}
+.dy-store-page .dy-store-product.dy-growth-product .dy-share-product{
+  align-self:flex-start!important;
+  margin-top:9px!important;
+}
+.dy-store-purchase-note{
+  width:100%;
+  margin:6px 0 0;
+  padding:10px 12px;
+  border-radius:12px;
+  color:#385273;
+  background:#f2f6fb;
+  font-size:12px;
+  line-height:1.45;
+}
+.dy-store-purchase-note--owner{background:#effaf7;color:#166353}
+@media(max-width:760px){
+  .dy-store-page .dy-store-products>.dy-store-product.dy-growth-product{
+    display:flex!important;
+    flex-direction:column!important;
+    grid-template-columns:none!important;
+  }
+  .dy-store-page .dy-store-product.dy-growth-product>div:first-child{
+    height:238px!important;
+    min-height:238px!important;
+    max-height:238px!important;
+    flex:0 0 238px!important;
+  }
+  .dy-store-page .dy-store-product.dy-growth-product>div:nth-child(2){
+    padding:17px 18px 20px!important;
+  }
+  .dy-store-page .dy-store-product.dy-growth-product .dy-share-product{
+    width:auto!important;
+  }
+}
