@@ -18,7 +18,13 @@
 
 
   // Capacitor WebView no ofrece Web Push. Su canal compatible es Firebase nativo.
-  const isNativeAndroid=()=>!!(window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='android');
+  // Capacitor en un WebView remoto puede no exponer isNativePlatform al mismo tiempo
+  // que getPlatform; el identificador nativo permite mostrar un diagnóstico preciso.
+  const hasDatoYaAndroidMarker=()=>/DatoYaCapacitorAndroid\/[0-9.]+/.test(navigator.userAgent||'');
+  const isNativeAndroid=()=>!!(window.Capacitor?.getPlatform?.()==='android'||
+    (window.Capacitor?.isNativePlatform?.()&&/Android/i.test(navigator.userAgent||''))||
+    hasDatoYaAndroidMarker());
+  const mayBeLegacyAndroidWebView=()=>/Android/i.test(navigator.userAgent||'')&&/\bwv\b/i.test(navigator.userAgent||'');
   const nativePushPlugin=()=>{
     const bridge=window.Capacitor;
     if(!isNativeAndroid()||!bridge?.isPluginAvailable?.('PushNotifications'))return null;
@@ -136,8 +142,8 @@
     if(!ME){location.hash='#/login';return}
     const [d,push]=await Promise.all([api('/notifications/summary'),pushState().catch(err=>({native:isNativeAndroid(),config:{configured:false},supported:isNativeAndroid()?!!nativePushPlugin():pushSupported(),permission:isNativeAndroid()?'unknown':pushSupported()?Notification.permission:'unsupported',subscription:null,error:String(err?.message||'No se pudo comprobar el estado de los avisos')}))]),rows=d.notifications||[];
     const pushOn=!!push.subscription,pushReady=!!push.config?.configured,pushDenied=push.permission==='denied';
-    const pushStatus=push.error?'No pudimos comprobar completamente los avisos':push.native&&!push.supported?'Esta versión Android requiere actualizar la app':!push.supported?'Este navegador no admite avisos push':pushDenied?'Notificaciones bloqueadas':pushOn?'Activadas en este dispositivo':push.native&&!pushReady?'Firebase pendiente de conectar':pushReady?'Disponibles para activar':'Pendientes de configuración';
-    const pushDetail=push.error?h(push.error):push.native&&!push.supported?'La versión actual no incluye el módulo nativo. Los avisos seguirán disponibles dentro de DatoYa.':push.native&&!pushReady?'Los avisos en segundo plano requieren activar Firebase y actualizar el APK.':pushDenied?'Actívalas desde Ajustes del teléfono o los permisos de Chrome.':'Puedes cambiar esta configuración cuando quieras.';
+    const pushStatus=push.error?'No pudimos comprobar completamente los avisos':push.native&&!push.supported?'No se detecta el módulo nativo de avisos':!push.supported&&mayBeLegacyAndroidWebView()?'DatoYa Android no detecta Firebase en esta instalación':!push.supported?'Este navegador no admite avisos push':pushDenied?'Notificaciones bloqueadas':pushOn?'Activadas en este dispositivo':push.native&&!pushReady?'Firebase pendiente de conectar':pushReady?'Disponibles para activar':'Pendientes de configuración';
+    const pushDetail=push.error?h(push.error):push.native&&!push.supported?'Firebase está configurado, pero esta instalación no reconoce el complemento nativo. Comprueba que instalaste la APK nueva con Firebase.':!push.native&&!push.supported&&mayBeLegacyAndroidWebView()?'Parece una WebView Android sin conexión nativa. Comprueba que estás usando la APK de pruebas con Firebase y no una versión anterior.':push.native&&!pushReady?'El servidor todavía no autoriza el canal Firebase.':pushDenied?'Actívalas desde Ajustes del teléfono o los permisos de Chrome.':'Puedes cambiar esta configuración cuando quieras.';
     const pushActions=pushOn
       ? '<button id="dy-push-disable" class="btn btn-outline btn-sm">Desactivar</button><button id="dy-push-test" class="btn btn-primary btn-sm">Probar aviso</button>'
       : push.native&&(!push.supported||!pushReady)
