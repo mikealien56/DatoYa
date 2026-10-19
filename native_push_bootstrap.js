@@ -14,12 +14,38 @@ const __dyFcmCrypto=require('crypto');
 let __dyFcmCredentials=null,__dyFcmAccess=null;
 const __dyFcmRaw=String(process.env.DATOYA_FCM_SERVICE_ACCOUNT_JSON||'').trim();
 const __dyFcmB64=String(process.env.DATOYA_FCM_SERVICE_ACCOUNT_JSON_B64||'').trim();
+function __dyFcmDecodeJson(input){
+  let obj;
+  try{obj=JSON.parse(input);}
+  catch(_){
+    // Android text editors sometimes paste literal newlines inside JSON string values.
+    // Escape only control characters inside quoted strings; never alter key material.
+    let quoted=false,escaped=false,out='';
+    for(const char of input){
+      if(quoted&&(char==='\n'||char==='\r'||char==='\t')){
+        out+=char==='\n'?'\\n':char==='\r'?'\\r':'\\t';
+        escaped=false;
+        continue;
+      }
+      out+=char;
+      if(char==='"'&&!escaped)quoted=!quoted;
+      if(char==='\\'&&!escaped)escaped=true;
+      else escaped=false;
+    }
+    obj=JSON.parse(out);
+    console.log('[DatoYa][FCM] JSON interpretado tras normalizar saltos de línea.');
+  }
+  if(typeof obj==='string'&&obj.trim().startsWith('{'))obj=JSON.parse(obj);
+  return obj;
+}
 if(__dyFcmRaw||__dyFcmB64){
   let candidate=null;
-  try{
-    candidate=JSON.parse(__dyFcmRaw||Buffer.from(__dyFcmB64,'base64').toString('utf8'));
-  }catch(_){
-    console.warn('[DatoYa][FCM] Credenciales recibidas pero JSON ilegible en '+(__dyFcmRaw?'DATOYA_FCM_SERVICE_ACCOUNT_JSON':'DATOYA_FCM_SERVICE_ACCOUNT_JSON_B64')+'. No se muestran valores privados.');
+  const sources=[];
+  if(__dyFcmB64)sources.push(['DATOYA_FCM_SERVICE_ACCOUNT_JSON_B64',Buffer.from(__dyFcmB64,'base64').toString('utf8')]);
+  if(__dyFcmRaw)sources.push(['DATOYA_FCM_SERVICE_ACCOUNT_JSON',__dyFcmRaw]);
+  for(const source of sources){
+    try{candidate=__dyFcmDecodeJson(source[1]);break;}
+    catch(_){console.warn('[DatoYa][FCM] Credenciales recibidas pero JSON ilegible en '+source[0]+'. No se muestran valores privados.');}
   }
   if(candidate){
     const invalid=[];
