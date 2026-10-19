@@ -90,7 +90,7 @@
       '<button class="btn '+(offer.key==='impulso'?'btn-outline':'btn-primary')+' btn-block" '+(canCheckout?'':'disabled')+' onclick="dyStartGrowthCheckout('+Number(data.business.id)+',\''+offer.key+'\')">'+
         (isActive?'Extender '+h(meta.label):'Activar '+h(meta.label))+
       '</button>'+
-      (!canCheckout?'<small class="dy-growth-disabled">Mercado Pago: contratación y renovación automática en preparación. No se realizará ningún cobro.</small>':'')+
+      (!canCheckout?'<small class="dy-growth-disabled">Mercado Pago: contratación todavía no habilitada. No se realizará ningún cobro.</small>':'')+
     '</section>';
   }
   function renderPlan(data){
@@ -101,7 +101,7 @@
     view.innerHTML='<div class="dy-growth-page">'+
       '<a class="dy-growth-back" href="#/mi-negocio/'+id+'">← Volver a '+h(data.business.name)+'</a>'+
       '<section class="dy-growth-hero '+(m?'active':'')+'"><div><span>PROMOCIONA TU NEGOCIO EN DATOYA</span><h1>'+(m?h(current.icon+' '+current.label+' activo'):'DatoYa Gratis para vender. Impulsos para crecer.')+'</h1><p>'+(m?'Tu beneficio está vigente hasta el '+h(date(m.expires_at))+'. Puedes extenderlo cuando quieras.':'Los pagos de productos se realizarán online mediante DatoYa y Mercado Pago. Elige un plan para obtener más alcance y herramientas.')+'</p></div><div class="dy-growth-current"><b>'+(m?h(current.label):'PLAN GRATIS')+'</b><small>'+(m?(Number(m.offer_days||m.days_granted||0)+' días contratados'):'$0 · sin comisión')+'</small></div></section>'+
-      '<section class="dy-growth-note"><span>💳</span><div><b>Planes DatoYa · Mercado Pago</b><p>Estamos preparando el cobro de planes Impulso, Impulso+ y Premium con Mercado Pago. Los pagos recurrentes mensuales y anuales aún no están habilitados; por ahora no se cobra ningún plan desde esta pantalla.</p></div></section>'+
+      '<section class="dy-growth-note"><span>💳</span><div><b>Planes DatoYa · Mercado Pago</b><p>Los planes se compran por 1, 7, 15 o 30 días y no se renuevan automáticamente. Mercado Pago debe confirmar el pago antes de activar beneficios.</p></div></section>'+
       '<section class="dy-growth-free-strip"><div><span>🆓</span><div><b>DatoYa Gratis</b><p>Perfil, pedidos, horarios, retiro/despacho, QR, 1 Impulso de 24 horas y 1 pack Última Hora gratis cada mes.</p></div></div><strong>$0</strong></section>'+
       '<section class="dy-growth-duration"><div><span>1</span><h2>¿Por cuánto tiempo quieres impulsarte?</h2><p>Primero elige duración. Después escoge el nivel que más te conviene.</p></div><div class="dy-growth-duration-buttons">'+
         [1,7,15,30].map(d=>'<button class="'+(d===days?'active':'')+'" onclick="dyGrowthSelectDays('+d+')"><b>'+d+'</b><small>'+ (d===1?'día':'días')+'</small></button>').join('')+
@@ -119,7 +119,7 @@
              '</article>').join('')+
          '</div></section>'+
 
-      (data.pending_payment?'<section class="dy-growth-pending"><div><span>⏳</span><div><b>Hay un pago pendiente</b><p>Si tenías un pago anterior pendiente, puedes comprobar su estado. No se iniciarán cobros nuevos por Khipu.</p></div></div><button class="btn btn-outline" onclick="dySyncGrowthPayment('+id+')">Actualizar pago</button></section>':'')+
+      (data.pending_payment||data.platform_pending_payment?'<section class="dy-growth-pending"><div><span>⏳</span><div><b>Hay un pago pendiente</b><p>Comprueba el pago con Mercado Pago. Si ya pagaste, no inicies otra compra hasta confirmar su estado.</p></div></div><button class="btn btn-outline" onclick="dySyncGrowthPayment('+id+')">Actualizar pago</button></section>':'')+
       '</div>';
     window.__datoyaBusinessHubFrame?.(id,'plan');
   }
@@ -131,9 +131,17 @@
     planLoading();
     try{
       let data=await api('/businesses/'+id+'/growth-plans');
+      const mpConfig=await api('/platform-payments/config').catch(()=>({checkout_enabled:false}));
       if(data.pending_payment){
         try{await api('/businesses/'+id+'/growth-plans/sync',{method:'POST',body:{}});data=await api('/businesses/'+id+'/growth-plans');}catch(_){}
       }
+      if(mpConfig.checkout_enabled){
+        try{await api('/platform-payments/businesses/'+id+'/sync',{method:'POST',body:{}})}catch(_){}
+        data=await api('/businesses/'+id+'/growth-plans');
+      }
+      const platformStatus=await api('/platform-payments/businesses/'+id+'/status').catch(()=>({payment:null}));
+      data.platform_pending_payment=platformStatus.payment;
+      data.config={...data.config,checkout_enabled:mpConfig.checkout_enabled===true};
       renderPlan(data);
     }catch(e){
       view.innerHTML='<div class="dy-growth-page"><section class="dy-growth-loading error"><span>⚠️</span><h2>No pudimos cargar los planes</h2><p>'+h(e.message||'Intenta nuevamente.')+'</p><button class="btn btn-primary" onclick="routes[\'mi-negocio-plan\']('+id+')">Reintentar</button></section></div>';
@@ -149,7 +157,7 @@
     if(checkoutBusy)return;
     checkoutBusy=true;
     try{
-      const r=await api('/businesses/'+Number(id)+'/growth-plans/checkout',{method:'POST',body:{tier,days:selectedDays.value}});
+      const r=await api('/platform-payments/businesses/'+Number(id)+'/checkout',{method:'POST',body:{tier,days:selectedDays.value}});
       if(!r.checkout_url)throw new Error('Mercado Pago todavía no permite completar el pago del plan');
       const url=new URL(r.checkout_url);
       if(url.protocol!=='https:'||!['mercadopago.cl','www.mercadopago.cl','mercadopago.com','www.mercadopago.com'].includes(url.hostname.toLowerCase()))
@@ -162,7 +170,7 @@
   window.dySyncGrowthPayment=async function(id){
     if(syncBusy)return;syncBusy=true;
     try{
-      const r=await api('/businesses/'+Number(id)+'/growth-plans/sync',{method:'POST',body:{}});
+      const r=await api('/platform-payments/businesses/'+Number(id)+'/sync',{method:'POST',body:{}});
       toast?.(r.status==='approved'?'Impulso activado correctamente':'Estado: '+(r.status||'pendiente'),r.status==='approved'?'ok':'info');
       syncBusy=false;routes['mi-negocio-plan'](Number(id));
     }catch(e){syncBusy=false;toast?.(e.message||'No se pudo actualizar el pago','err');}
