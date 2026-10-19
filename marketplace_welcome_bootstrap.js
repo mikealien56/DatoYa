@@ -13,22 +13,17 @@ app.get('/api/market/welcome-new-businesses',(req,res)=>{
   try{
     // Solo datos públicos necesarios para tarjetas, sin contactos ni domicilios.
     // created_at conserva el orden de llegada sin mover al inicio ediciones viejas.
-    const rows=db.prepare(`
-      SELECT b.id,b.name,b.slug,b.cover_image_data,b.created_at,c.name AS comuna,
-        (SELECT mc.name FROM business_category_links l
-         JOIN market_categories mc ON mc.id=l.category_id
-         WHERE l.business_id=b.id AND mc.active=1
-         ORDER BY l.is_primary DESC,mc.sort_order,mc.name LIMIT 1) AS category
-      FROM businesses b LEFT JOIN comunas c ON c.id=b.comuna_id
-      WHERE b.status='active'
-      ORDER BY b.created_at DESC,b.id DESC
-      LIMIT 12
-    `).all();
+    const sql="SELECT b.id,b.name,b.slug,b.cover_image_data,b.created_at,c.name AS comuna,"+
+      " (SELECT mc.name FROM business_category_links l JOIN market_categories mc ON mc.id=l.category_id"+
+      " WHERE l.business_id=b.id AND mc.active=1 ORDER BY l.is_primary DESC,mc.sort_order,mc.name LIMIT 1) AS category"+
+      " FROM businesses b LEFT JOIN comunas c ON c.id=b.comuna_id WHERE b.status='active'"+
+      " ORDER BY b.created_at DESC,b.id DESC LIMIT 12";
+    const rows=db.prepare(sql).all();
     const businesses=rows.map(b=>({
       id:Number(b.id),name:String(b.name||'').slice(0,120),
       slug:String(b.slug||''),comuna:String(b.comuna||'').slice(0,120),
       category:String(b.category||'Negocio local').slice(0,120),
-      cover_image_data:/^data:image\\/(?:png|jpeg|webp);base64,/.test(String(b.cover_image_data||''))?b.cover_image_data:null
+      cover_image_data:['data:image/png;base64,','data:image/jpeg;base64,','data:image/webp;base64,'].some(prefix=>String(b.cover_image_data||'').startsWith(prefix))?b.cover_image_data:null
     }));
     res.set('Cache-Control','no-store').json({businesses});
   }catch(e){
