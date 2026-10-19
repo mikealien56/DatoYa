@@ -557,7 +557,7 @@ assert(client.includes("api('/push/config')"),'Falta configuración Web Push exi
 assert(startup.includes("require('./push_notifications_bootstrap');require('./native_push_bootstrap');"),'Los canales no se montan en orden');
 assert(build.includes('@capacitor/push-notifications@latest')&&build.includes("DATOYA_FIREBASE_GOOGLE_SERVICES_B64"),'APK no puede recibir módulo Firebase');
 assert(build.includes('android.permission.POST_NOTIFICATIONS'),'Android 13+ no pide permisos correctamente');
-assert(build.includes('versionCode 8'),'La nueva APK no incrementa versión');
+assert(Number(build.match(/versionCode\s+(\d+)/)?.[1]||0)>=8,'La nueva APK no incrementa versión');
 assert(fs.existsSync('ANDROID_PUSH_SETUP.md'),'Faltan instrucciones de configuración segura');
 for(const exposed of ['DATOYA_FCM_SERVICE_ACCOUNT_JSON','DATOYA_FIREBASE_GOOGLE_SERVICES_B64']){
  assert(!fs.readFileSync('capacitor-www/index.html','utf8').includes(exposed),'No exponer secretos en frontend');
