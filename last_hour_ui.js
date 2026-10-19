@@ -81,23 +81,31 @@
     const id=Number(businessId);
     if(!Number.isSafeInteger(id)||id<1){location.hash='#/perfil';return}
     try{
-      const [managed,pubs]=await Promise.all([api('/businesses/'+id+'/manage'),api('/businesses/'+id+'/impulses')]);
+      const [managed,pubs,quotaData]=await Promise.all([api('/businesses/'+id+'/manage'),api('/businesses/'+id+'/impulses'),api('/businesses/'+id+'/last-hour/quota')]);
       const b=managed.business||{};
       const products=(managed.products||[]).filter(p=>p.active&&p.stock_tracking&&Number(p.stock)>0&&/(pack|bolsa|combo)/i.test(p.name||''));
       const ours=(pubs.impulses||[]).filter(i=>i.reference?.startsWith('LHR-')||(i.reference?.startsWith('FIMP-')&&i.sale_mode==='last_units'&&/(pack|bolsa|combo)/i.test(i.title||'')));
+      const quota=quotaData.quota||{tier:'free',limit:1,used:0,remaining:1},freeMonth=quotaData.free_month||quota;
+      const planLabel=quota.tier==='free'?'DatoYa Gratis':quota.label;
+      const quotaSummary='<section class="dy-last-hour-panel dy-last-hour-quota"><div><small>PUBLICACIONES INCLUIDAS</small><h2>'+h(planLabel)+'</h2>'+
+        '<p>'+Number(quota.remaining)+' de '+Number(quota.limit)+' disponibles '+(quota.tier==='free'?'este mes':'en el período de tu plan')+'.</p>'+
+        (quota.tier==='free'?'<p>Se renueva cada mes y no se acumula. Tu Impulso gratis se mantiene aparte.</p>':'<p>Tu plan está vigente hasta '+h(new Date(quota.expires_at).toLocaleDateString('es-CL'))+'. El beneficio no se acumula para el siguiente período.</p>')+
+        (quota.tier==='free'?'<a class="btn btn-outline btn-sm" href="#/mi-negocio-plan/'+id+'">Conocer planes Impulso</a>':'')+
+        '</div><strong class="dy-last-hour-quota-count">'+Number(quota.remaining)+'</strong></section>';
       const option=products.map(p=>'<option value="'+Number(p.id)+'" data-price="'+Number(p.price)+'" data-stock="'+Number(p.stock)+'">'+h(p.name)+' · '+money(p.price)+' · '+Number(p.stock)+' packs</option>').join('');
       view.innerHTML='<div class="dy-last-hour-page dy-last-hour-business"><a class="dy-last-hour-back" href="#/mi-negocio/'+id+'">← Mi negocio</a>'+
         '<header class="dy-last-hour-heading"><div><span class="dy-last-hour-eyebrow">⚡ VENTAS EXPRESS</span><h1>Última Hora</h1><p>Prepara packs sorpresa con retiro hoy. Se descuentan del stock real al confirmarse los pedidos en DatoYa.</p></div></header>'+
+        quotaSummary+
         '<section class="dy-last-hour-panel"><h2>🎁 Publicar pack sorpresa</h2>'+
         '<p>Primero crea en el catálogo un producto llamado “Pack sorpresa”, “Bolsa” o “Combo” y activa su stock. Cada unidad debe equivaler a un pack real.</p>'+
-        (b.status!=='active'?'<p>El negocio tiene que estar aprobado para publicar.</p>':!b.pickup_enabled?'<p>Primero activa el retiro en los ajustes de tu negocio.</p>':!products.length?'<p>No tienes packs con stock activo. <a href="#/mi-negocio-productos/'+id+'">Crear producto pack →</a></p>':
+        (b.status!=='active'?'<p>El negocio tiene que estar aprobado para publicar.</p>':quota.remaining<=0?'<p>Ya ocupaste tus '+Number(quota.limit)+' publicaciones disponibles en este período. <a href="#/mi-negocio-plan/'+id+'">Revisa los planes DatoYa →</a></p>':!b.pickup_enabled?'<p>Primero activa el retiro en los ajustes de tu negocio.</p>':!products.length?'<p>No tienes packs con stock activo. <a href="#/mi-negocio-productos/'+id+'">Crear producto pack →</a></p>':
         '<form id="dy-last-hour-form" class="dy-last-hour-form">'+
         '<label>Producto pack de tu catálogo<select name="product_id" required>'+option+'</select></label>'+
         '<div class="dy-last-hour-fields"><label>Precio final ($)<input name="price" type="number" min="1" step="1" required></label><label>Packs disponibles<input name="packs_available" type="number" min="1" max="9999" required></label></div>'+
         '<label>Artículos por pack<input name="item_count" type="number" min="2" max="30" value="5" required></label>'+
         '<label>Qué puede contener (indica tipo de productos y alérgenos conocidos)<textarea name="contents" minlength="12" maxlength="220" rows="3" placeholder="Ej.: 5 productos de panadería variados; pueden contener gluten, leche y huevo" required></textarea></label>'+
         '<label>Retiro hasta<input name="pickup_until" type="datetime-local" value="'+localDate(new Date(Date.now()+2*3600000))+'" required></label>'+
-        '<p class="dy-last-hour-note">El pack vence automáticamente al llegar esta hora o agotar stock. Hasta 8 horas. No se permite despacho para estos packs. Si estás en el plan Gratis, utiliza tu único Impulso mensual.</p>'+
+        '<p class="dy-last-hour-note">El pack vence automáticamente al llegar esta hora o agotar stock. Hasta 8 horas. No se permite despacho para estos packs. El plan Gratis permite 1 pack Última Hora al mes; Impulso, Impulso+ y Premium incluyen cupos adicionales según sus días de vigencia.</p>'+
         '<button class="btn btn-primary" type="submit">⚡ Publicar pack</button></form>')+
         '</section><section class="dy-last-hour-panel"><h2>Mis packs recientes</h2>'+
         (ours.length?'<div class="dy-last-hour-owner-list">'+ours.slice(0,15).map(x=>'<article><div><strong>'+h(x.title)+'</strong><small>'+money(x.price)+' · Quedan '+Number(x.stock_remaining)+' · '+h(x.status)+' · Hasta '+new Date(x.ends_at).toLocaleString('es-CL')+'</small></div><a class="btn btn-outline btn-sm" href="#/impulso-ahora/'+id+'">Gestionar</a></article>').join('')+'</div>':'<p>Aún no has publicado packs sorpresa.</p>')+
