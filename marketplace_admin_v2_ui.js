@@ -155,7 +155,7 @@
         const [{summary:s,rows=[]},mpStatus]=await Promise.all([api('/admin/marketplace-v2/finance'),api('/mp-split/config').catch(()=>null)]);
         shell('Finanzas DatoYa','Movimientos registrados por servicios de la plataforma. No equivalen a saldo disponible en Mercado Pago.',`
           <div class="dy-admin-kpis finance">
-            <div><strong>${money(s.datoya_revenue)}</strong><span>Ingresos DatoYa</span><small>Total de servicios propios</small></div>
+            <div><strong>${money(s.datoya_revenue)}</strong><span>Ingresos registrados</span><small>Abonos reales pendientes de conciliación</small></div>
             <div><strong>${money(s.impulso_revenue)}</strong><span>Planes negocio</span><small>Impulso / Impulso+ / Premium</small></div>
             <div><strong>${money(s.club_revenue)}</strong><span>DatoYa Club</span><small>Pases de clientes</small></div>
             <div><strong>${money(s.featured_revenue)}</strong><span>Destacados</span><small>Espacios promocionales pagados</small></div>
