@@ -14,7 +14,8 @@ test('platform checkout is deny-by-default even with credentials and does not en
   assert.equal(mp.config({...env,MP_PLATFORM_CHECKOUT_ENABLED:'false'}).checkout,false);
   assert.equal(mp.config({...env,MP_PLATFORM_WEBHOOK_SECRET:''}).checkout,false);
   assert.equal(mp.config({...env,MP_PLATFORM_MODE:'production'}).checkout,false);
-  assert.equal(mp.config({...env,MP_PLATFORM_MODE:'production',MP_PLATFORM_LIVE_ALLOWED:'true'}).checkout,true);
+  assert.equal(mp.config({...env,MP_PLATFORM_MODE:'production',MP_PLATFORM_LIVE_ALLOWED:'true'}).checkout,false);
+  assert.equal(mp.config({...env,MP_PLATFORM_MODE:'production',MP_PLATFORM_ACCESS_TOKEN:'APP_USR-12345678901234567890',MP_PLATFORM_LIVE_ALLOWED:'true'}).checkout,true);
 });
 test('preferences charge only DatoYa own services, correct CLP total, no marketplace fee',()=>{
   const ref=mp.reference();
