@@ -343,6 +343,12 @@ grep -q "home_structure_v3_assets" production_start.js || { echo "Home Structure
 ! grep -q 'cargo de servicio 2%' home_structure_v3.js || { echo "Portada expone cargo interno que corresponde a Términos"; exit 1; }
 grep -q "DatoYa Club" home_structure_v3.js || { echo "Portada no explica Club"; exit 1; }
 grep -q "Impulso+" home_structure_v3.js || { echo "Portada no compara planes de negocio"; exit 1; }
+grep -q 'dy-home-plan-last-hour' home_structure_v3.js || { echo 'Última Hora no se ve en tarjetas de planes públicos'; exit 1; }
+grep -q "lastHour('premium')" home_structure_v3.js || { echo 'Premium no muestra sus cupos de Última Hora'; exit 1; }
+grep -q 'last_hour_quotas' business_growth_plans_v2_ui.js || { echo 'Los planes privados omiten cupos de Última Hora'; exit 1; }
+grep -q "\['last-hour','#/ultima-hora/'" business_hub_ui.js || { echo 'Menú del negocio no tiene Última Hora'; exit 1; }
+grep -q '<h2>Última Hora</h2>' business_hub_ui.js || { echo 'Promociones no ofrece Última Hora'; exit 1; }
+grep -q '__datoyaBusinessHubFrame' last_hour_ui.js || { echo 'Última Hora no preserva el menú del negocio'; exit 1; }
 grep -q "marketplace_refunds_bootstrap" production_start.js || { echo "Devoluciones no están montadas"; exit 1; }
 grep -q "marketplace_refunds_assets" production_start.js || { echo "UI de devoluciones no está publicada"; exit 1; }
 grep -q "beta_launch_readiness_bootstrap" production_start.js || { echo "Readiness beta no está montado"; exit 1; }
