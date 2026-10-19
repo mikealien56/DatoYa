@@ -6,7 +6,7 @@
   const isHome=()=>!location.hash||location.hash==='#'||location.hash==='#/';
   const remainText=end=>{const ms=new Date(end).getTime()-Date.now();if(ms<=0)return'Finalizando';const m=Math.ceil(ms/60000);if(m<60)return m+' min';const hr=Math.floor(m/60),min=m%60;return hr+' h'+(min?' '+min+' min':'')};
   function renderEmpty(section){
-    section.innerHTML=`<div class="dy-section-head"><div><h2>⚡ Ahora cerca de ti</h2><p>Ofertas reales por horario y stock, cuando haya alguna activa en tu zona.</p></div></div><div class="dy-real-empty"><span>⚡</span><b>No hay otros Impulsos activos ahora</b><p>Mientras tanto puedes explorar negocios y promociones disponibles cerca de ti.</p><a class="btn btn-outline btn-sm" href="#/buscar/_">Explorar DatoYa</a></div>`;
+    section.innerHTML=`<div class="dy-section-head"><div><h2>⚡ Ahora cerca de ti</h2><p>Ofertas reales por horario y stock, cuando haya alguna activa en tu zona.</p></div></div><div class="dy-real-empty"><span>⚡</span><b>No hay Impulsos activos ahora en esta sección</b><p>Mientras tanto puedes explorar negocios y promociones disponibles cerca de ti.</p><a class="btn btn-outline btn-sm" href="#/buscar/_">Explorar DatoYa</a></div>`;
   }
   async function render(){
     if(!isHome())return;
