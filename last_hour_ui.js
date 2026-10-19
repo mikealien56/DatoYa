@@ -131,6 +131,7 @@
         });
       }
     }catch(err){view.innerHTML='<div class="dy-last-hour-page"><h2>No se pudo cargar Última Hora</h2><p>'+h(err.message||'Intenta de nuevo')+'</p><a href="#/perfil">Volver</a></div>'}
+    try{await window.__datoyaBusinessHubFrame?.(id,'last-hour')}catch(e){console.warn('[DatoYa Última Hora] Navegación negocio',e?.message||e)}
   };
   function addBusinessLink(){
     if(typeof ME==='undefined'||!ME||ME.account_type!=='business')return;
