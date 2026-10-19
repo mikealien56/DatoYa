@@ -15,7 +15,8 @@
   },
   "android": {
     "allowMixedContent": false,
-    "backgroundColor": "#0B3A82"
+    "backgroundColor": "#0B3A82",
+    "appendUserAgent": "DatoYaCapacitorAndroid/2.3.5"
   },
   "plugins": {
     "SplashScreen": {
