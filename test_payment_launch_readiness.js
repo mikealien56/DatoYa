@@ -10,13 +10,14 @@ const end=source.indexOf("  app.get('/api/admin/mp-split/status'",start);
 assert.ok(start>=0&&end>start,'Admin payment diagnostic route must exist');
 const route=source.slice(start,end);
 
-function assess({mode='test',checkout=false,configured=true,central=false,rows=[],decrypt}={}){
+function assess({mode='test',checkout=false,configured=true,central=false,rows=[],decrypt,platform={mode:'test',checkout:false}}={}){
   let response=null,registered=null;
   const app={get(path,...args){registered={path,middleware:args.slice(0,-1),handle:args.at(-1)};}};
   const c={app,auth:()=>{},requireRole:r=>{assert.equal(r,'admin');return ()=>{};},
     db:{prepare(sql){assert.match(sql,/^SELECT /);return {all(){return rows;}};}},
     ready:()=>({mode,checkout,configured}),
     mp:{open:decrypt||(()=>({user_id:'99',live_mode:true}))},
+    require:p=>{assert.equal(p,'./platform_payments_service');return {config:()=>platform};},
     process:{env:{DATOYA_CENTRAL_CHECKOUT_ENABLED:String(central)}}
   };
   vm.runInNewContext(route,c,{filename:'admin-payments-route.js'});
@@ -47,6 +48,14 @@ test('admin response contains no encrypted credential and never claims settlemen
   assert.equal(x.plans.checkout_enabled,false);
   assert.equal(x.club.checkout_enabled,false);
   assert.equal(x.featured_week.checkout_enabled,false);
+});
+test('services can be marked ready only with explicitly enabled production configuration',()=>{
+  const params={platform:{mode:'production',checkout:true}};
+  const x=assess(params);
+  assert.equal(x.club.checkout_enabled,true);
+  assert.equal(x.plans.checkout_enabled,true);
+  assert.equal(x.featured_week.checkout_enabled,false);
+  assert.equal(assess({platform:{mode:'test',checkout:true}}).plans.checkout_enabled,false);
 });
 test('finances clearly separates registered income from settled cash',()=>{
   const ui=fs.readFileSync('marketplace_admin_v2_ui.js','utf8');
