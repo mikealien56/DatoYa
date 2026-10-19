@@ -65,6 +65,7 @@ const marketCategories=[
   ['tecnologia','Tecnología','💻',160],
   ['hogar','Hogar','🏠',170],
   ['artesania','Artesanía','🧶',180],
+  ['plantas-viveros','Plantas y viveros','🌿',190],
   ['otros','Otros','➕',999]
 ];
 const findCategory=db.prepare('SELECT id FROM market_categories WHERE slug=? LIMIT 1');
