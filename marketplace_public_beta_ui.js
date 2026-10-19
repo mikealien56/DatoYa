@@ -144,18 +144,23 @@
     return `<div class="dy-real-empty"><span>${icon}</span><b>${h(title)}</b><p>${h(text)}</p>${cta}</div>`;
   }
 
+  let homeRenderSequence=0;
   async function renderBetaHome(){
+    const renderSequence=++homeRenderSequence;
     document.title='DatoYa — Lo que buscas, cerca de ti';
     const loc=locationState();
     view.innerHTML=`<div class="dy-home"><div class="dy-real-loading"><span></span>Buscando negocios reales cerca de ti…</div></div>`;
     try{
       const {categories,businesses,products}=await loadMarketplace();
       await loadSavedState();
+      // Las peticiones antiguas no deben dibujar sobre una portada más reciente.
+      if(renderSequence!==homeRenderSequence||!isHome())return;
       const activePromos=products.filter(p=>!!clubPrice(p)&&(!p.stock_tracking||Number(p.stock)>0)),promos=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).slice(0,8),promoHeading='Productos de tu zona',promoCopy='Encuentra productos reales de comercios cercanos a su precio normal; los socios Club acceden a precios especiales cuando estén disponibles.';
       const exclusivePromos=activePromos.slice(0,6);
       const featureZone=Number(loc.comunaId||businesses[0]?.comuna_id||0);
       let featuredBusiness=null;
       if(featureZone){try{const result=await api('/featured-business/active?comuna_id='+featureZone);featuredBusiness=businesses.find(b=>Number(b.id)===Number(result.business?.id))||null;}catch(_){/* El resto de la portada sigue disponible. */}}
+      if(renderSequence!==homeRenderSequence||!isHome())return;
       const visibleBusinesses=businesses.slice(0,8);
       const productCount=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).length;
       view.innerHTML=`<div class="dy-home">
@@ -210,6 +215,7 @@
       bindPromoCountdowns();
       window.dispatchEvent(new CustomEvent('datoya:market-home-rendered'));
     }catch(err){
+      if(renderSequence!==homeRenderSequence||!isHome())return;
       view.innerHTML=`<div class="dy-home">${emptyBlock('⚠️','No pudimos cargar el marketplace',err.message||'Intenta nuevamente.',`<button class="btn btn-primary" onclick="location.reload()">Reintentar</button>`)}</div>`;
     }
   }
