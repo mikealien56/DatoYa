@@ -58,8 +58,8 @@
         '<section class="dy-club-simple-enroll">'+
           '<span>DATOYA CLUB</span><h2>'+money(price)+' por 30 días</h2>'+
           '<p>Sin renovación automática. Cuando termina el pase, sigues usando DatoYa Gratis.</p>'+
-          '<p class="dy-club-simple-pending">'+(options.checkout?'Pago seguro con Mercado Pago. El pase se activa únicamente cuando el cobro está confirmado.':'La contratación estará disponible cuando Mercado Pago esté habilitado. Todavía no se realizan cobros de Club.')+'</p>'+
-          '<div class="dy-club-simple-actions">'+(options.checkout&&isCustomer()?'<button type="button" class="btn btn-primary" onclick="dyStartClubCheckout()">'+(active?'Extender Club':'Activar Club')+' · '+money(price)+'</button>':'')+join+'<a class="btn btn-outline" href="#/buscar/_">Ver productos</a></div>'+
+          '<p class="dy-club-simple-pending">'+(options.pending?'Tienes un pago de Club en proceso. Comprueba su estado antes de intentar otra compra.':options.checkout?'Pago seguro con Mercado Pago. El pase se activa únicamente cuando el cobro está confirmado.':'La contratación estará disponible cuando Mercado Pago esté habilitado. Todavía no se realizan cobros de Club.')+'</p>'+
+          '<div class="dy-club-simple-actions">'+(options.checkout&&isCustomer()?options.pending?'<button type="button" class="btn btn-primary" onclick="dySyncClubPayment()">Comprobar pago pendiente</button>':'<button type="button" class="btn btn-primary" onclick="dyStartClubCheckout()">'+(active?'Extender Club':'Activar Club')+' · '+money(price)+'</button>':'')+join+'<a class="btn btn-outline" href="#/buscar/_">Ver productos</a></div>'+
         '</section>'+
       '</main>';
   }
@@ -95,6 +95,13 @@
     }catch(e){showError(e.message,'club');}
   }
   routes.club=loadClub;
+  window.dySyncClubPayment=async function(){
+    try{
+      const status=await api('/platform-payments/club/sync',{method:'POST',body:{}});
+      toast?.(status.status==='approved'?'Club activado correctamente':'Pago: '+(status.status||'pendiente'),status.status==='approved'?'ok':'info');
+      routes.club();
+    }catch(e){toast?.(e.message||'No pudimos confirmar el pago todavía','err')}
+  };
   let clubCheckoutBusy=false;
   window.dyStartClubCheckout=async function(){
     if(clubCheckoutBusy||!isCustomer())return;
