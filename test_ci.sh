@@ -174,7 +174,19 @@ CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'impor
 curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; c=json.load(sys.stdin)["categories"]; o=next((x for x in c if x["slug"]=="opticas"),None); assert o and o["name"]=="Ópticas" and o["icon"]=="👓"' || { echo "Falta categoría Ópticas"; exit 1; }
 curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; c=json.load(sys.stdin)["categories"]; p=next((x for x in c if x["slug"]=="plantas-viveros"),None); assert p and p["name"]=="Plantas y viveros" and p["icon"]=="🌿" and int(p["sort_order"])==190' || { echo "Falta categoría Plantas y viveros"; exit 1; }
 curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; cs=json.load(sys.stdin)["categories"]; cats={x["slug"]:x for x in cs}; assert cats["panaderia"]["name"]=="Panaderías y pastelerías" and cats["panaderia"]["icon"]=="🥐"; assert cats["cafeterias"]["name"]=="Cafeterías"; assert "pastelerias" not in cats' || { echo "Las categorías Panaderías/Pastelerías no se consolidaron"; exit 1; }
-echo "✅ Healthcheck + categorías comerciales"
+curl -fsS http://localhost:3000/api/market/welcome-new-businesses | python3 -c 'import sys,json; d=json.load(sys.stdin); assert isinstance(d["businesses"],list); assert all(isinstance(b["id"],int) and b["id"]>0 and b["name"] and "address" not in b and "phone" not in b and "whatsapp" not in b for b in d["businesses"])' || { echo "Carrusel de nuevos negocios roto o expone datos privados"; exit 1; }
+node - <<'NODE'
+const assert=require('assert'),fs=require('fs');
+const frontend=fs.readFileSync('marketplace_welcome_ui.js','utf8');
+const backend=fs.readFileSync('marketplace_welcome_bootstrap.js','utf8');
+assert(frontend.includes('6000')&&frontend.includes('60000'),'Carrusel no gira ni refresca automáticamente');
+assert(frontend.includes('prefers-reduced-motion'),'Carrusel no respeta movimiento reducido');
+assert(backend.includes("b.status='active'"),'Carrusel puede mostrar negocios pendientes');
+assert(backend.includes('u.is_demo'),'Carrusel puede promocionar perfiles demo');
+assert(fs.readFileSync('production_start.js','utf8').includes("require('./marketplace_welcome_assets')"),'No se carga la galería de bienvenida');
+console.log('Galería de negocios aprobados: endpoint y rotación listos.');
+NODE
+echo "✅ Healthcheck + categorías comerciales + bienvenida automática"
 node test_email_activation.js
 node test_customer_controls.js
 node test_founder_welcome.js
