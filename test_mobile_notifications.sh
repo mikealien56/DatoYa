@@ -16,6 +16,15 @@ grep -q "display:inline-flex" beta_private_ui.css || fail "Campana no usa centra
 grep -q "dy-push-help" beta_private_ui.css || fail "Falta estilo de ayuda Push"
 grep -Eq "datoya-shell-v(9[4-9]|[1-9][0-9]{2,})" service-worker.js || fail "Falta refresco de caché PWA"
 
+# Integración Android: la descarga de pruebas debe ser realmente instalable,
+# mientras que el release comercial exige una firma de producción independiente.
+grep -q "assembleDebug assembleRelease" .github/workflows/android-capacitor.yml || fail "Android no genera APK debug firmada para pruebas"
+grep -q "DatoYa-Android-PRUEBAS-debug.apk" .github/workflows/android-capacitor.yml || fail "Falta artefacto APK de pruebas"
+grep -q "DATOYA_FIREBASE_GOOGLE_SERVICES_B64" .github/workflows/android-capacitor.yml || fail "El build no usa configuración Firebase privada"
+grep -q "datoya-d9669" .github/workflows/android-capacitor.yml || fail "Falta verificación de proyecto Firebase"
+grep -q "native_push_tokens" native_push_bootstrap.js || fail "Falta almacenamiento de tokens Android"
+grep -q "Probar aviso" beta_private_ui.js || fail "Falta prueba de notificaciones"
+
 node <<'NODE'
 const fs=require('fs');
 const phase=fs.readFileSync('phase_a_assets.js','utf8');
