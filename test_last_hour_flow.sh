@@ -31,7 +31,7 @@ B="$(curl -fsS -b "$OWNER" -H 'Content-Type: application/json' -X POST "$BASE/ap
 curl -fsS -b "$ADMIN" -H 'Content-Type: application/json' -X PUT "$BASE/api/admin/marketplace/businesses/$B/status" -d '{"status":"active"}' >/dev/null
 PRODUCT="$(curl -fsS -b "$OWNER" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses/$B/products" -d "{\"name\":\"Pack sorpresa de panadería\",\"category_id\":$K,\"price\":5000,\"stock_tracking\":true,\"stock\":6,\"active\":true}" | python3 -c 'import json,sys;print(json.load(sys.stdin)["product"]["id"])')"
 echo 'Última Hora 2/8: alertas de cliente, opt-in'
-curl -fsS -D /dev/stderr -b "$CUSTOMER" -H 'Content-Type: application/json' -X PUT "$BASE/api/last-hour/alerts" -d "{\"enabled\":true,\"comuna_id\":$C}" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["enabled"] and d["comuna_id"]>0'
+curl -fsS -b "$CUSTOMER" -H 'Content-Type: application/json' -X PUT "$BASE/api/last-hour/alerts" -d "{\"enabled\":true,\"comuna_id\":$C}" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["enabled"] and d["comuna_id"]>0'
 curl -fsS -b "$CUSTOMER" "$BASE/api/last-hour/alerts" | python3 -c 'import json,sys;assert json.load(sys.stdin)["enabled"]'
 echo 'Última Hora 3/8: precio inválido no consume cupo gratis'
 CODE="$(post_pack "$TMP/invalid.json" 5000)"
