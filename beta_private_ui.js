@@ -27,9 +27,25 @@
   const mayBeLegacyAndroidWebView=()=>/Android/i.test(navigator.userAgent||'')&&/\bwv\b/i.test(navigator.userAgent||'');
   const nativePushPlugin=()=>{
     const bridge=window.Capacitor;
-    if(!isNativeAndroid()||!bridge?.isPluginAvailable?.('PushNotifications'))return null;
-    return bridge.Plugins?.PushNotifications||bridge.registerPlugin?.('PushNotifications')||null;
+    if(!isNativeAndroid()||!bridge)return null;
+    // En una web remota el módulo JS del plugin podría no estar importado;
+    // preferir el proxy inyectado por la capa nativa antes de descartarlo.
+    const injected=bridge.Plugins?.PushNotifications;
+    if(injected&&typeof injected.checkPermissions==='function'&&typeof injected.register==='function')return injected;
+    if(bridge.isPluginAvailable?.('PushNotifications')&&typeof bridge.registerPlugin==='function'){
+      const created=bridge.registerPlugin('PushNotifications');
+      if(created&&typeof created.checkPermissions==='function')return created;
+    }
+    return null;
   };
+  function nativeRuntimeInfo(){
+    const bridge=window.Capacitor;
+    const platform=bridge?.getPlatform?.()||'sin plataforma';
+    const marked=hasDatoYaAndroidMarker();
+    const nativeBridge=typeof window.androidBridge?.postMessage==='function';
+    const available=!!bridge?.isPluginAvailable?.('PushNotifications');
+    return {marked,platform,nativeBridge,available,bridge:!!bridge};
+  }
   const nativeTokenKey=()=> 'datoya_android_push_v1_'+String(ME?.id||ME?.user_id||'current');
   const savedNativeToken=()=>{try{return localStorage.getItem(nativeTokenKey())||''}catch(_){return ''}};
   const saveNativeToken=token=>{try{if(token)localStorage.setItem(nativeTokenKey(),token);else localStorage.removeItem(nativeTokenKey())}catch(_){}};
@@ -80,7 +96,7 @@
   const pushSupported=()=>('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
   function pushAppKey(value){const pad='='.repeat((4-String(value||'').length%4)%4),base64=(String(value||'')+pad).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),out=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
   async function pushState(){
-    if(isNativeAndroid())return nativeState();
+    if(isNativeAndroid()||mayBeLegacyAndroidWebView())return nativeState();
     const config=await api('/push/config');
     if(!pushSupported())return {config,supported:false,permission:'unsupported',subscription:null};
     const reg=await navigator.serviceWorker.ready,subscription=await reg.pushManager.getSubscription();
@@ -142,6 +158,14 @@
     if(!ME){location.hash='#/login';return}
     const [d,push]=await Promise.all([api('/notifications/summary'),pushState().catch(err=>({native:isNativeAndroid(),config:{configured:false},supported:isNativeAndroid()?!!nativePushPlugin():pushSupported(),permission:isNativeAndroid()?'unknown':pushSupported()?Notification.permission:'unsupported',subscription:null,error:String(err?.message||'No se pudo comprobar el estado de los avisos')}))]),rows=d.notifications||[];
     const pushOn=!!push.subscription,pushReady=!!push.config?.configured,pushDenied=push.permission==='denied';
+    const diag=nativeRuntimeInfo();
+    const diagText=(push.native||diag.marked||diag.nativeBridge||mayBeLegacyAndroidWebView())
+      ? 'Diagnóstico Android: '+(diag.marked?'DatoYa identificado':'Sin identificación de DatoYa')+
+        ' · puente: '+(diag.bridge?'sí':'no')+
+        ' · enlace nativo: '+(diag.nativeBridge?'sí':'no')+
+        ' · Push: '+(diag.available?'reconocido':'no reconocido')+
+        ' · plataforma: '+diag.platform
+      : '';
     const pushStatus=push.error?'No pudimos comprobar completamente los avisos':push.native&&!push.supported?'No se detecta el módulo nativo de avisos':!push.supported&&mayBeLegacyAndroidWebView()?'DatoYa Android no detecta Firebase en esta instalación':!push.supported?'Este navegador no admite avisos push':pushDenied?'Notificaciones bloqueadas':pushOn?'Activadas en este dispositivo':push.native&&!pushReady?'Firebase pendiente de conectar':pushReady?'Disponibles para activar':'Pendientes de configuración';
     const pushDetail=push.error?h(push.error):push.native&&!push.supported?'Firebase está configurado, pero esta instalación no reconoce el complemento nativo. Comprueba que instalaste la APK nueva con Firebase.':!push.native&&!push.supported&&mayBeLegacyAndroidWebView()?'Parece una WebView Android sin conexión nativa. Comprueba que estás usando la APK de pruebas con Firebase y no una versión anterior.':push.native&&!pushReady?'El servidor todavía no autoriza el canal Firebase.':pushDenied?'Actívalas desde Ajustes del teléfono o los permisos de Chrome.':'Puedes cambiar esta configuración cuando quieras.';
     const pushActions=pushOn
@@ -153,7 +177,7 @@
         : push.error
           ? '<button id="dy-push-retry" class="btn btn-outline btn-sm">Reintentar</button>'
           : `<button id="dy-push-enable" class="btn btn-primary btn-sm" ${(!push.supported||!pushReady)?'disabled':''}>${!pushReady&&push.supported?'Avisos pendientes de configuración':'Activar avisos'}</button>`;
-    view.innerHTML=`<div class="dy-beta-page"><header class="dy-beta-head"><div><span>CENTRO DATOYA</span><h1>Notificaciones</h1><p>Pedidos, soporte, alertas y novedades importantes en un solo lugar.</p></div>${d.unread?'<button id="dy-read-all" class="btn btn-outline btn-sm">Marcar todas como leídas</button>':''}</header><section class="dy-push-card"><div><span>📲 AVISOS EN TU TELÉFONO</span><b>Notificaciones push</b><small>${h(pushStatus)}. ${pushDetail}</small></div><div class="dy-push-actions">${pushActions}</div><div id="dy-push-help-box" class="dy-push-help" hidden><b>${push.native?'Avisos en la aplicación Android':'Activa notificaciones en Chrome'}</b>${push.native?'<p>Tu APK necesita el módulo de Firebase para recibir notificaciones con la app cerrada. Mientras se publica la actualización, abre datoya.cl en Chrome para activar los avisos web. Los mensajes siguen llegando al Centro de Notificaciones de DatoYa.</p>':'<ol><li>Abre datoya.cl en Chrome.</li><li>Entra en Configuración del sitio → Notificaciones.</li><li>Selecciona Permitir y vuelve a esta pantalla.</li></ol>'}<small>En Android revisa también Ajustes → Aplicaciones → DatoYa o Chrome → Notificaciones.</small></div></section><div class="dy-notification-list">${rows.length?rows.map(n=>`<a href="${h(n.link||'#/notificaciones')}" class="dy-notification ${n.read_at?'':'unread'}" data-notification-id="${Number(n.id)}"><span>${n.read_at?'○':'●'}</span><div><b>${h(n.text)}</b><small>${when(n.created_at)}</small></div><em>→</em></a>`).join(''):'<div class="dy-beta-empty"><span>🔔</span><h2>Todo al día</h2><p>Las novedades importantes aparecerán aquí.</p></div>'}</div></div>`;
+    view.innerHTML=`<div class="dy-beta-page"><header class="dy-beta-head"><div><span>CENTRO DATOYA</span><h1>Notificaciones</h1><p>Pedidos, soporte, alertas y novedades importantes en un solo lugar.</p></div>${d.unread?'<button id="dy-read-all" class="btn btn-outline btn-sm">Marcar todas como leídas</button>':''}</header><section class="dy-push-card"><div><span>📲 AVISOS EN TU TELÉFONO</span><b>Notificaciones push</b><small>${h(pushStatus)}. ${pushDetail}</small>${diagText?'<small class="dy-push-diagnostic">'+h(diagText)+'</small>':''}</div><div class="dy-push-actions">${pushActions}</div><div id="dy-push-help-box" class="dy-push-help" hidden><b>${push.native?'Avisos en la aplicación Android':'Activa notificaciones en Chrome'}</b>${push.native?'<p>La aplicación Android requiere el puente de Capacitor y el módulo PushNotifications. Revisa el diagnóstico mostrado arriba. Si dice «puente: no», la web no pudo conectarse a Android y no es un problema del permiso. No es necesario volver a generar claves de Firebase.</p>':'<ol><li>Abre datoya.cl en Chrome.</li><li>Entra en Configuración del sitio → Notificaciones.</li><li>Selecciona Permitir y vuelve a esta pantalla.</li></ol>'}<small>En Android revisa también Ajustes → Aplicaciones → DatoYa o Chrome → Notificaciones.</small></div></section><div class="dy-notification-list">${rows.length?rows.map(n=>`<a href="${h(n.link||'#/notificaciones')}" class="dy-notification ${n.read_at?'':'unread'}" data-notification-id="${Number(n.id)}"><span>${n.read_at?'○':'●'}</span><div><b>${h(n.text)}</b><small>${when(n.created_at)}</small></div><em>→</em></a>`).join(''):'<div class="dy-beta-empty"><span>🔔</span><h2>Todo al día</h2><p>Las novedades importantes aparecerán aquí.</p></div>'}</div></div>`;
     document.getElementById('dy-read-all')?.addEventListener('click',async()=>{await api('/notifications/read-all',{method:'PUT'});await refreshBell();routes.notificaciones()});
     document.querySelectorAll('[data-notification-id]').forEach(a=>a.addEventListener('click',()=>api('/notifications/'+a.dataset.notificationId+'/read',{method:'PUT'}).catch(()=>{})));
     document.getElementById('dy-push-enable')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;try{await enablePush(push.config);toast?.('Avisos activados en este dispositivo','ok');routes.notificaciones()}catch(err){toast?.(err.message||'No se pudieron activar los avisos','err');e.currentTarget.disabled=false}});
