@@ -18,7 +18,7 @@
   }
   const lastHourLabel=(access,days)=>{
     const n=Number(access?.last_hour_quotas?.[days]||0);
-    return n+' publicaciones de Última Hora por '+days+' día'+(days===1?'':'s');
+    return n+' packs de Última Hora por '+days+' día'+(days===1?'':'s');
   };
   function accessItems(tier,access){
     if(tier==='free')return [
@@ -69,7 +69,7 @@
       ['Pedidos sin comisión','✓','✓','✓','✓'],
       ['Catálogo',String(data.free?.access?.catalog_limit||20),String(a.catalog_limit||80),String(p.catalog_limit||200),String(x.catalog_limit||500)],
       ['Impulso Ahora','—','✓','✓','✓'],
-      ['Última Hora (packs)','1 / mes',String(a.last_hour_quotas?.[selectedDays.value]||0),String(p.last_hour_quotas?.[selectedDays.value]||0),String(x.last_hour_quotas?.[selectedDays.value]||0)],
+      ['Packs de Última Hora','1 / mes',String(a.last_hour_quotas?.[selectedDays.value]||0),String(p.last_hour_quotas?.[selectedDays.value]||0),String(x.last_hour_quotas?.[selectedDays.value]||0)],
       ['Mayor visibilidad','—','✓','✓✓','✓✓✓'],
       ['Promos destacadas','1 gratis · 24h/mes',String(a.featured_promotions||1),String(p.featured_promotions||3),String(x.featured_promotions||5)],
       ['Estadísticas avanzadas','—','—','✓','✓'],
