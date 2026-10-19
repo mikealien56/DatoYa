@@ -540,7 +540,7 @@ assert(!ui.includes('El cargo por compras online se informa aparte.'),'Fundadore
 assert(ui.includes("api('/mp-split/config')"),'Finanzas no consulta el estado de pagos actual');
 assert(ui.includes('No equivalen a saldo disponible en Mercado Pago'),'Las finanzas no distinguen facturación de liquidación');
 assert(assets.includes('20261018-admin-menu1'),'Caché Admin no se renueva');
-assert(/datoya-shell-v10[5-9]/.test(worker),'PWA no invalida su caché antiguo');
+assert(Number(worker.match(/datoya-shell-v(\d+)/)?.[1]||0)>=105,'PWA no invalida su caché antiguo');
 console.log('Admin UX: menú único, móvil sin carrusel y finanzas Mercado Pago OK');
 NODE
 node --check marketplace_admin_v2_ui.js
