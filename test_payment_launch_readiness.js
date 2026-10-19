@@ -45,6 +45,8 @@ test('admin response contains no encrypted credential and never claims settlemen
   const x=assess({mode:'production',checkout:true,central:true,rows:[row]});
   assert.equal(JSON.stringify(x).includes(row.credential_blob),false);
   assert.equal(x.purchases.real_funds_reconciled,false);
+  assert.equal(x.platform_checkout.credentials_format_ready,false);
+  assert.equal(x.platform_checkout.checkout_enabled,false);
   assert.equal(x.plans.checkout_enabled,false);
   assert.equal(x.club.checkout_enabled,false);
   assert.equal(x.featured_week.checkout_enabled,false);
@@ -54,6 +56,7 @@ test('services can be marked ready only with explicitly enabled production confi
   const x=assess(params);
   assert.equal(x.club.checkout_enabled,true);
   assert.equal(x.plans.checkout_enabled,true);
+  assert.equal(x.platform_checkout.production_checkout_enabled,true);
   assert.equal(x.featured_week.checkout_enabled,false);
   assert.equal(assess({platform:{mode:'test',checkout:true}}).plans.checkout_enabled,false);
 });
@@ -62,4 +65,6 @@ test('finances clearly separates registered income from settled cash',()=>{
   assert.match(ui,/api\('\/admin\/payment-launch-readiness'\)/);
   assert.match(ui,/Abonos reales pendientes de conciliación/);
   assert.match(ui,/Registro interno · verificar abono/);
+  assert.match(ui,/Servicios propios · credenciales/);
+  assert.match(ui,/Servicios propios · entorno/);
 });
