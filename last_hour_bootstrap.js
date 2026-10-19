@@ -109,7 +109,7 @@ function __installLastHour(app,db,auth,notify){
     if(!Number.isSafeInteger(comuna)||comuna<1||!db.prepare('SELECT id FROM comunas WHERE id=?').get(comuna))return res.status(400).json({error:'Selecciona una comuna válida'});
     const time=nowIso();
     db.prepare('INSERT INTO dy_last_hour_alert_preferences(user_id,comuna_id,enabled,updated_at) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET comuna_id=excluded.comuna_id,enabled=excluded.enabled,updated_at=excluded.updated_at').run(req.user.id,comuna,enabled?1:0,time);
-    if(enabled)sendOptInAlerts();
+    if(enabled){try{sendOptInAlerts()}catch(e){console.warn('[DatoYa Última Hora] Al activar alertas:',String(e?.stack||e?.message||e).slice(0,400))}}
     res.json({ok:true,enabled,comuna_id:comuna});
   });
   app.get('/api/businesses/:id/last-hour/quota',auth,(req,res)=>{
