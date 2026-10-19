@@ -30,6 +30,8 @@
 }
 .dy-joined-stage{
   overflow:hidden;
+  isolation:isolate;
+  z-index:0;
   animation:dyJoinedIn .52s cubic-bezier(.23,.83,.31,1) both;
 }
 .dy-joined-cover{object-fit:cover;object-position:center;z-index:-2}
