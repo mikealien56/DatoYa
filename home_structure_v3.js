@@ -59,13 +59,14 @@
     section.innerHTML=`
       <div class="dy-home-v3-head">
         <span>ASÍ FUNCIONA</span>
-        <h2>DatoYa conecta. El negocio vende. Tú eliges.</h2>
-        <p>Una sola idea, dos caminos simples.</p>
+        <h2>DatoYa conecta. Tú eliges.</h2>
+        <p>Dos caminos, todo en un mismo lugar.</p>
       </div>
       <div class="dy-home-flow-grid">
-        <article><div class="icon">🛍️</div><small>CLIENTE</small><h3>Busca, compra o publica lo que necesitas</h3><p>Descubre productos cercanos. Si no encuentras algo, usa Lo Busco Ya para que los negocios compatibles te respondan. Las compras online se realizan dentro de DatoYa cuando esté habilitado Mercado Pago.</p><a href="#/buscar/_">Buscar cerca de mí →</a><a class="dy-wanted-how-link" href="#/lo-busco-ya">🙋 Publicar en Lo Busco Ya →</a></article>
-        <article id="como-funciona-negocios"><div class="icon">🏪</div><small>NEGOCIO</small><h3>Publica → recibe pedidos → cobra por DatoYa</h3><p>Crea tu presencia gratis. Si quieres más alcance, activas herramientas de crecimiento por días.</p><a href="#/registrar-negocio">Publicar mi negocio →</a></article>
+        <article class="dy-home-how-client"><div class="icon" aria-hidden="true">🛍️</div><small>PARA CLIENTES</small><h3>Encuentra lo que buscas</h3><p>Explora negocios y productos cercanos. ¿No aparece lo que necesitas? Publícalo en Lo Busco Ya.</p><div class="dy-home-how-actions"><a class="dy-home-how-primary" href="#/buscar/_">Buscar productos <span aria-hidden="true">→</span></a><a class="dy-wanted-how-link" href="#/lo-busco-ya">🙋 Lo Busco Ya <span aria-hidden="true">→</span></a></div></article>
+        <article class="dy-home-how-business" id="como-funciona-negocios"><div class="icon" aria-hidden="true">🏪</div><small>PARA NEGOCIOS</small><h3>Haz visible tu negocio</h3><p>Regístrate gratis, muestra tus productos y conecta con clientes de tu zona.</p><div class="dy-home-how-actions"><a class="dy-home-how-primary" href="#/registrar-negocio">Registrar mi negocio <span aria-hidden="true">→</span></a></div></article>
       </div>
+      <p class="dy-home-how-payment-note">Los pagos online estarán disponibles cuando finalice la integración de Mercado Pago.</p>
       `;
   }
 
@@ -77,7 +78,7 @@
 
     const title=hero.querySelector('h1'),copy=hero.querySelector('.dy-hero-copy>p');
     if(title)title.innerHTML='Encuentra lo que buscas <span>cerca de ti</span>';
-    if(copy)copy.textContent='Negocios, productos, promociones y necesidades locales en un solo lugar. Busca en DatoYa y paga dentro de la plataforma cuando esté habilitado Mercado Pago.';
+    if(copy)copy.textContent='Descubre negocios, productos y ofertas cerca de ti.';
     const kicker=hero.querySelector('.dy-kicker');if(kicker)kicker.textContent='📍 Lo que buscas, cerca de ti';
 
     compactHow(how);
