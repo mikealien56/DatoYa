@@ -35,7 +35,7 @@ curl -fsS "http://127.0.0.1:${PORT}/health" | grep -q '"ok":true'
 echo "PostgreSQL startup OK"
 
 MARKET_CATS=$(curl -fsS "http://127.0.0.1:${PORT}/api/market/categories")
-printf '%s' "$MARKET_CATS" | python3 -c 'import sys,json; d=json.load(sys.stdin)["categories"]; assert len(d)>=19; assert any(x["name"]=="Pastelerías" for x in d)'
+printf '%s' "$MARKET_CATS" | python3 -c 'import sys,json; d=json.load(sys.stdin)["categories"]; assert len(d)>=19; cats={x["slug"]:x for x in d}; assert cats["panaderia"]["name"]=="Panaderías y pastelerías"; assert cats["cafeterias"]["name"]=="Cafeterías"; assert "pastelerias" not in cats'
 echo "Catálogo marketplace PostgreSQL OK"
 
 COMUNAS=$(curl -fsS "http://127.0.0.1:${PORT}/api/comunas")
