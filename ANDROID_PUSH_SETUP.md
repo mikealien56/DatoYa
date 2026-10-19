@@ -12,6 +12,29 @@ El APK de Capacitor usa un WebView: el envío mediante `PushManager` del navegad
 6. Probar con dos cuentas en teléfonos distintos: activar permiso desde DatoYa → Avisos, verificar el registro de token en la API, enviar una prueba mientras la app está en segundo plano y abrir el aviso. Confirmar recepción de alertas, pedidos y respuestas «Lo Busco Ya».
 7. Probar la opción de desactivar y el cierre de sesión (no deben llegar avisos a cuentas que ya no estén vinculadas a ese dispositivo).
 
+## APK instalable para pruebas (antes de Google Play)
+
+La compilación GitHub Actions **Build DatoYa Capacitor APK** genera dos artefactos distintos:
+
+- `datoya-android-pruebas-debug`: contiene `DatoYa-Android-PRUEBAS-debug.apk`, firmada automáticamente con la clave **de depuración** por Android. Solo sirve para probar registro Firebase y recepción en teléfonos de ensayo. La advertencia por descarga fuera de Google Play puede seguir apareciendo.
+- `datoya-capacitor-apk-unsigned`: contiene `DatoYa-Capacitor-unsigned.apk`, **sin firma**, no apta para instalar o distribuir directamente. Debe firmarse con la clave comercial antes de publicarla.
+
+El workflow verifica `cl.datoya.app` y el proyecto Firebase `datoya-d9669`. En compilaciones de la rama principal falla si no está `DATOYA_FIREBASE_GOOGLE_SERVICES_B64`, para evitar repartir un APK sin notificaciones reales.
+
+**No intentes actualizar una instalación ya firmada con otra clave utilizando la APK debug**: Android rechazará la actualización. Para una prueba separada, utiliza un dispositivo de ensayo o, después de respaldar datos necesarios, desinstala la versión anterior de la aplicación y prueba la de depuración. La cuenta y datos conservados en el servidor no dependen de la instalación local, pero las preferencias/archivos locales pueden perderse.
+
+## Cómo verificar la recepción en un teléfono
+
+1. Confirma que GitHub Actions terminó exitosamente y que el log de instalación mostró "Firebase Android configurado".
+2. En un dispositivo de ensayo instala `DatoYa-Android-PRUEBAS-debug.apk`; entra con una cuenta de prueba.
+3. Ve a **Notificaciones → Activar avisos**, acepta el permiso Android y comprueba que cambie a **Activadas en este dispositivo**.
+4. Comprueba que `native_push_tokens` aumente y luego pulsa **Probar aviso**. Debe confirmar al menos un envío aceptado.
+5. Deja DatoYa en segundo plano y comprueba físicamente recepción, sonido/vibración según ajustes y apertura del destino al tocar el aviso.
+6. Prueba con segunda cuenta y los eventos reales: pedido, mensaje/soporte y respuesta a **Lo Busco Ya**.
+7. Desactiva avisos y cierra sesión; verifica que la cuenta anterior ya no reciba avisos en ese teléfono.
+
+El servidor ya puede **validar** la cuenta de servicio, pero esto **no prueba la entrega** por sí solo. Una prueba en el dispositivo es indispensable.
+
 ## Diagnóstico
 
 - Si el APK aún no trae el plugin, DatoYa muestra «Esta versión Android requiere actualizar la app» y explica cómo usar Chrome provisionalmente.
