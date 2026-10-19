@@ -152,7 +152,7 @@
       }
 
       if(tab==='finanzas'){
-        const [{summary:s,rows=[]},mpStatus]=await Promise.all([api('/admin/marketplace-v2/finance'),api('/mp-split/config').catch(()=>null)]);
+        const [{summary:s,rows=[]},mpStatus,launch]=await Promise.all([api('/admin/marketplace-v2/finance'),api('/mp-split/config').catch(()=>null),api('/admin/payment-launch-readiness').catch(()=>null)]);
         shell('Finanzas DatoYa','Movimientos registrados por servicios de la plataforma. No equivalen a saldo disponible en Mercado Pago.',`
           <div class="dy-admin-kpis finance">
             <div><strong>${money(s.datoya_revenue)}</strong><span>Ingresos registrados</span><small>Abonos reales pendientes de conciliación</small></div>
@@ -161,8 +161,16 @@
             <div><strong>${money(s.featured_revenue)}</strong><span>Destacados</span><small>Espacios promocionales pagados</small></div>
           </div>
           <section class="card dy-admin-processor"><div class="dy-admin-processor-head"><span aria-hidden="true">💳</span><div><small>PROCESAMIENTO DE COMPRAS</small><h3>Mercado Pago · Split 1:1</h3><p>Los clientes pagan al negocio y Mercado Pago separa automáticamente la parte correspondiente a DatoYa.</p></div></div><div class="dy-admin-processor-grid"><div><span>Integración</span><b>${mpStatus?.configured?'Configurada':'Sin confirmar'}</b></div><div><span>Entorno</span><b>${mpStatus?.mode==='production'?'Producción':mpStatus?.mode==='test'?'Pruebas':'No disponible'}</b></div><div><span>Checkout</span><b>${mpStatus?.checkout&&mpStatus?.mode==='production'?'Habilitado':'No confirmado en producción'}</b></div></div><p class="dy-admin-processor-help">Este estado técnico no verifica la recepción de fondos. El 2% de servicio se asigna a la cuenta de Mercado Pago propietaria de la aplicación; para conocer saldos disponibles, liquidaciones y retiros consulta esa cuenta. No existe una billetera propia de DatoYa.</p></section>
+          ${launch?'<section class="card dy-admin-processor"><h3>Preparación de cobros para lanzamiento</h3>'+
+            '<div class="dy-admin-processor-grid">'+
+            '<div><span>Compras Marketplace</span><b>'+(launch.purchases.technically_enabled?'Técnicamente habilitadas':'Aún bloqueadas')+'</b></div>'+
+            '<div><span>Comercios aptos para producción</span><b>'+Number(launch.purchases.businesses_verified_in_production||0)+'</b></div>'+
+            '<div><span>Planes Impulso y Premium</span><b>'+(launch.plans.checkout_enabled?'Habilitados':'Pendientes')+'</b></div>'+
+            '<div><span>DatoYa Club</span><b>'+(launch.club.checkout_enabled?'Habilitado':'Pendiente')+'</b></div>'+
+            '<div><span>Destacado semanal</span><b>'+(launch.featured_week.checkout_enabled?'Habilitado':'Pendiente')+'</b></div>'+
+            '</div><p class="dy-admin-processor-help">Para que compras esté técnicamente habilitado deben estar activos modo producción, checkout Split, pagos centrales y al menos un comercio verificado en producción. Este diagnóstico no verifica abonos reales ni reemplaza las pruebas de cobro y reembolso.</p></section>':''}
           ${inputFilter('Buscar cliente, negocio o concepto')}
-          <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.source_name,r.source_type,r.concept].join(' ').toLowerCase())}"><div><b>${h(r.concept)}</b><div class="small muted">${h(r.source_type)} · ${h(r.source_name)} · ${dt(r.created_at)}</div></div><div class="dy-admin-money-inline"><b>${money(r.amount)}</b><small>Ingreso DatoYa</small></div></article>`).join('')||'<div class="card"><p class="muted">Todavía no hay ingresos registrados por servicios DatoYa.</p></div>'}</div>`);
+          <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.source_name,r.source_type,r.concept].join(' ').toLowerCase())}"><div><b>${h(r.concept)}</b><div class="small muted">${h(r.source_type)} · ${h(r.source_name)} · ${dt(r.created_at)}</div></div><div class="dy-admin-money-inline"><b>${money(r.amount)}</b><small>Registro interno · verificar abono</small></div></article>`).join('')||'<div class="card"><p class="muted">Todavía no hay ingresos registrados por servicios DatoYa.</p></div>'}</div>`);
         wireSearch('[data-fin-row]');return;
       }
 
