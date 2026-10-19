@@ -23,7 +23,6 @@
           <article class="plus"><div><span>⚡⚡</span><h3>Impulso+</h3><strong>Desde ${price('impulso_plus',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso</li><li>Pulso Local</li><li>Estadísticas avanzadas</li><li>Prioridad en señales de demanda</li>${lastHour('impulso_plus')}</ul></article>
           <article class="premium"><div><span>🚀</span><h3>Premium</h3><strong>Desde ${price('premium',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso+</li><li>Herramientas para destacar productos</li><li>Máxima exposición patrocinada</li><li>Herramientas avanzadas de crecimiento</li>${lastHour('premium')}</ul></article>
         </div>
-        <p class="dy-home-plan-disclaimer">Los cupos pagados varían para 1, 7, 15 y 30 días. Última Hora gratis se renueva cada mes y es independiente de Impulso Ahora.</p>
         <div class="dy-home-plan-actions"><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio gratis</a><a class="btn btn-outline" href="#/ofertas-ultima-hora">Conocer Última Hora →</a></div>`;
     }catch(_){
       host.innerHTML='<div class="dy-home-v3-head"><span>🏪 PARA NEGOCIOS</span><h2>Publica gratis y crece cuando tú quieras</h2><p>Los planes de crecimiento son opcionales y nunca reemplazan el acceso gratuito.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>';
