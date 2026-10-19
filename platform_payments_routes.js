@@ -107,6 +107,17 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
     }
     return {status:'pending'};
   }
+  app.get('/api/platform-payments/club/status',auth,(req,res)=>{
+    const u=helpers.clubUser(req,res);if(!u)return;
+    const row=pending('club',u.id,null);
+    res.json({payment:row?answer(row):null});
+  });
+  app.get('/api/platform-payments/businesses/:businessId/status',auth,(req,res)=>{
+    const business=owner(req.user.id,req.params.businessId);
+    if(!business)return res.status(403).json({error:'Negocio no autorizado'});
+    const row=pending('growth',req.user.id,business.id);
+    res.json({payment:row?answer(row):null});
+  });
   app.get('/api/platform-payments/config',(req,res)=>{
     const c=allowed();
     res.json({checkout_enabled:!!c.checkout,mode:c.mode,auto_renew:false,provider:'mercadopago'});
