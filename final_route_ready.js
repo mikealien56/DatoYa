@@ -4,7 +4,12 @@
   window.__datoyaFinalRoutePassInstalled=true;
 
   const isHome=()=>!location.hash||location.hash==='#'||location.hash==='#/';
-  const reveal=()=>document.documentElement.classList.add('dy-market-ready');
+  const homeFinished=()=>!!document.querySelector('#view .dy-home #local-categories')&&!!document.querySelector('#view .dy-home #negocios-cerca');
+  const homeFailed=()=>!!document.querySelector('#view .dy-home > .dy-real-empty');
+  const reveal=()=>{
+    if(!isHome()||homeFinished()||homeFailed())document.documentElement.classList.add('dy-market-ready');
+  };
+  window.addEventListener('datoya:market-home-rendered',reveal);
   const report=(message)=>{
     try{
       fetch('/api/client-diagnostics',{
@@ -45,12 +50,12 @@
         if(isHome())setTimeout(ensureHome,0);
         return;
       }
-      Promise.resolve(route()).then(()=>{
-        if(isHome())reveal();
-      }).catch(e=>{
-        report(e?.message||e);
-        if(isHome())ensureHome();
-      });
+      if(isHome()){
+        // Evitar un segundo route() que pudiera pintar una portada anterior.
+        ensureHome();
+        return;
+      }
+      Promise.resolve(route()).then(reveal).catch(e=>report(e?.message||e));
     }catch(e){
       report(e?.message||e);
       if(isHome())ensureHome();
@@ -63,6 +68,6 @@
     setTimeout(run,120);
   }
 
-  // Nunca dejar el Home invisible por un fallo de arranque o una carrera entre scripts.
+  // Comprobar el estado del Home sin desvelar la interfaz legacy.
   setTimeout(()=>{if(isHome())ensureHome();else reveal();},2500);
 })();
