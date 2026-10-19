@@ -55,4 +55,14 @@ async function renderNotifications(){if(!ME){location.hash='#/login';return;}con
 async function renderAdmin(tab='dashboard'){if(!ME||ME.role!=='admin'){view.innerHTML='<div class="empty"><b>🛡️</b>Acceso solo para administradores.</div>';return;}const{verifications}=await api('/admin/verifications').catch(()=>({verifications:[]}));view.innerHTML=`<h2 class="section-title">🛡️ Panel de administración</h2><div class="tabs">${[['dashboard','📊 Dashboard'],['verificaciones','✓ Verificaciones']].map(([k,t])=>`<button class="${k===tab?'on':''}" onclick="location.hash='#/admin/${k}'">${t}</button>`).join('')}</div>${tab==='verificaciones'?verifications.map(v=>`<div class="card row between"><div><b>${esc(v.name)}</b> — ${esc(v.oficio)}</div><span class="status-tag">${v.status}</span></div>`).join(''):'<div class="card">Panel de administración disponible.</div>'}`;}
 async function renderAdminLegacy(){return renderAdmin();}
 async function resolveVerification(id,action){try{await api(`/admin/verifications/${id}`,{method:'POST',body:{action}});toast('Verificación actualizada','ok');route();}catch(e){toast(e.message,'err');}}
-(async function init(){await refreshMe();if(!location.hash)location.hash='#/';await route();})();
+(async function init(){
+  await refreshMe();
+  // No ejecutar la ruta legacy antes de que los módulos del mercado terminen
+  // de registrarse. Eso mostraba la versión anterior por un instante.
+  if(!location.hash)history.replaceState(null,'',location.pathname+location.search+'#/');
+  if(document.readyState==='loading'){
+    await new Promise(resolve=>document.addEventListener('DOMContentLoaded',resolve,{once:true}));
+  }
+  if((!location.hash||location.hash==='#/'||location.hash==='#')&&document.querySelector('#view .dy-home'))return;
+  await route();
+})();
