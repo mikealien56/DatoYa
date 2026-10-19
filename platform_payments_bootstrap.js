@@ -12,7 +12,8 @@ db.exec(
   "status TEXT NOT NULL DEFAULT 'creating',"+
   "preference_id TEXT UNIQUE,checkout_url TEXT,payment_id TEXT UNIQUE,"+
   "created_at TEXT NOT NULL,updated_at TEXT NOT NULL,activated_at TEXT);"+
-  "CREATE INDEX IF NOT EXISTS idx_platform_payments_user ON platform_service_payments(user_id,kind,status);"
+  "CREATE INDEX IF NOT EXISTS idx_platform_payments_user ON platform_service_payments(user_id,kind,status);"+
+  "CREATE UNIQUE INDEX IF NOT EXISTS uq_platform_service_pending ON platform_service_payments(user_id,kind,COALESCE(business_id,0)) WHERE status IN ('creating','pending');"
 );
 const filename=path.join(__dirname,'server.js');
 let source=fs.readFileSync(filename,'utf8');
