@@ -6,6 +6,8 @@ on:
     paths:
       - 'capacitor.config.json'
       - 'capacitor-www/**'
+      - 'marketplace_order_fulfillment_ui.js'
+      - 'test_fulfillment_mobile_qa.js'
       - 'styles.css'
       - 'index.html'
       - '.github/workflows/android-capacitor.yml'
@@ -13,6 +15,8 @@ on:
     paths:
       - 'capacitor.config.json'
       - 'capacitor-www/**'
+      - 'marketplace_order_fulfillment_ui.js'
+      - 'test_fulfillment_mobile_qa.js'
       - '.github/workflows/android-capacitor.yml'
   workflow_dispatch:
 
@@ -28,6 +32,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: QA flujo QR, cámara y correo sin servidor externo
+        run: node --test test_fulfillment_mobile_qa.js
 
       - name: Setup Java
         uses: actions/setup-java@v5
