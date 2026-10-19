@@ -176,15 +176,11 @@
     await previousMerchantOrders.apply(this,arguments);
     const businessId=Number(id||0);if(!businessId)return;
     const head=document.querySelector('.dy-commerce-head');
-    // No solicitar permisos ni mostrar una cámara gigante cuando no hay entregas pagadas listas.
-    let hasPaidReadyOrder=false;
-    try{
-      const data=await api('/businesses/'+businessId+'/orders');
-      hasPaidReadyOrder=(data.orders||[]).some(o=>o.status==='ready'&&o.payment_status==='paid');
-    }catch(_){}
-    if(head&&hasPaidReadyOrder&&!document.getElementById('dy-fulfillment-scanner')){
+    // Mantener visible el acceso al lector, sin solicitar permiso a la cámara hasta pulsar Abrir cámara.
+    // La API valida siempre propietario, estado y pago antes de completar una entrega.
+    if(head&&!document.getElementById('dy-fulfillment-scanner')){
       const scanner=document.createElement('section');scanner.id='dy-fulfillment-scanner';scanner.className='dy-commerce-card';scanner.style.margin='14px 0';
-      scanner.innerHTML='<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b style="font-size:17px">📷 Escanear QR de entrega</b><p style="margin:4px 0 0;color:#64748b">Usa la cámara dentro de DatoYa para confirmar retiro o despacho.</p></div><button class="btn btn-primary btn-sm" type="button" onclick="dyStartFulfillmentScanner('+businessId+')">Abrir cámara</button></div><div id="dy-fulfillment-camera" hidden style="margin-top:14px"><video id="dy-fulfillment-video" autoplay playsinline webkit-playsinline muted hidden style="width:100%;max-height:360px;object-fit:cover;border-radius:14px;background:#111"></video><p id="dy-fulfillment-camera-status" style="margin:8px 0;color:#64748b">Preparando cámara…</p><label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block">📷 Leer foto QR<input type="file" accept="image/*" capture="environment" hidden onchange="dyScanFulfillmentPhoto('+businessId+',this)"></label> <button class="btn btn-outline btn-sm" type="button" onclick="dyStopFulfillmentScanner()">Cerrar cámara</button></div>';
+      scanner.innerHTML='<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b style="font-size:17px">📷 Escanear QR de entrega</b><p style="margin:4px 0 0;color:#64748b">Escanea al entregar un pedido listo y con pago confirmado. También puedes usar el código manual.</p></div><button class="btn btn-primary btn-sm" type="button" onclick="dyStartFulfillmentScanner('+businessId+')">Abrir cámara</button></div><div id="dy-fulfillment-camera" hidden style="margin-top:14px"><video id="dy-fulfillment-video" autoplay playsinline webkit-playsinline muted hidden style="width:100%;max-height:360px;object-fit:cover;border-radius:14px;background:#111"></video><p id="dy-fulfillment-camera-status" style="margin:8px 0;color:#64748b">Preparando cámara…</p><label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block">📷 Leer foto QR<input type="file" accept="image/*" capture="environment" hidden onchange="dyScanFulfillmentPhoto('+businessId+',this)"></label> <button class="btn btn-outline btn-sm" type="button" onclick="dyStopFulfillmentScanner()">Cerrar cámara</button></div>';
       head.insertAdjacentElement('afterend',scanner);
     }
 
