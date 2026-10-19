@@ -58,7 +58,8 @@ const marketCategories=[
   ['almacenes','Almacenes','🏪',70],['minimarkets','Minimarkets','🧺',80],['farmacia','Farmacias','✚',90],
   ['opticas','Ópticas','👓',95],['ferreterias','Ferreterías','🔩',100],['mascotas','Mascotas','🐾',110],['belleza','Belleza','✂️',120],
   ['ropa','Ropa','👕',130],['regalos','Regalos','🎁',140],['librerias','Librerías','📚',150],
-  ['tecnologia','Tecnología','💻',160],['hogar','Hogar','🏠',170],['artesania','Artesanía','🧶',180],['otros','Otros','➕',999]
+  ['tecnologia','Tecnología','💻',160],['hogar','Hogar','🏠',170],['artesania','Artesanía','🧶',180],
+  ['plantas-viveros','Plantas y viveros','🌿',190],['otros','Otros','➕',999]
 ];
 const findCategory=db.prepare('SELECT id FROM market_categories WHERE slug=? LIMIT 1');
 const insertCategory=db.prepare('INSERT INTO market_categories(slug,name,icon,sort_order,active) VALUES(?,?,?,?,1)');
