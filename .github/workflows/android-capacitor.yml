@@ -51,10 +51,15 @@ jobs:
           import json
           data=json.load(open('android/app/google-services.json'))
           assert any(c.get('client_info',{}).get('android_client_info',{}).get('package_name')=='cl.datoya.app' for c in data.get('client',[])), 'Firebase: appId no coincide con cl.datoya.app'
-          print('Firebase Android configurado para el identificador correcto.')
+          assert data.get('project_info',{}).get('project_id')=='datoya-d9669', 'Firebase: proyecto inesperado'
+          print('Firebase Android configurado para DatoYa (cl.datoya.app / datoya-d9669).')
           PY
           else
-            echo 'Firebase Android no configurado: APK se genera SIN notificaciones nativas; no se activan avisos ficticios.'
+            if [ "${{ github.event_name }}" != "pull_request" ]; then
+              echo "::error::Falta secreto DATOYA_FIREBASE_GOOGLE_SERVICES_B64. No se publicará una APK sin Push."
+              exit 1
+            fi
+            echo "::warning::PR sin secreto Firebase: solo se comprueba la compilación; Push no se habilita."
           fi
 
       - name: Install image tooling
@@ -267,18 +272,41 @@ jobs:
           grep -q 'ActivityCompat.requestPermissions' android/app/src/main/java/cl/datoya/app/MainActivity.java
           grep -q 'setGeolocationEnabled(true)' android/app/src/main/java/cl/datoya/app/MainActivity.java
 
-      - name: Build release APK
+      # La firma debug de Android permite instalar en un teléfono de prueba sin
+      # compartir el keystore comercial; NO permite actualizar un APK firmado distinto.
+      - name: Build Android test APK and unsigned production APK
         working-directory: android
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleDebug assembleRelease --stacktrace
 
-      - name: Collect APK
+      - name: Verify Android Firebase integration
+        run: |
+          if [ -f android/app/google-services.json ]; then
+            test -s android/app/build/outputs/apk/debug/app-debug.apk
+            grep -Rql 'com.google.firebase.messaging' android/capacitor-cordova-android-plugins android/app/build.gradle android/capacitor.settings.gradle android/capacitor.build.gradle 2>/dev/null || \
+              grep -Rql 'firebase-messaging' node_modules/@capacitor/push-notifications/android
+            echo 'APK Android con configuración Firebase generada; falta la prueba real del teléfono.'
+          else
+            echo 'APK de prueba sin Firebase: solo validar interfaz en PR.'
+          fi
+
+      - name: Collect Android APKs
         run: |
           mkdir -p android-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk android-output/DatoYa-Android-PRUEBAS-debug.apk
           cp android/app/build/outputs/apk/release/app-release-unsigned.apk android-output/DatoYa-Capacitor-unsigned.apk
 
-      - name: Upload APK
+      - name: Upload installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: datoya-capacitor-apk
+          name: datoya-android-pruebas-debug
+          path: android-output/DatoYa-Android-PRUEBAS-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload unsigned release for future signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: datoya-capacitor-apk-unsigned
           path: android-output/DatoYa-Capacitor-unsigned.apk
           if-no-files-found: error
+          retention-days: 7
