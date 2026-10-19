@@ -415,7 +415,7 @@ grep -q "DatoYa Gratis" customer_club_ui.js || { echo "Página Club no compara c
 ! grep -q "DatoYa gana por" home_structure_v3.js || { echo "La portada expone el modelo de ingresos de DatoYa"; exit 1; }
 ! grep -q "DatoYa cobra únicamente" marketplace_public_beta_ui.js || { echo "La portada explica cobros internos que no interesan al usuario"; exit 1; }
 ! grep -q "Club se paga a DatoYa" customer_club_ui.js || { echo "Club expone innecesariamente el flujo de ingreso de DatoYa"; exit 1; }
-grep -q 'compras online se realizan dentro de DatoYa' home_structure_v3.js || { echo "Home no indica pago dentro de DatoYa"; exit 1; }
+grep -q 'compras online estarán disponibles dentro de DatoYa cuando habilitemos Mercado Pago' home_structure_v3.js || { echo "Home no explica que Mercado Pago se habilitará dentro de DatoYa"; exit 1; }
 
 # Despacho propio + ETA + seguimiento
 grep -q "marketplace_delivery_eta_bootstrap" production_start.js || { echo "ETA de despacho no está montado"; exit 1; }
