@@ -167,3 +167,25 @@ body{background:var(--dy-bg);color:var(--dy-text)}
 }
 
 .dy-browse-only-label{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:999px;background:#f1f5f9;border:1px solid #dbe3ec;color:#64748b;font-size:11px;font-weight:800}
+
+
+/* Portada DatoYa · buscador sin textos cortados ni métricas vacías. */
+.dy-home .dy-hero .dy-search-field,
+.dy-home .dy-hero .dy-search-field input{min-width:0;max-width:100%;box-sizing:border-box}
+.dy-home .dy-hero .dy-search-field input{
+  overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.dy-home .dy-hero .dy-trust-row{
+  display:flex;flex-wrap:wrap;align-items:center;
+  column-gap:15px;row-gap:7px;
+}
+.dy-home .dy-hero .dy-trust-row span{
+  display:inline-flex;align-items:center;white-space:normal;
+}
+@media(max-width:640px){
+  .dy-home .dy-hero .dy-hero-copy>p{font-size:15px;line-height:1.48;max-width:42ch}
+  .dy-home .dy-hero .dy-search-field{padding:0 12px}
+  .dy-home .dy-hero .dy-search-field input{font-size:15px!important;padding:12px 0!important}
+  .dy-home .dy-hero .dy-trust-row{font-size:11px;gap:7px 12px;line-height:1.35}
+}
