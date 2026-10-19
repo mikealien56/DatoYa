@@ -68,3 +68,10 @@
  .dy-last-hour-panel{padding:15px}
 }
 @media(max-width:370px){.dy-last-hour-grid{grid-template-columns:1fr}.dy-last-hour-photo{height:168px}}
+
+/* Cupos disponibles en el plan: un dato visible y no una tarjeta promocional adicional. */
+.dy-last-hour-quota{display:flex;align-items:center;justify-content:space-between;gap:20px;background:#f8fbff}
+.dy-last-hour-quota small{display:block;color:#687f97;font-size:11px;font-weight:800;letter-spacing:.09em}
+.dy-last-hour-quota p{color:#536b83;font-size:13px;line-height:1.5;margin:5px 0 10px}
+.dy-last-hour-quota-count{flex:0 0 auto;display:grid;place-items:center;min-width:62px;height:62px;border-radius:16px;background:#e5f1ff;color:#0b509d;font-size:30px;font-weight:800}
+@media(max-width:480px){.dy-last-hour-quota-count{height:52px;min-width:52px;font-size:25px}}
