@@ -66,7 +66,7 @@
         <article class="dy-home-how-client"><div class="icon" aria-hidden="true">🛍️</div><small>PARA CLIENTES</small><h3>Encuentra lo que buscas</h3><p>Explora negocios y productos cercanos. ¿No aparece lo que necesitas? Publícalo en Lo Busco Ya.</p><div class="dy-home-how-actions"><a class="dy-home-how-primary" href="#/buscar/_">Buscar productos <span aria-hidden="true">→</span></a><a class="dy-wanted-how-link" href="#/lo-busco-ya">🙋 Lo Busco Ya <span aria-hidden="true">→</span></a></div></article>
         <article class="dy-home-how-business" id="como-funciona-negocios"><div class="icon" aria-hidden="true">🏪</div><small>PARA NEGOCIOS</small><h3>Haz visible tu negocio</h3><p>Regístrate gratis, muestra tus productos y conecta con clientes de tu zona.</p><div class="dy-home-how-actions"><a class="dy-home-how-primary" href="#/registrar-negocio">Registrar mi negocio <span aria-hidden="true">→</span></a></div></article>
       </div>
-      <p class="dy-home-how-payment-note">Los pagos online estarán disponibles cuando finalice la integración de Mercado Pago.</p>
+      <p class="dy-home-how-payment-note">Las compras online estarán disponibles dentro de DatoYa cuando habilitemos Mercado Pago.</p>
       `;
   }
 
