@@ -213,7 +213,7 @@ jobs:
                   controller.setAppearanceLightStatusBars(true);
                   controller.setAppearanceLightNavigationBars(true);
 
-                  View webView = this.bridge.getWebView();
+                  android.webkit.WebView webView = this.bridge.getWebView();
                   webView.getSettings().setGeolocationEnabled(true);
                   // Identificar esta APK propia ante la web para evitar confundirla con Chrome.
                   String datoyaUa = webView.getSettings().getUserAgentString();
