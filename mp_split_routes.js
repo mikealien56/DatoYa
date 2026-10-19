@@ -243,6 +243,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
         businesses_verified_in_production:productionVerified,
         technically_enabled:purchasesEnabled,real_funds_reconciled:false
       },
+      platform_checkout:{credentials_format_ready:!!platform.ready,webhook_secret_configured:!!platform.webhookConfigured,environment:platform.mode,checkout_enabled:!!platform.checkout,production_checkout_enabled:platformProduction},
       plans:{checkout_enabled:platformProduction,mode:'manual_periods',provider_mode:platform.mode,message:platformProduction?'Checkout Pro de servicios propios habilitado; verificar cobros':'Pendiente autorización de Checkout Pro para planes'},
       club:{checkout_enabled:platformProduction,auto_renew:false,provider_mode:platform.mode,message:platformProduction?'Checkout Pro de Club habilitado; verificar cobros':'Pendiente autorización de Checkout Pro para DatoYa Club'},
       featured_week:{checkout_enabled:false,message:'Pendiente cobro validado para espacios destacados'},
