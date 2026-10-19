@@ -9,19 +9,22 @@
       const d=await api('/public/business-plans'),offers=d.offers||[];
       const by=Object.fromEntries(offers.map(x=>[x.key,x]));
       const price=(key,days)=>money(by[key]?.prices?.[days]||0);
+      const packs=(key,days)=>Math.max(0,Number(by[key]?.access?.last_hour_quotas?.[days]||0));
+      const lastHour=(key)=>'<li class="dy-home-plan-last-hour">🎁 <b>Última Hora:</b> '+packs(key,1)+' packs (1 día) a '+packs(key,30)+' packs (30 días)</li>';
       host.innerHTML=`
         <div class="dy-home-v3-head">
           <span>🏪 PARA NEGOCIOS</span>
           <h2>Empieza gratis. Paga solo cuando quieras crecer más.</h2>
-          <p>Los pagos de clientes se gestionarán online mediante DatoYa y Mercado Pago. Los planes de crecimiento son opcionales.</p>
+          <p>Los pagos de clientes se gestionarán online mediante DatoYa y Mercado Pago. Los planes de crecimiento son opcionales. Todos incluyen publicaciones de Última Hora según su nivel.</p>
         </div>
         <div class="dy-home-plan-table">
-          <article class="free"><div><span>🆓</span><h3>DatoYa Gratis</h3><strong>$0</strong><small>Siempre disponible</small></div><ul><li>Perfil y horarios</li><li>Catálogo básico</li><li>Pedidos por DatoYa</li><li>QR, retiro y despacho</li><li>Estadísticas básicas</li></ul></article>
-          <article><div><span>⚡</span><h3>Impulso</h3><strong>Desde ${price('impulso',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Más visibilidad</li><li>Impulso Ahora</li><li>Promoción destacada</li><li>Más capacidad de catálogo</li></ul></article>
-          <article class="plus"><div><span>⚡⚡</span><h3>Impulso+</h3><strong>Desde ${price('impulso_plus',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso</li><li>Pulso Local</li><li>Estadísticas avanzadas</li><li>Prioridad en señales de demanda</li></ul></article>
-          <article class="premium"><div><span>🚀</span><h3>Premium</h3><strong>Desde ${price('premium',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso+</li><li>Herramientas para destacar productos</li><li>Máxima exposición patrocinada</li><li>Herramientas avanzadas de crecimiento</li></ul></article>
+          <article class="free"><div><span>🆓</span><h3>DatoYa Gratis</h3><strong>$0</strong><small>Siempre disponible</small></div><ul><li>Perfil y horarios</li><li>Catálogo básico</li><li>Pedidos por DatoYa</li><li>QR, retiro y despacho</li><li>Estadísticas básicas</li><li class="dy-home-plan-last-hour">🎁 <b>1 pack de Última Hora gratis al mes</b></li></ul></article>
+          <article><div><span>⚡</span><h3>Impulso</h3><strong>Desde ${price('impulso',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Más visibilidad</li><li>Impulso Ahora</li><li>Promoción destacada</li><li>Más capacidad de catálogo</li>${lastHour('impulso')}</ul></article>
+          <article class="plus"><div><span>⚡⚡</span><h3>Impulso+</h3><strong>Desde ${price('impulso_plus',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso</li><li>Pulso Local</li><li>Estadísticas avanzadas</li><li>Prioridad en señales de demanda</li>${lastHour('impulso_plus')}</ul></article>
+          <article class="premium"><div><span>🚀</span><h3>Premium</h3><strong>Desde ${price('premium',1)}</strong><small>1 · 7 · 15 · 30 días</small></div><ul><li>Todo Impulso+</li><li>Herramientas para destacar productos</li><li>Máxima exposición patrocinada</li><li>Herramientas avanzadas de crecimiento</li>${lastHour('premium')}</ul></article>
         </div>
-        <div class="dy-home-plan-actions"><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio gratis</a><a class="btn btn-outline" href="#/login">Ya tengo negocio</a></div>`;
+        <p class="dy-home-plan-disclaimer">Los cupos pagados varían para 1, 7, 15 y 30 días. Última Hora gratis se renueva cada mes y es independiente de Impulso Ahora.</p>
+        <div class="dy-home-plan-actions"><a class="btn btn-primary" href="#/registrar-negocio">Registrar mi negocio gratis</a><a class="btn btn-outline" href="#/ofertas-ultima-hora">Conocer Última Hora →</a></div>`;
     }catch(_){
       host.innerHTML='<div class="dy-home-v3-head"><span>🏪 PARA NEGOCIOS</span><h2>Publica gratis y crece cuando tú quieras</h2><p>Los planes de crecimiento son opcionales y nunca reemplazan el acceso gratuito.</p></div><a class="btn btn-primary" href="#/registrar-negocio">Registrar negocio</a>';
     }
