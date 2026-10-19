@@ -20,8 +20,9 @@
     if ((force || !hasNewHome) && !repairing) {
       repairing = true;
       try {
+        // El Home real emitirá datoya:market-home-rendered al terminar.
+        // No anunciar listo mientras solo existe el esqueleto de carga.
         await Promise.resolve(marketHome());
-        window.dispatchEvent(new CustomEvent('datoya:market-home-rendered'));
       } finally {
         repairing = false;
       }
@@ -29,10 +30,9 @@
   }
 
   window.addEventListener('load', () => {
-    enforceMarketHome(true);
-    setTimeout(() => enforceMarketHome(false), 80);
+    // Evitar destruir/reiniciar el Home real mientras está cargando.
+    enforceMarketHome(false);
     setTimeout(() => enforceMarketHome(false), 400);
-    setTimeout(() => enforceMarketHome(false), 1200);
   });
 
   window.addEventListener('hashchange', () => {
