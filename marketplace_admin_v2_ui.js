@@ -164,11 +164,14 @@
           ${launch?'<section class="card dy-admin-processor"><h3>Preparación de cobros para lanzamiento</h3>'+
             '<div class="dy-admin-processor-grid">'+
             '<div><span>Compras Marketplace</span><b>'+(launch.purchases.technically_enabled?'Técnicamente habilitadas':'Aún bloqueadas')+'</b></div>'+
-            '<div><span>Comercios aptos para producción</span><b>'+Number(launch.purchases.businesses_verified_in_production||0)+'</b></div>'+
+            '<div><span>Comercios OAuth productivo verificados</span><b>'+Number(launch.purchases.businesses_verified_in_production||0)+'</b></div>'+
+            '<div><span>Servicios propios · credenciales</span><b>'+(launch.platform_checkout?.credentials_format_ready?'Formato configurado':'Falta configuración')+'</b></div>'+
+            '<div><span>Servicios propios · entorno</span><b>'+(launch.platform_checkout?.environment==='production'?'Producción':'Pruebas')+'</b></div>'+
+            '<div><span>Servicios propios · checkout</span><b>'+(launch.platform_checkout?.checkout_enabled?'Técnicamente habilitado':'Bloqueado')+'</b></div>'+
             '<div><span>Planes Impulso y Premium</span><b>'+(launch.plans.checkout_enabled?'Habilitados':'Pendientes')+'</b></div>'+
             '<div><span>DatoYa Club</span><b>'+(launch.club.checkout_enabled?'Habilitado':'Pendiente')+'</b></div>'+
             '<div><span>Destacado semanal</span><b>'+(launch.featured_week.checkout_enabled?'Habilitado':'Pendiente')+'</b></div>'+
-            '</div><p class="dy-admin-processor-help">Para que compras esté técnicamente habilitado deben estar activos modo producción, checkout Split, pagos centrales y al menos un comercio verificado en producción. Este diagnóstico no verifica abonos reales ni reemplaza las pruebas de cobro y reembolso.</p></section>':''}
+            '</div><p class="dy-admin-processor-help">Para que compras esté técnicamente habilitado deben estar activos modo producción, checkout Split, pagos centrales y al menos un comercio verificado en producción. Este diagnóstico no verifica abonos reales ni reemplaza las pruebas de cobro y reembolso. El formato de credenciales no garantiza que sean válidas ante Mercado Pago.</p></section>':''}
           ${inputFilter('Buscar cliente, negocio o concepto')}
           <div class="dy-admin-list">${rows.map(r=>`<article class="card dy-admin-row" data-fin-row data-search="${h([r.source_name,r.source_type,r.concept].join(' ').toLowerCase())}"><div><b>${h(r.concept)}</b><div class="small muted">${h(r.source_type)} · ${h(r.source_name)} · ${dt(r.created_at)}</div></div><div class="dy-admin-money-inline"><b>${money(r.amount)}</b><small>Registro interno · verificar abono</small></div></article>`).join('')||'<div class="card"><p class="muted">Todavía no hay ingresos registrados por servicios DatoYa.</p></div>'}</div>`);
         wireSearch('[data-fin-row]');return;
