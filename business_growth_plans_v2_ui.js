@@ -16,6 +16,10 @@
   function planLoading(){
     view.innerHTML='<div class="dy-growth-page"><section class="dy-growth-loading"><span>⚡</span><h2>Cargando planes DatoYa…</h2><p>Estamos revisando tu negocio y beneficios disponibles.</p></section></div>';
   }
+  const lastHourLabel=(access,days)=>{
+    const n=Number(access?.last_hour_quotas?.[days]||0);
+    return n+' publicaciones de Última Hora por '+days+' día'+(days===1?'':'s');
+  };
   function accessItems(tier,access){
     if(tier==='free')return [
       'Perfil público, horarios, ubicación y WhatsApp',
@@ -24,12 +28,14 @@
       'QR y enlace para compartir',
       'Precio especial opcional solo para socios DatoYa Club',
       '⚡ 1 Impulso gratis de 24 horas por mes',
+      '🎁 1 pack de Última Hora gratis por mes, adicional al Impulso',
       'Estadísticas básicas',
       'Hasta '+Number(access.catalog_limit||20)+' productos'
     ];
     if(tier==='impulso')return [
       'Todo lo de DatoYa Gratis',
       '⚡ Impulso Ahora',
+      '🎁 '+lastHourLabel(access,selectedDays.value),
       'Más visibilidad en búsquedas y destacados',
       '1 promoción destacada a la vez',
       'Resumen de alcance del impulso',
@@ -38,6 +44,7 @@
     if(tier==='impulso_plus')return [
       'Todo lo de Impulso',
       '📊 Estadísticas avanzadas',
+      '🎁 '+lastHourLabel(access,selectedDays.value),
       'Herramientas adicionales de visibilidad',
       'Más exposición para productos destacados',
       'Avisos de interés y reposición',
@@ -47,6 +54,7 @@
     return [
       'Todo lo de Impulso+',
       'Mayor alcance en espacios promocionados',
+      '🎁 '+lastHourLabel(access,selectedDays.value),
       'Máxima prioridad dentro de espacios impulsados',
       'Hasta 5 promociones destacadas',
       'Asistente de marketing y recuperación de clientes',
@@ -61,6 +69,7 @@
       ['Pedidos sin comisión','✓','✓','✓','✓'],
       ['Catálogo',String(data.free?.access?.catalog_limit||20),String(a.catalog_limit||80),String(p.catalog_limit||200),String(x.catalog_limit||500)],
       ['Impulso Ahora','—','✓','✓','✓'],
+      ['Última Hora (packs)','1 / mes',String(a.last_hour_quotas?.[selectedDays.value]||0),String(p.last_hour_quotas?.[selectedDays.value]||0),String(x.last_hour_quotas?.[selectedDays.value]||0)],
       ['Mayor visibilidad','—','✓','✓✓','✓✓✓'],
       ['Promos destacadas','1 gratis · 24h/mes',String(a.featured_promotions||1),String(p.featured_promotions||3),String(x.featured_promotions||5)],
       ['Estadísticas avanzadas','—','—','✓','✓'],
@@ -93,7 +102,7 @@
       '<a class="dy-growth-back" href="#/mi-negocio/'+id+'">← Volver a '+h(data.business.name)+'</a>'+
       '<section class="dy-growth-hero '+(m?'active':'')+'"><div><span>PROMOCIONA TU NEGOCIO EN DATOYA</span><h1>'+(m?h(current.icon+' '+current.label+' activo'):'DatoYa Gratis para vender. Impulsos para crecer.')+'</h1><p>'+(m?'Tu beneficio está vigente hasta el '+h(date(m.expires_at))+'. Puedes extenderlo cuando quieras.':'Los pagos de productos se realizarán online mediante DatoYa y Mercado Pago. Elige un plan para obtener más alcance y herramientas.')+'</p></div><div class="dy-growth-current"><b>'+(m?h(current.label):'PLAN GRATIS')+'</b><small>'+(m?(Number(m.offer_days||m.days_granted||0)+' días contratados'):'$0 · sin comisión')+'</small></div></section>'+
       '<section class="dy-growth-note"><span>💳</span><div><b>Planes DatoYa · Mercado Pago</b><p>Estamos preparando el cobro de planes Impulso, Impulso+ y Premium con Mercado Pago. Los pagos recurrentes mensuales y anuales aún no están habilitados; por ahora no se cobra ningún plan desde esta pantalla.</p></div></section>'+
-      '<section class="dy-growth-free-strip"><div><span>🆓</span><div><b>DatoYa Gratis</b><p>Perfil, pedidos, horarios, retiro/despacho, QR y 1 Impulso gratis de 24 horas al mes.</p></div></div><strong>$0</strong></section>'+
+      '<section class="dy-growth-free-strip"><div><span>🆓</span><div><b>DatoYa Gratis</b><p>Perfil, pedidos, horarios, retiro/despacho, QR, 1 Impulso de 24 horas y 1 pack Última Hora gratis cada mes.</p></div></div><strong>$0</strong></section>'+
       '<section class="dy-growth-duration"><div><span>1</span><h2>¿Por cuánto tiempo quieres impulsarte?</h2><p>Primero elige duración. Después escoge el nivel que más te conviene.</p></div><div class="dy-growth-duration-buttons">'+
         [1,7,15,30].map(d=>'<button class="'+(d===days?'active':'')+'" onclick="dyGrowthSelectDays('+d+')"><b>'+d+'</b><small>'+ (d===1?'día':'días')+'</small></button>').join('')+
       '</div></section>'+
