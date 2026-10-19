@@ -9,7 +9,8 @@ function config(env=process.env){
   const secret=String(env.MP_PLATFORM_WEBHOOK_SECRET||'').trim();
   const mode=env.MP_PLATFORM_MODE==='production'?'production':'test';
   const site=String(env.PUBLIC_BASE_URL||'https://www.datoya.cl').replace(/\/+$/,'');
-  const ready=/^(APP_USR-|TEST-)[\w-]{12,}$/.test(token)&&/^\d{4,25}$/.test(collector)&&secret.length>=12&&/^https:\/\//.test(site);
+  const tokenReady=(mode==='production'?/^APP_USR-[\w-]{12,}$/:/^TEST-[\w-]{12,}$/).test(token);
+  const ready=tokenReady&&/^\d{4,25}$/.test(collector)&&secret.length>=12&&/^https:\/\//.test(site);
   const checkout=ready&&truth(env.MP_PLATFORM_CHECKOUT_ENABLED)&&(mode==='test'||truth(env.MP_PLATFORM_LIVE_ALLOWED));
   return {ready,checkout,mode,site,collector,webhookConfigured:secret.length>=12};
 }
