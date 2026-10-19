@@ -173,6 +173,7 @@ CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'impor
 [ "$CATS" -ge 20 ] || { echo "Catálogo comercial incompleto: $CATS"; exit 1; }
 curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; c=json.load(sys.stdin)["categories"]; o=next((x for x in c if x["slug"]=="opticas"),None); assert o and o["name"]=="Ópticas" and o["icon"]=="👓"' || { echo "Falta categoría Ópticas"; exit 1; }
 curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; c=json.load(sys.stdin)["categories"]; p=next((x for x in c if x["slug"]=="plantas-viveros"),None); assert p and p["name"]=="Plantas y viveros" and p["icon"]=="🌿" and int(p["sort_order"])==190' || { echo "Falta categoría Plantas y viveros"; exit 1; }
+curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; cs=json.load(sys.stdin)["categories"]; cats={x["slug"]:x for x in cs}; assert cats["panaderia"]["name"]=="Panaderías y pastelerías" and cats["panaderia"]["icon"]=="🥐"; assert cats["cafeterias"]["name"]=="Cafeterías"; assert "pastelerias" not in cats' || { echo "Las categorías Panaderías/Pastelerías no se consolidaron"; exit 1; }
 echo "✅ Healthcheck + categorías comerciales"
 node test_email_activation.js
 node test_customer_controls.js
