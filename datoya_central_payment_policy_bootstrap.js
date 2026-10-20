@@ -39,7 +39,7 @@ app.get('/api/marketplace/mp-split-pilot-access',auth,(req,res)=>{
   const id=Number(req.query.business_id||0);
   const allowed=config.pilotOnly&&config.checkout&&__dyMarketplaceCentralReady(id)&&
     Number(req.user?.id)===Number(config.pilotUserId)&&id===Number(config.pilotBusinessId);
-  res.json({checkout_enabled:!!allowed});
+  res.json({checkout_enabled:!!allowed,product_id:allowed?Number(config.pilotProductId):null});
 });
 app.use((req,res,next)=>{
   const m=req.method,p=req.path;
