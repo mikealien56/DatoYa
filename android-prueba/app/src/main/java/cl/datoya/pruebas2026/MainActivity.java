@@ -85,7 +85,15 @@ public class MainActivity extends Activity {
 
     webView = new WebView(this);
     webView.setBackgroundColor(Color.WHITE);
-    root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
+    // A dedicated native shell: no Chrome URL bar, with always-available app controls.
+    final LinearLayout appColumn = new LinearLayout(this);
+    appColumn.setOrientation(LinearLayout.VERTICAL);
+    final NativeToolbar nativeToolbar = new NativeToolbar(this, webView);
+    appColumn.addView(nativeToolbar.build(), new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        Math.round(58 * getResources().getDisplayMetrics().density)));
+    appColumn.addView(webView, new LinearLayout.LayoutParams(-1, 0, 1f));
+    root.addView(appColumn, new FrameLayout.LayoutParams(-1, -1));
     setContentView(root);
     root.requestApplyInsets();
 
@@ -134,6 +142,8 @@ public class MainActivity extends Activity {
 
     webView.setWebViewClient(new WebViewClient() {
       @Override public void onPageFinished(WebView view, String url) {
+        nativeToolbar.applyWebAppLayout();
+        nativeToolbar.refreshAccount();
         long elapsed = SystemClock.uptimeMillis() - openedAt;
         handler.postDelayed(closeSplash, Math.max(0, 1200 - elapsed));
       }
