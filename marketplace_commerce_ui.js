@@ -42,9 +42,25 @@
   }
   function cartCount(){return cart().items.reduce((n,x)=>n+Number(x.quantity||0),0)}
   function renderCartBubble(){document.getElementById('dy-cart-bubble')?.remove();if(ME&&!isCustomerAccount())return;const n=cartCount();if(!n)return;const a=document.createElement('a');a.id='dy-cart-bubble';a.className='dy-cart-bubble';a.href='#/carrito';a.innerHTML=`🛒 <b>${n}</b><span>Ver carrito</span>`;document.body.appendChild(a)}
-  function addItem(meta,item){if(ME&&!isCustomerAccount())return toast?.('Las compras se realizan con una cuenta Cliente','err');const c=cart();if(c.business_id&&Number(c.business_id)!==Number(meta.id)){if(!confirm('Tu carrito tiene productos de otro negocio. ¿Quieres reemplazarlo?'))return;c.items=[];delete c.source_weekly_id;}c.business_id=Number(meta.id);c.business_name=meta.name;c.pickup_enabled=!!meta.pickup_enabled;c.delivery_enabled=!!meta.delivery_enabled;const found=c.items.find(x=>(item.impulse_id&&Number(x.impulse_id)===Number(item.impulse_id))||(!item.impulse_id&&!x.impulse_id&&Number(x.product_id)===Number(item.product_id)));if(found)found.quantity=Math.min(99,Number(found.quantity||0)+1);else c.items.push({...item,quantity:1});saveCart(c);toast?.('Agregado al carrito','ok')}
+  function addItem(meta,item,quantity=1){
+    if(ME&&!isCustomerAccount()){toast?.('Las compras se realizan con una cuenta Cliente','err');return false;}
+    const requested=Number(quantity),cap=Math.min(99,Number.isSafeInteger(Number(item.stock_limit))&&Number(item.stock_limit)>0?Number(item.stock_limit):99);
+    if(!Number.isSafeInteger(requested)||requested<1||requested>cap){toast?.('Cantidad no disponible','err');return false;}
+    const c=cart();
+    const replacing=c.business_id&&Number(c.business_id)!==Number(meta.id);
+    if(replacing&&!confirm('Tu carrito tiene productos de otro negocio. ¿Quieres reemplazarlo?'))return false;
+    const current=replacing?[]:c.items;
+    const found=current.find(x=>(item.impulse_id&&Number(x.impulse_id)===Number(item.impulse_id))||(!item.impulse_id&&!x.impulse_id&&Number(x.product_id)===Number(item.product_id)));
+    if(found&&Number(found.quantity||0)+requested>cap){toast?.('Ya tienes la cantidad máxima disponible. Revisa tu carrito.','err');return false;}
+    if(replacing){c.items=[];delete c.source_weekly_id;}
+    c.business_id=Number(meta.id);c.business_name=meta.name;c.pickup_enabled=!!meta.pickup_enabled;c.delivery_enabled=!!meta.delivery_enabled;
+    if(found)found.quantity=Number(found.quantity||0)+requested;
+    else c.items.push({...item,stock_limit:cap,quantity:requested});
+    saveCart(c);toast?.(requested===1?'Agregado al carrito':'Productos agregados al carrito','ok');
+    return true;
+  }
 
-  window.dyCartAddProduct=async function(id){
+  window.dyCartAddProduct=async function(id,quantity=1){
     const p=storeContext?.products?.find(x=>Number(x.id)===Number(id)),b=storeContext?.business;
     if(!p||!b)return toast?.('Producto no disponible','err');
     if(p.stock_tracking&&Number(p.stock||0)<=0)return toast?.('Producto sin stock','err');
@@ -57,7 +73,9 @@
         if(access.club_active){price=club;clubApplied=true;}
       }catch(_){}
     }
-    addItem(b,{product_id:Number(p.id),impulse_id:null,name:p.name,price,club_applied:clubApplied,image_data:p.image_data||null});
+    const cap=p.stock_tracking?Math.min(99,Math.max(0,Number(p.stock||0))):99;
+    const pilotCap=storeContext?.pilotSelected&&Number(p.id)===Number(storeContext.pilotProductId)?1:cap;
+    return addItem(b,{product_id:Number(p.id),impulse_id:null,name:p.name,price,club_applied:clubApplied,image_data:p.image_data||null,stock_limit:pilotCap},quantity);
   };
   window.dyCartAddImpulse=async function(id){let i=(window.__dyImpulseCache||[]).find(x=>Number(x.id)===Number(id));if(!i){try{const r=await api('/market/impulses');i=(r.impulses||[]).find(x=>Number(x.id)===Number(id));}catch(_){}}if(!i)return toast?.('Este Impulso ya no está disponible','err');if(Number(i.stock_remaining||0)<=0)return toast?.('Este Impulso se agotó','err');addItem({id:i.business_id,name:i.business_name,pickup_enabled:i.pickup_enabled,delivery_enabled:i.delivery_enabled},{product_id:Number(i.product_id||0)||null,impulse_id:Number(i.id),name:i.title,price:Number(i.price),image_data:i.product_image||null});};
 
@@ -71,7 +89,7 @@
       pilotSelected=p.pilot_selected===true;
       pilotProductId=pilotSelected?Number(p.product_id||0):null;
     }
-    storeContext={business:b,products};
+    storeContext={business:b,products,pilotSelected,pilotProductId,checkoutReady};
     const productById=new Map(products.map(p=>[Number(p.id),p])),cards=[...document.querySelectorAll('.dy-store-product')];
     cards.forEach((el,index)=>{
       const productId=Number(el.dataset.productId||el.dataset.growthProduct||0),p=productById.get(productId)||(productId?null:products[index]);
@@ -146,7 +164,7 @@
   routes.carrito=async function(){if(ME&&!isCustomerAccount()){view.innerHTML=`<div class="dy-commerce-page"><a href="#/perfil" class="dy-public-back">← Mi DatoYa</a><div class="dy-commerce-empty">🏪<h1>Las compras usan una cuenta Cliente</h1><p>Tu cuenta actual es de negocio o administración. El carrito de este dispositivo no se borró.</p><a class="btn btn-primary" href="#/perfil">Volver a mi cuenta</a></div></div>`;return;}const c=cart();if(!c.items.length){view.innerHTML=`<div class="dy-commerce-page"><a href="#/" class="dy-public-back">← Inicio</a><div class="dy-commerce-empty">🛒<h1>Tu carrito está vacío</h1><p>Agrega productos desde un negocio o un Impulso Ahora.</p><a class="btn btn-primary" href="#/">Explorar DatoYa</a></div></div>`;return;}const subtotal=c.items.reduce((s,x)=>s+Number(x.price)*Number(x.quantity),0);view.innerHTML=`<div class="dy-commerce-page"><a href="#/" class="dy-public-back">← Seguir explorando</a><div class="dy-commerce-head"><span>UN SOLO NEGOCIO</span><h1>Tu carrito</h1><p>${h(c.business_name)}</p></div><div class="dy-cart-layout"><section class="dy-commerce-card"><div class="dy-cart-items">${c.items.map((x,i)=>`<article><div class="dy-cart-thumb">${x.image_data?`<img src="${x.image_data}" alt="${h(x.name)}">`:'📦'}</div><div><b>${h(x.name)}</b><small>${x.impulse_id?'⚡ Impulso Ahora':x.club_applied?'⭐ Precio Club':'Producto'}</small><strong>${money(x.price)}</strong></div><div class="dy-qty"><button onclick="dyCartQty(${i},-1)">−</button><span>${Number(x.quantity)}</span><button onclick="dyCartQty(${i},1)">+</button><button class="dy-remove" onclick="dyCartRemove(${i})">×</button></div></article>`).join('')}</div><div class="dy-cart-total"><span>Subtotal</span><strong>${money(subtotal)}</strong></div></section><section class="dy-commerce-card"><h2>Confirmar pedido</h2>${!ME?`<div class="dy-commerce-note"><b>Necesitas iniciar sesión</b><p>Tu carrito queda guardado en este dispositivo.</p><a class="btn btn-primary" href="#/login" onclick="sessionStorage.setItem('datoya_after_auth','#/carrito')">Ingresar</a></div>`:`<form id="dy-checkout-form" class="dy-account-form" data-business-id="${Number(c.business_id)}" data-subtotal="${subtotal}" data-pilot-product-id="${Number(c.items[0]?.product_id||0)}" data-cart-items="${c.items.length}" data-cart-quantity="${Number(c.items[0]?.quantity||0)}"><div class="field"><label>Nombre</label><input name="customer_name" value="${h(ME.name||'')}" required></div><div class="field"><label>Teléfono</label><input name="customer_phone" value="${h(ME.phone||'')}" placeholder="+56912345678" required></div><div class="field"><label>Entrega</label><select name="fulfillment_method">${c.pickup_enabled?'<option value="pickup">Retiro en el negocio</option>':''}${c.delivery_enabled?'<option value="delivery">Despacho del negocio</option>':''}</select></div><div class="field" id="dy-delivery-address" style="display:none"><label>Dirección de despacho</label><input name="delivery_address" placeholder="Calle, número y referencia"></div><div class="field"><label>Nota <small>(opcional)</small></label><textarea name="notes" rows="3" placeholder="Ej: retiraré a las 18:30"></textarea></div><div class="dy-commerce-note"><b>Pago online en DatoYa</b><p>El total y el cargo por servicio se mostrarán antes de completar el pago seguro con Mercado Pago.</p></div><button class="btn btn-primary btn-block" type="submit" disabled>Comprobando pago online…</button></form>`}</section></div></div>`;
     const form=document.getElementById('dy-checkout-form');const delivery=document.getElementById('dy-delivery-address');const toggle=()=>{if(delivery)delivery.style.display=form?.fulfillment_method.value==='delivery'?'block':'none'};form?.fulfillment_method.addEventListener('change',toggle);toggle();form?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Enviando pedido…';try{const body={business_id:c.business_id,fulfillment_method:f.fulfillment_method.value,customer_name:f.customer_name.value.trim(),customer_phone:f.customer_phone.value.trim(),delivery_address:f.delivery_address.value.trim(),notes:f.notes.value.trim(),items:c.items.map(x=>({product_id:x.product_id,impulse_id:x.impulse_id,quantity:x.quantity})),source_weekly_id:c.source_weekly_id||null,client_request_id:ensureCheckoutRequestId(c)};const r=await api('/orders',{method:'POST',body});localStorage.removeItem(CART_KEY);renderCartBubble();toast?.('Pedido '+r.order.reference+' enviado','ok');location.hash='#/pedidos';}catch(err){btn.disabled=false;btn.textContent='Enviar pedido · '+money(subtotal);toast?.(err.message,'err')}});
   };
-  window.dyCartQty=(i,d)=>{const c=cart();if(!c.items[i])return;c.items[i].quantity=Math.max(1,Math.min(99,Number(c.items[i].quantity||1)+Number(d)));saveCart(c);routes.carrito()};
+  window.dyCartQty=(i,d)=>{const c=cart();if(!c.items[i])return;const limit=Math.min(99,Math.max(1,Number(c.items[i].stock_limit||99)));c.items[i].quantity=Math.max(1,Math.min(limit,Number(c.items[i].quantity||1)+Number(d)));saveCart(c);routes.carrito()};
   window.dyCartRemove=i=>{const c=cart();c.items.splice(Number(i),1);saveCart(c);routes.carrito()};
 
   const cleanTestLabel=v=>{const s=String(v??'');return /mercado pago/i.test(s)&&/test/i.test(s)?s.replace(/mercado pago/ig,'Khipu'):s};
