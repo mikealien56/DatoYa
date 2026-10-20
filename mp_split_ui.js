@@ -97,12 +97,13 @@
     const note=form.querySelector('.dy-commerce-note');
     const subtotal=Number(form.dataset.subtotal||0);
     const businessId=Number(form.dataset.businessId||0);
-    let ready=false,rate=2;
+    let ready=false,rate=2,pilotNeedsConnection=false;
     try{
       const config=await api('/marketplace/central-payments/status?business_id='+businessId);
       ready=config?.checkout_enabled===true;
       if(config?.pilot_only===true&&ME?.account_type==='customer'&&Number(form.dataset.subtotal||0)===50){
         const pilot=await api('/marketplace/mp-split-pilot-access?business_id='+businessId).catch(()=>({checkout_enabled:false}));
+        pilotNeedsConnection=pilot?.payment_connection_required===true;
         ready=pilot?.checkout_enabled===true&&Number(form.dataset.pilotProductId)===Number(pilot.product_id)&&
           Number(form.dataset.cartItems)===1&&Number(form.dataset.cartQuantity)===1;
       }
@@ -114,15 +115,17 @@
       note.replaceChildren();
       const heading=node('b','','Pago online en DatoYa'),text=node('p','',
         ready?'Antes de pagar podrás revisar el total, incluido el servicio DatoYa. El dinero se procesa mediante Mercado Pago.':
-        'Las compras online aún no están habilitadas. Podrás pagar dentro de DatoYa cuando Mercado Pago complete su activación.');
+        (pilotNeedsConnection?'Tu carrito está guardado. Este negocio aún debe vincular su cuenta Mercado Pago para recibir pagos. No se generará ningún cobro hasta que esté disponible.':
+        'Las compras online aún no están habilitadas. Podrás pagar dentro de DatoYa cuando Mercado Pago complete su activación.'));
       note.append(heading,text);
       if(Number.isSafeInteger(subtotal)&&subtotal>0){
         note.appendChild(node('p','','Tarifa DatoYa ('+rate+'% de productos): '+clp(fee)+'. El despacho, cuando corresponda, se suma al total.'));
+        note.appendChild(node('strong','dy-cart-grand-total','Total previsto para la compra: '+clp(subtotal+fee)));
       }
     }
     if(submit){
       submit.disabled=!ready;
-      submit.textContent=ready?'Continuar al pago con Mercado Pago':'Pago online próximamente';
+      submit.textContent=ready?'Continuar al pago con Mercado Pago':pilotNeedsConnection?'Pago pendiente de conexión Mercado Pago':'Pago online próximamente';
     }
     return rendered;
   };
