@@ -7,6 +7,16 @@ const {quote}=require('./datoya_service_fee');
 module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
   splitReceipts.setup(db);
   const ready=()=>mp.config();
+  // Non-sensitive readiness marker: confirms deployment flags without exposing tokens.
+  try{
+    const state=ready();
+    const linked=db.prepare("SELECT COUNT(*) AS n FROM mp_split_sellers s JOIN businesses b ON b.id=s.business_id WHERE s.verified_at IS NOT NULL AND b.status='active'").get();
+    console.info('[DatoYa][Marketplace readiness]',JSON.stringify({
+      mode:state.mode,checkout_enabled:!!state.checkout,pilot_mode:!!state.pilotOnly,
+      central_checkout_enabled:process.env.DATOYA_CENTRAL_CHECKOUT_ENABLED==='true',
+      verified_active_sellers:Number(linked?.n||0)
+    }));
+  }catch(e){console.warn('[DatoYa][Marketplace readiness] check unavailable',String(e?.name||'Error'))}
   const owned=(uid,id)=>db.prepare('SELECT id,name,status FROM businesses WHERE id=? AND owner_user_id=?')
     .get(Number(id),Number(uid))||null;
   const seller=id=>db.prepare('SELECT * FROM mp_split_sellers WHERE business_id=?').get(Number(id))||null;
