@@ -141,13 +141,9 @@
       panel.append(actions,cartLink);
       if(!checkoutReady){
         const note=document.createElement('p');note.className='dy-store-purchase-note';
-        note.textContent=pilotSelected?
-          'Puedes agregar el producto al carrito. Para pagar, primero debe vincularse Mercado Pago de El Negocio. No se realizará ningún cobro ahora.':
-          'Puedes preparar tu carrito, pero este negocio aún no tiene el pago online disponible.';
-        panel.appendChild(note);
-      }else if(pilotSelected){
-        const note=document.createElement('p');note.className='dy-store-purchase-note';
-        note.textContent='Prueba privada: producto $50 + tarifa de servicio $1. Total al pagar: $51.';
+        note.textContent=availability.merchant_payment_connected===false?
+          'Puedes agregar al carrito. Para completar el pago online, este negocio debe vincular su cuenta de Mercado Pago.':
+          'Puedes agregar al carrito y consultar el total. El pago online aún no está disponible para este negocio.';
         panel.appendChild(note);
       }
       // Put quantity and buying controls directly below the price, ahead of Share.
@@ -158,33 +154,10 @@
     const head=document.querySelector('.dy-store-info');
     if(head&&!head.querySelector('.dy-store-cart-link')){
       const actions=head.querySelector('.dy-store-social-actions')||head;
-      const pilotProduct=pilotSelected&&pilotProductId?
-        products.find(p=>Number(p.id)===pilotProductId):null;
-      if(pilotProduct){
-        const button=document.createElement('button');
-        button.type='button';button.className='btn btn-primary dy-store-pilot-buy';
-        button.textContent='🛒 Agregar prueba de $50 al carrito';
-        button.disabled=!!pilotProduct.stock_tracking&&Number(pilotProduct.stock||0)<=0;
-        button.addEventListener('click',async()=>{
-          button.disabled=true;
-          try{
-            const current=cart();
-            const existing=Number(current.business_id)===Number(b.id)?
-              current.items.find(x=>Number(x.product_id)===Number(pilotProduct.id)):null;
-            if(existing){location.hash='#/carrito';return;}
-            const ok=await window.dyCartAddProduct(pilotProduct.id,1);
-            if(ok)location.hash='#/carrito';
-          }catch(e){toast?.(e.message||'No pudimos preparar el carrito','err')}
-          finally{button.disabled=false;}
-        });
-        actions.prepend(button);
-        const note=document.createElement('p');note.className='dy-store-pilot-note';
-        note.textContent=checkoutReady?'Carrito disponible. Verás el total de $51 antes de confirmar el pago.':
-          'Carrito disponible. El pago se habilitará cuando el titular de El Negocio conecte Mercado Pago.';
-        actions.insertAdjacentElement('afterend',note);
-      }
-      const link=document.createElement('a');link.className='btn btn-outline dy-store-cart-link';
-      link.href='#/carrito';link.textContent='🛒 Ver carrito ('+cartCount()+')';
+      const link=document.createElement('a');
+      link.className='btn btn-outline dy-store-cart-link';
+      link.href='#/carrito';
+      link.textContent='🛒 Ver carrito ('+cartCount()+')';
       actions.appendChild(link);
     }
   }catch(e){console.warn('[DatoYa][Store] No se pudo preparar el carrito',String(e?.name||'Error'))}};
