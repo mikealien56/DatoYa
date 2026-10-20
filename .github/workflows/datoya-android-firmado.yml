@@ -1,6 +1,12 @@
 name: DatoYa Android firmado
 on:
   workflow_dispatch:
+  push:
+    branches: [android-prueba-google]
+    paths:
+      - 'android-prueba/**'
+      - '.github/workflows/datoya-android-firmado.yml'
+      - 'brand/pwa/icon-512.png'
 jobs:
   apk:
     runs-on: ubuntu-24.04
