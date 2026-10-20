@@ -153,7 +153,12 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
     const u=helpers.clubUser(req,res);if(!u)return;
     const row=pending('club',u.id,null);
     if(!row)return res.json({status:'none'});
-    try{return res.json(await reconcile(row))}catch(e){return fail(res,e)}
+    // The checkout return may carry a payment ID. Treat it only as a lookup hint:
+    // all details must still match the server-owned preference and Mercado Pago.
+    const paymentId=req.body?.payment_id==null?'':String(req.body.payment_id).trim();
+    if(paymentId&&!/^\d{1,25}$/.test(paymentId))
+      return res.status(400).json({error:'Identificador del pago inválido'});
+    try{return res.json(await reconcile(row,paymentId||null))}catch(e){return fail(res,e)}
   });
   app.post('/api/platform-payments/businesses/:businessId/sync',auth,async(req,res)=>{
     const b=owner(req.user.id,req.params.businessId);
