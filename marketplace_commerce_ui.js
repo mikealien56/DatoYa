@@ -123,7 +123,7 @@
           const existing=cart();
           const inCart=Number(existing.business_id)===Number(b.id)?
             existing.items.find(x=>Number(x.product_id)===Number(p.id)&&!x.impulse_id):null;
-          if(navigate&&inCart&&pilotSelected){
+          if(navigate&&inCart&&Number(inCart.quantity)>=max){
             location.hash='#/carrito';return;
           }
           const result=await window.dyCartAddProduct(p.id,qty);
