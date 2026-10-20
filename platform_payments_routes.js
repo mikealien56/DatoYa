@@ -2,6 +2,7 @@
 const mp=require('./platform_payments_service');
 module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
   const allowed=()=>mp.config();
+  const pilotAuthorized=(cfg,userId)=>cfg.pilotOnly===true&&cfg.pilotUserId!==null&&Number(userId)===cfg.pilotUserId;
   const find=id=>db.prepare('SELECT * FROM platform_service_payments WHERE id=?').get(Number(id));
   const byRef=ref=>db.prepare('SELECT * FROM platform_service_payments WHERE reference=?').get(String(ref));
   const fail=(res,e)=>res.status([400,403,404,409,502,503,504].includes(e?.status)?e.status:503)
@@ -21,12 +22,21 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
   async function start(req,res,kind){
     const cfg=allowed();
     if(!cfg.checkout)return res.status(503).json({error:'Mercado Pago para servicios DatoYa todavía no está habilitado.'});
+    // Deny all non-Club services and all other customers while the private pilot is active.
+    if(cfg.pilotOnly&&!pilotAuthorized(cfg,req.user.id))
+      return res.status(403).json({error:'Esta compra todavía no está habilitada para tu cuenta.'});
+    if(cfg.pilotOnly&&kind!=='club')
+      return res.status(503).json({error:'Los planes de negocio permanecen bloqueados durante el piloto de Club.'});
     let businessId=null,tier=null,days=Number(req.body?.days),amount,title,path;
     if(kind==='club'){
       const u=helpers.clubUser(req,res);
       if(!u)return;
       if(![7,30].includes(days))return res.status(400).json({error:'Pase Club inválido'});
+      if(cfg.pilotOnly&&days!==7)return res.status(403).json({error:'El piloto permite únicamente un pase Club de 7 días.'});
       amount=Number(helpers.clubPrice(days));
+      if(cfg.pilotOnly&&amount!==990)return res.status(503).json({error:'El precio de prueba debe revisarse antes de cobrar.'});
+      if(cfg.pilotOnly&&db.prepare("SELECT id FROM platform_service_payments WHERE kind='club' AND user_id=? AND status='approved' LIMIT 1").get(req.user.id))
+        return res.status(409).json({error:'Esta cuenta ya completó su única compra piloto.'});
       title='DatoYa Club · '+days+' días';
       path='#/club';
     }else{
@@ -120,7 +130,18 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
   });
   app.get('/api/platform-payments/config',(req,res)=>{
     const c=allowed();
-    res.json({checkout_enabled:!!c.checkout,mode:c.mode,auto_renew:false,provider:'mercadopago'});
+    res.json({checkout_enabled:!!c.checkout&&!c.pilotOnly,mode:c.mode,auto_renew:false,provider:'mercadopago'});
+  });
+  // Private pilot availability never reveals the authorized customer's ID.
+  app.get('/api/platform-payments/club/pilot-access',auth,(req,res)=>{
+    const cfg=allowed();
+    if(!cfg.checkout||!pilotAuthorized(cfg,req.user.id))
+      return res.json({enabled:false});
+    const u=helpers.clubUser(req,res);
+    if(!u)return;
+    const amount=Number(helpers.clubPrice(7));
+    const alreadyPaid=!!db.prepare("SELECT id FROM platform_service_payments WHERE kind='club' AND user_id=? AND status='approved' LIMIT 1").get(req.user.id);
+    return res.json({enabled:amount===990&&!alreadyPaid,days:7,amount:amount===990?amount:null,already_paid:alreadyPaid});
   });
   app.post('/api/platform-payments/club/checkout',auth,(req,res)=>start(req,res,'club').catch(e=>fail(res,e)));
   app.post('/api/platform-payments/businesses/:businessId/checkout',auth,(req,res)=>start(req,res,'growth').catch(e=>fail(res,e)));
