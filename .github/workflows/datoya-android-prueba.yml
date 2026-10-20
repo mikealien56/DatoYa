@@ -27,11 +27,13 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
       - name: Build test APK
         run: gradle --no-daemon :app:assembleDebug
-      - name: Write SHA256 signing certificate fingerprint
+      - name: Extract and validate APK signing certificate
         run: |
-          keytool -exportcert -rfc -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android > debug-certificate.pem
-          openssl x509 -in debug-certificate.pem -noout -fingerprint -sha256 | sed 's/^sha256 Fingerprint=/SHA-256: /I' > SHA256-GOOGLE.txt
-          test -s SHA256-GOOGLE.txt
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | tee apk-signing-info.txt
+          awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2}' apk-signing-info.txt > SHA256-GOOGLE.txt
+          grep -Eq '^[[:xdigit:]]{64}$' SHA256-GOOGLE.txt
           cat SHA256-GOOGLE.txt
       - uses: actions/upload-artifact@v4
         with:
