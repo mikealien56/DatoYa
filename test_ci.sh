@@ -43,6 +43,7 @@ node --test test_checkout_payment_summary.js
 node --test test_public_marketplace_payments.js
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
+node --test test_pwa_installation.js
 bash test_khipu_business_onboarding.sh
 node test_khipu_integrator.js
 node --check push_notifications_bootstrap.js
