@@ -12,6 +12,9 @@
   function renderPremiumClub(data,membership=null,options={}){
     const price=Number(data.prices?.[30]??3990),active=!!membership;
     const pilot=options.pilot===true,payDays=pilot?7:30,payPrice=pilot?Number(options.pilotAmount||0):price;
+    const pending=options.pending?.status==='pending',canResume=pending&&!!options.pending?.checkout_url;
+    const pendingButton=canResume?'<button type="button" class="btn btn-primary" onclick="dyResumeClubCheckout()">Continuar pago pendiente · '+money(Number(options.pending.amount||payPrice))+'</button>':'';
+    const syncButton=pending?'<button type="button" class="btn btn-outline" onclick="dySyncClubPayment()">Comprobar estado del pago</button>':'';
     const current=location.hash.startsWith('#/club')&&location.hash!=='#/club-info';
     const back=current?'#/perfil':'#/';
     const join=!ME
@@ -34,8 +37,8 @@
             '<p class="dy-club-premium-price">'+money(price)+' <small>/ 30 días</small></p>'+
             '<div class="dy-club-info-hero-actions">'+
               (options.checkout&&isCustomer()?
-                '<button type="button" class="btn btn-primary" onclick="'+(options.pending?'dySyncClubPayment()':'dyStartClubCheckout('+payDays+')')+'">'+
-                  (options.pending?'Comprobar pago pendiente':pilot?'Pagar pase piloto · '+money(payPrice):'Activar Club · '+money(payPrice))+'</button>':'')+
+                (options.pending?(pendingButton||syncButton):( '<button type="button" class="btn btn-primary" onclick="dyStartClubCheckout('+payDays+')">'+
+                  (pilot?'Pagar pase piloto · '+money(payPrice):'Activar Club · '+money(payPrice))+'</button>')):'')+
               '<button type="button" class="btn btn-light" onclick="document.getElementById(\'club-beneficios\')?.scrollIntoView({behavior:\'smooth\',block:\'start\'})">Descubrir beneficios</button>'+
             '</div>'+
             (pilot?'<p class="dy-club-price-clarity"><b>Prueba privada autorizada:</b> '+money(payPrice)+' por 7 días. Precio normal de Club sin cambios.</p>':'')+
@@ -64,7 +67,7 @@
           '<span>DATOYA CLUB</span><h2>'+money(price)+' por 30 días</h2>'+
           '<p>Sin renovación automática. Cuando termina el pase, sigues usando DatoYa Gratis.</p>'+
           '<p class="dy-club-simple-pending">'+(options.pending?'Tienes un pago de Club en proceso. Comprueba su estado antes de intentar otra compra.':pilot?'Prueba piloto autorizada: pase de 7 días por '+money(payPrice)+', sin renovación automática. Mercado Pago confirmará el cobro antes de activar el pase.':options.checkout?'Pago seguro con Mercado Pago. El pase se activa únicamente cuando el cobro está confirmado.':'La contratación estará disponible cuando Mercado Pago esté habilitado. Todavía no se realizan cobros de Club.')+'</p>'+
-          '<div class="dy-club-simple-actions">'+(options.checkout&&isCustomer()?options.pending?'<button type="button" class="btn btn-primary" onclick="dySyncClubPayment()">Comprobar pago pendiente</button>':'<button type="button" class="btn btn-primary" onclick="dyStartClubCheckout('+payDays+')">'+(pilot?'Activar pase piloto':active?'Extender Club':'Activar Club')+' · '+money(payPrice)+'</button>':'')+join+'<a class="btn btn-outline" href="#/buscar/_">Ver productos</a></div>'+
+          '<div class="dy-club-simple-actions">'+(options.checkout&&isCustomer()?options.pending?(pendingButton+syncButton):'<button type="button" class="btn btn-primary" onclick="dyStartClubCheckout('+payDays+')">'+(pilot?'Activar pase piloto':active?'Extender Club':'Activar Club')+' · '+money(payPrice)+'</button>':'')+join+'<a class="btn btn-outline" href="#/buscar/_">Ver productos</a></div>'+
         '</section>'+
       '</main>';
   }
@@ -104,6 +107,19 @@
     }catch(e){showError(e.message,'club');}
   }
   routes.club=loadClub;
+  // Reopen the same server-owned, authenticated checkout; do not create another payment.
+  window.dyResumeClubCheckout=async function(){
+    try{
+      const {payment}=await api('/platform-payments/club/status');
+      if(!payment||payment.status!=='pending'||!payment.checkout_url)throw new Error('No hay un enlace de pago pendiente para continuar');
+      if(Number(payment.amount)!==50&&Number(payment.amount)!==990&&Number(payment.amount)!==3990)
+        throw new Error('Monto de pago no reconocido');
+      const url=new URL(payment.checkout_url);
+      if(url.protocol!=='https:'||!['mercadopago.cl','www.mercadopago.cl','mercadopago.com','www.mercadopago.com'].includes(url.hostname.toLowerCase()))
+        throw new Error('El enlace de Mercado Pago no es válido');
+      location.href=url.toString();
+    }catch(e){toast?.(e.message||'No pudimos reabrir el pago','err')}
+  };
   window.dySyncClubPayment=async function(){
     try{
       const status=await api('/platform-payments/club/sync',{method:'POST',body:{}});
