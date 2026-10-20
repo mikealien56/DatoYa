@@ -85,6 +85,7 @@ function __dyRefundFinalize(refundId,actorUserId,actorType,provider,providerId,p
   const r=db.prepare('SELECT * FROM commerce_refund_requests WHERE id=?').get(Number(refundId));if(!r)throw new Error('Solicitud no encontrada');
   if(String(r.status)==='refunded')return __dyRefundRow(r);
   const o=__dyRefundOrder(r.order_id);if(!o)throw new Error('Pedido no encontrado');
+  if(String(o.payment_method)==='mercadopago_split')throw new Error('Un pago Mercado Pago Split no se marca como reembolsado sin conciliacion con el proveedor');
   const amount=Math.max(0,Math.min(Number(o.total||0)-__dyRefundPaidTotal(o.id),Number(r.approved_amount||r.requested_amount||0)));
   if(amount<1)throw new Error('No queda monto por devolver');
   const commission=__dyRefundCommissionPart(o,amount),now=new Date().toISOString();
@@ -104,6 +105,7 @@ async function __dyRefundExecuteApproved(refundId,actorUserId,actorType){
   if(!['approved','processing'].includes(String(r.status)))return {refund:__dyRefundRow(r),executed:String(r.status)==='refunded'};
   const o=__dyRefundOrder(r.order_id);if(!o)throw new Error('Pedido no encontrado');
   const amount=Math.round(Number(r.approved_amount||0));if(amount<1)throw new Error('Monto aprobado inválido');
+  if(String(o.payment_method)==='mercadopago_split')return {refund:__dyRefundRow(r),executed:false,code:'MP_REFUND_PROVIDER_REQUIRED',message:'Devolución aprobada. Debe gestionarse y verificarse con Mercado Pago antes de marcarla como reembolsada.'};
   let kp=null;try{kp=db.prepare('SELECT * FROM commerce_khipu_payments WHERE order_id=? ORDER BY id DESC LIMIT 1').get(o.id);}catch(_){}
   if(String(o.payment_method)==='khipu'&&kp){
     if(Number(kp.live_mode||0)===0){
@@ -201,6 +203,7 @@ app.post('/api/businesses/:id/refunds/:refundId/confirm-external',auth,(req,res)
   const r=db.prepare('SELECT * FROM commerce_refund_requests WHERE id=? AND business_id=?').get(Number(req.params.refundId),b.id);if(!r)return res.status(404).json({error:'Solicitud no encontrada'});
   if(String(r.status)!=='approved')return res.status(409).json({error:'La devolución debe estar aprobada'});
   const o=__dyRefundOrder(r.order_id);let kp=null;try{kp=db.prepare('SELECT * FROM commerce_khipu_payments WHERE order_id=? ORDER BY id DESC LIMIT 1').get(o.id);}catch(_){}
+  if(String(o.payment_method)==='mercadopago_split')return res.status(409).json({error:'El reembolso Mercado Pago debe verificarse con el proveedor. No se puede confirmar manualmente.'});
   if(String(o.payment_method)==='khipu'&&kp&&Number(kp.live_mode||0)===1)return res.status(409).json({error:'Una devolución Khipu real no puede confirmarse manualmente en DatoYa. Debe validarse con el proveedor.'});
   const note=__dyRefundText(req.body&&req.body.note,500);
   const out=__dyRefundFinalize(r.id,req.user.id,'business',String(o.payment_method)==='khipu'?'khipu-development':'external',null,note||'business_confirmed');
@@ -220,6 +223,7 @@ app.post('/api/admin/refunds/:id/resolve',auth,requireRole('admin'),async(req,re
     __dyRefundEvent(r.id,req.user.id,'admin','rejected',note,null);notify(o.user_id,'refund','DatoYa revisó la solicitud '+r.reference+'.','#/pedidos/'+o.id);return res.json({ok:true});
   }
   if(action==='mark_refunded'){
+    if(String(o.payment_method)==='mercadopago_split')return res.status(409).json({error:'Confirma la devolución en Mercado Pago antes de actualizar el estado. No se permite marcar como reembolsado sin comprobación.'});
     const amount=Math.round(Number(req.body&&req.body.amount||r.approved_amount||r.requested_amount));if(amount<1)return res.status(400).json({error:'Monto inválido'});
     db.prepare("UPDATE commerce_refund_requests SET status='approved',approved_amount=?,admin_note=?,reviewed_at=?,updated_at=? WHERE id=?").run(amount,note||null,now,now,r.id);
     return res.json({ok:true,refund:__dyRefundFinalize(r.id,req.user.id,'admin','admin-confirmed',null,note||'admin_confirmed')});
