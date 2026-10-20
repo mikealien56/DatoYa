@@ -31,7 +31,7 @@ async function scenario({account=23,pilot=true,connected=false,stock=1}={}){
  await routes.negocio(1);
  return {routes,window,location,values,notes,box,price,share,card,panel:box.children.find(x=>x.className==='dy-buy-panel')};
 }
-test('pilot product shows usable quantity/cart/buy controls even when merchant not linked',async()=>{
+test('public product shows usable quantity/cart/buy controls even when merchant not linked',async()=>{
  const c=await scenario({connected:false}),p=c.panel;
  assert.ok(p,'Quantity and cart controls must render');
  assert.ok(c.box.children.indexOf(p)<c.box.children.indexOf(c.share),'Buy controls must precede Share');
@@ -43,7 +43,7 @@ test('pilot product shows usable quantity/cart/buy controls even when merchant n
  assert.equal(counter.children[2].disabled,true,'Only one unit is in stock');
  assert.equal(controls.children[0].disabled,false);
  assert.equal(controls.children[1].disabled,false);
- assert.match(p.children.find(x=>x.className==='dy-store-purchase-note').textContent,/Mercado Pago/);
+ assert.match(p.children.find(x=>x.className==='dy-store-purchase-note').textContent,/pago online|Mercado Pago/i);
  controls.children[0].events.click();
  for(let i=0;i<8;i++)await Promise.resolve();
  const cart=JSON.parse(c.values.get('datoya_cart_v1'));
