@@ -37,9 +37,12 @@ app.get('/api/marketplace/central-payments/status',(req,res)=>{
 app.get('/api/marketplace/mp-split-pilot-access',auth,(req,res)=>{
   const config=require('./mp_split_service').config();
   const id=Number(req.query.business_id||0);
-  const allowed=config.pilotOnly&&config.checkout&&__dyMarketplaceCentralReady(id)&&
-    Number(req.user?.id)===Number(config.pilotUserId)&&id===Number(config.pilotBusinessId);
-  res.json({checkout_enabled:!!allowed,product_id:allowed?Number(config.pilotProductId):null});
+  const selected=config.pilotOnly&&Number(req.user?.id)===Number(config.pilotUserId)&&
+    id===Number(config.pilotBusinessId)&&Number.isSafeInteger(Number(config.pilotProductId));
+  const checkoutEnabled=selected&&__dyMarketplaceCentralReady(id);
+  res.json({pilot_selected:!!selected,checkout_enabled:!!checkoutEnabled,
+    business_id:selected?id:null,product_id:selected?Number(config.pilotProductId):null,
+    payment_connection_required:!!(selected&&!checkoutEnabled)});
 });
 app.use((req,res,next)=>{
   const m=req.method,p=req.path;
