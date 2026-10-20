@@ -3,6 +3,7 @@
 const fs=require('fs'),path=require('path');
 const {db}=require('./db');
 const mp=require('./platform_payments_service');
+const featuredReceipts=require('./platform_featured_receipts');
 db.exec(
  "CREATE TABLE IF NOT EXISTS featured_mp_payments ("+
  "id INTEGER PRIMARY KEY AUTOINCREMENT,"+
@@ -27,6 +28,7 @@ if(!source.includes('DATOYA_MP_FEATURED_PAYMENTS_V1')){
  fs.writeFileSync(filename,source);
 }
 function mount(app,auth,verifyEmail,db,notify){
+ featuredReceipts.setup(db);
  const enabled=()=>{
   const c=mp.config();
   return c.mode==='production'&&c.checkout&&!c.pilotOnly&&process.env.DATOYA_FEATURED_CHECKOUT_ENABLED==='true';
@@ -76,6 +78,7 @@ function mount(app,auth,verifyEmail,db,notify){
    const changed=txn();
    if(changed){
     try{notify(row.user_id,'pagos','Destacado semanal pagado; pendiente de aprobacion.','#/mi-negocio-plan/'+row.business_id);}catch(_){}
+    try{await featuredReceipts.send(db,row.id)}catch(e){console.warn('[DatoYa][Featured receipt] processing error',String(e?.name||'Error'))}
     try{const admins=db.prepare("SELECT id FROM users WHERE role='admin' AND is_active=1").all();
      for(const a of admins)notify(a.id,'pagos','Destacado semanal pagado; revisar para publicar.','#/admin/destacado');
     }catch(_){}
