@@ -167,6 +167,23 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
     if(!row)return res.json({status:'none'});
     try{return res.json(await reconcile(row))}catch(e){return fail(res,e)}
   });
+  // One-time, opt-in pilot recovery after Mercado Pago has confirmed the real charge.
+  // Uses exactly the same provider-verifying reconcile() path as webhooks and user sync.
+  if(process.env.MP_PLATFORM_PILOT_RECOVER==='true'){
+    const timer=setTimeout(async()=>{
+      const cfg=allowed();
+      if(!cfg.checkout||cfg.mode!=='production'||!cfg.pilotOnly||cfg.pilotUserId!==23)return;
+      const row=pending('club',cfg.pilotUserId,null);
+      if(!row||row.kind!=='club'||Number(row.amount)!==50||Number(row.days)!==7)return;
+      try{
+        const result=await reconcile(row);
+        console.info('[DatoYa][Club pilot recovery]',JSON.stringify({status:result.status,activated:!!result.activated}));
+      }catch(e){
+        console.error('[DatoYa][Club pilot recovery]',JSON.stringify({failed:true,status:Number(e?.status)||503,kind:String(e?.name||'Error')}));
+      }
+    },7000);
+    if(typeof timer.unref==='function')timer.unref();
+  }
   app.post('/api/platform-payments/webhook',async(req,res)=>{
     if(!mp.validWebhook({headers:req.headers,query:req.query}))return res.status(401).send('Firma inválida');
     const ref=String(req.query.ref||''),paymentId=String(req.query['data.id']||'');
