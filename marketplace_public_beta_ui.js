@@ -151,8 +151,12 @@
     const loc=locationState();
     view.innerHTML=`<div class="dy-home"><div class="dy-real-loading"><span></span>Buscando negocios reales cerca de ti…</div></div>`;
     try{
-      const {categories,businesses,products}=await loadMarketplace();
-      await loadSavedState();
+      const [{categories,businesses,products},,pilotAccess]=await Promise.all([
+        loadMarketplace(),
+        loadSavedState(),
+        isCustomerAccount()?api('/marketplace/mp-split-pilot-access?business_id=2').catch(()=>null):Promise.resolve(null)
+      ]);
+      const authorizedBerlinPilot=pilotAccess?.checkout_enabled===true&&Number(pilotAccess.product_id)===3;
       // Las peticiones antiguas no deben dibujar sobre una portada más reciente.
       if(renderSequence!==homeRenderSequence||!isHome())return;
       const activePromos=products.filter(p=>!!clubPrice(p)&&(!p.stock_tracking||Number(p.stock)>0)),promos=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).slice(0,8),promoHeading='Productos de tu zona',promoCopy='Encuentra productos reales de comercios cercanos a su precio normal; los socios Club acceden a precios especiales cuando estén disponibles.';
@@ -164,6 +168,7 @@
       const visibleBusinesses=businesses.slice(0,8);
       const productCount=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).length;
       view.innerHTML=`<div class="dy-home">
+        ${authorizedBerlinPilot?`<aside class="dy-private-pilot-link"><div><span>PRUEBA PRIVADA · CUENTA AUTORIZADA</span><h2>Berlín Hogar</h2><p>Producto de prueba $50 · Servicio DatoYa $1 · Total previsto $51.</p></div><a class="btn btn-primary" href="#/negocio/2">🛒 Ir a Berlín Hogar y comprar →</a></aside>`:''}
         <div class="dy-mobile-location"><div><span>📍 Tu ubicación</span><b data-dy-location-label>${h(loc.label)}</b></div><button type="button" data-dy-locate>Cambiar</button></div>
         <section class="dy-hero"><div class="dy-hero-copy"><div class="dy-kicker">📍 Descubre lo mejor de tu zona</div><h1>Negocios locales <span>cerca de ti</span></h1><p>Encuentra negocios, productos y ofertas cerca de ti.</p><form class="dy-search" id="dy-beta-search"><label class="dy-search-field"><span class="dy-search-icon">⌕</span><input name="q" autocomplete="off" placeholder="¿Qué necesitas?" aria-label="Buscar negocios, productos o servicios"></label><div class="dy-location-field"><span class="dy-location-icon">📍</span><button type="button" class="dy-location-button" data-dy-locate><span data-dy-location-label>${h(loc.label)}</span></button></div><button class="dy-search-submit" type="submit">Buscar</button></form><div class="dy-trust-row"><span>✓ Negocios aprobados</span><span>${productCount>0?`📦 ${productCount} producto${productCount===1?'':'s'} disponible${productCount===1?'':'s'}`:'📦 Explora el catálogo'}</span><span>♡ Apoya lo local</span></div></div><div class="dy-hero-visual" aria-hidden="true"><div class="dy-visual-card"><div class="dy-visual-image"></div><div class="dy-visual-overlay"><span class="dy-live-pill"><i class="dy-live-dot"></i> DatoYa Beta</span><h3>${businesses.length?`${businesses.length} negocios en esta vista`:'Sé de los primeros'}</h3><p>${businesses.length?'Contenido real publicado por comercios.':'Invita a un negocio local a registrarse.'}</p></div></div></div></section>
         <section class="dy-section dy-how-it-works" id="como-funciona" aria-labelledby="dy-how-title">
