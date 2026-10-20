@@ -93,6 +93,24 @@
       (!canCheckout?'<small class="dy-growth-disabled">Mercado Pago: contratación todavía no habilitada. No se realizará ningún cobro.</small>':'')+
     '</section>';
   }
+
+  function featuredCard(data){
+    const id=Number(data.business.id),f=data.featured_payment||{},pay=f.payment||null;
+    const status=String(pay?.status||''),canStart=!!f.checkout_enabled&&!['creating','pending','needs_review'].includes(status);
+    const title=status==='approved'?'Pago confirmado · pendiente de revisión':
+      status==='pending'?'Pago iniciado · pendiente de confirmación':
+      status==='needs_review'?'Pago pendiente de conciliación':
+      status==='creating'?'Estamos preparando el pago':
+      'Un espacio destacado durante 7 días';
+    const action=status==='pending'?
+      '<button class="btn btn-outline" onclick="dySyncFeaturedPayment('+id+')">Comprobar pago</button>':
+      status==='approved'?'<small>Administración aprobará el espacio antes de publicarlo.</small>':
+      '<button class="btn btn-primary" '+(canStart?'':'disabled')+' onclick="dyStartFeaturedPayment('+id+')">Contratar destacado semanal</button>';
+    return '<section class="dy-growth-note"><span>⭐</span><div><b>Destacado semanal · '+money(Number(f.price||4990))+'</b>'+
+      '<p>'+h(title)+'. Cupo limitado a uno por comuna. No se publica antes de confirmar el pago y aprobar la solicitud.</p>'+
+      action+(!f.checkout_enabled?'<small class="dy-growth-disabled">Contratación temporalmente desactivada.</small>':'')+
+      '</div></section>';
+  }
   function renderPlan(data){
     lastPlanData=data;
     const id=Number(data.business.id),m=data.membership,current=m?(tierMeta[m.tier]||tierMeta.impulso_plus):tierMeta.free;
@@ -106,7 +124,7 @@
       '<section class="dy-growth-duration"><div><span>1</span><h2>¿Por cuánto tiempo quieres impulsarte?</h2><p>Primero elige duración. Después escoge el nivel que más te conviene.</p></div><div class="dy-growth-duration-buttons">'+
         [1,7,15,30].map(d=>'<button class="'+(d===days?'active':'')+'" onclick="dyGrowthSelectDays('+d+')"><b>'+d+'</b><small>'+ (d===1?'día':'días')+'</small></button>').join('')+
       '</div></section>'+
-      '<div class="dy-growth-plan-grid">'+(data.offers||[]).map(o=>planCard(data,o)).join('')+'</div>'+
+      '<div class="dy-growth-plan-grid">'+(data.offers||[]).map(o=>planCard(data,o)).join('')+'</div>'+featuredCard(data)+
       '<section class="dy-growth-explain"><div><span>⚡</span><b>Impulso</b><p>Para que te vea más gente cerca durante un período puntual.</p></div><div><span>⚡⚡</span><b>Impulso+</b><p>Agrega datos y señales de demanda para tomar mejores decisiones.</p></div><div><span>🚀</span><b>Premium</b><p>Máximo alcance en los espacios destacados de DatoYa.</p></div></section>'+
       '<section class="dy-growth-table-card"><div><span>COMPARACIÓN</span><h2>Qué incluye cada nivel</h2><p>DatoYa Gratis incluye las herramientas esenciales; los planes pagados agregan alcance y funciones. El cargo de servicio por compras online se informa por separado.</p></div><div class="dy-growth-table"><div class="head"><b>Función</b><b>Gratis</b><b>Impulso</b><b>Impulso+</b><b>Premium</b></div>'+
         rows.map(r=>'<div class="row"><span>'+h(r[0])+'</span><strong>'+h(r[1])+'</strong><strong>'+h(r[2])+'</strong><strong>'+h(r[3])+'</strong><strong>'+h(r[4])+'</strong></div>').join('')+
@@ -141,6 +159,7 @@
       }
       const platformStatus=await api('/platform-payments/businesses/'+id+'/status').catch(()=>({payment:null}));
       data.platform_pending_payment=platformStatus.payment;
+      data.featured_payment=await api('/platform-featured-payments/businesses/'+id+'/status').catch(()=>({checkout_enabled:false,price:4990,payment:null}));
       data.config={...data.config,checkout_enabled:mpConfig.checkout_enabled===true};
       renderPlan(data);
     }catch(e){
@@ -149,6 +168,23 @@
     }
   };
 
+  window.dyStartFeaturedPayment=async function(id){
+    if(checkoutBusy)return;checkoutBusy=true;
+    try{
+      const r=await api('/platform-featured-payments/businesses/'+Number(id)+'/checkout',{method:'POST',body:{}});
+      const u=new URL(r.checkout_url||'');
+      if(u.protocol!=='https:'||!['mercadopago.cl','www.mercadopago.cl','mercadopago.com','www.mercadopago.com'].includes(u.hostname.toLowerCase()))throw new Error('Dirección de pago no válida');
+      location.href=u.toString();
+    }catch(e){checkoutBusy=false;toast?.(e.message||'No se pudo crear el pago','err');}
+  };
+  window.dySyncFeaturedPayment=async function(id){
+    if(syncBusy)return;syncBusy=true;
+    try{
+      const r=await api('/platform-featured-payments/businesses/'+Number(id)+'/sync',{method:'POST',body:{}});
+      toast?.(r.status==='approved'?'Pago del destacado confirmado':'Estado: '+(r.status||'pendiente'),r.status==='approved'?'ok':'info');
+      syncBusy=false;routes['mi-negocio-plan'](Number(id));
+    }catch(e){syncBusy=false;toast?.(e.message||'No se pudo comprobar el pago','err');}
+  };
   window.dyGrowthSelectDays=function(days){
     days=Number(days);if(![1,7,15,30].includes(days)||!lastPlanData)return;
     selectedDays.value=days;renderPlan(lastPlanData);
