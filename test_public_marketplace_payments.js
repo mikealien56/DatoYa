@@ -53,7 +53,8 @@ test('only verified authorized admin executes approved full refunds and confirms
  assert.match(refund,/status='refunded'/);
  assert.match(routes,/require\('\.\/mp_split_refunds_routes'\)/);
  assert.match(admin,/dyAdminSplitRefundProcess/);
- assert.match(mpSource,/v1\\\/payments\\\/\\d\+\(\?:\\\/refunds\)\?/);
+ assert.match(mpSource,/refundPath/);
+ assert.match(mpSource,/idempotencyKey/);
 });
 test('seller cannot fulfill an unpaid purchase and refunds cannot be manually faked',()=>{
  assert.match(orderIntegrity,/No puedes preparar ni entregar un pedido/);
