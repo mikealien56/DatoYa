@@ -270,11 +270,12 @@
     const key=decodeURIComponent(String(identifier||''));
     view.innerHTML=`<div class="dy-public-page"><div class="dy-real-loading"><span></span>Cargando negocio…</div></div>`;
     try{
-      const {businesses,products}=await loadMarketplace(true);
-      await loadSavedState(true);
-      const b=businesses.find(x=>String(x.id)===key||String(x.slug)===key);
+      // Direct links must work even when the customer's GPS radius excludes this business.
+      const [bizRes]=await Promise.all([api('/market/businesses'),loadSavedState(true)]);
+      const b=(bizRes.businesses||[]).find(x=>String(x.id)===key||String(x.slug)===key);
       if(!b)throw new Error('Este negocio no está disponible públicamente. Puede estar pendiente de revisión o pausado.');
-      const items=products.filter(p=>Number(p.business_id)===Number(b.id));
+      const productsRes=await api('/market/products?business_id='+encodeURIComponent(b.id));
+      const items=(productsRes.products||[]).filter(p=>Number(p.business_id)===Number(b.id));
       const exact=b.business_type!=='home_business'&&b.public_address_mode==='exact'&&b.address;
       const publicPlace=exact?`${b.address}${b.comuna?', '+b.comuna:''}`:[b.sector,b.comuna].filter(Boolean).join(', ');
       const wa=String(b.whatsapp||b.phone||'').replace(/\D/g,'');
