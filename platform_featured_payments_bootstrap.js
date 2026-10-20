@@ -139,16 +139,31 @@ function mount(app,auth,verifyEmail,db,notify){
   if(!b)return error(res,'Negocio no autorizado',403);
   const row=latest(b.id);
   if(!row)return res.json({status:'none'});
-  if(!enabled())return error(res,'Conciliacion de destacados no habilitada',503);
+  if(!mp.config().ready)return error(res,'Verificación de pago no disponible',503);
   try{return res.json(await verify(row));}catch(_){return error(res,'No se pudo verificar el pago. Contacta soporte',503);}
  });
+ // Keep verifying existing payments even when new featured checkout is disabled.
+ let checkInProgress=false;
+ const reconcilePending=async()=>{
+  if(checkInProgress||!mp.config().ready)return;
+  checkInProgress=true;
+  try{
+   const rows=db.prepare("SELECT * FROM featured_mp_payments WHERE status='pending' AND preference_id IS NOT NULL ORDER BY id ASC LIMIT 8").all();
+   for(const row of rows)try{await verify(row)}catch(e){console.warn('[DatoYa][Featured payment reconciliation] awaiting provider',Number(e?.status)||503)}
+  }catch(e){console.warn('[DatoYa][Featured reconciliation] query issue',String(e?.name||'Error'))}
+  finally{checkInProgress=false}
+ };
+ const startTimer=setTimeout(()=>reconcilePending().catch(()=>{}),55000);
+ if(typeof startTimer.unref==='function')startTimer.unref();
+ const periodicTimer=setInterval(()=>reconcilePending().catch(()=>{}),5*60*1000);
+ if(typeof periodicTimer.unref==='function')periodicTimer.unref();
  app.post('/api/platform-featured-payments/webhook',async(req,res)=>{
   if(!mp.validWebhook(req))return res.status(401).send('Firma invalida');
   const ref=String(req.query.ref||''),paymentId=String(req.query['data.id']||'');
   if(!/^DYPL[A-F0-9]{24}$/.test(ref)||!/^\d{1,25}$/.test(paymentId))return res.sendStatus(200);
   const row=byRef(ref);
   if(!row||row.status==='approved')return res.sendStatus(200);
-  if(!enabled())return res.sendStatus(503);
+  if(!mp.config().ready)return res.sendStatus(503);
   try{const out=await verify(row,paymentId);return res.sendStatus(out.status==='needs_review'?503:200);}
   catch(_){return res.sendStatus(503);}
  });
