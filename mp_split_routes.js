@@ -231,7 +231,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
       }catch(_){}
     }
     const platform=require('./platform_payments_service').config();
-    const platformProduction=platform.mode==='production'&&platform.checkout;
+    const platformProduction=platform.mode==='production'&&platform.checkout&&!platform.pilotOnly;
     const modeProduction=config.mode==='production';
     const centralEnabled=process.env.DATOYA_CENTRAL_CHECKOUT_ENABLED==='true';
     const purchasesEnabled=!!(modeProduction&&centralEnabled&&config.checkout&&productionVerified>0);
@@ -243,7 +243,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
         businesses_verified_in_production:productionVerified,
         technically_enabled:purchasesEnabled,real_funds_reconciled:false
       },
-      platform_checkout:{credentials_format_ready:!!platform.ready,webhook_secret_configured:!!platform.webhookConfigured,environment:platform.mode,checkout_enabled:!!platform.checkout,production_checkout_enabled:platformProduction},
+      platform_checkout:{credentials_format_ready:!!platform.ready,webhook_secret_configured:!!platform.webhookConfigured,environment:platform.mode,checkout_enabled:platformProduction,production_checkout_enabled:platformProduction,pilot_mode:!!platform.pilotOnly,pilot_ready:!!(platform.pilotOnly&&platform.checkout)},
       plans:{checkout_enabled:platformProduction,mode:'manual_periods',provider_mode:platform.mode,message:platformProduction?'Checkout Pro de servicios propios habilitado; verificar cobros':'Pendiente autorización de Checkout Pro para planes'},
       club:{checkout_enabled:platformProduction,auto_renew:false,provider_mode:platform.mode,message:platformProduction?'Checkout Pro de Club habilitado; verificar cobros':'Pendiente autorización de Checkout Pro para DatoYa Club'},
       featured_week:{checkout_enabled:platformProduction&&process.env.DATOYA_FEATURED_CHECKOUT_ENABLED==='true',message:platformProduction&&process.env.DATOYA_FEATURED_CHECKOUT_ENABLED==='true'?'Checkout Mercado Pago de destacados disponible; verificar cobros':'Pendiente cobro validado para espacios destacados'},
