@@ -36,9 +36,9 @@ app.get('/api/marketplace/central-payments/status',(req,res)=>{
 });
 app.get('/api/marketplace/mp-split-pilot-access',auth,(req,res)=>{
   const config=require('./mp_split_service').config();
-  const id=Number(req.query.business_id||0),product=Number(req.query.product_id||0);
+  const id=Number(req.query.business_id||0);
   const allowed=config.pilotOnly&&config.checkout&&__dyMarketplaceCentralReady(id)&&
-    Number(req.user?.id)===Number(config.pilotUserId)&&id===Number(config.pilotBusinessId)&&product===Number(config.pilotProductId);
+    Number(req.user?.id)===Number(config.pilotUserId)&&id===Number(config.pilotBusinessId);
   res.json({checkout_enabled:!!allowed});
 });
 app.use((req,res,next)=>{
