@@ -29,7 +29,7 @@ if(!source.includes('DATOYA_MP_FEATURED_PAYMENTS_V1')){
 function mount(app,auth,verifyEmail,db,notify){
  const enabled=()=>{
   const c=mp.config();
-  return c.mode==='production'&&c.checkout&&process.env.DATOYA_FEATURED_CHECKOUT_ENABLED==='true';
+  return c.mode==='production'&&c.checkout&&!c.pilotOnly&&process.env.DATOYA_FEATURED_CHECKOUT_ENABLED==='true';
  };
  const own=(userId,businessId)=>db.prepare('SELECT id,name,status,comuna_id FROM businesses WHERE id=? AND owner_user_id=?')
   .get(Number(businessId),Number(userId))||null;
