@@ -10,6 +10,16 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
   const seller=id=>db.prepare('SELECT * FROM mp_split_sellers WHERE business_id=?').get(Number(id))||null;
   const order=(uid,id)=>db.prepare('SELECT o.*,u.email buyer_email FROM commerce_orders o JOIN users u ON u.id=o.user_id WHERE o.user_id=? AND o.id=?')
     .get(Number(uid),Number(id))||null;
+  function pilotAllowed(o,userId){
+    const cfg=ready();
+    if(!cfg.pilotOnly)return true;
+    if(!o||Number(userId)!==Number(cfg.pilotUserId)||Number(o.business_id)!==Number(cfg.pilotBusinessId)||
+       Number(o.user_id)!==Number(userId)||Number(o.subtotal)!==50||Number(o.total)!==50||
+       Number(o.delivery_fee)!==0||String(o.fulfillment_method)!=='pickup')return false;
+    const lines=db.prepare('SELECT product_id,unit_price,quantity FROM commerce_order_items WHERE order_id=?').all(o.id);
+    return lines.length===1&&Number(lines[0].product_id)===Number(cfg.pilotProductId)&&
+      Number(lines[0].unit_price)===50&&Number(lines[0].quantity)===1;
+  }
   const attempt=id=>db.prepare('SELECT * FROM mp_split_attempts WHERE order_id=?').get(Number(id))||null;
   const statusErr=(res,e)=>res.status([400,401,403,404,409,503,504].includes(e.status)?e.status:502).json({error:e.message||'No fue posible completar la operación'});
   async function access(s,{verificationOnly=false}={}){
@@ -161,12 +171,12 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     const t=attempt(o.id),s=seller(o.business_id),c=ready();
     let price=null;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)})}catch(_){}
-    if(t&&c.checkout&&t.preference_id&&t.status!=='paid'){
+    if(t&&t.preference_id&&t.status!=='paid'){
       try{await sync(t)}catch(e){console.warn('[DatoYa] MP Split pendiente de conciliación:',e.message)}
     }
     const fresh=attempt(o.id);
     const b=db.prepare('SELECT status FROM businesses WHERE id=?').get(o.business_id);
-    res.json({available:!!(c.checkout&&s&&s.verified_at&&b&&b.status==='active'&&o.status!=='cancelled'&&o.payment_status==='pending'&&!db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id)),
+    res.json({available:!!(pilotAllowed(o,req.user.id)&&c.checkout&&s&&s.verified_at&&b&&b.status==='active'&&o.status!=='cancelled'&&o.payment_status==='pending'&&!db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id)),
       quote:price,checkout_started:!!fresh,payment_status:fresh?fresh.status:'not_started',
       paid:o.payment_status==='paid'||!!fresh&&fresh.status==='paid',
       checkout_url:fresh&&fresh.status==='pending'?fresh.checkout_url:null});
@@ -175,6 +185,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     const o=order(req.user.id,req.params.id);
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     if(o.status==='cancelled'||o.payment_status!=='pending')return res.status(409).json({error:'El pedido ya no está pendiente de pago'});
+    if(!pilotAllowed(o,req.user.id))return res.status(403).json({error:'Checkout disponible únicamente para la cuenta y el producto del piloto.'});
     const c=ready(),s=seller(o.business_id);
     const b=db.prepare('SELECT status FROM businesses WHERE id=?').get(o.business_id);
     if(!c.checkout||!s||!s.verified_at||!b||b.status!=='active')return res.status(503).json({error:'Este negocio aún no tiene Mercado Pago Split habilitado'});
@@ -213,7 +224,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     const paymentId=String(req.query['data.id']||'');
     if(!/^DYMP\d{1,20}$/.test(ref)||!/^\d{1,25}$/.test(paymentId))return res.sendStatus(200);
     const t=db.prepare('SELECT * FROM mp_split_attempts WHERE reference=?').get(ref);
-    if(!t||!t.preference_id||!ready().checkout)return res.sendStatus(200);
+    if(!t||!t.preference_id)return res.sendStatus(200);
     try{await sync(t,paymentId)}catch(e){console.warn('[DatoYa] MP Split Webhook requiere conciliación:',e.message);return res.sendStatus(503)}
     return res.sendStatus(200);
   });
