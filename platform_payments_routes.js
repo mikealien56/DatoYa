@@ -29,6 +29,10 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
       return res.status(403).json({error:'Esta compra todavía no está habilitada para tu cuenta.'});
     if(cfg.pilotOnly&&kind!=='club')
       return res.status(503).json({error:'Los planes de negocio permanecen bloqueados durante el piloto de Club.'});
+    if(!cfg.pilotOnly&&kind==='club'&&!cfg.publicClubCheckout)
+      return res.status(503).json({error:'DatoYa Club aún no está habilitado para nuevas compras.'});
+    if(!cfg.pilotOnly&&kind==='growth'&&!cfg.publicGrowthCheckout)
+      return res.status(503).json({error:'Los planes de negocios aún no están habilitados para compras.'});
     let businessId=null,tier=null,days=Number(req.body?.days),amount,title,path;
     if(kind==='club'){
       const u=helpers.clubUser(req,res);
@@ -137,7 +141,8 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
   });
   app.get('/api/platform-payments/config',(req,res)=>{
     const c=allowed();
-    res.json({checkout_enabled:!!c.checkout&&!c.pilotOnly,mode:c.mode,auto_renew:false,provider:'mercadopago'});
+    res.json({checkout_enabled:!!c.publicClubCheckout,club_checkout_enabled:!!c.publicClubCheckout,
+      growth_checkout_enabled:!!c.publicGrowthCheckout,mode:c.mode,auto_renew:false,provider:'mercadopago'});
   });
   // Private pilot availability never reveals the authorized customer's ID.
   app.get('/api/platform-payments/club/pilot-access',auth,(req,res)=>{
