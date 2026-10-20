@@ -33,8 +33,12 @@
             '<p>Accede a precios especiales en productos que los negocios seleccionen para DatoYa Club. Todo simple, cerca de ti.</p>'+
             '<p class="dy-club-premium-price">'+money(price)+' <small>/ 30 días</small></p>'+
             '<div class="dy-club-info-hero-actions">'+
+              (options.checkout&&isCustomer()?
+                '<button type="button" class="btn btn-primary" onclick="'+(options.pending?'dySyncClubPayment()':'dyStartClubCheckout('+payDays+')')+'">'+
+                  (options.pending?'Comprobar pago pendiente':pilot?'Pagar pase piloto · '+money(payPrice):'Activar Club · '+money(payPrice))+'</button>':'')+
               '<button type="button" class="btn btn-light" onclick="document.getElementById(\'club-beneficios\')?.scrollIntoView({behavior:\'smooth\',block:\'start\'})">Descubrir beneficios</button>'+
             '</div>'+
+            (pilot?'<p class="dy-club-price-clarity"><b>Prueba privada autorizada:</b> '+money(payPrice)+' por 7 días. Precio normal de Club sin cambios.</p>':'')+
             '<p class="dy-club-price-clarity">DatoYa Gratis siempre estará disponible. Club es opcional. Sin renovación automática.</p>'+
           '</div>'+
         '</section>'+
