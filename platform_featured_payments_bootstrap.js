@@ -14,7 +14,8 @@ db.exec(
  "status TEXT NOT NULL DEFAULT 'creating',"+
  "preference_id TEXT UNIQUE,checkout_url TEXT,payment_id TEXT UNIQUE,"+
  "created_at TEXT NOT NULL,updated_at TEXT NOT NULL);"+
- "CREATE INDEX IF NOT EXISTS idx_featured_mp_business_status ON featured_mp_payments(business_id,status);"
+ "CREATE INDEX IF NOT EXISTS idx_featured_mp_business_status ON featured_mp_payments(business_id,status);"+
+ "CREATE UNIQUE INDEX IF NOT EXISTS uq_featured_mp_pending ON featured_mp_payments(business_id) WHERE status IN ('creating','pending','needs_review');"
 );
 const filename=path.join(__dirname,'server.js');
 let source=fs.readFileSync(filename,'utf8');
@@ -88,7 +89,8 @@ function mount(app,auth,verifyEmail,db,notify){
   const b=own(req.user.id,req.params.businessId);
   if(!b)return error(res,'Negocio no autorizado',403);
   const row=latest(b.id);
-  res.json({checkout_enabled:enabled(),payment:row?response(row):null});
+  const price=Number(db.prepare("SELECT value FROM settings WHERE key='featured_business_weekly_price'").get()?.value||4990);
+  res.json({checkout_enabled:enabled(),price,days:7,payment:row?response(row):null});
  });
  app.post('/api/platform-featured-payments/businesses/:businessId/checkout',auth,verifyEmail,async(req,res)=>{
   const b=own(req.user.id,req.params.businessId);
