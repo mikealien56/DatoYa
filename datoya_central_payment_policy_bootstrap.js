@@ -29,10 +29,17 @@ function __dyMarketplaceWeeklyPrice(){
   return Number.isSafeInteger(n)&&n>=1000&&n<=100000?n:4990;
 }
 app.get('/api/marketplace/central-payments/status',(req,res)=>{
-  const id=Number(req.query.business_id||0);
-  res.json({checkout_enabled:__dyMarketplaceCentralReady(id),
+  const id=Number(req.query.business_id||0),pilot=process.env.MP_SPLIT_PILOT_ONLY==='true';
+  res.json({checkout_enabled:!pilot&&__dyMarketplaceCentralReady(id),pilot_only:pilot,
     provider:'mercadopago',service_fee_percent:2,weekly_price:__dyMarketplaceWeeklyPrice(),
     weekly_checkout_enabled:false});
+});
+app.get('/api/marketplace/mp-split-pilot-access',auth,(req,res)=>{
+  const config=require('./mp_split_service').config();
+  const id=Number(req.query.business_id||0),product=Number(req.query.product_id||0);
+  const allowed=config.pilotOnly&&config.checkout&&__dyMarketplaceCentralReady(id)&&
+    Number(req.user?.id)===Number(config.pilotUserId)&&id===Number(config.pilotBusinessId)&&product===Number(config.pilotProductId);
+  res.json({checkout_enabled:!!allowed});
 });
 app.use((req,res,next)=>{
   const m=req.method,p=req.path;
