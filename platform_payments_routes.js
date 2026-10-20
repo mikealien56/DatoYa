@@ -30,6 +30,9 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
       return res.status(403).json({error:'Esta compra todavía no está habilitada para tu cuenta.'});
     if(cfg.pilotOnly&&kind!=='club')
       return res.status(503).json({error:'Los planes de negocio permanecen bloqueados durante el piloto de Club.'});
+    // A paid service needs a verified address for its receipt and account recovery.
+    if(!db.prepare("SELECT id FROM auth_email_verifications WHERE user_id=? AND verified_at IS NOT NULL LIMIT 1").get(req.user.id))
+      return res.status(403).json({error:'Confirma tu correo electrónico antes de contratar un servicio pagado.'});
     if(!cfg.pilotOnly&&kind==='club'&&!cfg.publicClubCheckout)
       return res.status(503).json({error:'DatoYa Club aún no está habilitado para nuevas compras.'});
     if(!cfg.pilotOnly&&kind==='growth'&&!cfg.publicGrowthCheckout)
