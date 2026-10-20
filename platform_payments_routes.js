@@ -34,10 +34,14 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
       if(![7,30].includes(days))return res.status(400).json({error:'Pase Club inválido'});
       if(cfg.pilotOnly&&days!==7)return res.status(403).json({error:'El piloto permite únicamente un pase Club de 7 días.'});
       amount=Number(helpers.clubPrice(days));
-      if(cfg.pilotOnly&&amount!==990)return res.status(503).json({error:'El precio de prueba debe revisarse antes de cobrar.'});
+      if(cfg.pilotOnly){
+        if(amount!==990)return res.status(503).json({error:'El precio normal de Club debe revisarse antes del piloto.'});
+        amount=50;
+        title='DatoYa Club · piloto exclusivo de 7 días';
+      }
       if(cfg.pilotOnly&&db.prepare("SELECT id FROM platform_service_payments WHERE kind='club' AND user_id=? AND status='approved' LIMIT 1").get(req.user.id))
         return res.status(409).json({error:'Esta cuenta ya completó su única compra piloto.'});
-      title='DatoYa Club · '+days+' días';
+      if(!cfg.pilotOnly)title='DatoYa Club · '+days+' días';
       path='#/club';
     }else{
       businessId=Number(req.params.businessId);
@@ -51,7 +55,7 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
       title='DatoYa '+tier.replace('_','+')+' · '+days+' días';
       path='#/mi-negocio-plan/'+businessId;
     }
-    if(!Number.isSafeInteger(amount)||amount<100||amount>300000)
+    if(!Number.isSafeInteger(amount)||amount<(cfg.pilotOnly&&kind==='club'?50:100)||amount>300000)
       return res.status(503).json({error:'El precio del servicio debe revisarse antes del cobro'});
     const previous=pending(kind,req.user.id,businessId);
     if(previous){
@@ -63,7 +67,7 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
     db.prepare("INSERT INTO platform_service_payments(reference,kind,user_id,business_id,tier,days,amount,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'creating',?,?)")
       .run(reference,kind,req.user.id,businessId,tier,days,amount,iso,iso);
     try{
-      const pref=mp.purchase({reference,amount,title,returnPath:path,site:cfg.site});
+      const pref=mp.purchase({reference,amount,title,returnPath:path,site:cfg.site,allowPilotAmount:cfg.pilotOnly&&kind==='club'&&amount===50});
       const data=await mp.request('POST','/checkout/preferences',{body:pref});
       if(!data?.id||!data?.init_point)throw Object.assign(new Error('Mercado Pago no devolvió una preferencia válida'),{status:502});
       const url=mp.checkoutUrl(data.init_point);
@@ -141,7 +145,7 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
     if(!u)return;
     const amount=Number(helpers.clubPrice(7));
     const alreadyPaid=!!db.prepare("SELECT id FROM platform_service_payments WHERE kind='club' AND user_id=? AND status='approved' LIMIT 1").get(req.user.id);
-    return res.json({enabled:amount===990&&!alreadyPaid,days:7,amount:amount===990?amount:null,already_paid:alreadyPaid});
+    return res.json({enabled:amount===990&&!alreadyPaid,days:7,amount:amount===990?50:null,already_paid:alreadyPaid});
   });
   app.post('/api/platform-payments/club/checkout',auth,(req,res)=>start(req,res,'club').catch(e=>fail(res,e)));
   app.post('/api/platform-payments/businesses/:businessId/checkout',auth,(req,res)=>start(req,res,'growth').catch(e=>fail(res,e)));
