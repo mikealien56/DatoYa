@@ -6,6 +6,8 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.webkit.WebView;
@@ -122,23 +124,30 @@ public final class NativeToolbar {
   }
 
   public void refreshAccount() {
-    String script = "(async function(){try{let r=await fetch('/api/auth/me',{credentials:'same-origin'});" +
-        "if(!r.ok)return JSON.stringify({loggedIn:false,unread:0});let d=await r.json();" +
-        "return JSON.stringify({loggedIn:!!d.user,unread:Number(d.user?.unread_notifications||0)});" +
-        "}catch(e){return JSON.stringify({loggedIn:false,unread:0});}})();";
-    webView.evaluateJavascript(script, value -> {
-      try {
-        Object result = new JSONTokener(value).nextValue();
-        JSONObject state = new JSONObject(String.valueOf(result));
-        loggedIn = state.optBoolean("loggedIn",false);
-        int unread = state.optInt("unread",0);
-        activity.runOnUiThread(() -> {
-          accountAction.setText(loggedIn ? "Salir" : "Entrar");
-          accountAction.setContentDescription(loggedIn ? "Cerrar sesión" : "Ingresar");
-          unreadDot.setVisibility(loggedIn && unread > 0 ? View.VISIBLE : View.GONE);
-        });
-      } catch(Exception ignored) { /* Keep last confirmed state if loading */ }
-    });
+    // JavaScript runs asynchronously in WebView. Query again after the fetch finishes.
+    String script = "(function(){window.__dyNativeAccount=null;" +
+        "fetch('/api/auth/me',{credentials:'same-origin'}).then(async r=>{" +
+        "if(!r.ok)return {loggedIn:false,unread:0};let d=await r.json();" +
+        "return {loggedIn:!!d.user,unread:Number(d.user?.unread_notifications||0)};" +
+        "}).then(x=>window.__dyNativeAccount=x).catch(()=>{" +
+        "window.__dyNativeAccount={loggedIn:false,unread:0};});return 'started';})()";
+    webView.evaluateJavascript(script,null);
+    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+      webView.evaluateJavascript("JSON.stringify(window.__dyNativeAccount||{})",value -> {
+        try {
+          Object result = new JSONTokener(value).nextValue();
+          JSONObject state = new JSONObject(String.valueOf(result));
+          if (!state.has("loggedIn")) return;
+          loggedIn = state.optBoolean("loggedIn",false);
+          final int unread = state.optInt("unread",0);
+          activity.runOnUiThread(() -> {
+            accountAction.setText(loggedIn ? "Salir" : "Entrar");
+            accountAction.setContentDescription(loggedIn ? "Cerrar sesión" : "Ingresar");
+            unreadDot.setVisibility(loggedIn && unread > 0 ? View.VISIBLE : View.GONE);
+          });
+        } catch(Exception ignored) { }
+      });
+    }, 850);
   }
 
   private void confirmLogout() {
