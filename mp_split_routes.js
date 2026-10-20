@@ -2,8 +2,10 @@
 // MP Split 1:1 checkout and seller onboarding for DatoYa. Always verifies with the provider.
 const crypto=require('crypto');
 const mp=require('./mp_split_service');
+const splitReceipts=require('./mp_split_receipts');
 const {quote}=require('./datoya_service_fee');
 module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
+  splitReceipts.setup(db);
   const ready=()=>mp.config();
   const owned=(uid,id)=>db.prepare('SELECT id,name,status FROM businesses WHERE id=? AND owner_user_id=?')
     .get(Number(id),Number(uid))||null;
@@ -79,7 +81,10 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
         // The fee is checked against the live preference; actual payout is reviewed on the processor's ledger.
         const updated=db.prepare("UPDATE commerce_orders SET payment_status='paid',payment_method='mercadopago_split',updated_at=? WHERE id=? AND payment_status='pending'").run(now,t.order_id);
         db.prepare("UPDATE mp_split_attempts SET status='paid',payment_id=?,updated_at=? WHERE order_id=?").run(id,now,t.order_id);
-        if(Number(updated.changes||0)>0)notify(o.user_id,'pago','Pago Mercado Pago confirmado para '+o.reference,'#/pedidos');
+        if(Number(updated.changes||0)>0){
+          try{notify(o.user_id,'pago','Pago Mercado Pago confirmado para '+o.reference,'#/pedidos')}catch(_){}
+          Promise.resolve(splitReceipts.send(db,o.id)).catch(e=>console.warn('[DatoYa][Split receipt] pending',String(e?.name||'Error')));
+        }
         return {paid:true,state:'paid'};
       }
       db.prepare('UPDATE mp_split_attempts SET status=?,payment_id=?,updated_at=? WHERE order_id=?')
