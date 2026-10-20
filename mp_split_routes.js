@@ -248,6 +248,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     try{await sync(t,paymentId)}catch(e){console.warn('[DatoYa] MP Split Webhook requiere conciliación:',e.message);return res.sendStatus(503)}
     return res.sendStatus(200);
   });
+  require('./mp_split_refunds_routes')(app,auth,requireRole,db,notify,{mp,access,seller,ready});
   // Diagnóstico de pagos del lanzamiento: solo lectura y accesible únicamente a Admin.
   app.get('/api/admin/payment-launch-readiness',auth,requireRole('admin'),(req,res)=>{
     const config=ready();
