@@ -15,8 +15,16 @@ function config(env=process.env){
   const onboarding=configured&&yes(env.MP_SPLIT_ENABLED);
   const checkout=onboarding&&yes(env.MP_SPLIT_CHECKOUT_ENABLED)&&!!String(env.MP_SPLIT_WEBHOOK_SECRET||'').trim()&&
     (mode==='test'||yes(env.MP_SPLIT_LIVE_ALLOWED));
+  const pilotOnly=yes(env.MP_SPLIT_PILOT_ONLY);
+  const userText=String(env.MP_SPLIT_PILOT_USER_ID||''),businessText=String(env.MP_SPLIT_PILOT_BUSINESS_ID||''),productText=String(env.MP_SPLIT_PILOT_PRODUCT_ID||'');
+  const validId=t=>/^[1-9]\d{0,14}$/.test(t)&&Number.isSafeInteger(Number(t));
+  const pilotUserId=validId(userText)?Number(userText):null;
+  const pilotBusinessId=validId(businessText)?Number(businessText):null;
+  const pilotProductId=validId(productText)?Number(productText):null;
+  const pilotReady=!pilotOnly||!!(pilotUserId&&pilotBusinessId&&pilotProductId);
   const site=String(env.PUBLIC_BASE_URL||'https://www.datoya.cl').replace(/\/+$/,'');
-  return {appId,configured,onboarding,checkout,mode,site,callback:site+'/api/mp-split/oauth/callback'};
+  return {appId,configured,onboarding,checkout:checkout&&pilotReady,mode,site,
+    pilotOnly,pilotUserId,pilotBusinessId,pilotProductId,callback:site+'/api/mp-split/oauth/callback'};
 }
 function err(message,status=502){const e=new Error(message);e.status=status;return e}
 // A merchant may connect while DatoYa reviews its shop. Approval is still mandatory
