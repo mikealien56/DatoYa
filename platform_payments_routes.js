@@ -208,6 +208,24 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
     },7000);
     if(typeof timer.unref==='function')timer.unref();
   }
+  // Reconcile already-started payments even if new checkouts are paused or webhooks fail.
+  let periodicReconcileRunning=false;
+  const reconcilePending=async()=>{
+    if(periodicReconcileRunning||!allowed().ready)return;
+    periodicReconcileRunning=true;
+    try{
+      const rows=db.prepare("SELECT * FROM platform_service_payments WHERE status='pending' AND preference_id IS NOT NULL ORDER BY id ASC LIMIT 10").all();
+      for(const row of rows){
+        try{await reconcile(row)}
+        catch(e){console.warn('[DatoYa][Payment reconciliation] pending verification',Number(e?.status)||503);}
+      }
+    }catch(e){console.warn('[DatoYa][Payment reconciliation] query failed',String(e?.name||'Error'))}
+    finally{periodicReconcileRunning=false;}
+  };
+  const firstCheck=setTimeout(()=>reconcilePending().catch(()=>{}),45000);
+  if(typeof firstCheck.unref==='function')firstCheck.unref();
+  const repeatingCheck=setInterval(()=>reconcilePending().catch(()=>{}),5*60*1000);
+  if(typeof repeatingCheck.unref==='function')repeatingCheck.unref();
   app.post('/api/platform-payments/webhook',async(req,res)=>{
     if(!mp.validWebhook({headers:req.headers,query:req.query}))return res.status(401).send('Firma inválida');
     const ref=String(req.query.ref||''),paymentId=String(req.query['data.id']||'');
