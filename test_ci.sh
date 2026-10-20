@@ -31,6 +31,7 @@ node --test test_central_marketplace_payment_policy.js
 node --test test_payment_launch_readiness.js
 node --test test_platform_payments.js
 node --test test_platform_payments_activation.js
+node --test test_platform_featured_payments.js
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
 bash test_khipu_business_onboarding.sh
