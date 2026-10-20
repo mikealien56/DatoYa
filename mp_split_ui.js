@@ -103,7 +103,8 @@
       ready=config?.checkout_enabled===true;
       if(config?.pilot_only===true&&ME?.account_type==='customer'&&Number(form.dataset.subtotal||0)===50){
         const pilot=await api('/marketplace/mp-split-pilot-access?business_id='+businessId).catch(()=>({checkout_enabled:false}));
-        ready=pilot?.checkout_enabled===true;
+        ready=pilot?.checkout_enabled===true&&Number(form.dataset.pilotProductId)===Number(pilot.product_id)&&
+          Number(form.dataset.cartItems)===1&&Number(form.dataset.cartQuantity)===1;
       }
       rate=Number(config?.service_fee_percent||2);
     }catch(_){}
