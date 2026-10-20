@@ -11,7 +11,7 @@
   // Una sola portada para "Conoce Club" y "Mi Club": nunca dos diseños diferentes.
   function renderPremiumClub(data,membership=null,options={}){
     const price=Number(data.prices?.[30]??3990),active=!!membership;
-    const pilot=options.pilot===true,payDays=pilot?7:30,payPrice=pilot?990:price;
+    const pilot=options.pilot===true,payDays=pilot?7:30,payPrice=pilot?Number(options.pilotAmount||0):price;
     const current=location.hash.startsWith('#/club')&&location.hash!=='#/club-info';
     const back=current?'#/perfil':'#/';
     const join=!ME
@@ -59,7 +59,7 @@
         '<section class="dy-club-simple-enroll">'+
           '<span>DATOYA CLUB</span><h2>'+money(price)+' por 30 días</h2>'+
           '<p>Sin renovación automática. Cuando termina el pase, sigues usando DatoYa Gratis.</p>'+
-          '<p class="dy-club-simple-pending">'+(options.pending?'Tienes un pago de Club en proceso. Comprueba su estado antes de intentar otra compra.':pilot?'Prueba piloto autorizada: pase de 7 días por $990, sin renovación automática. Mercado Pago confirmará el cobro antes de activar el pase.':options.checkout?'Pago seguro con Mercado Pago. El pase se activa únicamente cuando el cobro está confirmado.':'La contratación estará disponible cuando Mercado Pago esté habilitado. Todavía no se realizan cobros de Club.')+'</p>'+
+          '<p class="dy-club-simple-pending">'+(options.pending?'Tienes un pago de Club en proceso. Comprueba su estado antes de intentar otra compra.':pilot?'Prueba piloto autorizada: pase de 7 días por '+money(payPrice)+', sin renovación automática. Mercado Pago confirmará el cobro antes de activar el pase.':options.checkout?'Pago seguro con Mercado Pago. El pase se activa únicamente cuando el cobro está confirmado.':'La contratación estará disponible cuando Mercado Pago esté habilitado. Todavía no se realizan cobros de Club.')+'</p>'+
           '<div class="dy-club-simple-actions">'+(options.checkout&&isCustomer()?options.pending?'<button type="button" class="btn btn-primary" onclick="dySyncClubPayment()">Comprobar pago pendiente</button>':'<button type="button" class="btn btn-primary" onclick="dyStartClubCheckout('+payDays+')">'+(pilot?'Activar pase piloto':active?'Extender Club':'Activar Club')+' · '+money(payPrice)+'</button>':'')+join+'<a class="btn btn-outline" href="#/buscar/_">Ver productos</a></div>'+
         '</section>'+
       '</main>';
@@ -96,7 +96,7 @@
         api('/platform-payments/club/status').catch(()=>({payment:null}))
       ]);
       renderPremiumClub(publicData,privateData.club_active?privateData.membership:null,
-        {checkout:canCheckout,pilot:pilotAccess.enabled===true,pending:payment.payment});
+        {checkout:canCheckout,pilot:pilotAccess.enabled===true,pilotAmount:pilotAccess.amount,pending:payment.payment});
     }catch(e){showError(e.message,'club');}
   }
   routes.club=loadClub;
