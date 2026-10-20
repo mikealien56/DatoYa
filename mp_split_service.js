@@ -54,15 +54,19 @@ function open(businessId,enc,env=process.env){
   d.setAuthTag(raw.subarray(12,28));
   return JSON.parse(Buffer.concat([d.update(raw.subarray(28)),d.final()]).toString('utf8'));
 }
-async function api(method,path,token,body,transport=global.fetch){
-  if(!/^\/(checkout\/preferences(?:\/[0-9a-z-]+)?|v1\/payments\/\d+|v1\/payments\/search\?external_reference=DYMP\d+|merchant_orders\/\d+)$/i.test(path))throw err('Ruta Mercado Pago no permitida',400);
+async function api(method,path,token,body,transport=global.fetch,idempotencyKey){
+  const refundPath=/^\/v1\/payments\/\d+\/refunds$/.test(path);
+  if(refundPath&&method!=='POST')throw err('Operación de devolución no permitida',400);
+  if(!/^(GET|POST)$/.test(method))throw err('Método Mercado Pago no permitido',400);
+  if(!/^\/(checkout\/preferences(?:\/[0-9a-z-]+)?|v1\/payments\/\d+(?:\/refunds)?|v1\/payments\/search\?external_reference=DYMP\d+|merchant_orders\/\d+)$/i.test(path))throw err('Ruta Mercado Pago no permitida',400);
+  if(method==='POST'&&!refundPath&&path!=='/checkout/preferences')throw err('Operación no permitida',400);
   if(!/^[\w-]{16,300}$/.test(String(token||'')))throw err('Token OAuth del negocio inválido',503);
   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),14000);
   try{
     const result=await transport(API+path,{method,headers:{
       Authorization:'Bearer '+token,Accept:'application/json',
       'Content-Type':'application/json',
-      ...(method==='POST'?{'X-Idempotency-Key':crypto.randomUUID()}:{})
+      ...(method==='POST'?{'X-Idempotency-Key':idempotencyKey&&/^[a-zA-Z0-9_-]{10,120}$/.test(idempotencyKey)?idempotencyKey:crypto.randomUUID()}:{})
     },...(body===undefined?{}:{body:JSON.stringify(body)}),signal:ctrl.signal,redirect:'error'});
     let out;try{out=JSON.parse(await result.text())}catch{throw err('Respuesta inválida del proveedor')}
     if(!result.ok)throw err('Mercado Pago respondió con código '+result.status,result.status===401?401:result.status===400?400:502);
