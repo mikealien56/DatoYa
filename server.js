@@ -720,7 +720,7 @@ app.post('/api/auth/verify-phone', auth, (req, res) => {
 // ============ ADMIN ============
 app.get('/api/admin/stats', auth, requireRole('admin'), (req, res) => {
   const s = {};
-  s.users = db.prepare('SELECT COUNT(*) c FROM users').get().c;
+  s.users = db.prepare('SELECT COUNT(*) c FROM users WHERE is_active=1 AND is_demo=0').get().c;
   s.workers = db.prepare('SELECT COUNT(*) c FROM worker_profiles').get().c;
   s.requests = db.prepare('SELECT COUNT(*) c FROM service_requests').get().c;
   s.jobs_completed = db.prepare(`SELECT COUNT(*) c FROM jobs WHERE status='FINALIZADO'`).get().c;
@@ -730,14 +730,14 @@ app.get('/api/admin/stats', auth, requireRole('admin'), (req, res) => {
   s.avg_rating = Math.round((db.prepare('SELECT AVG(rating) a FROM reviews').get().a || 0) * 10) / 10;
   s.pending_reports = db.prepare(`SELECT COUNT(*) c FROM reports WHERE status='pendiente'`).get().c;
   s.pending_verifications = db.prepare(`SELECT COUNT(*) c FROM verification_requests WHERE status='pendiente'`).get().c;
-  s.new_users_week = db.prepare(`SELECT COUNT(*) c FROM users WHERE created_at > datetime('now','-7 days')`).get().c;
+  s.new_users_week = db.prepare(`SELECT COUNT(*) c FROM users WHERE is_active=1 AND is_demo=0 AND created_at > datetime('now','-7 days')`).get().c;
   s.jobs_by_status = db.prepare('SELECT status, COUNT(*) c FROM jobs GROUP BY status').all();
   s.jobs_by_month = db.prepare(`SELECT substr(created_at,1,7) m, COUNT(*) c, SUM(price) v FROM jobs WHERE status='FINALIZADO' GROUP BY m ORDER BY m`).all();
   s.top_categories = db.prepare(`SELECT c.name, c.icon, COUNT(*) n FROM service_requests sr JOIN categories c ON c.id=sr.category_id GROUP BY c.id ORDER BY n DESC LIMIT 5`).all();
   res.json({ stats: s });
 });
 app.get('/api/admin/users', auth, requireRole('admin'), (req, res) => {
-  res.json({ users: db.prepare(`SELECT u.id,u.name,u.email,u.phone,u.role,u.is_active,u.is_demo,u.created_at,c.name AS comuna FROM users u LEFT JOIN comunas c ON c.id=u.comuna_id ORDER BY u.created_at DESC`).all() });
+  res.json({ users: db.prepare(`SELECT u.id,u.name,u.email,u.phone,u.role,u.is_active,u.is_demo,u.created_at,c.name AS comuna FROM users u LEFT JOIN comunas c ON c.id=u.comuna_id WHERE u.is_demo=0 ORDER BY u.created_at DESC`).all() });
 });
 app.post('/api/admin/users/:id/toggle', auth, requireRole('admin'), (req, res) => {
   const u = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
