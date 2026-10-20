@@ -81,13 +81,13 @@ function __dyMoneySetting(key,def){const n=Number(getSetting(key,String(def)));r
 
 app.get('/api/admin/marketplace-v2/summary',auth,requireRole('admin'),(req,res)=>{
   __dyImpulseSync();
-  const accountRows=db.prepare("SELECT account_type,COUNT(*) c FROM market_account_types GROUP BY account_type").all();
+  const accountRows=db.prepare("SELECT m.account_type,COUNT(*) c FROM market_account_types m JOIN users u ON u.id=m.user_id WHERE u.is_active=1 AND u.is_demo=0 GROUP BY m.account_type").all();
   const accounts=Object.fromEntries(accountRows.map(x=>[x.account_type,Number(x.c||0)]));
-  const bizRows=db.prepare("SELECT status,COUNT(*) c FROM businesses GROUP BY status").all();
+  const bizRows=db.prepare("SELECT b.status,COUNT(*) c FROM businesses b JOIN users u ON u.id=b.owner_user_id WHERE u.is_demo=0 GROUP BY b.status").all();
   const businesses=Object.fromEntries(bizRows.map(x=>[x.status,Number(x.c||0)]));
-  const orderRows=db.prepare("SELECT status,COUNT(*) c FROM commerce_orders GROUP BY status").all();
+  const orderRows=db.prepare("SELECT o.status,COUNT(*) c FROM commerce_orders o JOIN users u ON u.id=o.user_id WHERE u.is_demo=0 GROUP BY o.status").all();
   const orderStatus=Object.fromEntries(orderRows.map(x=>[x.status,Number(x.c||0)]));
-  const orders=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(total),0) total FROM commerce_orders").get();
+  const orders=db.prepare("SELECT COUNT(*) c,COALESCE(SUM(o.total),0) total FROM commerce_orders o JOIN users u ON u.id=o.user_id WHERE u.is_demo=0").get();
   const growthRevenue=db.prepare("SELECT COALESCE(SUM(amount),0) total FROM business_impulse_memberships WHERE source='paid' AND amount>0").get();
   let clubRevenue={total:0};try{clubRevenue=db.prepare("SELECT COALESCE(SUM(amount),0) total FROM customer_club_memberships WHERE source='paid' AND amount>0").get();}catch(_){}
   let featuredRevenue={total:0};try{featuredRevenue=db.prepare("SELECT COALESCE(SUM(amount),0) total FROM featured_business_placements WHERE source='paid' AND status IN ('paid_pending_review','active','ended')").get();}catch(_){}
@@ -112,6 +112,7 @@ app.get('/api/admin/marketplace-v2/users',auth,requireRole('admin'),(req,res)=>{
     EXISTS(SELECT 1 FROM auth_email_verifications ev WHERE ev.user_id=u.id AND ev.verified_at IS NOT NULL) email_verified,
     (SELECT COUNT(*) FROM businesses b WHERE b.owner_user_id=u.id) business_count
     FROM users u LEFT JOIN market_account_types m ON m.user_id=u.id LEFT JOIN comunas c ON c.id=u.comuna_id
+    WHERE u.is_demo=0
     ORDER BY u.created_at DESC LIMIT 500`).all();
   res.json({users:rows});
 });
@@ -125,13 +126,14 @@ app.get('/api/admin/marketplace-v2/businesses',auth,requireRole('admin'),(req,re
     (SELECT COALESCE(SUM(o.total),0) FROM commerce_orders o WHERE o.business_id=b.id AND o.payment_status='paid') paid_gmv,
     (SELECT expires_at FROM business_impulse_memberships im WHERE im.business_id=b.id AND im.status='active' AND im.expires_at>? ORDER BY im.expires_at DESC LIMIT 1) impulse_expires_at
     FROM businesses b JOIN users u ON u.id=b.owner_user_id LEFT JOIN comunas c ON c.id=b.comuna_id
+    WHERE u.is_demo=0
     ORDER BY b.created_at DESC LIMIT 500`).all(__dyImpulseNow());
   res.json({businesses:rows});
 });
 
 app.get('/api/admin/marketplace-v2/products',auth,requireRole('admin'),(req,res)=>{
   const rows=db.prepare(`SELECT p.id,p.business_id,p.name,p.price,p.promo_price,p.stock,p.stock_tracking,p.active,p.created_at,b.name business_name
-    FROM products p JOIN businesses b ON b.id=p.business_id ORDER BY p.created_at DESC LIMIT 500`).all();
+    FROM products p JOIN businesses b ON b.id=p.business_id JOIN users u ON u.id=b.owner_user_id WHERE u.is_demo=0 ORDER BY p.created_at DESC LIMIT 500`).all();
   res.json({products:rows});
 });
 
