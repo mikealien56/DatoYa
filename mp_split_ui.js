@@ -136,7 +136,7 @@
         'El pago se realizará de forma segura en Mercado Pago.':
         pilotNeedsConnection?'El Negocio todavía no ha vinculado su cuenta receptora de Mercado Pago. Tu carrito queda guardado y podrás pagar cuando su titular complete la conexión.':
         pilotBlocked?'Esta compra de prueba no está habilitada para la cuenta o los artículos seleccionados.':
-        statusKnown?'Este negocio todavía no está habilitado para cobrar online.':'No pudimos verificar el estado del pago. Intenta nuevamente más tarde.';
+        statusKnown?'El pago online está deshabilitado para este negocio. Su titular debe revisar la vinculación y verificación de Mercado Pago desde Mi negocio → Pagos. El carrito permanecerá guardado.':'No pudimos verificar el estado del pago. Intenta nuevamente más tarde.';
       note.appendChild(node('p','dy-checkout-payment-status',message));
       const terms=node('a','dy-checkout-terms','Ver términos y condiciones');
       terms.href='#/terminos';note.appendChild(terms);
@@ -145,7 +145,7 @@
       submit.disabled=!ready;
       submit.textContent=ready?'Continuar al pago con Mercado Pago':
         pilotNeedsConnection?'Falta conectar Mercado Pago del negocio':
-        pilotBlocked?'Pago no disponible para esta compra':'Pago online no disponible';
+        pilotBlocked?'Pago no disponible para esta compra':'Esperando habilitación de pagos del negocio';
     }
     return rendered;
   };
