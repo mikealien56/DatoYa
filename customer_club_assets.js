@@ -41,6 +41,6 @@ console.log('[DatoYa] Tarjeta Club HQ 1536 publicada: '+clubHQBinary.length+' by
 const idx=path.join(pub,'index.html');
 if(fs.existsSync(idx)){let h=fs.readFileSync(idx,'utf8');
 h=h.replace(/<link[^>]+href="\/customer_club\.css[^"]*"[^>]*>\s*/g,'').replace(/<script[^>]+src="\/customer_club_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-h=h.replace('</head>','<link rel="stylesheet" href="/customer_club.css?v=20261020-club-pilot1">\n</head>');
-h=h.replace('</body>','<script src="/customer_club_ui.js?v=20261020-club-pilot1"></script>\n</body>');
+h=h.replace('</head>','<link rel="stylesheet" href="/customer_club.css?v=20261020-club-pilot50-1">\n</head>');
+h=h.replace('</body>','<script src="/customer_club_ui.js?v=20261020-club-pilot50-1"></script>\n</body>');
 fs.writeFileSync(idx,h);}
