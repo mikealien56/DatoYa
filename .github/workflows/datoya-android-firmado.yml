@@ -44,18 +44,21 @@ jobs:
         env:
           DATOYA_STORE_PASSWORD: ${{ secrets.DATOYA_TEST_STORE_PASSWORD }}
         run: gradle --no-daemon :app:assembleRelease
-      - name: Verify correct branch and 1.2 source
+      - name: Verify correct branch and 1.3 source
         run: |
           test "$GITHUB_REF_NAME" = "android-prueba-google"
-          grep -q 'versionCode 3' app/build.gradle
+          grep -q 'versionCode 4' app/build.gradle
           grep -q 'Bienvenido a DatoYa' app/src/main/java/cl/datoya/pruebas2026/MainActivity.java
           grep -q 'datoya_original' app/src/main/AndroidManifest.xml
+          test -s app/src/main/java/cl/datoya/pruebas2026/NativeToolbar.java
+          grep -q 'NativeToolbar' app/src/main/java/cl/datoya/pruebas2026/MainActivity.java
+          grep -q 'dy_bell' app/src/main/java/cl/datoya/pruebas2026/NativeToolbar.java
       - name: Validate APK
         run: |
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee apk-badging.txt
-          grep -q "versionCode='3'" apk-badging.txt
+          grep -q "versionCode='4'" apk-badging.txt
           grep -q "application-label:'DatoYa'" apk-badging.txt
           unzip -l "$APK" | grep -q 'res/'
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | tee signing-info.txt
