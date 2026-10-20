@@ -29,7 +29,9 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
       - name: Write SHA256 signing certificate fingerprint
         run: |
-          keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android | grep 'SHA256:' | sed 's/^[[:space:]]*//' > SHA256-GOOGLE.txt
+          keytool -exportcert -rfc -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android > debug-certificate.pem
+          openssl x509 -in debug-certificate.pem -noout -fingerprint -sha256 | sed 's/^sha256 Fingerprint=/SHA-256: /I' > SHA256-GOOGLE.txt
+          test -s SHA256-GOOGLE.txt
           cat SHA256-GOOGLE.txt
       - uses: actions/upload-artifact@v4
         with:
