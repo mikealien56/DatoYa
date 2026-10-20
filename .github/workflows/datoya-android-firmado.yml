@@ -33,10 +33,20 @@ jobs:
         env:
           DATOYA_STORE_PASSWORD: ${{ secrets.DATOYA_TEST_STORE_PASSWORD }}
         run: gradle --no-daemon :app:assembleRelease
+      - name: Verify correct branch and 1.1 source
+        run: |
+          test "$GITHUB_REF_NAME" = "android-prueba-google"
+          grep -q 'versionCode 2' app/build.gradle
+          grep -q 'Bienvenido a DatoYa' app/src/main/java/cl/datoya/pruebas2026/MainActivity.java
+          grep -q 'ic_datoya' app/src/main/AndroidManifest.xml
       - name: Validate APK
         run: |
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee apk-badging.txt
+          grep -q "versionCode='2'" apk-badging.txt
+          grep -q "application-label:'DatoYa'" apk-badging.txt
+          unzip -l "$APK" | grep -q 'res/'
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | tee signing-info.txt
           awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2}' signing-info.txt > SHA256-GOOGLE.txt
           grep -Eq '^[[:xdigit:]]{64}$' SHA256-GOOGLE.txt
@@ -46,4 +56,5 @@ jobs:
           path: |
             android-prueba/app/build/outputs/apk/release/app-release.apk
             android-prueba/SHA256-GOOGLE.txt
+            android-prueba/apk-badging.txt
           retention-days: 30
