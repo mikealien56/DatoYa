@@ -74,22 +74,16 @@
       }catch(_){}
     }
     const cap=p.stock_tracking?Math.min(99,Math.max(0,Number(p.stock||0))):99;
-    const pilotCap=storeContext?.pilotSelected&&Number(p.id)===Number(storeContext.pilotProductId)?1:cap;
-    return addItem(b,{product_id:Number(p.id),impulse_id:null,name:p.name,price,club_applied:clubApplied,image_data:p.image_data||null,stock_limit:pilotCap},quantity);
+    const stockCap=cap;
+    return addItem(b,{product_id:Number(p.id),impulse_id:null,name:p.name,price,club_applied:clubApplied,image_data:p.image_data||null,stock_limit:stockCap},quantity);
   };
   window.dyCartAddImpulse=async function(id){let i=(window.__dyImpulseCache||[]).find(x=>Number(x.id)===Number(id));if(!i){try{const r=await api('/market/impulses');i=(r.impulses||[]).find(x=>Number(x.id)===Number(id));}catch(_){}}if(!i)return toast?.('Este Impulso ya no está disponible','err');if(Number(i.stock_remaining||0)<=0)return toast?.('Este Impulso se agotó','err');addItem({id:i.business_id,name:i.business_name,pickup_enabled:i.pickup_enabled,delivery_enabled:i.delivery_enabled},{product_id:Number(i.product_id||0)||null,impulse_id:Number(i.id),name:i.title,price:Number(i.price),image_data:i.product_image||null});};
 
   const previousStore=routes.negocio;
   if(previousStore)routes.negocio=async function(identifier){await previousStore.apply(this,arguments);if(ME&&!isCustomerAccount()){storeContext=null;return;}try{const all=await api('/market/businesses'),key=decodeURIComponent(String(identifier||'')),b=(all.businesses||[]).find(x=>String(x.id)===key||String(x.slug)===key);if(!b)return;const [r,availability]=await Promise.all([api('/market/products?business_id='+b.id),api('/marketplace/central-payments/status?business_id='+encodeURIComponent(b.id)).catch(()=>({checkout_enabled:false}))]);
     const products=r.products||[];
-    let checkoutReady=availability.checkout_enabled===true,pilotProductId=null,pilotSelected=false;
-    if(availability.pilot_only===true&&ME?.account_type==='customer'){
-      const p=await api('/marketplace/mp-split-pilot-access?business_id='+encodeURIComponent(b.id)).catch(()=>({checkout_enabled:false}));
-      checkoutReady=p.checkout_enabled===true;
-      pilotSelected=p.pilot_selected===true;
-      pilotProductId=pilotSelected?Number(p.product_id||0):null;
-    }
-    storeContext={business:b,products,pilotSelected,pilotProductId,checkoutReady};
+    const checkoutReady=availability.checkout_enabled===true;
+    storeContext={business:b,products,checkoutReady};
     const productById=new Map(products.map(p=>[Number(p.id),p])),cards=[...document.querySelectorAll('.dy-store-product')];
     cards.forEach((el,index)=>{
       const productId=Number(el.dataset.productId||el.dataset.growthProduct||0);
@@ -97,7 +91,7 @@
       if(!p||el.querySelector('.dy-buy-panel'))return;
       // Storefront quantity and cart controls are available for all published products.
       const cap=p.stock_tracking?Math.min(99,Math.max(0,Number(p.stock||0))):99;
-      const max=pilotSelected&&Number(p.id)===pilotProductId?Math.min(1,cap):cap;
+      const max=cap;
       const target=el.children[1]||el;
       const panel=document.createElement('div');panel.className='dy-buy-panel';
       const qtyLabel=document.createElement('label');qtyLabel.className='dy-buy-qty-label';qtyLabel.textContent='Cantidad';
