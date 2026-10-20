@@ -93,12 +93,39 @@
       target.appendChild(btn);
     });
     const head=document.querySelector('.dy-store-info');
-    if(checkoutReady&&head&&!head.querySelector('.dy-store-cart-link')){
-      const a=document.createElement('a');
-      a.className='btn btn-outline dy-store-cart-link';
-      a.href='#/carrito';
-      a.textContent='🛒 Ver carrito ('+cartCount()+')';
-      head.appendChild(a);
+    if(checkoutReady&&head){
+      const actionArea=head.querySelector('.dy-store-social-actions')||head;
+      const pilotProduct=availability.pilot_only===true&&pilotProductId?
+        products.find(p=>Number(p.id)===pilotProductId):null;
+      if(pilotProduct&&!head.querySelector('.dy-store-pilot-buy')){
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='btn btn-primary dy-store-pilot-buy';
+        btn.textContent='🛒 Agregar prueba al carrito · '+money(Number(pilotProduct.price||0));
+        btn.disabled=!!pilotProduct.stock_tracking&&Number(pilotProduct.stock||0)<=0;
+        btn.addEventListener('click',async()=>{
+          btn.disabled=true;
+          try{
+            await dyCartAddProduct(pilotProduct.id);
+            const current=cart();
+            if(current.business_id===Number(b.id)&&current.items.some(x=>Number(x.product_id)===Number(pilotProduct.id))){
+              location.hash='#/carrito';
+            }else btn.disabled=false;
+          }catch(e){btn.disabled=false;toast?.(e.message||'No pudimos agregar el artículo de prueba','err')}
+        });
+        actionArea.appendChild(btn);
+        const tip=document.createElement('p');
+        tip.className='dy-store-pilot-note';
+        tip.textContent='Prueba privada: producto $50 + servicio DatoYa $1. Total previsto: $51. No se cobra hasta completar Mercado Pago.';
+        actionArea.insertAdjacentElement('afterend',tip);
+      }
+      if(!head.querySelector('.dy-store-cart-link')){
+        const a=document.createElement('a');
+        a.className='btn btn-outline dy-store-cart-link';
+        a.href='#/carrito';
+        a.textContent='🛒 Ver carrito ('+cartCount()+')';
+        actionArea.appendChild(a);
+      }
     }}catch(_){}};
 
   routes.carrito=async function(){if(ME&&!isCustomerAccount()){view.innerHTML=`<div class="dy-commerce-page"><a href="#/perfil" class="dy-public-back">← Mi DatoYa</a><div class="dy-commerce-empty">🏪<h1>Las compras usan una cuenta Cliente</h1><p>Tu cuenta actual es de negocio o administración. El carrito de este dispositivo no se borró.</p><a class="btn btn-primary" href="#/perfil">Volver a mi cuenta</a></div></div>`;return;}const c=cart();if(!c.items.length){view.innerHTML=`<div class="dy-commerce-page"><a href="#/" class="dy-public-back">← Inicio</a><div class="dy-commerce-empty">🛒<h1>Tu carrito está vacío</h1><p>Agrega productos desde un negocio o un Impulso Ahora.</p><a class="btn btn-primary" href="#/">Explorar DatoYa</a></div></div>`;return;}const subtotal=c.items.reduce((s,x)=>s+Number(x.price)*Number(x.quantity),0);view.innerHTML=`<div class="dy-commerce-page"><a href="#/" class="dy-public-back">← Seguir explorando</a><div class="dy-commerce-head"><span>UN SOLO NEGOCIO</span><h1>Tu carrito</h1><p>${h(c.business_name)}</p></div><div class="dy-cart-layout"><section class="dy-commerce-card"><div class="dy-cart-items">${c.items.map((x,i)=>`<article><div class="dy-cart-thumb">${x.image_data?`<img src="${x.image_data}" alt="${h(x.name)}">`:'📦'}</div><div><b>${h(x.name)}</b><small>${x.impulse_id?'⚡ Impulso Ahora':x.club_applied?'⭐ Precio Club':'Producto'}</small><strong>${money(x.price)}</strong></div><div class="dy-qty"><button onclick="dyCartQty(${i},-1)">−</button><span>${Number(x.quantity)}</span><button onclick="dyCartQty(${i},1)">+</button><button class="dy-remove" onclick="dyCartRemove(${i})">×</button></div></article>`).join('')}</div><div class="dy-cart-total"><span>Subtotal</span><strong>${money(subtotal)}</strong></div></section><section class="dy-commerce-card"><h2>Confirmar pedido</h2>${!ME?`<div class="dy-commerce-note"><b>Necesitas iniciar sesión</b><p>Tu carrito queda guardado en este dispositivo.</p><a class="btn btn-primary" href="#/login" onclick="sessionStorage.setItem('datoya_after_auth','#/carrito')">Ingresar</a></div>`:`<form id="dy-checkout-form" class="dy-account-form" data-business-id="${Number(c.business_id)}" data-subtotal="${subtotal}" data-pilot-product-id="${Number(c.items[0]?.product_id||0)}" data-cart-items="${c.items.length}" data-cart-quantity="${Number(c.items[0]?.quantity||0)}"><div class="field"><label>Nombre</label><input name="customer_name" value="${h(ME.name||'')}" required></div><div class="field"><label>Teléfono</label><input name="customer_phone" value="${h(ME.phone||'')}" placeholder="+56912345678" required></div><div class="field"><label>Entrega</label><select name="fulfillment_method">${c.pickup_enabled?'<option value="pickup">Retiro en el negocio</option>':''}${c.delivery_enabled?'<option value="delivery">Despacho del negocio</option>':''}</select></div><div class="field" id="dy-delivery-address" style="display:none"><label>Dirección de despacho</label><input name="delivery_address" placeholder="Calle, número y referencia"></div><div class="field"><label>Nota <small>(opcional)</small></label><textarea name="notes" rows="3" placeholder="Ej: retiraré a las 18:30"></textarea></div><div class="dy-commerce-note"><b>Pago online en DatoYa</b><p>El total y el cargo por servicio se mostrarán antes de completar el pago seguro con Mercado Pago.</p></div><button class="btn btn-primary btn-block" type="submit" disabled>Comprobando pago online…</button></form>`}</section></div></div>`;
