@@ -133,7 +133,7 @@
           if(navigate&&inCart&&pilotSelected){
             location.hash='#/carrito';return;
           }
-          const result=await dyCartAddProduct(p.id,qty);
+          const result=await window.dyCartAddProduct(p.id,qty);
           if(result&&navigate)location.hash='#/carrito';
           else if(result)cartLink.textContent='🛒 Ver carrito ('+cartCount()+')';
         }catch(e){toast?.(e.message||'No pudimos agregar el producto','err')}
@@ -178,7 +178,7 @@
             const existing=Number(current.business_id)===Number(b.id)?
               current.items.find(x=>Number(x.product_id)===Number(pilotProduct.id)):null;
             if(existing){location.hash='#/carrito';return;}
-            const ok=await dyCartAddProduct(pilotProduct.id,1);
+            const ok=await window.dyCartAddProduct(pilotProduct.id,1);
             if(ok)location.hash='#/carrito';
           }catch(e){toast?.(e.message||'No pudimos preparar el carrito','err')}
           finally{button.disabled=false;}
