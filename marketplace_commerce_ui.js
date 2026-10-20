@@ -158,7 +158,8 @@
         panel.appendChild(note);
       }
       const share=target.querySelector('.dy-share-button,.dy-product-share,[data-dy-share]');
-      target.insertBefore(panel,share||null);
+      if(share&&share.parentNode===target)target.insertBefore(panel,share);
+      else target.appendChild(panel);
     });
     const head=document.querySelector('.dy-store-info');
     if(head&&!head.querySelector('.dy-store-cart-link')){
