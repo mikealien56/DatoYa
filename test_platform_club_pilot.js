@@ -50,7 +50,7 @@ test('pilot restrictions apply on the server before any external checkout',async
       return {changes:1};
     }
     if(sql.includes("SET preference_id=?")){
-      const row=rows.find(x=>x.id===Number(args[4]));
+      const row=rows.find(x=>x.id===Number(args[3]));
       assert.ok(row);
       row.preference_id=args[0];row.checkout_url=args[1];row.status='pending';
       return {changes:1};
