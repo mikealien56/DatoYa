@@ -1,6 +1,8 @@
 'use strict';
 const mp=require('./platform_payments_service');
+const receipts=require('./platform_payment_receipts');
 module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
+  receipts.setup(db);
   const allowed=()=>mp.config();
   const pilotAuthorized=(cfg,userId)=>cfg.pilotOnly===true&&cfg.pilotUserId!==null&&Number(userId)===cfg.pilotUserId;
   const find=id=>db.prepare('SELECT * FROM platform_service_payments WHERE id=?').get(Number(id));
@@ -116,6 +118,7 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
       const changed=activate();
       if(changed){
         try{notify(row.user_id,'pagos','Pago confirmado: '+(row.kind==='club'?'DatoYa Club':'Plan de negocio')+' activo.',row.kind==='club'?'#/club':'#/mi-negocio-plan/'+row.business_id)}catch(_){}
+        if(row.kind==='club')try{await receipts.sendClubReceipt(db,row.id)}catch(e){console.warn('[DatoYa][Club receipt] processing error',String(e?.name||'Error'))}
       }
       return {status:'approved',activated:changed};
     }
@@ -167,6 +170,20 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
     if(!row)return res.json({status:'none'});
     try{return res.json(await reconcile(row))}catch(e){return fail(res,e)}
   });
+  // One-time receipt backfill for a payment already verified and activated.
+  if(process.env.MP_PLATFORM_PILOT_RECEIPT_BACKFILL==='true'){
+    const timer=setTimeout(async()=>{
+      const cfg=allowed();
+      if(!cfg.pilotOnly||cfg.pilotUserId!==23||cfg.mode!=='production')return;
+      const row=db.prepare("SELECT id FROM platform_service_payments WHERE user_id=? AND kind='club' AND amount=50 AND days=7 AND status='approved' AND payment_id IS NOT NULL ORDER BY id DESC LIMIT 1").get(23);
+      if(!row)return;
+      try{
+        const result=await receipts.sendClubReceipt(db,row.id);
+        console.info('[DatoYa][Club receipt backfill]',JSON.stringify({ok:!!result.ok,sent:!!result.sent,reason:result.reason||null}));
+      }catch(e){console.warn('[DatoYa][Club receipt backfill] failed',String(e?.name||'Error'))}
+    },8500);
+    if(typeof timer.unref==='function')timer.unref();
+  }
   // One-time, opt-in pilot recovery after Mercado Pago has confirmed the real charge.
   // Uses exactly the same provider-verifying reconcile() path as webhooks and user sync.
   if(process.env.MP_PLATFORM_PILOT_RECOVER==='true'){
