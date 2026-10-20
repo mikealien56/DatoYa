@@ -81,7 +81,7 @@
   function planCard(data,offer){
     const days=selectedDays.value,price=Number(offer.prices?.[days]||0),meta=tierMeta[offer.key]||tierMeta.impulso;
     const activeTier=data.membership?.tier||'free',isActive=activeTier===offer.key;
-    const canCheckout=!!data.config?.checkout_enabled;
+    const canCheckout=!!data.config?.checkout_enabled&&!data.platform_pending_payment;
     const list=accessItems(offer.key,offer.access||{});
     return '<section class="dy-growth-plan-card '+offer.key+(isActive?' current':'')+'">'+
       '<div class="dy-growth-plan-top"><div><span>'+meta.icon+' '+h(meta.label).toUpperCase()+'</span><h2>'+h(meta.label)+'</h2><p>'+h(meta.tagline)+'</p></div>'+(isActive?'<em>ACTIVO</em>':'')+'</div>'+
@@ -103,7 +103,7 @@
       status==='creating'?'Estamos preparando el pago':
       'Un espacio destacado durante 7 días';
     const action=status==='pending'?
-      '<button class="btn btn-outline" onclick="dySyncFeaturedPayment('+id+')">Comprobar pago</button>':
+      '<button class="btn btn-outline" onclick="dySyncFeaturedPayment('+id+')">Comprobar pago</button><button class="btn btn-primary" onclick="dyResumeFeaturedPayment('+id+')">Continuar pago</button>':
       status==='approved'?'<small>Administración aprobará el espacio antes de publicarlo.</small>':
       '<button class="btn btn-primary" '+(canStart?'':'disabled')+' onclick="dyStartFeaturedPayment('+id+')">Contratar destacado semanal</button>';
     return '<section class="dy-growth-note"><span>⭐</span><div><b>Destacado semanal · '+money(Number(f.price||4990))+'</b>'+
@@ -137,7 +137,7 @@
              '</article>').join('')+
          '</div></section>'+
 
-      (data.pending_payment||data.platform_pending_payment?'<section class="dy-growth-pending"><div><span>⏳</span><div><b>Hay un pago pendiente</b><p>Comprueba el pago con Mercado Pago. Si ya pagaste, no inicies otra compra hasta confirmar su estado.</p></div></div><button class="btn btn-outline" onclick="dySyncGrowthPayment('+id+')">Actualizar pago</button></section>':'')+
+      (data.pending_payment||data.platform_pending_payment?'<section class="dy-growth-pending"><div><span>⏳</span><div><b>Hay un pago pendiente</b><p>Comprueba el pago con Mercado Pago. Si ya pagaste, no inicies otra compra hasta confirmar su estado.</p></div></div><button class="btn btn-outline" onclick="dySyncGrowthPayment('+id+')">Actualizar pago</button><button class="btn btn-primary" onclick="dyResumeGrowthPayment('+id+')">Continuar pago</button></section>':'')+
       '</div>';
     window.__datoyaBusinessHubFrame?.(id,'plan');
   }
@@ -168,6 +168,25 @@
     }
   };
 
+  function dySafePaymentUrl(raw){
+    const url=new URL(String(raw||''));
+    if(url.protocol!=='https:'||!['mercadopago.cl','www.mercadopago.cl','mercadopago.com','www.mercadopago.com'].includes(url.hostname.toLowerCase()))throw new Error('Enlace de Mercado Pago inválido');
+    return url.toString();
+  }
+  window.dyResumeGrowthPayment=async function(id){
+    try{
+      const result=await api('/platform-payments/businesses/'+Number(id)+'/status');
+      if(result.payment?.status!=='pending')throw new Error('No hay un pago pendiente para continuar');
+      location.href=dySafePaymentUrl(result.payment.checkout_url);
+    }catch(e){toast?.(e.message||'No se pudo continuar este pago','err')}
+  };
+  window.dyResumeFeaturedPayment=async function(id){
+    try{
+      const result=await api('/platform-featured-payments/businesses/'+Number(id)+'/status');
+      if(result.payment?.status!=='pending')throw new Error('No hay un pago destacado pendiente');
+      location.href=dySafePaymentUrl(result.payment.checkout_url);
+    }catch(e){toast?.(e.message||'No se pudo continuar este pago','err')}
+  };
   window.dyStartFeaturedPayment=async function(id){
     if(checkoutBusy)return;checkoutBusy=true;
     try{
