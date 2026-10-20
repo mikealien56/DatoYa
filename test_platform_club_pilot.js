@@ -34,6 +34,7 @@ test('pilot restrictions apply on the server before any external checkout',async
  const db={prepare(sql){
   return {
    get(...args){
+    if(sql.includes('auth_email_verifications'))return {id:1};
     if(sql.includes("status='approved' LIMIT 1"))return rows.find(x=>x.status==='approved'&&x.kind==='club'&&x.user_id===Number(args[0]));
     if(sql.includes('WHERE reference=?'))return rows.find(x=>x.reference===args[0]);
     if(sql.includes('WHERE id=?'))return rows.find(x=>x.id===Number(args[0]));
