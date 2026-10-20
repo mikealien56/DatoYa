@@ -89,9 +89,9 @@ test('pilot restrictions apply on the server before any external checkout',async
   assert.equal(providerCalls,0);
   const allowed=await invoke('GET','/api/platform-payments/club/pilot-access',55);
   assert.equal(allowed.body.enabled,true);
-  assert.equal(allowed.body.amount,990);
+  assert.equal(allowed.body.amount,50);
   const r=await invoke('POST','/api/platform-payments/club/checkout',55,{}, {days:7});
-  assert.equal(r.code,200);assert.equal(r.body.amount,990);assert.equal(r.body.days,7);
+  assert.equal(r.code,200);assert.equal(r.body.amount,50);assert.equal(r.body.days,7);
   assert.equal(providerCalls,1);assert.equal(activations,0);
   const again=await invoke('POST','/api/platform-payments/club/checkout',55,{}, {days:7});
   assert.equal(again.body.reference,r.body.reference);
@@ -99,4 +99,13 @@ test('pilot restrictions apply on the server before any external checkout',async
  }finally{
   mp.config=orig.config;mp.request=orig.request;
  }
+});
+
+test('ordinary services cannot create $50 preferences without pilot authorization',()=>{
+ const reference=mp.reference(),base={reference,amount:50,title:'test',returnPath:'#/club',site:'https://www.datoya.cl'};
+ assert.throws(()=>mp.purchase(base),/Monto de servicio inválido/);
+ assert.throws(()=>mp.purchase({...base,amount:49,allowPilotAmount:true}),/Monto de servicio inválido/);
+ const pilot=mp.purchase({...base,allowPilotAmount:true});
+ assert.equal(pilot.items[0].unit_price,50);
+ assert.equal(pilot.currency_id,undefined);
 });
