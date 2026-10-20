@@ -29,22 +29,27 @@ jobs:
           test -n "$SIGN_PASSWORD"
           printf '%s' "$ENCODED_KEY" | base64 --decode > "$RUNNER_TEMP/datoya-pruebas.jks"
           echo "DATOYA_SIGNING_KEYSTORE=$RUNNER_TEMP/datoya-pruebas.jks" >> "$GITHUB_ENV"
+      - name: Add original DatoYa icon
+        run: |
+          test -s ../brand/pwa/icon-512.png
+          mkdir -p app/src/main/res/drawable-nodpi
+          cp ../brand/pwa/icon-512.png app/src/main/res/drawable-nodpi/datoya_original.png
       - name: Compile release
         env:
           DATOYA_STORE_PASSWORD: ${{ secrets.DATOYA_TEST_STORE_PASSWORD }}
         run: gradle --no-daemon :app:assembleRelease
-      - name: Verify correct branch and 1.1 source
+      - name: Verify correct branch and 1.2 source
         run: |
           test "$GITHUB_REF_NAME" = "android-prueba-google"
-          grep -q 'versionCode 2' app/build.gradle
+          grep -q 'versionCode 3' app/build.gradle
           grep -q 'Bienvenido a DatoYa' app/src/main/java/cl/datoya/pruebas2026/MainActivity.java
-          grep -q 'ic_datoya' app/src/main/AndroidManifest.xml
+          grep -q 'datoya_original' app/src/main/AndroidManifest.xml
       - name: Validate APK
         run: |
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee apk-badging.txt
-          grep -q "versionCode='2'" apk-badging.txt
+          grep -q "versionCode='3'" apk-badging.txt
           grep -q "application-label:'DatoYa'" apk-badging.txt
           unzip -l "$APK" | grep -q 'res/'
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | tee signing-info.txt
