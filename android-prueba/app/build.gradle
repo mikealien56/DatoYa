@@ -7,8 +7,8 @@ android {
         applicationId 'cl.datoya.pruebas2026'
         minSdk 24
         targetSdk 35
-        versionCode 1
-        versionName '1.0-pruebas'
+        versionCode 2
+        versionName '1.1-pruebas'
     }
     signingConfigs {
         stableTest {
