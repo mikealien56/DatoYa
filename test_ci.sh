@@ -31,6 +31,7 @@ node --test test_central_marketplace_payment_policy.js
 node --test test_payment_launch_readiness.js
 node --test test_platform_payments.js
 node --test test_platform_payments_activation.js
+node --test test_platform_club_pilot.js
 node --test test_platform_featured_payments.js
 node --test test_mp_refund_safety.js
 bash test_beta_private_features.sh
