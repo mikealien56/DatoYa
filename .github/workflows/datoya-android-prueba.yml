@@ -25,6 +25,11 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+      - name: Add original DatoYa icon
+        run: |
+          test -s ../brand/pwa/icon-512.png
+          mkdir -p app/src/main/res/drawable-nodpi
+          cp ../brand/pwa/icon-512.png app/src/main/res/drawable-nodpi/datoya_original.png
       - name: Build test APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Extract and validate APK signing certificate
