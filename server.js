@@ -741,7 +741,7 @@ app.get('/api/admin/users', auth, requireRole('admin'), (req, res) => {
 });
 app.post('/api/admin/users/:id/toggle', auth, requireRole('admin'), (req, res) => {
   const u = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
-  if (!u || u.role === 'admin') return res.status(400).json({ error: 'No se puede modificar este usuario' });
+  if (!u || u.role === 'admin' || u.is_demo) return res.status(400).json({ error: 'No se puede modificar esta cuenta archivada o administradora' });
   db.prepare('UPDATE users SET is_active=? WHERE id=?').run(u.is_active ? 0 : 1, u.id);
   res.json({ ok: true, active: !u.is_active });
 });
