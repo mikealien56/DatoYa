@@ -84,7 +84,7 @@ public final class NativeToolbar {
     bar.addView(name,new LinearLayout.LayoutParams(0,-1,1));
 
     android.widget.FrameLayout notificationArea = new android.widget.FrameLayout(activity);
-    bell = icon(R.drawable.dy_bell,"Ver notificaciones",() -> go(loggedIn ? "notificaciones" : "login"));
+    bell = icon(R.drawable.dy_bell,"Ver notificaciones",() -> go("notificaciones"));
     notificationArea.addView(bell,new android.widget.FrameLayout.LayoutParams(dp(44),dp(44)));
     unreadDot = new View(activity);
     unreadDot.setBackground(rounded(Color.rgb(225,60,78),10));
@@ -94,7 +94,7 @@ public final class NativeToolbar {
     unreadDot.setVisibility(View.GONE);
     bar.addView(notificationArea,new LinearLayout.LayoutParams(dp(44),dp(44)));
 
-    ImageView profile = icon(R.drawable.dy_profile,"Mi perfil",() -> go(loggedIn ? "perfil" : "login"));
+    ImageView profile = icon(R.drawable.dy_profile,"Mi perfil",() -> go("perfil"));
     bar.addView(profile,new LinearLayout.LayoutParams(dp(44),dp(44)));
 
     accountAction = new TextView(activity);
