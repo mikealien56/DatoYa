@@ -22,9 +22,11 @@ function config(env=process.env){
 }
 const error=(message,status=503)=>Object.assign(new Error(message),{status});
 function reference(){return 'DYPL'+crypto.randomBytes(12).toString('hex').toUpperCase()}
-function purchase({reference:ref,amount,title,returnPath,site}){
+function purchase({reference:ref,amount,title,returnPath,site,allowPilotAmount=false}){
   if(!/^DYPL[A-F0-9]{24}$/.test(String(ref)))throw error('Referencia inválida',400);
-  if(!Number.isSafeInteger(amount)||amount<100)throw error('Monto de servicio inválido',400);
+  // A $50 payment is exclusively for the server-authorized single-customer pilot.
+  const minimum=allowPilotAmount===true&&amount===50?50:100;
+  if(!Number.isSafeInteger(amount)||amount<minimum)throw error('Monto de servicio inválido',400);
   if(!/^#[a-zA-Z0-9/_-]{2,100}$/.test(returnPath))throw error('Retorno inválido',400);
   const url=new URL(site);
   if(url.protocol!=='https:')throw error('Dominio HTTPS requerido');
