@@ -101,6 +101,10 @@
     try{
       const config=await api('/marketplace/central-payments/status?business_id='+businessId);
       ready=config?.checkout_enabled===true;
+      if(config?.pilot_only===true&&ME?.account_type==='customer'&&Number(form.dataset.subtotal||0)===50){
+        const pilot=await api('/marketplace/mp-split-pilot-access?business_id='+businessId).catch(()=>({checkout_enabled:false}));
+        ready=pilot?.checkout_enabled===true;
+      }
       rate=Number(config?.service_fee_percent||2);
     }catch(_){}
     if(!form.isConnected)return rendered;
