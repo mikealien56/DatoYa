@@ -1,5 +1,5 @@
 /* DatoYa Club — una propuesta simple: Precio Club y beneficios exclusivos.
- * Conserva las membresías y sus pagos históricos. No inicia cobros reales.
+ * Conserva las membresías y sus pagos históricos; piloto habilitado solo por autorización en servidor.
  */
 (()=>{
   if(typeof routes==='undefined'||typeof view==='undefined'||typeof api!=='function')return;
@@ -11,6 +11,7 @@
   // Una sola portada para "Conoce Club" y "Mi Club": nunca dos diseños diferentes.
   function renderPremiumClub(data,membership=null,options={}){
     const price=Number(data.prices?.[30]??3990),active=!!membership;
+    const pilot=options.pilot===true,payDays=pilot?7:30,payPrice=pilot?990:price;
     const current=location.hash.startsWith('#/club')&&location.hash!=='#/club-info';
     const back=current?'#/perfil':'#/';
     const join=!ME
@@ -58,8 +59,8 @@
         '<section class="dy-club-simple-enroll">'+
           '<span>DATOYA CLUB</span><h2>'+money(price)+' por 30 días</h2>'+
           '<p>Sin renovación automática. Cuando termina el pase, sigues usando DatoYa Gratis.</p>'+
-          '<p class="dy-club-simple-pending">'+(options.pending?'Tienes un pago de Club en proceso. Comprueba su estado antes de intentar otra compra.':options.checkout?'Pago seguro con Mercado Pago. El pase se activa únicamente cuando el cobro está confirmado.':'La contratación estará disponible cuando Mercado Pago esté habilitado. Todavía no se realizan cobros de Club.')+'</p>'+
-          '<div class="dy-club-simple-actions">'+(options.checkout&&isCustomer()?options.pending?'<button type="button" class="btn btn-primary" onclick="dySyncClubPayment()">Comprobar pago pendiente</button>':'<button type="button" class="btn btn-primary" onclick="dyStartClubCheckout()">'+(active?'Extender Club':'Activar Club')+' · '+money(price)+'</button>':'')+join+'<a class="btn btn-outline" href="#/buscar/_">Ver productos</a></div>'+
+          '<p class="dy-club-simple-pending">'+(options.pending?'Tienes un pago de Club en proceso. Comprueba su estado antes de intentar otra compra.':pilot?'Prueba piloto autorizada: pase de 7 días por $990, sin renovación automática. Mercado Pago confirmará el cobro antes de activar el pase.':options.checkout?'Pago seguro con Mercado Pago. El pase se activa únicamente cuando el cobro está confirmado.':'La contratación estará disponible cuando Mercado Pago esté habilitado. Todavía no se realizan cobros de Club.')+'</p>'+
+          '<div class="dy-club-simple-actions">'+(options.checkout&&isCustomer()?options.pending?'<button type="button" class="btn btn-primary" onclick="dySyncClubPayment()">Comprobar pago pendiente</button>':'<button type="button" class="btn btn-primary" onclick="dyStartClubCheckout('+payDays+')">'+(pilot?'Activar pase piloto':active?'Extender Club':'Activar Club')+' · '+money(payPrice)+'</button>':'')+join+'<a class="btn btn-outline" href="#/buscar/_">Ver productos</a></div>'+
         '</section>'+
       '</main>';
   }
@@ -82,8 +83,12 @@
     if(!isCustomer()){location.hash='#/club-info';return;}
     view.innerHTML='<div class="dy-club-page"><section class="dy-club-loading"><h2>Preparando tu Club…</h2></section></div>';
     try{
-      const payConfig=await api('/platform-payments/config').catch(()=>({checkout_enabled:false}));
-      if(payConfig.checkout_enabled){
+      const [payConfig,pilotAccess]=await Promise.all([
+        api('/platform-payments/config').catch(()=>({checkout_enabled:false})),
+        api('/platform-payments/club/pilot-access').catch(()=>({enabled:false}))
+      ]);
+      const canCheckout=payConfig.checkout_enabled===true||pilotAccess.enabled===true;
+      if(canCheckout){
         try{await api('/platform-payments/club/sync',{method:'POST',body:{}})}catch(_){}
       }
       const [publicData,privateData,payment]=await Promise.all([
@@ -91,7 +96,7 @@
         api('/platform-payments/club/status').catch(()=>({payment:null}))
       ]);
       renderPremiumClub(publicData,privateData.club_active?privateData.membership:null,
-        {checkout:payConfig.checkout_enabled===true,pending:payment.payment});
+        {checkout:canCheckout,pilot:pilotAccess.enabled===true,pending:payment.payment});
     }catch(e){showError(e.message,'club');}
   }
   routes.club=loadClub;
@@ -103,12 +108,12 @@
     }catch(e){toast?.(e.message||'No pudimos confirmar el pago todavía','err')}
   };
   let clubCheckoutBusy=false;
-  window.dyStartClubCheckout=async function(){
-    if(clubCheckoutBusy||!isCustomer())return;
-    if(!confirm('Contratar DatoYa Club por 30 días, sin renovación automática. ¿Continuar a Mercado Pago?'))return;
+  window.dyStartClubCheckout=async function(days=30){
+    if(clubCheckoutBusy||!isCustomer()||![7,30].includes(Number(days)))return;
+    if(!confirm('Contratar DatoYa Club por '+Number(days)+' días, sin renovación automática. ¿Continuar a Mercado Pago?'))return;
     clubCheckoutBusy=true;
     try{
-      const payment=await api('/platform-payments/club/checkout',{method:'POST',body:{days:30}});
+      const payment=await api('/platform-payments/club/checkout',{method:'POST',body:{days:Number(days)}});
       const url=new URL(payment.checkout_url);
       if(url.protocol!=='https:'||!['mercadopago.cl','www.mercadopago.cl','mercadopago.com','www.mercadopago.com'].includes(url.hostname.toLowerCase()))
         throw new Error('URL de Mercado Pago inválida');
