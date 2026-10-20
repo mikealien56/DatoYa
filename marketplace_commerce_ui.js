@@ -64,45 +64,51 @@
   const previousStore=routes.negocio;
   if(previousStore)routes.negocio=async function(identifier){await previousStore.apply(this,arguments);if(ME&&!isCustomerAccount()){storeContext=null;return;}try{const all=await api('/market/businesses'),key=decodeURIComponent(String(identifier||'')),b=(all.businesses||[]).find(x=>String(x.id)===key||String(x.slug)===key);if(!b)return;const [r,availability]=await Promise.all([api('/market/products?business_id='+b.id),api('/marketplace/central-payments/status?business_id='+encodeURIComponent(b.id)).catch(()=>({checkout_enabled:false}))]);
     const products=r.products||[];
-    let checkoutReady=availability.checkout_enabled===true,pilotProductId=null;
+    let checkoutReady=availability.checkout_enabled===true,pilotProductId=null,pilotSelected=false;
     if(availability.pilot_only===true&&ME?.account_type==='customer'){
       const p=await api('/marketplace/mp-split-pilot-access?business_id='+encodeURIComponent(b.id)).catch(()=>({checkout_enabled:false}));
       checkoutReady=p.checkout_enabled===true;
-      pilotProductId=checkoutReady?Number(p.product_id||0):null;
+      pilotSelected=p.pilot_selected===true;
+      pilotProductId=pilotSelected?Number(p.product_id||0):null;
     }
     storeContext={business:b,products};
     const productById=new Map(products.map(p=>[Number(p.id),p])),cards=[...document.querySelectorAll('.dy-store-product')];
     cards.forEach((el,index)=>{
       const productId=Number(el.dataset.productId||el.dataset.growthProduct||0),p=productById.get(productId)||(productId?null:products[index]);
       if(!p||el.querySelector('.dy-add-cart')||el.querySelector('.dy-store-purchase-note'))return;
-      if(availability.pilot_only===true&&(!checkoutReady||Number(p.id)!==pilotProductId))return;
+      if(availability.pilot_only===true&&(!pilotSelected||Number(p.id)!==pilotProductId))return;
       const target=el.children[1]||el;
       if(!checkoutReady){
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='btn btn-primary dy-add-cart';
+        btn.disabled=true;
+        btn.textContent='🛒 Comprar · '+money(Number(p.price||0))+' (pendiente)';
         const note=document.createElement('p');
         note.className='dy-store-purchase-note';
-        note.textContent='Compra online aún no habilitada. Puedes consultar al negocio desde su ficha.';
-        target.appendChild(note);
+        note.textContent=pilotSelected?'Falta conectar Mercado Pago de este negocio. El producto está publicado, pero todavía no puedes pagarlo.':'Compra online aún no habilitada para este negocio.';
+        target.append(btn,note);
         return;
       }
       const btn=document.createElement('button');
       btn.className='btn btn-primary dy-add-cart';
       btn.type='button';
       btn.disabled=!!p.stock_tracking&&Number(p.stock||0)<=0;
-      btn.textContent=btn.disabled?'Sin stock':'🛒 Agregar al carrito';
+      btn.textContent=btn.disabled?'Sin stock':'🛒 Comprar · '+money(Number(p.price||0));
       btn.onclick=()=>dyCartAddProduct(p.id);
       target.appendChild(btn);
     });
     const head=document.querySelector('.dy-store-info');
-    if(checkoutReady&&head){
+    if((checkoutReady||pilotSelected)&&head){
       const actionArea=head.querySelector('.dy-store-social-actions')||head;
-      const pilotProduct=availability.pilot_only===true&&pilotProductId?
+      const pilotProduct=pilotSelected&&pilotProductId?
         products.find(p=>Number(p.id)===pilotProductId):null;
       if(pilotProduct&&!head.querySelector('.dy-store-pilot-buy')){
         const btn=document.createElement('button');
         btn.type='button';
         btn.className='btn btn-primary dy-store-pilot-buy';
-        btn.textContent='🛒 Agregar prueba al carrito · '+money(Number(pilotProduct.price||0));
-        btn.disabled=!!pilotProduct.stock_tracking&&Number(pilotProduct.stock||0)<=0;
+        btn.textContent=checkoutReady?'🛒 Comprar prueba · '+money(Number(pilotProduct.price||0)):'🛒 Comprar prueba · '+money(Number(pilotProduct.price||0))+' (pendiente)';
+        btn.disabled=!checkoutReady||(!!pilotProduct.stock_tracking&&Number(pilotProduct.stock||0)<=0);
         btn.addEventListener('click',async()=>{
           btn.disabled=true;
           try{
@@ -125,10 +131,10 @@
         actionArea.appendChild(btn);
         const tip=document.createElement('p');
         tip.className='dy-store-pilot-note';
-        tip.textContent='Prueba privada: producto $50 + servicio DatoYa $1. Total previsto: $51. No se cobra hasta completar Mercado Pago.';
+        tip.textContent=checkoutReady?'Prueba privada: producto $50 + servicio DatoYa $1. Total previsto: $51. No se cobra hasta completar Mercado Pago.':'El artículo de $50 está listo. Para habilitar Comprar, El Negocio debe conectar y verificar su cuenta de Mercado Pago.';
         actionArea.insertAdjacentElement('afterend',tip);
       }
-      if(!head.querySelector('.dy-store-cart-link')){
+      if(checkoutReady&&!head.querySelector('.dy-store-cart-link')){
         const a=document.createElement('a');
         a.className='btn btn-outline dy-store-cart-link';
         a.href='#/carrito';
