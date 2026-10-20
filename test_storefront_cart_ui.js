@@ -54,8 +54,20 @@ test('pilot product shows usable quantity/cart/buy controls even when merchant n
  assert.equal(JSON.parse(c.values.get('datoya_cart_v1')).items[0].quantity,1,'Buy again must not double pilot quantity');
  assert.equal(await c.window.dyCartAddProduct(4,1),false,'Do not exceed available stock');
 });
-test('unauthorized account cannot see private pilot purchase controls',async()=>{
+test('other customer accounts can build a cart even without online payment',async()=>{
  const c=await scenario({account:24,connected:false});
- assert.equal(c.panel,undefined);
- assert.equal(c.values.has('datoya_cart_v1'),false);
+ assert.ok(c.panel,'Product and quantity controls are public to shoppers');
+ const actions=c.panel.children.find(x=>x.className==='dy-buy-actions');
+ assert.ok(actions);
+ assert.equal(actions.children[0].disabled,false);
+ actions.children[0].events.click();
+ for(let i=0;i<8;i++)await Promise.resolve();
+ const cart=JSON.parse(c.values.get('datoya_cart_v1'));
+ assert.equal(cart.business_id,1);
+ assert.equal(cart.items[0].quantity,1);
+ assert.match(c.panel.children.find(x=>x.className==='dy-store-purchase-note').textContent,/pago online/);
+});
+test('guest visitors can view products and prepare cart before login',async()=>{
+ const c=await scenario({account:24,pilot:false,connected:false});
+ assert.ok(c.panel);
 });
