@@ -95,10 +95,9 @@
       const productId=Number(el.dataset.productId||el.dataset.growthProduct||0);
       const p=productById.get(productId)||(productId?null:products[index]);
       if(!p||el.querySelector('.dy-buy-panel'))return;
-      // During a private pilot, only the authorized customer's selected product is purchasable.
-      if(availability.pilot_only===true&&(!pilotSelected||Number(p.id)!==pilotProductId))return;
+      // Storefront quantity and cart controls are available for all published products.
       const cap=p.stock_tracking?Math.min(99,Math.max(0,Number(p.stock||0))):99;
-      const max=pilotSelected?Math.min(1,cap):cap;
+      const max=pilotSelected&&Number(p.id)===pilotProductId?Math.min(1,cap):cap;
       const target=el.children[1]||el;
       const panel=document.createElement('div');panel.className='dy-buy-panel';
       const qtyLabel=document.createElement('label');qtyLabel.className='dy-buy-qty-label';qtyLabel.textContent='Cantidad';
