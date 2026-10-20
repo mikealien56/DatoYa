@@ -218,6 +218,21 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
       statusErr(res,e);
     }
   });
+  // Reconcile already-initiated marketplace purchases, even when the checkout is paused.
+  let syncRunning=false;
+  const reconcilePending=async()=>{
+    if(syncRunning||ready().mode!=='production')return;
+    syncRunning=true;
+    try{
+      const rows=db.prepare("SELECT * FROM mp_split_attempts WHERE status='pending' AND preference_id IS NOT NULL ORDER BY created_at ASC LIMIT 6").all();
+      for(const pending of rows)try{await sync(pending)}catch(e){console.warn('[DatoYa][Split reconciliation] pending provider review',Number(e?.status)||503)}
+    }catch(e){console.warn('[DatoYa][Split reconciliation] unavailable',String(e?.name||'Error'))}
+    finally{syncRunning=false}
+  };
+  const kickoff=setTimeout(()=>reconcilePending().catch(()=>{}),60000);
+  if(typeof kickoff.unref==='function')kickoff.unref();
+  const recurring=setInterval(()=>reconcilePending().catch(()=>{}),5*60*1000);
+  if(typeof recurring.unref==='function')recurring.unref();
   app.post('/api/mp-split/webhook',async(req,res)=>{
     if(!mp.validWebhook({headers:req.headers,query:req.query}))return res.status(401).send('Invalid signature');
     const ref=String(req.query.order||'');
