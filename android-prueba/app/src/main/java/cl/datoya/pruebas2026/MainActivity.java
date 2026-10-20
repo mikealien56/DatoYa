@@ -141,6 +141,10 @@ public class MainActivity extends Activity {
     CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
     webView.setWebViewClient(new WebViewClient() {
+      @Override public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+        super.doUpdateVisitedHistory(view, url, isReload);
+        nativeToolbar.refreshAccount();
+      }
       @Override public void onPageFinished(WebView view, String url) {
         nativeToolbar.applyWebAppLayout();
         nativeToolbar.refreshAccount();
