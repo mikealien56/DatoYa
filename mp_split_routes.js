@@ -95,7 +95,8 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
         db.prepare("UPDATE mp_split_attempts SET status='refunded',payment_id=?,updated_at=? WHERE order_id=?")
           .run(id,stamp,t.order_id);
         if(Number(changed.changes||0)>0){
-          try{notify(o.user_id,'refund','Mercado Pago informa una devolución de tu pedido '+o.reference,'#/pedidos/'+o.id)}catch(_){}
+          const orderDetails=db.prepare('SELECT id,user_id,reference FROM commerce_orders WHERE id=?').get(t.order_id);
+          if(orderDetails)try{notify(orderDetails.user_id,'refund','Mercado Pago informa una devolución de tu pedido '+orderDetails.reference,'#/pedidos/'+orderDetails.id)}catch(_){}
         }
         return {paid:false,state:'refunded'};
       }
