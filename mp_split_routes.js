@@ -87,6 +87,18 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
         }
         return {paid:true,state:'paid'};
       }
+      // A provider-confirmed complete refund overrides the local paid state.
+      if(result.state==='refunded'&&String(p.status)==='refunded'){
+        const stamp=new Date().toISOString();
+        const changed=db.prepare("UPDATE commerce_orders SET payment_status='refunded',updated_at=? WHERE id=? AND payment_method='mercadopago_split' AND payment_status='paid'")
+          .run(stamp,t.order_id);
+        db.prepare("UPDATE mp_split_attempts SET status='refunded',payment_id=?,updated_at=? WHERE order_id=?")
+          .run(id,stamp,t.order_id);
+        if(Number(changed.changes||0)>0){
+          try{notify(o.user_id,'refund','Mercado Pago informa una devolución de tu pedido '+o.reference,'#/pedidos/'+o.id)}catch(_){}
+        }
+        return {paid:false,state:'refunded'};
+      }
       db.prepare('UPDATE mp_split_attempts SET status=?,payment_id=?,updated_at=? WHERE order_id=?')
         .run(result.state,id,new Date().toISOString(),t.order_id);
       latest={paid:false,state:result.state};
