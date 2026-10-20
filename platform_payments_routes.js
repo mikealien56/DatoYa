@@ -1,6 +1,7 @@
 'use strict';
 const mp=require('./platform_payments_service');
 const receipts=require('./platform_payment_receipts');
+const growthReceipts=require('./platform_growth_receipts');
 module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
   receipts.setup(db);
   const allowed=()=>mp.config();
@@ -123,6 +124,7 @@ module.exports=function platformPaymentRoutes(app,auth,db,notify,helpers){
       if(changed){
         try{notify(row.user_id,'pagos','Pago confirmado: '+(row.kind==='club'?'DatoYa Club':'Plan de negocio')+' activo.',row.kind==='club'?'#/club':'#/mi-negocio-plan/'+row.business_id)}catch(_){}
         if(row.kind==='club')try{await receipts.sendClubReceipt(db,row.id)}catch(e){console.warn('[DatoYa][Club receipt] processing error',String(e?.name||'Error'))}
+        if(row.kind==='growth')try{await growthReceipts.send(db,row.id)}catch(e){console.warn('[DatoYa][Growth receipt] processing error',String(e?.name||'Error'))}
       }
       return {status:'approved',activated:changed};
     }
