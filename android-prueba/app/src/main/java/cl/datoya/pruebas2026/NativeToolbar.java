@@ -156,21 +156,13 @@ public final class NativeToolbar {
         .setMessage("¿Quieres salir de tu cuenta de DatoYa?")
         .setNegativeButton("Cancelar",null)
         .setPositiveButton("Salir",(dialog,which) -> {
-          String js = "(async function(){try{let r=await fetch('/api/auth/logout'," +
-              "{method:'POST',credentials:'same-origin'});if(!r.ok)return 'error';" +
-              "window.location.hash='#/login';window.location.reload();return 'ok';}" +
-              "catch(e){return 'error';}})();";
-          webView.evaluateJavascript(js,result -> {
-            if (result != null && result.contains("error")) {
-              Toast.makeText(activity,"No pudimos cerrar la sesión. Inténtalo nuevamente.",Toast.LENGTH_LONG).show();
-            } else {
-              loggedIn=false;
-              activity.runOnUiThread(() -> {
-                accountAction.setText("Entrar");
-                unreadDot.setVisibility(View.GONE);
-              });
-            }
-          });
+          // Only update account status after the server confirms the logout.
+          String js = "(function(){fetch('/api/auth/logout'," +
+              "{method:'POST',credentials:'same-origin'}).then(r=>{" +
+              "if(!r.ok)throw Error('logout');window.location.replace('/#/login');" +
+              "}).catch(()=>{window.alert('No pudimos cerrar sesión. Inténtalo nuevamente.');});" +
+              "return 'requested';})()";
+          webView.evaluateJavascript(js,null);
         }).show();
   }
 }
