@@ -125,7 +125,7 @@ if(!source.includes('DATOYA ORDER INTEGRITY V1')){
   source=source.replace(cancelOld,cancelNew);
 
   const merchantGuardOld="if(!(allowed[String(o.status)]||[]).includes(next))return res.status(400).json({error:'Cambio de estado no permitido'});const now=new Date().toISOString()";
-  const merchantGuardNew="if(!(allowed[String(o.status)]||[]).includes(next))return res.status(400).json({error:'Cambio de estado no permitido'});if(next==='cancelled'&&String(o.payment_status)==='paid')return res.status(409).json({error:'Este pedido ya figura pagado. Gestiona la devolución antes de cancelarlo.'});if(next==='completed'&&o.fulfillment_method==='pickup'&&!o.pickup_verified_at)return res.status(400).json({error:'Valida el código o QR de retiro antes de completar este pedido.'});const now=new Date().toISOString()";
+  const merchantGuardNew="if(!(allowed[String(o.status)]||[]).includes(next))return res.status(400).json({error:'Cambio de estado no permitido'});if(next==='cancelled'&&String(o.payment_status)==='paid')return res.status(409).json({error:'Este pedido ya figura pagado. Gestiona la devolución antes de cancelarlo.'});if(next!=='cancelled'&&String(o.payment_status)!=='paid')return res.status(409).json({error:'No puedes preparar ni entregar un pedido que todavía no fue pagado y verificado por Mercado Pago.'});if(next==='completed'&&o.fulfillment_method==='pickup'&&!o.pickup_verified_at)return res.status(400).json({error:'Valida el código o QR de retiro antes de completar este pedido.'});const now=new Date().toISOString()";
   if(!source.includes(merchantGuardOld))throw new Error('No se encontró guard de estado negocio');
   source=source.replace(merchantGuardOld,merchantGuardNew);
 
