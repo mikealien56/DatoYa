@@ -1,6 +1,16 @@
 package cl.datoya.pruebas2026;
 
 import android.app.Activity;
+import android.graphics.Color;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.view.Gravity;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Bundle;
 import android.content.Intent;
 import android.net.Uri;
@@ -19,9 +29,46 @@ public class MainActivity extends Activity {
   private static final String HOME = "https://www.datoya.cl/";
   @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    // Keep both system bars visible and reserve their safe area.
+    getWindow().setStatusBarColor(Color.rgb(16,43,53));
+    getWindow().setNavigationBarColor(Color.rgb(16,43,53));
+    getWindow().getDecorView().setSystemUiVisibility(0);
+    getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     webView = new WebView(this);
     webView.setBackgroundColor(0xFFFFFFFF);
-    setContentView(webView);
+    FrameLayout root = new FrameLayout(this);
+    root.setFitsSystemWindows(true);
+    root.addView(webView, new FrameLayout.LayoutParams(-1,-1));
+    setContentView(root);
+    // Branded loading overlay, removed after the page finishes loading.
+    final LinearLayout splash = new LinearLayout(this);
+    splash.setOrientation(LinearLayout.VERTICAL);
+    splash.setGravity(Gravity.CENTER);
+    splash.setPadding(34,34,34,34);
+    splash.setBackgroundColor(Color.rgb(16,43,53));
+    TextView brand = new TextView(this);
+    brand.setText("DatoYa");
+    brand.setTextColor(Color.WHITE);
+    brand.setTextSize(42);
+    brand.setGravity(Gravity.CENTER);
+    brand.setTypeface(null,1);
+    splash.addView(brand);
+    TextView title = new TextView(this);
+    title.setText("¡Bienvenido a DatoYa!");
+    title.setTextColor(Color.WHITE);
+    title.setTextSize(22);
+    title.setGravity(Gravity.CENTER);
+    title.setPadding(0,30,0,12);
+    splash.addView(title);
+    TextView subtitle = new TextView(this);
+    subtitle.setText("Encuentra, publica y conecta con negocios cerca de ti");
+    subtitle.setTextColor(Color.rgb(205,234,232));
+    subtitle.setTextSize(15);
+    subtitle.setGravity(Gravity.CENTER);
+    splash.addView(subtitle);
+    root.addView(splash,new FrameLayout.LayoutParams(-1,-1));
+    final Handler uiHandler = new Handler(Looper.getMainLooper());
+    final long startTime = android.os.SystemClock.uptimeMillis();
     WebSettings settings = webView.getSettings();
     settings.setJavaScriptEnabled(true);
     settings.setDomStorageEnabled(true);
@@ -31,6 +78,12 @@ public class MainActivity extends Activity {
     CookieManager.getInstance().setAcceptCookie(true);
     CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
     webView.setWebViewClient(new WebViewClient() {
+      @Override public void onPageFinished(WebView view, String url) {
+        long elapsed = android.os.SystemClock.uptimeMillis() - startTime;
+        uiHandler.postDelayed(() -> {
+          splash.animate().alpha(0f).setDuration(280).withEndAction(() -> root.removeView(splash)).start();
+        }, Math.max(0, 1200 - elapsed));
+      }
       @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
         Uri u = req.getUrl();
         String host = u.getHost();
