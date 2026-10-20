@@ -39,6 +39,7 @@ node --test test_platform_featured_payments.js
 node --test test_mp_refund_safety.js
 node --test test_mp_split_private_berlin.js
 node --test test_storefront_cart_ui.js
+node --test test_checkout_payment_summary.js
 bash test_beta_private_features.sh
 bash test_pwa_security.sh
 bash test_khipu_business_onboarding.sh
