@@ -12,7 +12,7 @@ if(fs.existsSync(idx)){
   html=html.replace(/<script[^>]+src="\/marketplace_business_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_business_admin_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/marketplace_public_beta_ui\.js[^\"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_business.css?v=20261018-cleanup-ui1">\n<link rel="stylesheet" href="/marketplace_public_beta.css?v=20261020-elnegocio50-home1">\n</head>');
-  html=html.replace('</body>','<script src="/product_photo_studio.js?v=20261018-cleanup-ui1"></script>\n<script src="/marketplace_business_ui.js?v=20261018-cleanup-ui1"></script>\n<script src="/marketplace_business_admin_ui.js?v=20260917-2"></script>\n<script src="/marketplace_public_beta_ui.js?v=20261020-elnegocio50-home1"></script>\n</body>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_business.css?v=20261018-cleanup-ui1">\n<link rel="stylesheet" href="/marketplace_public_beta.css?v=20261020-public-market1">\n</head>');
+  html=html.replace('</body>','<script src="/product_photo_studio.js?v=20261018-cleanup-ui1"></script>\n<script src="/marketplace_business_ui.js?v=20261018-cleanup-ui1"></script>\n<script src="/marketplace_business_admin_ui.js?v=20260917-2"></script>\n<script src="/marketplace_public_beta_ui.js?v=20261020-public-market1"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
