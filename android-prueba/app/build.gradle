@@ -10,6 +10,23 @@ android {
         versionCode 1
         versionName '1.0-pruebas'
     }
-    buildTypes { release { minifyEnabled false } }
+    signingConfigs {
+        stableTest {
+            def filePath = System.getenv('DATOYA_SIGNING_KEYSTORE')
+            def pass = System.getenv('DATOYA_STORE_PASSWORD')
+            if (filePath && pass) {
+                storeFile file(filePath)
+                storePassword pass
+                keyAlias 'datoya-pruebas'
+                keyPassword pass
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.stableTest
+        }
+    }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
