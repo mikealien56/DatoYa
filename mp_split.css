@@ -10,3 +10,13 @@
 .dy-mp-total{display:block;border-top:1px solid #e2e8f0;margin:10px 0;padding:10px 0;color:#0c4a6e}
 .dy-mp-pay{margin-top:8px;min-height:43px;width:100%}
 @media(max-width:600px){.dy-mp-split-order{padding:12px}.dy-mp-split-card{margin:10px 0}}
+
+/* Simple, transparent checkout breakdown. Detailed percentage stays in terms. */
+.dy-checkout-price-breakdown{display:flex;flex-direction:column;gap:10px;margin:14px 0 12px}
+.dy-checkout-price-line{display:flex;justify-content:space-between;align-items:baseline;gap:14px;font-size:15px;color:#334766}
+.dy-checkout-price-line strong{font-size:16px;white-space:nowrap;color:#123e79}
+.dy-checkout-grand-total{border-top:1px solid #d8e4f0;padding-top:12px;margin-top:2px;color:#0b2c5c;font-size:17px;font-weight:800}
+.dy-checkout-grand-total strong{font-size:22px;font-weight:850}
+.dy-checkout-payment-status{font-size:13px;line-height:1.55;margin:9px 0;color:#445875}
+.dy-checkout-terms{font-size:13px;text-decoration:underline;text-underline-offset:3px;color:#0a4380;font-weight:650}
+#dy-checkout-form button[type="submit"]:disabled{background:#e1e7f0!important;color:#40546e!important;border:1px solid #c4cdd9!important;box-shadow:none!important;opacity:1;cursor:not-allowed}
