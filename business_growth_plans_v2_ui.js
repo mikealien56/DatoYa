@@ -153,14 +153,14 @@
       if(data.pending_payment){
         try{await api('/businesses/'+id+'/growth-plans/sync',{method:'POST',body:{}});data=await api('/businesses/'+id+'/growth-plans');}catch(_){}
       }
-      if(mpConfig.checkout_enabled){
+      if(mpConfig.growth_checkout_enabled===true){
         try{await api('/platform-payments/businesses/'+id+'/sync',{method:'POST',body:{}})}catch(_){}
         data=await api('/businesses/'+id+'/growth-plans');
       }
       const platformStatus=await api('/platform-payments/businesses/'+id+'/status').catch(()=>({payment:null}));
       data.platform_pending_payment=platformStatus.payment;
       data.featured_payment=await api('/platform-featured-payments/businesses/'+id+'/status').catch(()=>({checkout_enabled:false,price:4990,payment:null}));
-      data.config={...data.config,checkout_enabled:mpConfig.checkout_enabled===true};
+      data.config={...data.config,checkout_enabled:mpConfig.growth_checkout_enabled===true};
       renderPlan(data);
     }catch(e){
       view.innerHTML='<div class="dy-growth-page"><section class="dy-growth-loading error"><span>⚠️</span><h2>No pudimos cargar los planes</h2><p>'+h(e.message||'Intenta nuevamente.')+'</p><button class="btn btn-primary" onclick="routes[\'mi-negocio-plan\']('+id+')">Reintentar</button></section></div>';
