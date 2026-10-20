@@ -52,7 +52,13 @@ function checkoutUrl(raw){
 async function request(method,path,{body,env=process.env,transport=global.fetch}={}){
   const token=String(env.MP_PLATFORM_ACCESS_TOKEN||'').trim();
   const cfg=config(env);
-  if(!cfg.checkout)throw error('Cobro de servicios DatoYa aún no habilitado');
+  if(method==='POST'){
+    if(path!=='/checkout/preferences')throw error('Operación de cobro no permitida',400);
+    if(!cfg.checkout)throw error('Cobro de servicios DatoYa aún no habilitado');
+  }else if(method==='GET'){
+    // Reconciliation of already-created payments must continue after checkout is paused.
+    if(!cfg.ready)throw error('Verificación de pagos DatoYa no disponible');
+  }else throw error('Método de pago no permitido',400);
   if(!/^\/(checkout\/preferences(?:\/[\w-]+)?|v1\/payments\/(?:search\?external_reference=DYPL[A-F0-9]{24}|\d{1,25})|merchant_orders\/\d{1,25})$/.test(path))
     throw error('Consulta al proveedor no permitida',400);
   const controller=new AbortController();
