@@ -45,7 +45,8 @@ app.get('/api/featured-business/active',(req,res)=>{
 app.get('/api/businesses/:id/featured-week/status',auth,(req,res)=>{
   const b=__dyOwnBusiness(req.user.id,Number(req.params.id));if(!b)return res.status(403).json({error:'Negocio no autorizado'});
   __dyFeaturedRefresh();const row=db.prepare('SELECT id,status,source,amount,starts_at,ends_at,reference FROM featured_business_placements WHERE business_id=? ORDER BY id DESC LIMIT 1').get(b.id);
-  res.json({price:__dyFeaturedPrice(),days:7,checkout_available:false,payment_provider:'mercadopago',checkout_mode:'preparing',placement:row||null});
+  const p=require('./platform_payments_service').config(),available=p.mode==='production'&&p.checkout&&process.env.DATOYA_FEATURED_CHECKOUT_ENABLED==='true';
+  res.json({price:__dyFeaturedPrice(),days:7,checkout_available:available,payment_provider:'mercadopago',checkout_mode:available?'production':'preparing',placement:row||null});
 });
 app.post('/api/businesses/:id/featured-week/checkout',auth,__dyRequireVerifiedEmail,async(req,res)=>{try{
   const b=__dyOwnBusiness(req.user.id,Number(req.params.id));if(!b||b.status!=='active')return res.status(403).json({error:'Se necesita un negocio aprobado y propio'});
