@@ -11,8 +11,14 @@ function config(env=process.env){
   const site=String(env.PUBLIC_BASE_URL||'https://www.datoya.cl').replace(/\/+$/,'');
   const tokenReady=(mode==='production'?/^APP_USR-[\w-]{12,}$/:/^TEST-[\w-]{12,}$/).test(token);
   const ready=tokenReady&&/^\d{4,25}$/.test(collector)&&secret.length>=12&&/^https:\/\//.test(site);
-  const checkout=ready&&truth(env.MP_PLATFORM_CHECKOUT_ENABLED)&&(mode==='test'||truth(env.MP_PLATFORM_LIVE_ALLOWED));
-  return {ready,checkout,mode,site,collector,webhookConfigured:secret.length>=12};
+  // A production pilot is fail-closed until a single valid customer ID has been chosen.
+  const pilotOnly=truth(env.MP_PLATFORM_PILOT_ONLY);
+  const pilotId=String(env.MP_PLATFORM_PILOT_USER_ID||'').trim();
+  const pilotUserId=/^[1-9]\d{0,14}$/.test(pilotId)&&Number.isSafeInteger(Number(pilotId))?Number(pilotId):null;
+  const checkout=ready&&truth(env.MP_PLATFORM_CHECKOUT_ENABLED)&&
+    (mode==='test'||truth(env.MP_PLATFORM_LIVE_ALLOWED))&&(!pilotOnly||mode==='production'&&pilotUserId!==null);
+  return {ready,checkout,mode,site,collector,pilotOnly,pilotUserId,
+    publicCheckout:checkout&&!pilotOnly,webhookConfigured:secret.length>=12};
 }
 const error=(message,status=503)=>Object.assign(new Error(message),{status});
 function reference(){return 'DYPL'+crypto.randomBytes(12).toString('hex').toUpperCase()}
