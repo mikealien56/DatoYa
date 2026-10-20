@@ -92,74 +92,107 @@
     storeContext={business:b,products,pilotSelected,pilotProductId,checkoutReady};
     const productById=new Map(products.map(p=>[Number(p.id),p])),cards=[...document.querySelectorAll('.dy-store-product')];
     cards.forEach((el,index)=>{
-      const productId=Number(el.dataset.productId||el.dataset.growthProduct||0),p=productById.get(productId)||(productId?null:products[index]);
-      if(!p||el.querySelector('.dy-add-cart')||el.querySelector('.dy-store-purchase-note'))return;
+      const productId=Number(el.dataset.productId||el.dataset.growthProduct||0);
+      const p=productById.get(productId)||(productId?null:products[index]);
+      if(!p||el.querySelector('.dy-buy-panel'))return;
+      // During a private pilot, only the authorized customer's selected product is purchasable.
       if(availability.pilot_only===true&&(!pilotSelected||Number(p.id)!==pilotProductId))return;
+      const cap=p.stock_tracking?Math.min(99,Math.max(0,Number(p.stock||0))):99;
+      const max=pilotSelected?Math.min(1,cap):cap;
       const target=el.children[1]||el;
+      const panel=document.createElement('div');panel.className='dy-buy-panel';
+      const qtyLabel=document.createElement('label');qtyLabel.className='dy-buy-qty-label';qtyLabel.textContent='Cantidad';
+      const counter=document.createElement('div');counter.className='dy-buy-counter';
+      let qty=1;
+      const minus=document.createElement('button'),plus=document.createElement('button'),value=document.createElement('output');
+      minus.type=plus.type='button';minus.textContent='−';plus.textContent='+';
+      minus.setAttribute('aria-label','Disminuir cantidad');
+      plus.setAttribute('aria-label','Aumentar cantidad');
+      value.textContent=String(qty);value.setAttribute('aria-live','polite');
+      const refresh=()=>{value.textContent=String(qty);minus.disabled=qty<=1;plus.disabled=qty>=max;};
+      minus.addEventListener('click',()=>{qty=Math.max(1,qty-1);refresh()});
+      plus.addEventListener('click',()=>{qty=Math.min(max,qty+1);refresh()});
+      refresh();counter.append(minus,value,plus);
+      const quantityRow=document.createElement('div');quantityRow.className='dy-buy-quantity-row';
+      qtyLabel.appendChild(counter);quantityRow.appendChild(qtyLabel);
+      panel.appendChild(quantityRow);
+      const actions=document.createElement('div');actions.className='dy-buy-actions';
+      const add=document.createElement('button');add.className='btn btn-outline dy-add-cart';
+      const buy=document.createElement('button');buy.className='btn btn-primary dy-buy-now';
+      add.type=buy.type='button';
+      add.textContent='🛒 Agregar al carrito';buy.textContent='Comprar ahora →';
+      add.disabled=buy.disabled=max<1;
+      const perform=async navigate=>{
+        const button=navigate?buy:add;
+        if(button.disabled)return;
+        button.disabled=true;
+        try{
+          const existing=cart();
+          const inCart=Number(existing.business_id)===Number(b.id)?
+            existing.items.find(x=>Number(x.product_id)===Number(p.id)&&!x.impulse_id):null;
+          if(navigate&&inCart&&pilotSelected){
+            location.hash='#/carrito';return;
+          }
+          const result=await dyCartAddProduct(p.id,qty);
+          if(result&&navigate)location.hash='#/carrito';
+          else if(result)cartLink.textContent='🛒 Ver carrito ('+cartCount()+')';
+        }catch(e){toast?.(e.message||'No pudimos agregar el producto','err')}
+        finally{button.disabled=max<1;}
+      };
+      add.addEventListener('click',()=>perform(false));
+      buy.addEventListener('click',()=>perform(true));
+      actions.append(add,buy);
+      const cartLink=document.createElement('a');
+      cartLink.href='#/carrito';cartLink.className='dy-buy-cart-link';
+      cartLink.textContent='🛒 Ver carrito ('+cartCount()+')';
+      panel.append(actions,cartLink);
       if(!checkoutReady){
-        const btn=document.createElement('button');
-        btn.type='button';
-        btn.className='btn btn-primary dy-add-cart';
-        btn.disabled=true;
-        btn.textContent='🛒 Comprar · '+money(Number(p.price||0))+' (pendiente)';
-        const note=document.createElement('p');
-        note.className='dy-store-purchase-note';
-        note.textContent=pilotSelected?'Falta conectar Mercado Pago de este negocio. El producto está publicado, pero todavía no puedes pagarlo.':'Compra online aún no habilitada para este negocio.';
-        target.append(btn,note);
-        return;
+        const note=document.createElement('p');note.className='dy-store-purchase-note';
+        note.textContent=pilotSelected?
+          'Puedes agregar el producto al carrito. Para pagar, primero debe vincularse Mercado Pago de El Negocio. No se realizará ningún cobro ahora.':
+          'Puedes preparar tu carrito, pero este negocio aún no tiene el pago online disponible.';
+        panel.appendChild(note);
+      }else if(pilotSelected){
+        const note=document.createElement('p');note.className='dy-store-purchase-note';
+        note.textContent='Prueba privada: producto $50 + tarifa de servicio $1. Total al pagar: $51.';
+        panel.appendChild(note);
       }
-      const btn=document.createElement('button');
-      btn.className='btn btn-primary dy-add-cart';
-      btn.type='button';
-      btn.disabled=!!p.stock_tracking&&Number(p.stock||0)<=0;
-      btn.textContent=btn.disabled?'Sin stock':'🛒 Comprar · '+money(Number(p.price||0));
-      btn.onclick=()=>dyCartAddProduct(p.id);
-      target.appendChild(btn);
+      const share=target.querySelector('.dy-share-button,.dy-product-share,[data-dy-share]');
+      target.insertBefore(panel,share||null);
     });
     const head=document.querySelector('.dy-store-info');
-    if((checkoutReady||pilotSelected)&&head){
-      const actionArea=head.querySelector('.dy-store-social-actions')||head;
+    if(head&&!head.querySelector('.dy-store-cart-link')){
+      const actions=head.querySelector('.dy-store-social-actions')||head;
       const pilotProduct=pilotSelected&&pilotProductId?
         products.find(p=>Number(p.id)===pilotProductId):null;
-      if(pilotProduct&&!head.querySelector('.dy-store-pilot-buy')){
-        const btn=document.createElement('button');
-        btn.type='button';
-        btn.className='btn btn-primary dy-store-pilot-buy';
-        btn.textContent=checkoutReady?'🛒 Comprar prueba · '+money(Number(pilotProduct.price||0)):'🛒 Comprar prueba · '+money(Number(pilotProduct.price||0))+' (pendiente)';
-        btn.disabled=!checkoutReady||(!!pilotProduct.stock_tracking&&Number(pilotProduct.stock||0)<=0);
-        btn.addEventListener('click',async()=>{
-          btn.disabled=true;
+      if(pilotProduct){
+        const button=document.createElement('button');
+        button.type='button';button.className='btn btn-primary dy-store-pilot-buy';
+        button.textContent='🛒 Agregar prueba de $50 al carrito';
+        button.disabled=!!pilotProduct.stock_tracking&&Number(pilotProduct.stock||0)<=0;
+        button.addEventListener('click',async()=>{
+          button.disabled=true;
           try{
-            const existing=cart();
-            const alreadyReady=Number(existing.business_id)===Number(b.id)&&existing.items.length===1&&
-              Number(existing.items[0].product_id)===Number(pilotProduct.id)&&Number(existing.items[0].quantity)===1;
-            if(alreadyReady){location.hash='#/carrito';return;}
-            if(existing.items.length){
-              if(!confirm('La prueba permite solo una unidad del producto de $50. ¿Reemplazar los artículos de tu carrito?')){btn.disabled=false;return;}
-              localStorage.removeItem(CART_KEY);
-              renderCartBubble();
-            }
-            await dyCartAddProduct(pilotProduct.id);
             const current=cart();
-            if(current.business_id===Number(b.id)&&current.items.some(x=>Number(x.product_id)===Number(pilotProduct.id))){
-              location.hash='#/carrito';
-            }else btn.disabled=false;
-          }catch(e){btn.disabled=false;toast?.(e.message||'No pudimos agregar el artículo de prueba','err')}
+            const existing=Number(current.business_id)===Number(b.id)?
+              current.items.find(x=>Number(x.product_id)===Number(pilotProduct.id)):null;
+            if(existing){location.hash='#/carrito';return;}
+            const ok=await dyCartAddProduct(pilotProduct.id,1);
+            if(ok)location.hash='#/carrito';
+          }catch(e){toast?.(e.message||'No pudimos preparar el carrito','err')}
+          finally{button.disabled=false;}
         });
-        actionArea.appendChild(btn);
-        const tip=document.createElement('p');
-        tip.className='dy-store-pilot-note';
-        tip.textContent=checkoutReady?'Prueba privada: producto $50 + servicio DatoYa $1. Total previsto: $51. No se cobra hasta completar Mercado Pago.':'El artículo de $50 está listo. Para habilitar Comprar, El Negocio debe conectar y verificar su cuenta de Mercado Pago.';
-        actionArea.insertAdjacentElement('afterend',tip);
+        actions.prepend(button);
+        const note=document.createElement('p');note.className='dy-store-pilot-note';
+        note.textContent=checkoutReady?'Carrito disponible. Verás el total de $51 antes de confirmar el pago.':
+          'Carrito disponible. El pago se habilitará cuando el titular de El Negocio conecte Mercado Pago.';
+        actions.insertAdjacentElement('afterend',note);
       }
-      if(checkoutReady&&!head.querySelector('.dy-store-cart-link')){
-        const a=document.createElement('a');
-        a.className='btn btn-outline dy-store-cart-link';
-        a.href='#/carrito';
-        a.textContent='🛒 Ver carrito ('+cartCount()+')';
-        actionArea.appendChild(a);
-      }
-    }}catch(_){}};
+      const link=document.createElement('a');link.className='btn btn-outline dy-store-cart-link';
+      link.href='#/carrito';link.textContent='🛒 Ver carrito ('+cartCount()+')';
+      actions.appendChild(link);
+    }
+  }catch(e){console.warn('[DatoYa][Store] No se pudo preparar el carrito',String(e?.name||'Error'))}};
 
   routes.carrito=async function(){if(ME&&!isCustomerAccount()){view.innerHTML=`<div class="dy-commerce-page"><a href="#/perfil" class="dy-public-back">← Mi DatoYa</a><div class="dy-commerce-empty">🏪<h1>Las compras usan una cuenta Cliente</h1><p>Tu cuenta actual es de negocio o administración. El carrito de este dispositivo no se borró.</p><a class="btn btn-primary" href="#/perfil">Volver a mi cuenta</a></div></div>`;return;}const c=cart();if(!c.items.length){view.innerHTML=`<div class="dy-commerce-page"><a href="#/" class="dy-public-back">← Inicio</a><div class="dy-commerce-empty">🛒<h1>Tu carrito está vacío</h1><p>Agrega productos desde un negocio o un Impulso Ahora.</p><a class="btn btn-primary" href="#/">Explorar DatoYa</a></div></div>`;return;}const subtotal=c.items.reduce((s,x)=>s+Number(x.price)*Number(x.quantity),0);view.innerHTML=`<div class="dy-commerce-page"><a href="#/" class="dy-public-back">← Seguir explorando</a><div class="dy-commerce-head"><span>UN SOLO NEGOCIO</span><h1>Tu carrito</h1><p>${h(c.business_name)}</p></div><div class="dy-cart-layout"><section class="dy-commerce-card"><div class="dy-cart-items">${c.items.map((x,i)=>`<article><div class="dy-cart-thumb">${x.image_data?`<img src="${x.image_data}" alt="${h(x.name)}">`:'📦'}</div><div><b>${h(x.name)}</b><small>${x.impulse_id?'⚡ Impulso Ahora':x.club_applied?'⭐ Precio Club':'Producto'}</small><strong>${money(x.price)}</strong></div><div class="dy-qty"><button onclick="dyCartQty(${i},-1)">−</button><span>${Number(x.quantity)}</span><button onclick="dyCartQty(${i},1)">+</button><button class="dy-remove" onclick="dyCartRemove(${i})">×</button></div></article>`).join('')}</div><div class="dy-cart-total"><span>Subtotal</span><strong>${money(subtotal)}</strong></div></section><section class="dy-commerce-card"><h2>Confirmar pedido</h2>${!ME?`<div class="dy-commerce-note"><b>Necesitas iniciar sesión</b><p>Tu carrito queda guardado en este dispositivo.</p><a class="btn btn-primary" href="#/login" onclick="sessionStorage.setItem('datoya_after_auth','#/carrito')">Ingresar</a></div>`:`<form id="dy-checkout-form" class="dy-account-form" data-business-id="${Number(c.business_id)}" data-subtotal="${subtotal}" data-pilot-product-id="${Number(c.items[0]?.product_id||0)}" data-cart-items="${c.items.length}" data-cart-quantity="${Number(c.items[0]?.quantity||0)}"><div class="field"><label>Nombre</label><input name="customer_name" value="${h(ME.name||'')}" required></div><div class="field"><label>Teléfono</label><input name="customer_phone" value="${h(ME.phone||'')}" placeholder="+56912345678" required></div><div class="field"><label>Entrega</label><select name="fulfillment_method">${c.pickup_enabled?'<option value="pickup">Retiro en el negocio</option>':''}${c.delivery_enabled?'<option value="delivery">Despacho del negocio</option>':''}</select></div><div class="field" id="dy-delivery-address" style="display:none"><label>Dirección de despacho</label><input name="delivery_address" placeholder="Calle, número y referencia"></div><div class="field"><label>Nota <small>(opcional)</small></label><textarea name="notes" rows="3" placeholder="Ej: retiraré a las 18:30"></textarea></div><div class="dy-commerce-note"><b>Pago online en DatoYa</b><p>El total y el cargo por servicio se mostrarán antes de completar el pago seguro con Mercado Pago.</p></div><button class="btn btn-primary btn-block" type="submit" disabled>Comprobando pago online…</button></form>`}</section></div></div>`;
     const form=document.getElementById('dy-checkout-form');const delivery=document.getElementById('dy-delivery-address');const toggle=()=>{if(delivery)delivery.style.display=form?.fulfillment_method.value==='delivery'?'block':'none'};form?.fulfillment_method.addEventListener('change',toggle);toggle();form?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button[type="submit"]');btn.disabled=true;btn.textContent='Enviando pedido…';try{const body={business_id:c.business_id,fulfillment_method:f.fulfillment_method.value,customer_name:f.customer_name.value.trim(),customer_phone:f.customer_phone.value.trim(),delivery_address:f.delivery_address.value.trim(),notes:f.notes.value.trim(),items:c.items.map(x=>({product_id:x.product_id,impulse_id:x.impulse_id,quantity:x.quantity})),source_weekly_id:c.source_weekly_id||null,client_request_id:ensureCheckoutRequestId(c)};const r=await api('/orders',{method:'POST',body});localStorage.removeItem(CART_KEY);renderCartBubble();toast?.('Pedido '+r.order.reference+' enviado','ok');location.hash='#/pedidos';}catch(err){btn.disabled=false;btn.textContent='Enviar pedido · '+money(subtotal);toast?.(err.message,'err')}});
