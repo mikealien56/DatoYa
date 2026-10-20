@@ -157,8 +157,9 @@
         note.textContent='Prueba privada: producto $50 + tarifa de servicio $1. Total al pagar: $51.';
         panel.appendChild(note);
       }
-      const share=target.querySelector('.dy-share-button,.dy-product-share,[data-dy-share]');
-      if(share&&share.parentNode===target)target.insertBefore(panel,share);
+      // Put quantity and buying controls directly below the price, ahead of Share.
+      const priceRow=target.querySelector('.dy-product-public-price');
+      if(priceRow&&priceRow.parentNode===target)priceRow.insertAdjacentElement('afterend',panel);
       else target.appendChild(panel);
     });
     const head=document.querySelector('.dy-store-info');
