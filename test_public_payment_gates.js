@@ -50,3 +50,21 @@ test('Club and growth routes enforce separate server-side gates before provider 
  assert.match(readiness,/plans:\{checkout_enabled:growthProduction/);
  assert.match(readiness,/club:\{checkout_enabled:clubProduction/);
 });
+
+test('payment confirmation, email receipts and recovery paths are wired for each service',()=>{
+ const routes=fs.readFileSync('platform_payments_routes.js','utf8');
+ const feature=fs.readFileSync('platform_featured_payments_bootstrap.js','utf8');
+ const growthReceipt=fs.readFileSync('platform_growth_receipts.js','utf8');
+ const featureReceipt=fs.readFileSync('platform_featured_receipts.js','utf8');
+ assert.match(routes,/await growthReceipts\.send\(db,row\.id\)/);
+ assert.match(routes,/await receipts\.sendClubReceipt\(db,row\.id\)/);
+ assert.match(routes,/reconcilePending=async/);
+ assert.match(routes,/auth_email_verifications WHERE user_id=\?/);
+ assert.match(growthReceipt,/status='approved'/);
+ assert.match(growthReceipt,/business_impulse_memberships/);
+ assert.match(growthReceipt,/platform_payment_receipts/);
+ assert.match(feature,/await featuredReceipts\.send\(db,row\.id\)/);
+ assert.match(feature,/reconcilePending=async/);
+ assert.match(featureReceipt,/paid_pending_review/);
+ assert.match(featureReceipt,/platform_featured_receipts/);
+});
