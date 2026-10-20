@@ -17,8 +17,12 @@ function config(env=process.env){
   const pilotUserId=/^[1-9]\d{0,14}$/.test(pilotId)&&Number.isSafeInteger(Number(pilotId))?Number(pilotId):null;
   const checkout=ready&&truth(env.MP_PLATFORM_CHECKOUT_ENABLED)&&
     (mode==='test'||truth(env.MP_PLATFORM_LIVE_ALLOWED))&&(!pilotOnly||mode==='production'&&pilotUserId!==null);
+  // Club and business plans must each be explicitly authorized for public billing.
+  const publicCheckout=checkout&&!pilotOnly;
+  const publicClubCheckout=publicCheckout&&truth(env.MP_PLATFORM_CLUB_PUBLIC_ENABLED);
+  const publicGrowthCheckout=publicCheckout&&truth(env.MP_PLATFORM_GROWTH_PUBLIC_ENABLED);
   return {ready,checkout,mode,site,collector,pilotOnly,pilotUserId,
-    publicCheckout:checkout&&!pilotOnly,webhookConfigured:secret.length>=12};
+    publicCheckout,publicClubCheckout,publicGrowthCheckout,webhookConfigured:secret.length>=12};
 }
 const error=(message,status=503)=>Object.assign(new Error(message),{status});
 function reference(){return 'DYPL'+crypto.randomBytes(12).toString('hex').toUpperCase()}
