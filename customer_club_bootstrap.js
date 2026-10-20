@@ -131,7 +131,7 @@ function __dyClubActivate(userId,days,source,amount,reference){
   const base=currentEnd&&!Number.isNaN(currentEnd.getTime())&&currentEnd>now?currentEnd:now;
   const expires=new Date(base.getTime()+days*86400000).toISOString(),iso=now.toISOString();
   db.prepare("UPDATE customer_club_memberships SET status='superseded',updated_at=? WHERE user_id=? AND status='active'").run(iso,Number(userId));
-  db.prepare("INSERT INTO customer_club_memberships(user_id,status,source,starts_at,expires_at,days_granted,amount,payment_reference,created_at,updated_at) VALUES(?,'active',?,?,?,?,?,?,?,?,?)")
+  db.prepare("INSERT INTO customer_club_memberships(user_id,status,source,starts_at,expires_at,days_granted,amount,payment_reference,created_at,updated_at) VALUES(?,'active',?,?,?,?,?,?,?,?)")
     .run(Number(userId),source||'paid',iso,expires,days,Number(amount||0),reference||null,iso,iso);
   return __dyClubMembership(userId);
 }
