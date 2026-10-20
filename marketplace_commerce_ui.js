@@ -106,6 +106,15 @@
         btn.addEventListener('click',async()=>{
           btn.disabled=true;
           try{
+            const existing=cart();
+            const alreadyReady=Number(existing.business_id)===Number(b.id)&&existing.items.length===1&&
+              Number(existing.items[0].product_id)===Number(pilotProduct.id)&&Number(existing.items[0].quantity)===1;
+            if(alreadyReady){location.hash='#/carrito';return;}
+            if(existing.items.length){
+              if(!confirm('La prueba permite solo una unidad del producto de $50. ¿Reemplazar los artículos de tu carrito?')){btn.disabled=false;return;}
+              localStorage.removeItem(CART_KEY);
+              renderCartBubble();
+            }
             await dyCartAddProduct(pilotProduct.id);
             const current=cart();
             if(current.business_id===Number(b.id)&&current.items.some(x=>Number(x.product_id)===Number(pilotProduct.id))){
