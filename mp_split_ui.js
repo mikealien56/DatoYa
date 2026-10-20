@@ -97,15 +97,21 @@
     const note=form.querySelector('.dy-commerce-note');
     const subtotal=Number(form.dataset.subtotal||0);
     const businessId=Number(form.dataset.businessId||0);
-    let ready=false,rate=2,pilotNeedsConnection=false;
+    let ready=false,rate=2,pilotNeedsConnection=false,pilotBlocked=false,statusKnown=false;
     try{
       const config=await api('/marketplace/central-payments/status?business_id='+businessId);
+      statusKnown=true;
       ready=config?.checkout_enabled===true;
-      if(config?.pilot_only===true&&ME?.account_type==='customer'&&Number(form.dataset.subtotal||0)===50){
-        const pilot=await api('/marketplace/mp-split-pilot-access?business_id='+businessId).catch(()=>({checkout_enabled:false}));
-        pilotNeedsConnection=pilot?.payment_connection_required===true;
-        ready=pilot?.checkout_enabled===true&&Number(form.dataset.pilotProductId)===Number(pilot.product_id)&&
+      pilotNeedsConnection=config?.merchant_payment_connected===false;
+      if(config?.pilot_only===true&&ME?.account_type==='customer'){
+        // Private-pilot authorization is checked by the server, not inferred from the cart.
+        const pilot=await api('/marketplace/mp-split-pilot-access?business_id='+businessId).catch(()=>null);
+        if(pilot?.payment_connection_required===true)pilotNeedsConnection=true;
+        const exactCart=Number(form.dataset.subtotal)===50&&
+          Number(form.dataset.pilotProductId)===Number(pilot?.product_id)&&
           Number(form.dataset.cartItems)===1&&Number(form.dataset.cartQuantity)===1;
+        ready=pilot?.checkout_enabled===true&&pilot?.pilot_selected===true&&exactCart;
+        pilotBlocked=!ready&&!pilotNeedsConnection;
       }
       rate=Number(config?.service_fee_percent||2);
     }catch(_){}
@@ -113,19 +119,33 @@
     const fee=Math.round(subtotal*rate/100);
     if(note){
       note.replaceChildren();
-      const heading=node('b','','Pago online en DatoYa'),text=node('p','',
-        ready?'Antes de pagar podrás revisar el total, incluido el servicio DatoYa. El dinero se procesa mediante Mercado Pago.':
-        (pilotNeedsConnection?'Tu carrito está guardado. Este negocio aún debe vincular su cuenta Mercado Pago para recibir pagos. No se generará ningún cobro hasta que esté disponible.':
-        'Las compras online aún no están habilitadas. Podrás pagar dentro de DatoYa cuando Mercado Pago complete su activación.'));
-      note.append(heading,text);
+      note.appendChild(node('b','','Resumen del pago'));
       if(Number.isSafeInteger(subtotal)&&subtotal>0){
-        note.appendChild(node('p','','Tarifa DatoYa ('+rate+'% de productos): '+clp(fee)+'. El despacho, cuando corresponda, se suma al total.'));
-        note.appendChild(node('strong','dy-cart-grand-total','Total previsto para la compra: '+clp(subtotal+fee)));
+        const breakdown=node('div','dy-checkout-price-breakdown');
+        const addLine=(label,amount,kind='')=>{
+          const line=node('div','dy-checkout-price-line'+(kind?' '+kind:'')),
+                title=node('span','',label),value=node('strong','',clp(amount));
+          line.append(title,value);breakdown.appendChild(line);
+        };
+        addLine('Productos',subtotal);
+        addLine('Servicio DatoYa',fee);
+        addLine('Total previsto',subtotal+fee,'dy-checkout-grand-total');
+        note.appendChild(breakdown);
       }
+      const message=ready?
+        'El pago se realizará de forma segura en Mercado Pago.':
+        pilotNeedsConnection?'El Negocio todavía no ha vinculado su cuenta receptora de Mercado Pago. Tu carrito queda guardado y podrás pagar cuando su titular complete la conexión.':
+        pilotBlocked?'Esta compra de prueba no está habilitada para la cuenta o los artículos seleccionados.':
+        statusKnown?'Este negocio todavía no está habilitado para cobrar online.':'No pudimos verificar el estado del pago. Intenta nuevamente más tarde.';
+      note.appendChild(node('p','dy-checkout-payment-status',message));
+      const terms=node('a','dy-checkout-terms','Ver términos y condiciones');
+      terms.href='#/terminos';note.appendChild(terms);
     }
     if(submit){
       submit.disabled=!ready;
-      submit.textContent=ready?'Continuar al pago con Mercado Pago':pilotNeedsConnection?'Pago pendiente de conexión Mercado Pago':'Pago online próximamente';
+      submit.textContent=ready?'Continuar al pago con Mercado Pago':
+        pilotNeedsConnection?'Falta conectar Mercado Pago del negocio':
+        pilotBlocked?'Pago no disponible para esta compra':'Pago online no disponible';
     }
     return rendered;
   };
@@ -150,7 +170,7 @@
         const product=node('p','','Productos: '+clp(q.products_amount));
         area.appendChild(product);
         if(q.delivery_fee)area.appendChild(node('p','','Despacho: '+clp(q.delivery_fee)));
-        area.appendChild(node('p','','Tarifa de servicio DatoYa (2%): '+clp(q.service_fee)));
+        area.appendChild(node('p','','Servicio DatoYa: '+clp(q.service_fee)));
         area.appendChild(node('strong','dy-mp-total','Total: '+clp(q.checkout_total)));
         if(!wasPaid){
           area.appendChild(node('small','dy-mp-sub','Mercado Pago aplica además sus propias tarifas al negocio.'));
