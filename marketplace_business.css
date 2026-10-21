@@ -63,3 +63,16 @@
 .dy-product-editor .dy-second-photo .dy-product-preview{margin:0}
 .dy-product-editor .dy-second-photo .btn{justify-self:start}
 .dy-product-editor input[type="file"]{width:100%;max-width:100%;font-size:13px}
+
+
+/* Alta en borrador: requisitos obligatorios antes de pedir revisión. */
+.dy-business-activation{padding:22px!important;border:1px solid #bfddda!important;background:linear-gradient(135deg,#f8fffd,#ffffff)!important}
+.dy-business-activation .dy-card-head{margin-bottom:12px}
+.dy-activation-step{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 0;border-top:1px solid #e2e8f0}
+.dy-activation-step b{font-size:14px;color:#123254}
+.dy-activation-step span{font-size:12px;font-weight:800;color:#0c7a62;text-align:right}
+.dy-business-activation .dy-activation-step+.small{padding:6px 0 12px;margin:0}
+.dy-activation-links{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:15px 0}
+.dy-business-activation>button[disabled]{opacity:.7;cursor:not-allowed}
+.dy-business-activation>button{margin:6px 0 12px}
+@media(max-width:600px){.dy-business-activation{padding:15px!important}.dy-activation-links{flex-direction:column;align-items:stretch}.dy-activation-links a{width:100%;box-sizing:border-box;text-align:center}.dy-business-activation>button{width:100%}.dy-activation-step{align-items:flex-start}}
