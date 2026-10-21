@@ -4,7 +4,7 @@
 
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=n=>'$'+Number(n||0).toLocaleString('es-CL');
-  const num=(k)=>{const v=Number(localStorage.getItem(k));return Number.isFinite(v)?v:null};
+  const num=(k)=>{const raw=localStorage.getItem(k);if(raw===null||String(raw).trim()==='')return null;const v=Number(raw);return Number.isFinite(v)?v:null;};
   const isHome=()=>!location.hash||location.hash==='#'||location.hash==='#/';
   const rad=d=>d*Math.PI/180;
   const distanceKm=(a,b,c,d)=>{const R=6371,dl=rad(c-a),dn=rad(d-b),x=Math.sin(dl/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
@@ -226,15 +226,12 @@
       renderBetaHome();
     });
     document.getElementById('dy-beta-search')?.addEventListener('submit',e=>{e.preventDefault();const q=String(new FormData(e.currentTarget).get('q')||'').trim();location.hash='#/buscar/'+encodeURIComponent(q||'_');});
-    document.getElementById('dy-beta-all')?.addEventListener('click',()=>{document.querySelectorAll('[data-dy-beta-category]').forEach(x=>x.classList.remove('active'));document.querySelectorAll('#dy-beta-businesses .dy-business-card,#dy-beta-promos .dy-live-card').forEach(x=>x.style.display='');});
+    document.getElementById('dy-beta-all')?.addEventListener('click',()=>{location.hash='#/buscar/_';});
     document.querySelectorAll('[data-dy-beta-category]').forEach(btn=>btn.addEventListener('click',()=>{
-      const id=Number(btn.dataset.dyBetaCategory);document.querySelectorAll('[data-dy-beta-category]').forEach(x=>x.classList.toggle('active',x===btn));
-      const matchingBusinessIds=new Set(businesses.filter(b=>(b.categories||[]).some(c=>Number(c.id)===id)).map(b=>Number(b.id)));
-      const matchingProducts=products.filter(p=>Number(p.category_id)===id||matchingBusinessIds.has(Number(p.business_id)));
-      document.querySelectorAll('#dy-beta-businesses [data-beta-business]').forEach(el=>el.style.display=matchingBusinessIds.has(Number(el.dataset.betaBusiness))?'':'none');
-      const promoGrid=document.getElementById('dy-beta-promos');if(promoGrid){const active=matchingProducts.filter(p=>!p.stock_tracking||Number(p.stock||0)>0);promoGrid.innerHTML=active.slice(0,8).map(p=>productCard(p,businesses,'promo')).join('')||emptyBlock('🔎','Sin productos en esta categoría','Sí puede haber negocios disponibles más abajo.');bindSavedActions();bindPromoCountdowns();}
-      const category=categories.find(c=>Number(c.id)===id);if(category)trackSearch(category.name,id,matchingBusinessIds.size+matchingProducts.length);
-      document.getElementById('negocios-cerca')?.scrollIntoView({behavior:'smooth',block:'start'});
+      const id=Number(btn.dataset.dyBetaCategory);
+      if(!categories.some(c=>Number(c.id)===id))return;
+      // Navegar al resultado completo evita filtros parciales que dejan promos antiguas visibles.
+      location.hash='#/buscar/_/'+id;
     }));
   }
 

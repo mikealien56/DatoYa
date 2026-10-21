@@ -31,7 +31,10 @@ grep -q "data-dy-follow" marketplace_public_beta_ui.js || { echo "Falta botón S
 grep -q "bindSavedActions" marketplace_public_beta_ui.js || { echo "Favoritos visuales no están conectados a API"; exit 1; }
 grep -q "trackSearch" marketplace_public_beta_ui.js || { echo "La búsqueda pública no registra demanda"; exit 1; }
 grep -q "market/search-events" marketplace_public_beta_ui.js || { echo "La búsqueda no llama al registro de demanda"; exit 1; }
-grep -q "matchingBusinessIds.size+matchingProducts.length" marketplace_public_beta_ui.js || { echo "Las categorías no registran demanda local"; exit 1; }
+grep -Fq "location.hash='#/buscar/_/'+id" marketplace_public_beta_ui.js || { echo "Una categoría puede quedar como botón sin destino"; exit 1; }
+grep -Fq "location.hash='#/buscar/_';" marketplace_public_beta_ui.js || { echo "Ver todo no abre el catálogo completo"; exit 1; }
+grep -Fq "if(raw===null||String(raw).trim()==='')return null" marketplace_public_beta_ui.js || { echo "La ubicación ausente se interpreta como coordenadas 0,0"; exit 1; }
+grep -q "trackSearch(trackedTerm,categoryId" marketplace_public_beta_ui.js || { echo "Las búsquedas de categoría no registran demanda"; exit 1; }
 grep -q "admin/private-beta" beta_private_ui.js
 grep -q "Pulso Local" business_hub_ui.js
 grep -q "Radar" business_hub_ui.js
