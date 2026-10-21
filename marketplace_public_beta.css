@@ -222,3 +222,24 @@
     height:190px!important;max-height:190px!important;flex-basis:190px!important;
   }
 }
+
+
+/* DATOYA_PRODUCT_FAVORITES_BOTTOM_V1
+   Corazón debajo del aviso Quedan/stock para no tapar el inventario. */
+.dy-real-product > .dy-live-image.dy-real-product-photo > .dy-save-button,
+.dy-store-product > .dy-store-product-image > .dy-save-button{
+  position:absolute!important;
+  top:auto!important;
+  bottom:12px!important;
+  right:12px!important;
+  left:auto!important;
+  z-index:7!important;
+}
+@media(max-width:700px){
+  .dy-real-product > .dy-live-image.dy-real-product-photo > .dy-save-button,
+  .dy-store-product > .dy-store-product-image > .dy-save-button{
+    top:auto!important;
+    bottom:9px!important;
+    right:9px!important;
+  }
+}
