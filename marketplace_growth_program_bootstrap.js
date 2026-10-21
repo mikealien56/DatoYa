@@ -297,9 +297,9 @@ const businessStart="app.post('/api/businesses',auth,__dyRequireBusinessAccount,
 if(!source.includes(businessStart))throw new Error('No se encontró alta de negocio para invitaciones');
 source=source.replace(businessStart,businessStart+"\n  const __growthRawCode=__dyGrowthCode(body.invitation_code||'');const __growthInvitation=__growthRawCode?__dyGrowthResolveInvitation(__growthRawCode,req.user&&req.user.email):null;if(__growthRawCode&&(!__growthInvitation||__growthInvitation.type==='founder_email_mismatch'))return res.status(400).json({error:__growthInvitation&&__growthInvitation.type==='founder_email_mismatch'?'Esta invitación de Fundador pertenece a otro correo':'El código de invitación DatoYa no es válido o ya fue utilizado'});");
 
-const attachAnchor="    for(let i=0;i<categoryIds.length;i++)db.prepare('INSERT INTO business_category_links(business_id,category_id,is_primary) VALUES(?,?,?)').run(id,categoryIds[i],i===0?1:0);\n    notify(req.user.id,'negocio','Recibimos el registro de '+name+'. Lo revisaremos antes de publicarlo.','#/perfil');";
-if(!source.includes(attachAnchor))throw new Error('No se encontró transacción de alta de negocio');
-source=source.replace(attachAnchor,"    for(let i=0;i<categoryIds.length;i++)db.prepare('INSERT INTO business_category_links(business_id,category_id,is_primary) VALUES(?,?,?)').run(id,categoryIds[i],i===0?1:0);\n    if(__growthInvitation)__dyGrowthAttachInvitation(id,__growthInvitation);else __dyGrowthEnsureProfile(id);\n    notify(req.user.id,'negocio','Recibimos el registro de '+name+'. Lo revisaremos antes de publicarlo.','#/perfil');");
+const attachBase="    for(let i=0;i<categoryIds.length;i++)db.prepare('INSERT INTO business_category_links(business_id,category_id,is_primary) VALUES(?,?,?)').run(id,categoryIds[i],i===0?1:0);";
+if(!source.includes(attachBase))throw new Error('No se encontró transacción de alta de negocio');
+source=source.replace(attachBase,attachBase+"\n    if(__growthInvitation)__dyGrowthAttachInvitation(id,__growthInvitation);else __dyGrowthEnsureProfile(id);");
 
 // Comisión escalonada: neta, por plan y por promoción exclusiva.
 const commissionOld=`  const total=Math.max(0,subtotal-couponDiscount)+deliveryFee;
