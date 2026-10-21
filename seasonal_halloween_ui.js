@@ -94,7 +94,7 @@
   window.__datoyaSeasonalTheme = { isActiveAt, sync };
   sync();
   // Proteger el contenido de temporada de modificaciones tardías de módulos del Home.
-  const homeView=document.getElementById('view');
+  const homeView=document.getElementById?.('view');
   if(homeView&&typeof MutationObserver!=='undefined'){
     const observer=new MutationObserver(()=>{
       if(!document.documentElement.classList.contains(ROOT_CLASS))return;
