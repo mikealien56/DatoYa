@@ -136,7 +136,7 @@ registerAdminBusinessPreviewRoute();
 
 app.get('/api/admin/marketplace-v2/businesses',auth,requireRole('admin'),(req,res)=>{
   __dyImpulseSync();
-  const rows=db.prepare(`SELECT b.id,b.name,b.slug,b.business_type,b.status,b.verified,b.sector,b.created_at,b.updated_at,
+  const rows=db.prepare(`SELECT b.id,b.name,b.slug,b.business_type,b.status,b.verified,b.founder_business,b.founder_since,b.sector,b.created_at,b.updated_at,
     u.id owner_user_id,u.name owner_name,u.email owner_email,c.name comuna,
     (SELECT COUNT(*) FROM products p WHERE p.business_id=b.id) product_count,
     (SELECT COUNT(*) FROM commerce_orders o WHERE o.business_id=b.id) order_count,
@@ -146,6 +146,29 @@ app.get('/api/admin/marketplace-v2/businesses',auth,requireRole('admin'),(req,re
     WHERE u.is_demo=0
     ORDER BY b.created_at DESC LIMIT 500`).all(__dyImpulseNow());
   res.json({businesses:rows});
+});
+
+// Un negocio ya registrado se hace Fundador sin obligarlo a crear otra cuenta ni enlace.
+app.post('/api/admin/marketplace-v2/founders/assign-existing',auth,requireRole('admin'),(req,res)=>{
+  const id=Number(req.body?.business_id);
+  if(!Number.isSafeInteger(id)||id<=0)return res.status(400).json({error:'Selecciona un negocio válido'});
+  const business=db.prepare("SELECT b.id,b.name,b.status,b.founder_business,b.owner_user_id FROM businesses b JOIN users u ON u.id=b.owner_user_id WHERE b.id=? AND u.is_demo=0").get(id);
+  if(!business)return res.status(404).json({error:'Negocio no encontrado'});
+  if(business.status!=='active')return res.status(409).json({error:'Primero aprueba el negocio para activarlo como Fundador'});
+  if(Number(business.founder_business||0)===1)return res.json({ok:true,already_founder:true,business_name:business.name,days_granted:0});
+  const days=Math.min(365,Math.max(0,Math.trunc(Number(getSetting('founder_impulso_days','30'))||0)));
+  const now=new Date().toISOString();
+  try{
+    db.transaction(()=>{
+      // La bandera hace idempotente la asignación; un segundo clic no vuelve a regalar días.
+      const current=db.prepare('SELECT founder_business FROM businesses WHERE id=?').get(id);
+      if(Number(current?.founder_business||0)===1)return;
+      db.prepare("UPDATE businesses SET founder_business=1,founder_since=COALESCE(founder_since,?),updated_at=? WHERE id=?").run(now,now,id);
+      if(days>0)__dyAddImpulseDays(id,days,'gift',req.user.id,0,'gift','founder-existing-'+id);
+    })();
+    notify(business.owner_user_id,'negocio','🏅 Tu negocio fue reconocido como Fundador de DatoYa'+(days>0?' y recibió '+days+' días de Impulso.':'.'),'#/mi-negocio/'+id);
+    res.json({ok:true,business_name:business.name,founder_business:true,days_granted:days});
+  }catch(error){console.error('[DatoYa] Error al asignar Fundador:',error.message);res.status(500).json({error:'No fue posible asignar Fundador al negocio'});}
 });
 
 app.get('/api/admin/marketplace-v2/products',auth,requireRole('admin'),(req,res)=>{
