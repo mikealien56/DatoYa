@@ -18,7 +18,7 @@
   const rad=d=>d*Math.PI/180;
   const distanceKm=(a,b,c,d)=>{const R=6371,dl=rad(c-a),dn=rad(d-b),x=Math.sin(dl/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
   const fmtDistance=d=>d==null?'':d<1?`${Math.max(50,Math.round(d*1000/50)*50)} m`:`${d.toFixed(d<10?1:0).replace('.',',')} km`;
-  const locationState=()=>({lat:num('datoya_lat'),lng:num('datoya_lng'),comunaId:Number(localStorage.getItem('datoya_comuna_id')||0),radius:Math.min(30,Math.max(1,Number(localStorage.getItem('datoya_radius_km')||5))),label:localStorage.getItem('datoya_location_label')||'Elegir ubicación'});
+  const locationState=()=>({lat:num('datoya_lat'),lng:num('datoya_lng'),comunaId:Number(localStorage.getItem('datoya_comuna_id')||ME?.comuna_id||0),radius:Math.min(30,Math.max(1,Number(localStorage.getItem('datoya_radius_km')||5))),label:localStorage.getItem('datoya_location_label')||'Elegir ubicación'});
   function searchVisitorId(){let id=localStorage.getItem('datoya_search_visitor_id');if(id)return id;id=(window.crypto&&typeof window.crypto.randomUUID==='function'?window.crypto.randomUUID():'dy-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12));try{localStorage.setItem('datoya_search_visitor_id',id)}catch(_){}return id;}
   function trackSearch(term,categoryId,resultCount){const q=String(term||'').trim();if(q.length<2)return Promise.resolve();const loc=locationState(),comunaId=Number(loc.comunaId||ME?.comuna_id||0)||null;return api('/market/search-events',{method:'POST',body:{term:q,category_id:Number(categoryId)||null,comuna_id:comunaId,radius_km:[1,3,5,10].includes(Number(loc.radius))?Number(loc.radius):5,result_count:Math.max(0,Number(resultCount)||0),visitor_id:searchVisitorId()}}).catch(()=>null);}
   let cache={at:0,categories:[],businesses:[],products:[]};
@@ -62,7 +62,7 @@
     if(!force && Date.now()-cache.at<15000) return cache;
     const loc=locationState();
     const params=new URLSearchParams();
-    if(loc.lat!=null&&loc.lng!=null){params.set('lat',loc.lat);params.set('lng',loc.lng);params.set('radius',loc.radius);}else if(loc.comunaId)params.set('comuna_id',loc.comunaId);
+    if(loc.comunaId)params.set('comuna_id',loc.comunaId); if(loc.lat!=null&&loc.lng!=null){params.set('lat',loc.lat);params.set('lng',loc.lng);params.set('radius',loc.radius);}
     const qs=params.toString()?`?${params}`:'';
     const [catRes,bizRes,prodRes]=await Promise.all([
       api('/market/categories'),api('/market/businesses'+qs),api('/market/products'+qs)
