@@ -67,6 +67,20 @@
       }else{
         section.appendChild(node('p','dy-mp-sub','La conexión estará disponible próximamente.'));
       }
+      const onboardingActions=node('div','dy-mp-onboarding-actions');
+      const back=document.createElement('a');
+      back.className='btn btn-outline btn-sm';back.href='#/mi-negocio/'+Number(id);
+      back.textContent='← Volver a preparar mi negocio';
+      onboardingActions.appendChild(back);
+      if(!s.connected){
+        const create=document.createElement('a');
+        create.className='btn btn-outline btn-sm';
+        create.href='https://www.mercadopago.cl/';
+        create.target='_blank';create.rel='noopener noreferrer';
+        create.textContent='¿No tienes cuenta? Crear en Mercado Pago ↗';
+        onboardingActions.appendChild(create);
+      }
+      section.appendChild(onboardingActions);
       const conditions=node('p','dy-mp-sub dy-mp-terms');
       const terms=document.createElement('a');
       terms.href='#/terminos';
