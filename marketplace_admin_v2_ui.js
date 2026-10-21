@@ -92,16 +92,17 @@
     try{
       const {business:b,products=[]}=await api('/admin/marketplace-v2/businesses/'+id+'/preview');
       if(!b)throw new Error('Negocio no encontrado');
+      const missingPickupAddress=!!b.pickup_enabled&&String(b.address||'').trim().length<6;
       const cover=image(b.cover_image_data);
       const coverHtml=cover?`<img src="${h(cover)}" alt="Portada del negocio">`:'<div class="dy-review-cover-empty">🏪</div>';
       const detail=(label,value)=>`<div><span>${label}</span><b>${h(value||'No informado')}</b></div>`;
       shell('Revisar negocio','Vista privada exclusiva para administración. No publica el negocio.',`
         <div class="dy-review-actions">
           <a class="btn btn-outline" href="#/admin/negocios">← Volver a negocios</a>
-          ${b.status!=='active'?'<button class="btn btn-primary" id="dy-review-approve">✓ Aprobar negocio</button>':''}
+          ${b.status!=='active'&&!missingPickupAddress?'<button class="btn btn-primary" id="dy-review-approve">✓ Aprobar negocio</button>':''}
           ${b.status!=='active'?'<button class="btn btn-outline" id="dy-review-corrections">Solicitar correcciones</button>':''}
         </div>
-        <div class="dy-review-private">🔒 Vista previa privada · Este negocio continúa ${h(statusLabel(b.status).toLowerCase())} hasta que cambies su estado.</div>
+        <div class="dy-review-private">🔒 Vista previa privada · Este negocio continúa ${h(statusLabel(b.status).toLowerCase())} hasta que cambies su estado.</div>${missingPickupAddress?'<div class="dy-review-private" role="alert">⚠️ Este negocio ofrece retiro, pero no informó su dirección. Solicita que la complete antes de aprobarlo.</div>':''}
         <section class="card dy-review-business">
           <div class="dy-review-cover">${coverHtml}</div>
           <div class="dy-review-business-info">
