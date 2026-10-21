@@ -585,3 +585,23 @@ input,select,textarea,button{
     margin-right:auto!important;
   }
 }
+
+
+/* DATOYA HEADER MOBILE EXIT V1: logout visible beside notifications and profile. */
+@media(max-width:640px){
+  #topbar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
+  #topbar .logo{flex:0 1 40%!important;max-width:40%!important;min-width:0!important}
+  #topbar .datoya-header-logo{width:100%!important;max-width:145px!important;height:auto!important}
+  #topbar #topnav{flex:0 0 auto!important;min-width:0!important;max-width:60%!important}
+  #topbar #auth-area{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;max-width:none!important;flex:0 0 auto!important;overflow:visible!important}
+  #topbar #auth-area>a[href="#/perfil"]{display:flex!important;align-items:center!important;flex:0 1 auto!important;max-width:72px!important;min-width:0!important;padding:7px 2px!important;font-size:12px!important;white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important}
+  #topbar #auth-area>a[href="#"][onclick*="logout"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;min-height:36px!important;min-width:42px!important;padding:5px 7px!important;border:1px solid #d6e2ef!important;border-radius:11px!important;background:#f1f6ff!important;color:#0b3a82!important;font-size:11px!important;font-weight:800!important;text-decoration:none!important}
+  #topbar #auth-area .dy-notification-bell{flex:0 0 auto!important}
+}
+@media(max-width:380px){
+  #topbar .logo{max-width:37%!important;flex-basis:37%!important}
+  #topbar #topnav{max-width:63%!important}
+  #topbar #auth-area{gap:3px!important}
+  #topbar #auth-area>a[href="#/perfil"]{max-width:54px!important;font-size:11px!important}
+  #topbar #auth-area>a[href="#"][onclick*="logout"]{min-width:39px!important;padding:5px!important}
+}

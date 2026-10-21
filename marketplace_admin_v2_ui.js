@@ -205,10 +205,17 @@
       }
 
       if(tab==='fundadores'){
-        const [{founders=[],referrals=[],invites=[],config={}},{settings={}}]=await Promise.all([
+        const [{founders=[],referrals=[],invites=[],config={}},{settings={}},{contacts=[]},{businesses:registered=[]}]=await Promise.all([
           api('/admin/marketplace-v2/founders'),
-          api('/admin/marketplace-v2/growth-settings')
+          api('/admin/marketplace-v2/growth-settings'),
+          api('/admin/marketplace-v2/invite-contacts').catch(()=>({contacts:[]})),
+          api('/admin/marketplace-v2/businesses').catch(()=>({businesses:[]}))
         ]);
+        const choices=[
+          ...contacts.map(x=>({name:x.business_name,email:x.email||'',source:'Mi lista'})),
+          ...invites.filter(x=>x.invitee_business_name&&x.invitee_email).map(x=>({name:x.invitee_business_name,email:x.invitee_email,source:'Invitación anterior'})),
+          ...registered.filter(x=>!['suspended','rejected'].includes(x.status)).map(x=>({name:x.name,email:x.owner_email||'',source:'Registrado en DatoYa'}))
+        ].filter(x=>x.name);
         shell('Fundadores y crecimiento','Invita negocios, revisa referidos y configura sus beneficios.',`
           <div class="dy-admin-kpis">
             <div><strong>${founders.length}</strong><span>Fundadores</span><small>Negocios invitados por DatoYa</small></div>
@@ -219,6 +226,18 @@
             <section class="card">
               <span class="small muted">INVITACIONES</span><h3>Invitar un Negocio Fundador</h3>
               <p class="small muted">Cada invitación pertenece a un solo negocio, queda ligada a su correo y se puede usar una sola vez.</p>
+              <div class="dy-founder-select-box">
+                <div class="field"><label for="dy-founder-search-saved">Buscar en negocios conocidos</label><input id="dy-founder-search-saved" type="search" autocomplete="off" placeholder="Busca por nombre o correo"></div>
+                <div class="field"><label for="dy-founder-select-saved">Elegir negocio</label><select id="dy-founder-select-saved"><option value="">Elegir o escribir uno nuevo</option>${choices.map((x,i)=>`<option value="${i}">${h(x.name)} ${x.email?'· '+h(x.email):''} (${h(x.source)})</option>`).join('')}</select></div>
+                <small>Se incluyen tus contactos, invitaciones anteriores y negocios registrados. También puedes escribir un negocio nuevo abajo.</small>
+                <button type="button" class="btn btn-outline btn-sm dy-founder-save-contact" id="dy-founder-contact-open">+ Agregar negocio a mi lista</button>
+              </div>
+              <form id="dy-founder-contact-form" class="dy-founder-contact-form" hidden>
+                <strong>Guardar negocio para invitar después</strong>
+                <div class="field"><label for="dy-founder-contact-name">Nombre del negocio</label><input id="dy-founder-contact-name" name="business_name" maxlength="100" minlength="2" placeholder="Ej: Vivero Los Aromos" required></div>
+                <div class="field"><label for="dy-founder-contact-email">Correo (puedes completarlo después)</label><input id="dy-founder-contact-email" name="email" type="email" maxlength="160" placeholder="contacto@negocio.cl"></div>
+                <div class="dy-admin-row-actions"><button type="submit" class="btn btn-primary btn-sm">Guardar en mi lista</button><button type="button" class="btn btn-outline btn-sm" id="dy-founder-contact-cancel">Cancelar</button></div>
+              </form>
               <form id="dy-founder-invite-form" class="dy-admin-settings">
                 <div class="field"><label>Nombre del negocio</label><input name="business_name" maxlength="100" placeholder="Ej: Panadería Don Juan" required></div>
                 <div class="field"><label>Correo del invitado</label><input name="email" type="email" maxlength="160" placeholder="juan@correo.cl" required></div>
@@ -240,7 +259,52 @@
           <section class="card" style="margin-top:16px"><span class="small muted">NEGOCIOS FUNDADORES</span><h3>Quién entró como Fundador</h3><div class="dy-admin-list">${founders.map(f=>`<article class="card dy-admin-row"><div><b>🏅 ${h(f.business_name)}</b><div class="small muted">${h(f.owner_name||'')} · ${h(f.owner_email||'')}</div><div class="dy-admin-tags">${badge(f.founder_code||'Sin código','ok')} ${badge(Number(f.referral_count||0)+' referidos')} ${badge(Number(f.rewarded_referrals||0)+' calificados')} ${badge('+'+Number(f.founder_reward_days||0)+' días')}</div></div><div class="small muted">Beneficios de Fundador activos según configuración</div></article>`).join('')||'<p class="muted">Todavía no hay Fundadores.</p>'}</div></section>
           <section class="card" style="margin-top:16px"><span class="small muted">REFERIDOS</span><h3>Negocios recomendados</h3><div class="dy-admin-history">${referrals.map(r=>`<div><b>${h(r.referred_name)}</b><span>Invitado por ${h(r.founder_name)} · ${r.status==='rewarded'?'beneficio entregado':'beneficio pendiente'}</span></div>`).join('')||'<p class="muted">Aún no hay referidos.</p>'}</div></section>
         `);
-        document.getElementById('dy-founder-invite-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button');btn.disabled=true;try{const r=await api('/admin/marketplace-v2/founder-invites',{method:'POST',body:{business_name:f.business_name.value.trim(),email:f.email.value.trim()}});toast?.('Invitación única creada para '+r.invite.invitee_business_name,'ok');routes.admin('fundadores');}catch(err){btn.disabled=false;toast?.(err.message,'err')}});
+        const selectBusiness=document.getElementById('dy-founder-select-saved');
+        const findBusiness=document.getElementById('dy-founder-search-saved');
+        const inviteForm=document.getElementById('dy-founder-invite-form');
+        function renderContactChoices(){
+          const q=String(findBusiness?.value||'').toLocaleLowerCase('es').trim(),selected=selectBusiness?.value||'';
+          if(!selectBusiness)return;
+          selectBusiness.innerHTML='<option value="">Elegir o escribir uno nuevo</option>'+choices.map((x,i)=>({x,i})).filter(({x})=>!q||(x.name+' '+x.email+' '+x.source).toLocaleLowerCase('es').includes(q)).map(({x,i})=>`<option value="${i}">${h(x.name)}${x.email?' · '+h(x.email):''} (${h(x.source)})</option>`).join('');
+          if(selectBusiness.querySelector('option[value="'+selected+'"]'))selectBusiness.value=selected;
+        }
+        findBusiness?.addEventListener('input',renderContactChoices);
+        selectBusiness?.addEventListener('change',()=>{
+          const x=choices[Number(selectBusiness.value)];
+          if(!x||selectBusiness.value==='')return;
+          inviteForm.elements.namedItem('business_name').value=x.name;
+          inviteForm.elements.namedItem('email').value=x.email||'';
+          if(!x.email)inviteForm.elements.namedItem('email').focus();
+        });
+        const contactForm=document.getElementById('dy-founder-contact-form');
+        document.getElementById('dy-founder-contact-open')?.addEventListener('click',()=>{
+          contactForm.hidden=false;
+          document.getElementById('dy-founder-contact-name')?.focus();
+        });
+        document.getElementById('dy-founder-contact-cancel')?.addEventListener('click',()=>{contactForm.hidden=true;});
+        contactForm?.addEventListener('submit',async e=>{
+          e.preventDefault();
+          const form=e.currentTarget,button=form.querySelector('button[type="submit"]');
+          button.disabled=true;
+          try{
+            await api('/admin/marketplace-v2/invite-contacts',{method:'POST',body:{business_name:form.elements.namedItem('business_name').value.trim(),email:form.elements.namedItem('email').value.trim()}});
+            toast?.('Negocio guardado en tu lista','ok');
+            routes.admin('fundadores');
+          }catch(err){toast?.(err.message||'No se pudo guardar el contacto','err');}
+          finally{button.disabled=false;}
+        });
+        inviteForm?.addEventListener('submit',async e=>{
+          e.preventDefault();
+          const form=e.currentTarget,btn=form.querySelector('button[type="submit"]');
+          const business_name=form.elements.namedItem('business_name').value.trim(),email=form.elements.namedItem('email').value.trim();
+          btn.disabled=true;
+          try{
+            const r=await api('/admin/marketplace-v2/founder-invites',{method:'POST',body:{business_name,email}});
+            await api('/admin/marketplace-v2/invite-contacts',{method:'POST',body:{business_name,email}}).catch(()=>null);
+            toast?.('Invitación única creada para '+r.invite.invitee_business_name,'ok');
+            routes.admin('fundadores');
+          }catch(err){btn.disabled=false;toast?.(err.message||'No se pudo crear la invitación','err');}
+        });
         document.getElementById('dy-growth-settings-form')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,body={};for(const el of f.querySelectorAll('input[name]'))body[el.name]=Number(el.value);try{await api('/admin/marketplace-v2/growth-settings',{method:'PUT',body});toast?.('Modelo comercial actualizado','ok');routes.admin('fundadores');}catch(err){toast?.(err.message,'err')}});
         return;
       }

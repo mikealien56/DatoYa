@@ -425,3 +425,28 @@
 .dy-admin-processor-grid b{color:#102d51;font-size:13px;overflow-wrap:anywhere}
 .dy-admin-processor-help{border-top:1px solid #e3ebf1;padding-top:12px;margin:0;color:#62748a;font-size:12px;line-height:1.6}
 @media(max-width:600px){.dy-admin-processor{padding:15px 13px;border-radius:17px}.dy-admin-processor-grid{grid-template-columns:1fr 1fr}.dy-admin-processor-grid>div:last-child{grid-column:span 2}.dy-admin-processor-head h3{font-size:18px}.dy-admin-processor-grid>div{padding:11px}}
+
+
+/* DATOYA ADMIN FILTER AND INVITE PICKER V1 */
+.dy-admin-v2 .dy-support-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end;width:100%;min-width:0;box-sizing:border-box}
+.dy-admin-v2 .dy-support-filter-grid>label{display:grid;gap:6px;min-width:0;width:100%;font-size:13px;font-weight:750;color:#34516b}
+.dy-admin-v2 .dy-support-filter-grid>.dy-support-filter-search{grid-column:1/-1}
+.dy-admin-v2 .dy-support-filter-grid input,.dy-admin-v2 .dy-support-filter-grid select{display:block;min-width:0;max-width:100%;width:100%;height:48px;box-sizing:border-box;margin:0;padding:10px 12px;font:inherit;font-size:14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;color:#122b4d;overflow:hidden;text-overflow:ellipsis}
+.dy-admin-v2 .dy-admin-grid2>section,.dy-admin-v2 .dy-admin-settings,.dy-admin-v2 .dy-admin-settings .field{min-width:0;max-width:100%;box-sizing:border-box}
+.dy-admin-v2 .dy-admin-settings input,.dy-admin-v2 .dy-admin-settings select{min-width:0;max-width:100%;width:100%;box-sizing:border-box}
+.dy-admin-v2 .dy-founder-select-box{display:grid;gap:10px;margin:12px 0;padding:14px;background:#f5f9ff;border:1px solid #dbe7f6;border-radius:14px;min-width:0}
+.dy-admin-v2 .dy-founder-select-box .field{margin:0}
+.dy-admin-v2 .dy-founder-select-box input,.dy-admin-v2 .dy-founder-select-box select{width:100%;min-width:0;max-width:100%;height:45px;box-sizing:border-box}
+.dy-admin-v2 .dy-founder-select-box .dy-founder-save-contact{justify-self:start;white-space:normal;text-align:left}
+.dy-admin-v2 .dy-founder-select-box small{font-size:12px;color:#61738c;line-height:1.45}
+.dy-admin-v2 .dy-founder-contact-form{display:grid;gap:10px;padding:14px;border:1px solid #cde4db;border-radius:13px;background:#f7fffc;margin:8px 0 14px}
+.dy-admin-v2 .dy-founder-contact-form[hidden]{display:none!important}
+.dy-admin-v2 .dy-founder-contact-form .field{margin:0}
+.dy-admin-v2 .dy-founder-contact-form .dy-admin-row-actions{display:flex;flex-wrap:wrap}
+.dy-admin-v2 .dy-founder-contact-form input{max-width:100%;min-width:0;width:100%}
+@media(max-width:580px){
+  .dy-admin-v2 .dy-support-filter-grid{grid-template-columns:minmax(0,1fr);gap:11px}
+  .dy-admin-v2 .dy-support-filter-grid>.dy-support-filter-search{grid-column:auto}
+  .dy-admin-v2 .dy-support-filter-grid input,.dy-admin-v2 .dy-support-filter-grid select{height:46px}
+  .dy-admin-v2 .dy-founder-select-box{padding:12px}
+}
