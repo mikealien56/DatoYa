@@ -65,7 +65,7 @@
     if(loc.comunaId)params.set('comuna_id',loc.comunaId); if(loc.lat!=null&&loc.lng!=null){params.set('lat',loc.lat);params.set('lng',loc.lng);params.set('radius',loc.radius);}
     const qs=params.toString()?`?${params}`:'';
     const [catRes,bizRes,prodRes]=await Promise.all([
-      api('/market/categories'),api('/market/businesses'+qs),api('/market/products'+qs)
+      api('/market/categories'),api('/market/businesses'+qs),api('/market/products'+(qs?qs+'&lite=1':'?lite=1'))
     ]);
     const businesses=bizRes.businesses||[];
     const ids=new Set(businesses.map(b=>Number(b.id)));
@@ -79,7 +79,7 @@
 
   // Dos fotos del mismo producto; los controles no crean publicaciones adicionales.
   const productPhoto=p=>{
-    const photos=[p.image_data,p.image_data_2].filter(v=>typeof v==='string'&&/^data:image\/(?:jpeg|png|webp);base64,/.test(v));
+    const photos=[p.image_data,p.image_data_2].filter(v=>typeof v==='string'&&(/^data:image\/(?:jpeg|png|webp);base64,/.test(v)||/^\/api\/market\/product-photo\/\d+\/[12](?:\?v=[\w%+.:\-]*)?$/.test(v)));
     if(!photos.length)return '<div class="dy-real-placeholder">📦</div>';
     return '<div class="dy-product-photo-gallery" data-dy-photo-gallery data-index="0">'+
       photos.map((src,i)=>`<img src="${h(src)}" alt="${h(p.name)} — foto ${i+1}" data-dy-gallery-photo loading="lazy" ${i?'hidden':''}>`).join('')+
