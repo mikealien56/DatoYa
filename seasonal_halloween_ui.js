@@ -45,7 +45,6 @@
     '<circle cx="86.8" cy="51.5" r=".75" fill="white"/>',
     '</svg>'
   ].join('');
-  const tinyBat = '<svg viewBox="0 0 46 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path fill="#7b489c" d="M23 8 19 3l-3 5C10 3 6 5 1 10c8-1 7 6 13 4l3 5 6-4 6 4 3-5c6 2 5-5 13-4-5-5-9-7-15-2l-3-5z"/></svg>';
   function ornament(className) {
     const elem = document.createElement('span');
     elem.className = 'dy-season-logo-ornament ' + className;
@@ -61,17 +60,10 @@
     if (header && !header.querySelector('[data-dy-season-logo]')) {
       header.appendChild(ornament('dy-season-header-web'));
     }
-    // En el banner se muestra una versión más visible sobre una placa clara.
-    const hero = document.querySelector('.dy-home .dy-hero-copy');
-    if (hero && !hero.querySelector('[data-dy-season-brand]')) {
-      const plaque = document.createElement('div');
-      plaque.className = 'dy-season-hero-brand';
-      plaque.setAttribute('data-dy-season-brand', '1');
-      plaque.innerHTML =
-        '<img src="/brand/datoya-logo-horizontal.png?v=20260917-3" alt="DatoYa" width="164" height="49" loading="eager">' +
-        '<span class="dy-season-logo-bat" aria-hidden="true">' + tinyBat + '</span>';
-      plaque.appendChild(ornament('dy-season-hero-web'));
-      hero.insertBefore(plaque, hero.firstChild);
+    // Un solo logo oficial en la cabecera; el banner solo lleva una telaraña decorativa.
+    const hero = document.querySelector('.dy-home .dy-hero');
+    if (hero && !hero.querySelector('[data-dy-season-logo]')) {
+      hero.appendChild(ornament('dy-season-hero-web'));
     }
   }
   function restoreLogos() {

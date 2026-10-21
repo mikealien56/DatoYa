@@ -78,7 +78,14 @@ test('Los assets se cargan en último lugar y en caché de la PWA',()=>{
   assert.match(startup,/require\('\.\/pwa_install_assets'\);require\('\.\/seasonal_halloween_assets'\)/);
   assert.match(assets,/seasonal_halloween\.css/);
   assert.match(assets,/seasonal_halloween_ui\.js/);
-  assert.match(sw,/const CACHE='datoya-shell-v120'/);
+  assert.match(sw,/const CACHE='datoya-shell-v121'/);
   assert.match(sw,/\/seasonal_halloween\.css/);
   assert.match(sw,/\/seasonal_halloween_ui\.js/);
+});
+
+test('Banner compacto de Halloween muestra más contenido y no repite la marca',()=>{
+  assert.match(css,/Banner Halloween compacto/);
+  assert.match(css,/\.dy-hero > \.dy-season-hero-web/);
+  assert.match(css,/\.dy-search-submit/);
+  assert.doesNotMatch(source,/dy-season-hero-brand|dy-season-logo-bat/);
 });
