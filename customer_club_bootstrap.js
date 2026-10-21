@@ -372,6 +372,40 @@ app.post('/api/club/gifts/:id/claim',auth,(req,res)=>{
   }catch(e){res.status(409).json({error:e.message||'No se pudo abrir la sorpresa'});}
 });
 
+// Admin: regalía de pase Club incluso para clientes sin membresía previa.
+// Exclusivamente administradores; conserva membresías activas agregando días a su expiración.
+app.get('/api/admin/club-passes/customers',auth,requireRole('admin'),(req,res)=>{
+  const customers=db.prepare("SELECT u.id,u.name,u.email,c.name AS comuna,(SELECT cm.expires_at FROM customer_club_memberships cm WHERE cm.user_id=u.id AND cm.status='active' AND cm.expires_at>? ORDER BY cm.expires_at DESC LIMIT 1) AS club_expires_at FROM users u LEFT JOIN comunas c ON c.id=u.comuna_id WHERE u.is_active=1 AND u.is_demo=0 AND EXISTS (SELECT 1 FROM market_account_types mat WHERE mat.user_id=u.id AND mat.account_type='customer') ORDER BY u.name,u.id LIMIT 1000").all(__dyClubNow());
+  res.set('Cache-Control','no-store');
+  res.json({customers});
+});
+app.post('/api/admin/club-passes/gift',auth,requireRole('admin'),(req,res)=>{
+  const userId=Number(req.body?.user_id),days=Number(req.body?.days),requestId=String(req.body?.request_id||'');
+  if(!Number.isSafeInteger(userId)||userId<=0)return res.status(400).json({error:'Selecciona un cliente válido'});
+  if(!Number.isSafeInteger(days)||days<1||days>365)return res.status(400).json({error:'Elige una cantidad entre 1 y 365 días'});
+  if(!/^[A-Za-z0-9_-]{12,80}$/.test(requestId))return res.status(400).json({error:'Solicitud inválida. Actualiza la página e inténtalo nuevamente'});
+  const customer=db.prepare("SELECT u.id,u.name,u.email FROM users u WHERE u.id=? AND u.is_active=1 AND u.is_demo=0 AND EXISTS (SELECT 1 FROM market_account_types mat WHERE mat.user_id=u.id AND mat.account_type='customer')").get(userId);
+  if(!customer)return res.status(404).json({error:'Cliente registrado no encontrado'});
+  const reference='DY-ADMIN-CLUB-GIFT-'+requestId;
+  let membership=null,alreadyGranted=false;
+  try{
+    db.transaction(()=>{
+      const prior=db.prepare("SELECT user_id FROM customer_club_memberships WHERE payment_reference=? AND source='gift' LIMIT 1").get(reference);
+      if(prior){if(Number(prior.user_id)!==userId)throw new Error('IDEMPOTENCY_CONFLICT');alreadyGranted=true;membership=__dyClubMembership(userId);return;}
+      const now=new Date(),iso=now.toISOString();
+      const current=db.prepare("SELECT id,expires_at FROM customer_club_memberships WHERE user_id=? AND status='active' AND expires_at>? ORDER BY expires_at DESC,id DESC LIMIT 1").get(userId,iso);
+      const previousEnd=current?new Date(current.expires_at).getTime():0;
+      const base=Number.isFinite(previousEnd)?Math.max(now.getTime(),previousEnd):now.getTime();
+      const expires=new Date(base+days*86400000).toISOString();
+      db.prepare("UPDATE customer_club_memberships SET status='superseded',updated_at=? WHERE user_id=? AND status='active' AND expires_at>?").run(iso,userId,iso);
+      db.prepare("INSERT INTO customer_club_memberships(user_id,status,source,starts_at,expires_at,days_granted,amount,payment_reference,created_at,updated_at) VALUES(?,'active','gift',?,?,?,0,?,?,?)")
+        .run(userId,iso,expires,days,reference,iso,iso);
+      membership={expires_at:expires};
+    })();
+    if(!alreadyGranted)notify(userId,'club','🎁 DatoYa te regaló '+days+' día'+(days===1?'':'s')+' de Club. Tu pase vence el '+String(membership?.expires_at||'').slice(0,10)+'.','#/club');
+    res.json({ok:true,already_granted:alreadyGranted,customer_name:customer.name,days_granted:alreadyGranted?0:days,expires_at:membership?.expires_at||null});
+  }catch(err){console.error('[DatoYa][Club gift]',err.message);res.status(err.message==='IDEMPOTENCY_CONFLICT'?409:500).json({error:'No fue posible completar el regalo Club'});}
+});
 app.get('/api/admin/club-gifts/members',auth,requireRole('admin'),(req,res)=>{
   const now=__dyClubNow();
   const members=db.prepare("SELECT u.id,u.name,u.email,c.name AS comuna,m.id membership_id,m.source,m.starts_at,m.expires_at,m.days_granted,(SELECT COUNT(*) FROM customer_club_gifts g WHERE g.user_id=u.id AND g.status='pending') pending_gifts,(SELECT COUNT(*) FROM customer_club_gifts g WHERE g.user_id=u.id AND g.status='claimed') claimed_gifts FROM customer_club_memberships m JOIN users u ON u.id=m.user_id LEFT JOIN comunas c ON c.id=u.comuna_id WHERE m.status='active' AND m.expires_at>? AND u.is_active=1 ORDER BY m.expires_at DESC").all(now);
