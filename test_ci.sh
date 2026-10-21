@@ -25,6 +25,7 @@ bash test_ui_navigation_consistency.sh
 bash test_mobile_notifications.sh
 node --test test_market_categories_navigation.js
 node --test test_admin_beta_invite_ui.js
+node --test test_seasonal_halloween.js
 echo "=== QA Fase 2: QR, pago, correo y lector móvil (sin tocar producción) ==="
 node --test test_fulfillment_mobile_qa.js
 bash test_password_reset_links.sh
