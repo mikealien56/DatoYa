@@ -134,3 +134,53 @@
 .dy-store-page .dy-store-cover{
   background:#f8fafc!important;
 }
+
+
+/* DATOYA_PRODUCT_PHOTO_FULL_FIT_V1 */
+/* Fotografía íntegra y centrada, también para productos verticales y con dos fotos.
+   La imagen nunca se recorta; se mantiene la misma altura visual entre publicaciones. */
+.dy-real-product > .dy-live-image.dy-real-product-photo,
+.dy-store-page .dy-store-product > .dy-store-product-image{
+  display:block!important;
+  position:relative!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  aspect-ratio:4/5!important;
+  overflow:hidden!important;
+  background:#fff!important;
+}
+.dy-real-product > .dy-live-image.dy-real-product-photo > .dy-product-photo-gallery,
+.dy-store-page .dy-store-product > .dy-store-product-image > .dy-product-photo-gallery{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  background:#fff!important;
+  overflow:hidden!important;
+}
+.dy-real-product > .dy-live-image.dy-real-product-photo img[data-dy-gallery-photo],
+.dy-store-page .dy-store-product > .dy-store-product-image img[data-dy-gallery-photo]{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  min-height:0!important;
+  box-sizing:border-box!important;
+  padding:7px!important;
+  background:#fff!important;
+  object-fit:contain!important;
+  object-position:center!important;
+}
+.dy-real-product > .dy-live-image.dy-real-product-photo img[data-dy-gallery-photo][hidden],
+.dy-store-page .dy-store-product > .dy-store-product-image img[data-dy-gallery-photo][hidden]{
+  display:none!important;
+}
+.dy-real-product .dy-product-photo-gallery .dy-photo-prev,
+.dy-real-product .dy-product-photo-gallery .dy-photo-next,
+.dy-store-page .dy-product-photo-gallery .dy-photo-prev,
+.dy-store-page .dy-product-photo-gallery .dy-photo-next{z-index:5!important}
