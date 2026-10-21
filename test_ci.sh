@@ -23,6 +23,7 @@ bash test_beta_private_ui.sh
 bash test_mobile_account_role.sh
 bash test_ui_navigation_consistency.sh
 bash test_mobile_notifications.sh
+node --test test_market_categories_navigation.js
 echo "=== QA Fase 2: QR, pago, correo y lector móvil (sin tocar producción) ==="
 node --test test_fulfillment_mobile_qa.js
 bash test_password_reset_links.sh
