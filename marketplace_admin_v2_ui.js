@@ -324,9 +324,24 @@
           ...invites.filter(x=>x.invitee_business_name&&x.invitee_email).map(x=>({name:x.invitee_business_name,email:x.invitee_email,source:'Invitación anterior'})),
           ...registered.filter(x=>!['suspended','rejected'].includes(x.status)).map(x=>({name:x.name,email:x.owner_email||'',source:'Registrado en DatoYa'}))
         ].filter(x=>x.name);
-        shell('Fundadores y crecimiento','Invita negocios, revisa referidos y configura sus beneficios.',`
+        const founderRegistered=registered.filter(b=>Number(b.founder_business||0)===1);
+        const founderCandidates=registered.filter(b=>b.status==='active'&&Number(b.founder_business||0)!==1).sort((a,b)=>String(a.name).localeCompare(String(b.name),'es'));
+        shell('Fundadores y crecimiento','Reconoce negocios existentes sin repetir su inscripción, invita nuevos y configura beneficios.',`
+          <section class="card dy-founder-existing">
+            <span class="small muted">NEGOCIOS YA REGISTRADOS</span>
+            <h3>🏅 Hacer Fundador a un negocio existente</h3>
+            <p class="small muted">Elige un comercio activo. No necesita crear otra cuenta ni usar un enlace de registro. Recibirá el sello Fundador y ${Number(settings.founder_impulso_days??30)||0} días de Impulso según la configuración actual (solo una vez).</p>
+            <div class="dy-founder-existing-actions">
+              <select id="dy-founder-existing-select" aria-label="Seleccionar negocio para reconocer como Fundador" ${!founderCandidates.length?'disabled':''}>
+                <option value="">Selecciona un negocio activo</option>
+                ${founderCandidates.map(b=>`<option value="${Number(b.id)}">${h(b.name)} · ${h(b.owner_email||'Sin correo')}</option>`).join('')}
+              </select>
+              <button type="button" id="dy-founder-existing-assign" class="btn btn-primary" disabled>🏅 Activar Fundador</button>
+            </div>
+            <p class="small muted">${founderCandidates.length?founderCandidates.length+' negocios disponibles para reconocer.':'Todos los negocios activos ya son Fundadores o no hay negocios activos.'} ${founderRegistered.length?'· '+founderRegistered.length+' reconocidos en DatoYa.':''}</p>
+          </section>
           <div class="dy-admin-kpis">
-            <div><strong>${founders.length}</strong><span>Fundadores</span><small>Negocios invitados por DatoYa</small></div>
+            <div><strong>${Math.max(founders.length,founderRegistered.length)}</strong><span>Fundadores</span><small>Negocios reconocidos por DatoYa</small></div>
             <div><strong>${referrals.length}</strong><span>Referidos</span><small>${referrals.filter(x=>x.status==='rewarded').length} ya calificaron</small></div>
             <div><strong>${invites.filter(x=>x.status==='active'&&Number(x.used_count)<Number(x.max_uses)).length}</strong><span>Invitaciones disponibles</span><small>Códigos Fundador vigentes</small></div>
           </div>
@@ -369,9 +384,25 @@
               </form>
             </section>
           </div>
-          <section class="card" style="margin-top:16px"><span class="small muted">NEGOCIOS FUNDADORES</span><h3>Quién entró como Fundador</h3><div class="dy-admin-list">${founders.map(f=>`<article class="card dy-admin-row"><div><b>🏅 ${h(f.business_name)}</b><div class="small muted">${h(f.owner_name||'')} · ${h(f.owner_email||'')}</div><div class="dy-admin-tags">${badge(f.founder_code||'Sin código','ok')} ${badge(Number(f.referral_count||0)+' referidos')} ${badge(Number(f.rewarded_referrals||0)+' calificados')} ${badge('+'+Number(f.founder_reward_days||0)+' días')}</div></div><div class="small muted">Beneficios de Fundador activos según configuración</div></article>`).join('')||'<p class="muted">Todavía no hay Fundadores.</p>'}</div></section>
+          <section class="card" style="margin-top:16px"><span class="small muted">NEGOCIOS FUNDADORES</span><h3>Fundadores ya registrados en DatoYa</h3>
+          <div class="dy-admin-list">${founderRegistered.map(b=>`<article class="card dy-admin-row"><div><b>🏅 ${h(b.name)}</b><div class="small muted">${h(b.owner_name||'')} · ${h(b.owner_email||'')}</div></div><div class="dy-admin-tags">${badge('Fundador','ok')} ${b.impulse_expires_at?badge('Impulso hasta '+dt(b.impulse_expires_at)):''}</div></article>`).join('')||'<p class="muted">Todavía no hay negocios registrados con el sello Fundador.</p>'}</div></section>
+          <section class="card" style="margin-top:16px"><span class="small muted">FUNDADORES POR INVITACIÓN</span><h3>Historial de Fundadores invitados</h3><div class="dy-admin-list">${founders.map(f=>`<article class="card dy-admin-row"><div><b>🏅 ${h(f.business_name)}</b><div class="small muted">${h(f.owner_name||'')} · ${h(f.owner_email||'')}</div><div class="dy-admin-tags">${badge(f.founder_code||'Sin código','ok')} ${badge(Number(f.referral_count||0)+' referidos')} ${badge(Number(f.rewarded_referrals||0)+' calificados')} ${badge('+'+Number(f.founder_reward_days||0)+' días')}</div></div><div class="small muted">Beneficios de Fundador activos según configuración</div></article>`).join('')||'<p class="muted">Todavía no hay Fundadores.</p>'}</div></section>
           <section class="card" style="margin-top:16px"><span class="small muted">REFERIDOS</span><h3>Negocios recomendados</h3><div class="dy-admin-history">${referrals.map(r=>`<div><b>${h(r.referred_name)}</b><span>Invitado por ${h(r.founder_name)} · ${r.status==='rewarded'?'beneficio entregado':'beneficio pendiente'}</span></div>`).join('')||'<p class="muted">Aún no hay referidos.</p>'}</div></section>
         `);
+        const existingSelect=document.getElementById('dy-founder-existing-select');
+        const existingButton=document.getElementById('dy-founder-existing-assign');
+        existingSelect?.addEventListener('change',()=>{if(existingButton)existingButton.disabled=!existingSelect.value;});
+        existingButton?.addEventListener('click',async()=>{
+          const id=Number(existingSelect?.value||0),biz=founderCandidates.find(b=>Number(b.id)===id);
+          if(!biz)return toast?.('Selecciona un negocio activo','err');
+          if(!confirm('¿Reconocer a '+biz.name+' como Fundador y aplicar el beneficio inicial configurado?'))return;
+          existingButton.disabled=true;
+          try{
+            const out=await api('/admin/marketplace-v2/founders/assign-existing',{method:'POST',body:{business_id:id}});
+            toast?.(out.already_founder?'Este negocio ya era Fundador':biz.name+' ya es Fundador'+(out.days_granted?' · '+out.days_granted+' días de Impulso':'') ,'ok');
+            routes.admin('fundadores');
+          }catch(err){toast?.(err.message||'No se pudo activar Fundador','err');existingButton.disabled=false;}
+        });
         const selectBusiness=document.getElementById('dy-founder-select-saved');
         const inviteForm=document.getElementById('dy-founder-invite-form');
         const manualInputs=document.getElementById('dy-founder-manual-inputs');
