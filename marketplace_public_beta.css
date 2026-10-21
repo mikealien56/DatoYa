@@ -109,3 +109,28 @@
 .dy-product-photo-gallery .dy-photo-next{right:8px}
 .dy-product-photo-gallery .dy-photo-counter{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);padding:4px 9px;border-radius:999px;color:#fff;background:rgba(10,29,56,.78);font-size:11px;font-weight:800;z-index:3;pointer-events:none}
 .dy-product-photo-gallery button[data-dy-photo-nav]:focus-visible{outline:3px solid #ffb547;outline-offset:1px}
+
+/* DATOYA_BUSINESS_LOGO_CONTAIN_V1 */
+/* DatoYa: mostrar la portada o logo COMPLETOS en todos los espacios del negocio.
+   Los diseños verticales/cuadrados se centran con fondo neutro; no se recortan. */
+.dy-business-card.dy-real-card .dy-business-photo.dy-real-photo{
+  background:#f8fafc!important;
+}
+.dy-business-card.dy-real-card .dy-business-photo.dy-real-photo>img,
+.dy-featured-week-photo>img,
+.dy-store-page .dy-store-cover>img{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  box-sizing:border-box!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  background:#f8fafc!important;
+  padding:5px!important;
+}
+.dy-featured-week-photo,
+.dy-store-page .dy-store-cover{
+  background:#f8fafc!important;
+}
