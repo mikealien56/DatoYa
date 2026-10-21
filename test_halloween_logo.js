@@ -96,7 +96,7 @@ test('Accesibilidad, móviles, y recursos actualizados',()=>{
   assert.match(css,/@media\(max-width:640px\)/);
   assert.match(css,/html:not\(\.dy-season-halloween\)/);
   assert.match(css,/prefers-reduced-motion:reduce/);
-  assert.match(assets,/20261021-compact-hero3/);
+  assert.match(assets,/20261021-halloween-home-lock4/);
   assert.doesNotMatch(source,/dy-season-hero-brand|dy-season-logo-bat/);
   assert.match(css,/Banner Halloween compacto/);
   assert.doesNotMatch(source,/fetch\(|\/api\/|payment|checkout/i);
