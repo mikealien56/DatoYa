@@ -103,6 +103,7 @@
           ${b.status!=='active'?'<button class="btn btn-outline" id="dy-review-corrections">Solicitar correcciones</button>':''}
         </div>
         <div class="dy-review-private">🔒 Vista previa privada · Este negocio continúa ${h(statusLabel(b.status).toLowerCase())} hasta que cambies su estado.</div>${missingPickupAddress?'<div class="dy-review-private" role="alert">⚠️ Este negocio ofrece retiro, pero no informó su dirección. Solicita que la complete antes de aprobarlo.</div>':''}
+        ${b.latest_review?.action==='changes_completed'?'<div class="dy-review-private" role="status">✅ El vendedor indicó que terminó las correcciones. Revisa antes de aprobar.</div>':b.latest_review?.action==='request_changes'?`<div class="dy-review-private">📝 Correcciones solicitadas: ${h(b.latest_review.note||'Pendientes')}</div>`:''}
         <section class="card dy-review-business">
           <div class="dy-review-cover">${coverHtml}</div>
           <div class="dy-review-business-info">
