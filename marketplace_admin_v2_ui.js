@@ -234,7 +234,7 @@
         }).join('');
         shell('Productos','Productos organizados por negocio.',inputFilter('Buscar producto o negocio')+
           '<div class="dy-admin-business-products">'+(sections||'<p class="card" style="padding:18px">Todavía no hay productos.</p>')+'</div>');
-        const filter=document.querySelector('[data-admin-filter]')||document.querySelector('.dy-admin-search input')||document.querySelector('input[placeholder="Buscar producto o negocio"]');
+        const filter=document.querySelector('[data-dy-search]');
         if(filter){
           filter.addEventListener('input',()=>{
             const q=filter.value.trim().toLocaleLowerCase('es');
