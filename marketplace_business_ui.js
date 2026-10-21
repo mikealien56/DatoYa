@@ -11,6 +11,34 @@
     return await new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(new Error('No se pudo leer la imagen'));r.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error('Imagen inválida'));img.onload=()=>{const max=1600,s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*s));c.height=Math.max(1,Math.round(img.height*s));c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.87));};img.src=r.result;};r.readAsDataURL(file);});
   }
 
+
+  // Recorte manual, opcional y local: el vendedor confirma antes de reemplazar la foto.
+  function cropProductPhoto(source){
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('No se pudo abrir la foto para recortar'));
+      img.onload=()=>{
+        const overlay=document.createElement('div');
+        overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(8,21,39,.82);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+        overlay.innerHTML='<section role="dialog" aria-modal="true" aria-label="Recortar fotografía" style="background:white;border-radius:18px;padding:18px;width:min(100%,520px);box-sizing:border-box;color:#17324e"><h2 style="margin:0 0 8px;font-size:20px">Ajustar foto del producto</h2><p style="font-size:13px;margin:0 0 14px">Mueve la imagen con el dedo o el mouse. Ajusta el zoom y confirma el recorte, o conserva la imagen completa.</p><div style="width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:#f0f4f8;touch-action:none;cursor:grab"><canvas style="width:100%;height:100%;display:block;touch-action:none"></canvas></div><label style="display:block;margin:14px 0 6px">Zoom <input aria-label="Zoom de fotografía" type="range" min="1" max="3" value="1" step=".02" style="width:100%"></label><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px"><button type="button" data-action="original" class="btn btn-outline">Usar foto completa</button><button type="button" data-action="cancel" class="btn btn-outline">Cancelar</button><button type="button" data-action="crop" class="btn btn-primary">Aplicar recorte</button></div></section>';
+        document.body.appendChild(overlay);
+        const canvas=overlay.querySelector('canvas'),ctx=canvas.getContext('2d');canvas.width=960;canvas.height=720;
+        const slider=overlay.querySelector('input'),base=Math.max(canvas.width/img.width,canvas.height/img.height);let zoom=1,dx=0,dy=0,drag=null;
+        const draw=()=>{const w=img.width*base*zoom,h=img.height*base*zoom;dx=Math.max((canvas.width-w)/2,Math.min((w-canvas.width)/2,dx));dy=Math.max((canvas.height-h)/2,Math.min((h-canvas.height)/2,dy));ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,(canvas.width-w)/2+dx,(canvas.height-h)/2+dy,w,h);};
+        slider.oninput=()=>{zoom=Number(slider.value);draw();};
+        canvas.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,dx,dy};canvas.setPointerCapture(e.pointerId)};
+        canvas.onpointermove=e=>{if(!drag)return;dx=drag.dx+(e.clientX-drag.x)*canvas.width/canvas.getBoundingClientRect().width;dy=drag.dy+(e.clientY-drag.y)*canvas.height/canvas.getBoundingClientRect().height;draw();};
+        canvas.onpointerup=canvas.onpointercancel=()=>{drag=null};
+        const finish=value=>{overlay.remove();resolve(value)};
+        overlay.querySelector('[data-action="original"]').onclick=()=>finish(source);
+        overlay.querySelector('[data-action="cancel"]').onclick=()=>finish(null);
+        overlay.querySelector('[data-action="crop"]').onclick=()=>finish(canvas.toDataURL('image/jpeg',.87));
+        draw();
+      };
+      img.src=source;
+    });
+  }
+
   function statusLabel(s){return ({pending_review:'En revisión',active:'Activo',paused:'Pausado',rejected:'Rechazado',suspended:'Suspendido'})[s]||s;}
   function localDateTimeValue(value){if(!value)return '';const d=new Date(value);if(Number.isNaN(d.getTime()))return '';const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'T'+z(d.getHours())+':'+z(d.getMinutes());}
   function productCard(p){
@@ -42,7 +70,10 @@
     settingsForm?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(form.pickup_enabled.checked&&form.address.value.trim().length<6){form.address.focus();toast?.('Para ofrecer retiro debes ingresar una dirección completa (calle y número, mínimo 6 caracteres).','err');return;}const f=e.currentTarget,ids=[...f.querySelectorAll('input[name="category_ids"]:checked')].map(x=>Number(x.value)).slice(0,3);try{await api('/businesses/'+businessId+'/manage',{method:'PUT',body:{name:f.name.value.trim(),description:f.description.value.trim(),category_ids:ids,whatsapp:f.whatsapp.value.trim(),phone:f.phone.value.trim(),sector:f.sector.value.trim(),address:f.address.value.trim(),public_address_mode:f.public_address_mode?.value||'approximate',pickup_enabled:!!f.pickup_enabled.checked,delivery_enabled:!!f.delivery_enabled.checked}});toast?.('Negocio actualizado','ok');routes['mi-negocio'](businessId);}catch(err){toast?.(err.message,'err');}});
     document.getElementById('dy-product-image')?.addEventListener('change',async e=>{
       try{
-        newImageData=await compressImage(e.target.files?.[0]);
+        const original=await compressImage(e.target.files?.[0]);
+        const cropped=await cropProductPhoto(original);
+        if(!cropped)return;
+        newImageData=cropped;
         document.getElementById('dy-product-image-preview').innerHTML=`<img src="${newImageData}" alt="Vista previa">`;
         document.getElementById('dy-open-studio').disabled=false;
       }catch(err){newImageData=null;toast?.(err.message||'No pudimos leer la foto','err');}
