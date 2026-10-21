@@ -20,3 +20,8 @@
 .dy-checkout-payment-status{font-size:13px;line-height:1.55;margin:9px 0;color:#445875}
 .dy-checkout-terms{font-size:13px;text-decoration:underline;text-underline-offset:3px;color:#0a4380;font-weight:650}
 #dy-checkout-form button[type="submit"]:disabled{background:#e1e7f0!important;color:#40546e!important;border:1px solid #c4cdd9!important;box-shadow:none!important;opacity:1;cursor:not-allowed}
+
+/* Mercado Pago: regreso sencillo al borrador y alta de cuenta oficial. */
+.dy-mp-onboarding-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+.dy-mp-onboarding-actions a{max-width:100%;white-space:normal;text-align:center}
+@media(max-width:600px){.dy-mp-onboarding-actions{flex-direction:column}.dy-mp-onboarding-actions a{width:100%;box-sizing:border-box}}
