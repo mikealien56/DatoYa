@@ -219,9 +219,37 @@
 
       if(tab==='productos'){
         const {products=[]}=await api('/admin/marketplace-v2/products');
-        shell('Productos','Catálogo publicado por los negocios.',inputFilter('Buscar producto o negocio')+
-          '<div class="dy-admin-list">'+products.map(p=>`<article class="card dy-admin-row" data-product-row data-search="${h([p.name,p.business_name].join(' ').toLowerCase())}"><div><b>${h(p.name)}</b><div class="small muted">${h(p.business_name)} · ${money(p.promo_price||p.price)}</div></div><div class="dy-admin-tags">${badge(p.active?'Visible':'Oculto',p.active?'ok':'warn')}${p.stock_tracking?badge('Stock '+Number(p.stock||0)):''}</div></article>`).join('')+'</div>');
-        wireSearch('[data-product-row]');return;
+        const groups=new Map();
+        for(const p of products){
+          const key=String(p.business_id||p.business_name||'sin-negocio');
+          if(!groups.has(key))groups.set(key,{name:p.business_name||'Negocio sin nombre',id:Number(p.business_id||0),items:[]});
+          groups.get(key).items.push(p);
+        }
+        const sections=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(g=>{
+          const search=h([g.name,...g.items.map(p=>p.name)].join(' ').toLowerCase());
+          return `<section class="dy-admin-product-business" data-product-group data-business-name="${h(g.name.toLowerCase())}">
+            <div class="dy-admin-product-business-head"><div><h3>🏪 ${h(g.name)}</h3><span>${g.items.length} ${g.items.length===1?'producto':'productos'}</span></div>${g.id?`<a class="btn btn-outline btn-sm" href="#/admin/revisar-negocio/${g.id}">Ver negocio</a>`:''}</div>
+            <div class="dy-admin-list">${g.items.map(p=>`<article class="card dy-admin-row" data-product-row data-search="${h([p.name,g.name].join(' ').toLowerCase())}"><div><b>${h(p.name)}</b><div class="small muted">${money(p.promo_price||p.price)}</div></div><div class="dy-admin-tags">${badge(p.active?'Visible':'Oculto',p.active?'ok':'warn')}${p.stock_tracking?badge('Stock '+Number(p.stock||0)):''}</div></article>`).join('')}</div>
+          </section>`;
+        }).join('');
+        shell('Productos','Productos organizados por negocio.',inputFilter('Buscar producto o negocio')+
+          '<div class="dy-admin-business-products">'+(sections||'<p class="card" style="padding:18px">Todavía no hay productos.</p>')+'</div>');
+        const filter=document.querySelector('[data-admin-filter]')||document.querySelector('.dy-admin-search input')||document.querySelector('input[placeholder="Buscar producto o negocio"]');
+        if(filter){
+          filter.addEventListener('input',()=>{
+            const q=filter.value.trim().toLocaleLowerCase('es');
+            document.querySelectorAll('[data-product-group]').forEach(group=>{
+              const matchesBusiness=group.dataset.businessName.includes(q);
+              let count=0;
+              group.querySelectorAll('[data-product-row]').forEach(row=>{
+                const show=!q||matchesBusiness||row.dataset.search.includes(q);
+                row.hidden=!show;if(show)count++;
+              });
+              group.hidden=count===0;
+            });
+          });
+        }
+        return;
       }
 
       if(tab==='pedidos'){
