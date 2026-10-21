@@ -530,3 +530,7 @@
 .dy-admin-product-business [data-product-row]{margin:0!important}
 .dy-admin-product-business[hidden],.dy-admin-product-business [data-product-row][hidden]{display:none!important}
 @media(max-width:640px){.dy-admin-product-business{padding:11px;border-radius:16px}.dy-admin-product-business-head h3{font-size:16px}}
+
+/* DatoYa: revisión de las dos fotografías del mismo producto. */
+.dy-review-products .dy-review-product-image.has-second{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;padding:6px!important;place-items:stretch!important}
+.dy-review-products .dy-review-product-image.has-second img{width:100%!important;height:100%!important;min-width:0!important;object-fit:contain!important;background:#f3f6f9;border-radius:8px}
