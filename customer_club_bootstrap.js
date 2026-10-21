@@ -18,6 +18,7 @@ db.exec("CREATE TABLE IF NOT EXISTS customer_club_memberships (\n"+
 " updated_at TEXT NOT NULL DEFAULT (datetime('now'))\n"+
 ");\n"+
 "CREATE INDEX IF NOT EXISTS idx_customer_club_memberships_user ON customer_club_memberships(user_id,status,expires_at);\n"+
+"CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_club_gift_reference ON customer_club_memberships(payment_reference) WHERE source=\'gift\' AND payment_reference IS NOT NULL;\n"+
 "CREATE TABLE IF NOT EXISTS customer_club_payments (\n"+
 " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"+
 " reference TEXT NOT NULL UNIQUE,\n"+
