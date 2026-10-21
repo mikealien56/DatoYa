@@ -58,6 +58,20 @@
     document.querySelectorAll('[data-dy-follow]').forEach(btn=>{if(btn.dataset.dyBound)return;btn.dataset.dyBound='1';btn.addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();if(!customerActionReady())return;const id=Number(btn.dataset.dyFollow);btn.disabled=true;try{const r=await api('/businesses/'+id+'/follow',{method:'POST'});if(r.following){savedState.following.add(id);savedState.notify.set(id,!!r.notify_promotions);}else{savedState.following.delete(id);savedState.notify.delete(id);}savedState.at=Date.now();syncSavedButtons();toast?.(r.following?'Ahora sigues este negocio':'Dejaste de seguir este negocio','ok');}catch(err){toast?.(err.message||'No se pudo actualizar el seguimiento','err')}finally{btn.disabled=false;}});});
   }
 
+  // Reintentos solo en consultas públicas de lectura ante fallas transitorias 502/503/504.
+  async function publicGetWithRetry(url){
+    let last;
+    for(let attempt=0;attempt<4;attempt++){
+      try{return await api(url);}
+      catch(err){
+        last=err;
+        const temporary=[502,503,504].includes(Number(err?.status)) || err instanceof TypeError;
+        if(!temporary||attempt===3)throw err;
+        await new Promise(resolve=>setTimeout(resolve,[900,2100,4200][attempt]));
+      }
+    }
+    throw last;
+  }
   async function loadMarketplace(force=false){
     if(!force && Date.now()-cache.at<15000) return cache;
     const loc=locationState();
@@ -65,7 +79,7 @@
     if(loc.comunaId)params.set('comuna_id',loc.comunaId); if(loc.lat!=null&&loc.lng!=null){params.set('lat',loc.lat);params.set('lng',loc.lng);params.set('radius',loc.radius);}
     const qs=params.toString()?`?${params}`:'';
     const [catRes,bizRes,prodRes]=await Promise.all([
-      api('/market/categories'),api('/market/businesses'+qs),api('/market/products'+(qs?qs+'&lite=1':'?lite=1'))
+      publicGetWithRetry('/market/categories'),publicGetWithRetry('/market/businesses'+qs),publicGetWithRetry('/market/products'+(qs?qs+'&lite=1':'?lite=1'))
     ]);
     const businesses=bizRes.businesses||[];
     const ids=new Set(businesses.map(b=>Number(b.id)));
