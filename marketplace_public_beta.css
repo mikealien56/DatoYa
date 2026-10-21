@@ -79,3 +79,22 @@
 .dy-private-pilot-link p{margin:0;font-size:13px;line-height:1.5;color:#34536c}
 .dy-private-pilot-link>a{flex-shrink:0;text-align:center;max-width:100%;white-space:normal}
 @media(max-width:760px){.dy-private-pilot-link{margin:12px 13px;padding:17px;flex-direction:column;align-items:stretch}.dy-private-pilot-link>a{width:100%;box-sizing:border-box}}
+
+/* Product cards for every business: images above, readable details below. */
+.dy-live-card.dy-real-product{display:flex!important;flex-direction:column!important;min-width:0!important;height:auto!important;overflow:hidden!important;background:#fff!important;border:1px solid #e2e8f0!important;border-radius:17px!important;box-shadow:0 5px 16px rgba(16,41,72,.08)!important}
+.dy-real-product>.dy-live-image.dy-real-product-photo{display:grid!important;place-items:center!important;position:relative!important;flex:none!important;min-height:0!important;height:auto!important;aspect-ratio:4/3!important;background:#f3f6f9!important;overflow:hidden!important}
+.dy-real-product>.dy-live-image.dy-real-product-photo img{display:block!important;width:100%!important;height:100%!important;min-height:0!important;object-fit:contain!important;object-position:center!important}
+.dy-real-product>.dy-live-body{position:relative!important;inset:auto!important;transform:none!important;display:flex!important;flex-direction:column!important;gap:8px!important;flex:1!important;padding:15px!important;background:#fff!important;color:#163552!important;opacity:1!important;text-align:left!important}
+.dy-real-product .dy-live-body h3{position:static!important;margin:0!important;color:#12345c!important;font-size:17px!important;line-height:1.4!important;text-shadow:none!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dy-real-product .dy-live-body p{position:static!important;margin:0!important;color:#64748b!important;font-size:13px!important;line-height:1.5!important;text-shadow:none!important;overflow-wrap:anywhere}
+.dy-real-product .dy-live-price-row{position:static!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;flex-wrap:wrap!important;margin-top:auto!important}
+.dy-real-product .dy-live-price strong{color:#086257!important;font-size:20px!important;text-shadow:none!important}
+.dy-store-page .dy-store-product{display:flex!important;flex-direction:column!important;min-width:0!important;height:auto!important;min-height:0!important;background:#fff!important;border-radius:18px!important;overflow:hidden!important}
+.dy-store-page .dy-store-products{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.dy-store-page .dy-store-product>.dy-store-product-image{position:relative!important;flex:none!important;width:100%!important;height:auto!important;min-height:0!important;aspect-ratio:4/3!important;background:#f3f6f9!important;overflow:hidden!important}
+.dy-store-page .dy-store-product>.dy-store-product-image img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}
+.dy-store-page .dy-store-product>div:nth-child(2){position:relative!important;flex:1!important;min-width:0!important;padding:16px!important;background:#fff!important;color:#163552!important;text-align:left!important}
+.dy-store-page .dy-store-product h3{color:#12345c!important;line-height:1.4!important;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dy-store-page .dy-store-product p{color:#64748b!important;line-height:1.5!important;overflow-wrap:anywhere}
+.dy-store-page .dy-product-public-price strong{color:#086257!important}
+@media(max-width:640px){.dy-store-page .dy-store-products{grid-template-columns:1fr!important}.dy-real-product>.dy-live-body{padding:12px!important}.dy-store-page .dy-store-product>.dy-store-product-image{height:auto!important;min-height:0!important}.dy-store-page .dy-store-product>.dy-store-product-image img{height:100%!important}.dy-store-page .dy-store-product>div:nth-child(2){padding:14px!important}}
