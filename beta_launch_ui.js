@@ -75,7 +75,7 @@
         '<div class="dy-beta-check-grid">'+(r.checks||[]).map(x=>'<span class="'+(x.ok?'ok':'todo')+'">'+(x.ok?'✓':'○')+' '+h(x.label)+'</span>').join('')+'</div>'+
         (missing.length?'<p class="dy-beta-missing"><b>Falta:</b> '+missing.map(x=>h(x.label)).join(' · ')+'</p>':'<p class="dy-beta-ready-note">🟢 Puede entrar a la beta y recibir pedidos.</p>')+
         (r.founder_profile?'<div class="dy-beta-founder-line"><b>Fundador:</b> '+h(r.founder_profile.founder_code||'—')+' · días extra '+Number(r.founder_profile.founder_reward_days||0)+' · lanzamiento '+Number(r.founder_profile.launch_free_orders_used||0)+'/'+Number(r.founder_profile.launch_free_order_limit||0)+'</div>':'')+
-        '<div class="dy-beta-card-actions"><a class="btn btn-outline btn-sm" href="#/negocio/'+encodeURIComponent(r.business.slug||r.business.id)+'">Ver perfil</a><a class="btn btn-outline btn-sm" href="#/admin/negocios">Gestionar negocio</a></div>'+
+        '<div class="dy-beta-card-actions"><a class="btn btn-outline btn-sm" href="#/admin/revisar-negocio/'+Number(r.business.id)+'">Revisar negocio</a><a class="btn btn-outline btn-sm" href="#/admin/negocios">Gestionar negocio</a></div>'+
       '</article>';
     }).join('');
     shell('🚦 Beta / Lanzamiento','Quién está listo para vender, quién necesita ayuda y cómo avanza el piloto.',
