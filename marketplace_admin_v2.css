@@ -534,3 +534,19 @@
 /* DatoYa: revisión de las dos fotografías del mismo producto. */
 .dy-review-products .dy-review-product-image.has-second{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;padding:6px!important;place-items:stretch!important}
 .dy-review-products .dy-review-product-image.has-second img{width:100%!important;height:100%!important;min-width:0!important;object-fit:contain!important;background:#f3f6f9;border-radius:8px}
+
+
+/* DATOYA_FOUNDER_DIRECT_REGISTERED_V1 */
+.dy-admin-v2 .dy-founder-existing{
+  margin-bottom:18px;
+  padding:20px;
+  border:1px solid #cde4de;
+  border-radius:18px;
+  background:linear-gradient(120deg,#f7fffc,#fff);
+}
+.dy-admin-v2 .dy-founder-existing h3{margin:5px 0 8px;color:#103761}
+.dy-admin-v2 .dy-founder-existing .small{line-height:1.55}
+.dy-admin-v2 .dy-founder-existing-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin:14px 0}
+.dy-admin-v2 .dy-founder-existing-actions select{width:100%;min-width:0;min-height:46px;padding:10px 12px;border:1px solid #cedaea;border-radius:12px;background:#fff;color:#173251;font:inherit}
+.dy-admin-v2 .dy-founder-existing-actions button{min-height:46px;white-space:normal}
+@media(max-width:650px){.dy-admin-v2 .dy-founder-existing{padding:15px}.dy-admin-v2 .dy-founder-existing-actions{grid-template-columns:minmax(0,1fr)}.dy-admin-v2 .dy-founder-existing-actions button{width:100%}}
