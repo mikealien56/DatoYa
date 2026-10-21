@@ -39,9 +39,11 @@
     return '<div class="dy-joined-stage">'+
       (validCover?'<img class="dy-joined-cover" src="'+esc(cover)+'" alt="" decoding="async">':'<div class="dy-joined-art" aria-hidden="true"><span>'+first+'</span></div>')+
       '<div class="dy-joined-gradient" aria-hidden="true"></div>'+
-      '<div class="dy-joined-content">'+
+      '<div class="dy-joined-topline">'+
       '<span class="dy-joined-eyebrow">✦ ¡BIENVENIDOS A DATOYA!</span>'+
       '<p class="dy-joined-lead">Un nuevo negocio se ha unido</p>'+
+      '</div>'+
+      '<div class="dy-joined-content">'+
       '<h2>'+esc(b.name)+'</h2>'+
       '<div class="dy-joined-meta"><span>'+esc(b.category||'Negocio local')+'</span>'+location+'</div>'+
       '<a class="dy-joined-cta" href="#/negocio/'+id+'">Conocer negocio <span aria-hidden="true">→</span></a>'+
