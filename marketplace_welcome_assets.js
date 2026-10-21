@@ -9,7 +9,7 @@ const index=path.join(pub,'index.html');
 let html=fs.readFileSync(index,'utf8');
 html=html.replace(/<link[^>]+href="\/marketplace_welcome\.css[^"]*"[^>]*>\s*/g,'');
 html=html.replace(/<script[^>]+src="\/marketplace_welcome_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_welcome.css?v=20261019-welcome2">\n</head>');
+html=html.replace('</head>','<link rel="stylesheet" href="/marketplace_welcome.css?v=20261021-hide-initial3">\n</head>');
 html=html.replace('</body>','<script src="/marketplace_welcome_ui.js?v=20261021-no-initial-square1"></script>\n</body>');
 fs.writeFileSync(index,html);
 console.log('[DatoYa] Galería de bienvenida de negocios cargada en portada.');
