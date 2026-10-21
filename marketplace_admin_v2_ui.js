@@ -225,25 +225,30 @@
           <div class="dy-admin-grid2">
             <section class="card">
               <span class="small muted">INVITACIONES</span><h3>Invitar un Negocio Fundador</h3>
-              <p class="small muted">Cada invitación pertenece a un solo negocio, queda ligada a su correo y se puede usar una sola vez.</p>
-              <div class="dy-founder-select-box">
-                <div class="field"><label for="dy-founder-search-saved">Buscar en negocios conocidos</label><input id="dy-founder-search-saved" type="search" autocomplete="off" placeholder="Busca por nombre o correo"></div>
-                <div class="field"><label for="dy-founder-select-saved">Elegir negocio</label><select id="dy-founder-select-saved"><option value="">Elegir o escribir uno nuevo</option>${choices.map((x,i)=>`<option value="${i}">${h(x.name)} ${x.email?'· '+h(x.email):''} (${h(x.source)})</option>`).join('')}</select></div>
-                <small>Se incluyen tus contactos, invitaciones anteriores y negocios registrados. También puedes escribir un negocio nuevo abajo.</small>
-                <button type="button" class="btn btn-outline btn-sm dy-founder-save-contact" id="dy-founder-contact-open">+ Agregar negocio a mi lista</button>
+              <p class="small muted dy-founder-invite-note">Elige un negocio conocido o escribe uno nuevo. Cada invitación es personal y de un solo uso.</p>
+              <div class="dy-founder-invite-choice">
+                <label for="dy-founder-select-saved">Negocio</label>
+                <select id="dy-founder-select-saved" aria-label="Seleccionar negocio conocido o uno nuevo"><option value="new">+ Nuevo negocio</option>${choices.map((x,i)=>`<option value="${i}">${h(x.name)}${x.email?' · '+h(x.email):''} (${h(x.source)})</option>`).join('')}</select>
+                <button type="button" class="dy-founder-save-link" id="dy-founder-contact-open">+ Guardar negocio para después</button>
               </div>
               <form id="dy-founder-contact-form" class="dy-founder-contact-form" hidden>
                 <strong>Guardar negocio para invitar después</strong>
                 <div class="field"><label for="dy-founder-contact-name">Nombre del negocio</label><input id="dy-founder-contact-name" name="business_name" maxlength="100" minlength="2" placeholder="Ej: Vivero Los Aromos" required></div>
-                <div class="field"><label for="dy-founder-contact-email">Correo (puedes completarlo después)</label><input id="dy-founder-contact-email" name="email" type="email" maxlength="160" placeholder="contacto@negocio.cl"></div>
-                <div class="dy-admin-row-actions"><button type="submit" class="btn btn-primary btn-sm">Guardar en mi lista</button><button type="button" class="btn btn-outline btn-sm" id="dy-founder-contact-cancel">Cancelar</button></div>
+                <div class="field"><label for="dy-founder-contact-email">Correo (opcional)</label><input id="dy-founder-contact-email" name="email" type="email" maxlength="160" placeholder="contacto@negocio.cl"></div>
+                <div class="dy-admin-row-actions"><button type="submit" class="btn btn-primary btn-sm">Guardar</button><button type="button" class="btn btn-outline btn-sm" id="dy-founder-contact-cancel">Cancelar</button></div>
               </form>
-              <form id="dy-founder-invite-form" class="dy-admin-settings">
-                <div class="field"><label>Nombre del negocio</label><input name="business_name" maxlength="100" placeholder="Ej: Panadería Don Juan" required></div>
-                <div class="field"><label>Correo del invitado</label><input name="email" type="email" maxlength="160" placeholder="juan@correo.cl" required></div>
+              <form id="dy-founder-invite-form" class="dy-admin-settings dy-founder-compact-form">
+                <div id="dy-founder-selected-summary" class="dy-founder-selected-summary" hidden>
+                  <div><strong id="dy-founder-selected-name"></strong><span id="dy-founder-selected-email"></span></div>
+                  <button type="button" class="dy-founder-save-link" id="dy-founder-edit-selection">Editar datos</button>
+                </div>
+                <div id="dy-founder-manual-inputs" class="dy-founder-manual-inputs">
+                  <div class="field"><label>Nombre del negocio</label><input name="business_name" maxlength="100" minlength="2" placeholder="Ej: Panadería Don Juan" required></div>
+                  <div class="field"><label>Correo del invitado</label><input name="email" type="email" maxlength="160" placeholder="juan@correo.cl" required></div>
+                </div>
                 <button class="btn btn-primary" type="submit">Crear invitación única</button>
               </form>
-              <div class="dy-admin-history" style="margin-top:12px">${invites.map(x=>`<div><div><b>${h(x.invitee_business_name||x.label||'Invitación Fundador')}</b><span>${h(x.invitee_email||'Sin correo asociado')} · ${h(x.code)} · ${x.status==='used'?'Usada':x.status==='active'?'Disponible':'Pausada'}</span></div><div class="dy-admin-row-actions">${x.status==='active'&&x.invitee_email?'<button class="btn btn-outline btn-sm" onclick="dyCopyFounderInvite(\''+h(x.code)+'\')">Copiar enlace</button><button class="btn btn-outline btn-sm" onclick="dyShareFounderInvite(\''+h(x.code)+'\',\''+h(x.invitee_business_name||x.label||'tu negocio')+'\')">WhatsApp</button>':''}${!x.invitee_email?'<span class="small muted">Código antiguo pausado · crea una invitación nueva</span>':'<button class="btn btn-outline btn-sm" onclick="dyFounderInviteToggle('+Number(x.id)+','+(x.status==='active'?'false':'true')+',this)" '+(x.status==='used'?'disabled':'')+'>'+(x.status==='active'?'Pausar':x.status==='used'?'Usada':'Activar')+'</button>'}</div></div>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div>
+              <details class="dy-founder-invite-history"><summary>Invitaciones anteriores (${invites.length})</summary><div class="dy-admin-history" style="margin-top:12px">${invites.map(x=>`<div><div><b>${h(x.invitee_business_name||x.label||'Invitación Fundador')}</b><span>${h(x.invitee_email||'Sin correo asociado')} · ${h(x.code)} · ${x.status==='used'?'Usada':x.status==='active'?'Disponible':'Pausada'}</span></div><div class="dy-admin-row-actions">${x.status==='active'&&x.invitee_email?'<button class="btn btn-outline btn-sm" onclick="dyCopyFounderInvite(\''+h(x.code)+'\')">Copiar enlace</button><button class="btn btn-outline btn-sm" onclick="dyShareFounderInvite(\''+h(x.code)+'\',\''+h(x.invitee_business_name||x.label||'tu negocio')+'\')">WhatsApp</button>':''}${!x.invitee_email?'<span class="small muted">Código antiguo pausado · crea una invitación nueva</span>':'<button class="btn btn-outline btn-sm" onclick="dyFounderInviteToggle('+Number(x.id)+','+(x.status==='active'?'false':'true')+',this)" '+(x.status==='used'?'disabled':'')+'>'+(x.status==='active'?'Pausar':x.status==='used'?'Usada':'Activar')+'</button>'}</div></div>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div></details>
             </section>
             <section class="card">
               <span class="small muted">BENEFICIOS DE CRECIMIENTO</span><h3>Premios para Fundadores y referidos</h3>
@@ -260,26 +265,37 @@
           <section class="card" style="margin-top:16px"><span class="small muted">REFERIDOS</span><h3>Negocios recomendados</h3><div class="dy-admin-history">${referrals.map(r=>`<div><b>${h(r.referred_name)}</b><span>Invitado por ${h(r.founder_name)} · ${r.status==='rewarded'?'beneficio entregado':'beneficio pendiente'}</span></div>`).join('')||'<p class="muted">Aún no hay referidos.</p>'}</div></section>
         `);
         const selectBusiness=document.getElementById('dy-founder-select-saved');
-        const findBusiness=document.getElementById('dy-founder-search-saved');
         const inviteForm=document.getElementById('dy-founder-invite-form');
-        function renderContactChoices(){
-          const q=String(findBusiness?.value||'').toLocaleLowerCase('es').trim(),selected=selectBusiness?.value||'';
-          if(!selectBusiness)return;
-          selectBusiness.innerHTML='<option value="">Elegir o escribir uno nuevo</option>'+choices.map((x,i)=>({x,i})).filter(({x})=>!q||(x.name+' '+x.email+' '+x.source).toLocaleLowerCase('es').includes(q)).map(({x,i})=>`<option value="${i}">${h(x.name)}${x.email?' · '+h(x.email):''} (${h(x.source)})</option>`).join('');
-          if(selectBusiness.querySelector('option[value="'+selected+'"]'))selectBusiness.value=selected;
+        const manualInputs=document.getElementById('dy-founder-manual-inputs');
+        const selectionSummary=document.getElementById('dy-founder-selected-summary');
+        const inviteName=inviteForm?.elements.namedItem('business_name');
+        const inviteEmail=inviteForm?.elements.namedItem('email');
+        function onBusinessChange(){
+          if(!inviteForm||!selectBusiness)return;
+          const fresh=selectBusiness.value==='new';
+          const chosen=fresh?null:choices[Number(selectBusiness.value)];
+          inviteName.value=chosen?.name||'';
+          inviteEmail.value=chosen?.email||'';
+          const prefilled=!!chosen?.name&&!!chosen?.email;
+          manualInputs.hidden=prefilled;
+          selectionSummary.hidden=!prefilled;
+          if(prefilled){
+            document.getElementById('dy-founder-selected-name').textContent=chosen.name;
+            document.getElementById('dy-founder-selected-email').textContent=chosen.email;
+          }else if(chosen&&!chosen.email){
+            inviteEmail.focus();
+          }
         }
-        findBusiness?.addEventListener('input',renderContactChoices);
-        selectBusiness?.addEventListener('change',()=>{
-          const x=choices[Number(selectBusiness.value)];
-          if(!x||selectBusiness.value==='')return;
-          inviteForm.elements.namedItem('business_name').value=x.name;
-          inviteForm.elements.namedItem('email').value=x.email||'';
-          if(!x.email)inviteForm.elements.namedItem('email').focus();
+        selectBusiness?.addEventListener('change',onBusinessChange);
+        document.getElementById('dy-founder-edit-selection')?.addEventListener('click',()=>{
+          manualInputs.hidden=false;
+          selectionSummary.hidden=true;
+          inviteEmail.focus();
         });
         const contactForm=document.getElementById('dy-founder-contact-form');
         document.getElementById('dy-founder-contact-open')?.addEventListener('click',()=>{
-          contactForm.hidden=false;
-          document.getElementById('dy-founder-contact-name')?.focus();
+          contactForm.hidden=!contactForm.hidden;
+          if(!contactForm.hidden)document.getElementById('dy-founder-contact-name')?.focus();
         });
         document.getElementById('dy-founder-contact-cancel')?.addEventListener('click',()=>{contactForm.hidden=true;});
         contactForm?.addEventListener('submit',async e=>{
