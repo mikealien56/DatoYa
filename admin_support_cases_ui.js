@@ -17,12 +17,12 @@
 
   function filters(){
     return `<div class="card" style="padding:14px;margin-bottom:14px">
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 180px 190px;gap:10px">
-        <input id="dy-support-search" placeholder="Buscar caso, correo, nombre, negocio o asunto">
-        <select id="dy-support-status">
+      <div class="dy-support-filter-grid" role="search" aria-label="Filtros de casos de soporte">
+        <label class="dy-support-filter-search"><span>Buscar casos</span><input id="dy-support-search" type="search" placeholder="Número, correo, negocio o asunto" autocomplete="off"></label>
+        <label><span>Estado</span><select id="dy-support-status">
           <option value="">Todos los estados</option><option value="new">Nuevos</option><option value="in_progress">En revisión</option><option value="resolved">Resueltos</option>
-        </select>
-        <select id="dy-support-category"><option value="">Todas las categorías</option></select>
+        </select></label>
+        <label><span>Categoría</span><select id="dy-support-category"><option value="">Todas las categorías</option></select></label>
       </div>
     </div>`;
   }
