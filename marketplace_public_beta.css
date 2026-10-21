@@ -184,3 +184,41 @@
 .dy-real-product .dy-product-photo-gallery .dy-photo-next,
 .dy-store-page .dy-product-photo-gallery .dy-photo-prev,
 .dy-store-page .dy-product-photo-gallery .dy-photo-next{z-index:5!important}
+
+
+/* DATOYA_COMPACT_PRODUCT_MEDIA_20261021
+ * Home: fotos de productos completas pero de altura moderada. */
+.dy-real-product > .dy-live-image.dy-real-product-photo{
+  height:230px!important;
+  min-height:0!important;
+  max-height:230px!important;
+  aspect-ratio:auto!important;
+  flex:0 0 230px!important;
+  background:#f5f7fa!important;
+}
+.dy-real-product > .dy-live-image.dy-real-product-photo > .dy-product-photo-gallery{
+  inset:0!important;
+  background:#f5f7fa!important;
+}
+.dy-real-product > .dy-live-image.dy-real-product-photo img[data-dy-gallery-photo]{
+  padding:8px!important;
+  background:#f5f7fa!important;
+  object-fit:contain!important;
+  object-position:center!important;
+}
+.dy-store-page .dy-store-product > .dy-store-product-image{
+  height:220px!important;
+  min-height:0!important;
+  max-height:220px!important;
+  aspect-ratio:auto!important;
+  flex:0 0 220px!important;
+  background:#f5f7fa!important;
+}
+@media(max-width:640px){
+  .dy-real-product > .dy-live-image.dy-real-product-photo{
+    height:200px!important;max-height:200px!important;flex-basis:200px!important;
+  }
+  .dy-store-page .dy-store-product > .dy-store-product-image{
+    height:190px!important;max-height:190px!important;flex-basis:190px!important;
+  }
+}
