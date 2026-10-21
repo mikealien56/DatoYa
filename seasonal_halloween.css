@@ -104,3 +104,58 @@ html.dy-season-halloween .dy-home .dy-section-head h2{letter-spacing:-.015em}
   html.dy-season-halloween .dy-home .dy-business-card,
   html.dy-season-halloween .dy-home .dy-live-card{transition:none!important;animation:none!important}
 }
+
+
+/* DatoYa 2026 · Logo Halloween elegante (opción 2).
+   Imagen oficial intacta; SVG decorativo inerte sobre la esquina. */
+html.dy-season-halloween #topbar a.logo{
+  position:relative!important;isolation:isolate;overflow:visible!important;
+}
+html.dy-season-halloween .dy-season-logo-ornament{
+  position:absolute;display:block;pointer-events:none!important;
+  user-select:none;z-index:3;overflow:visible;
+}
+html.dy-season-halloween .dy-season-logo-ornament svg{
+  display:block;width:100%;height:100%;overflow:visible;
+}
+html.dy-season-halloween #topbar .dy-season-header-web{
+  width:37px;height:31px;top:-2px;right:1px;opacity:.77;
+}
+html.dy-season-halloween .dy-home .dy-season-hero-brand{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  isolation:isolate;box-sizing:border-box;
+  width:max-content;min-width:182px;max-width:100%;
+  padding:7px 17px 8px 12px;margin:0 0 13px;
+  border:1px solid rgba(245,173,99,.68);border-radius:14px;
+  background:linear-gradient(120deg,rgba(255,255,255,.99),rgba(255,244,229,.98));
+  box-shadow:0 6px 19px rgba(4,4,24,.20),0 0 0 1px rgba(255,255,255,.18);
+}
+html.dy-season-halloween .dy-home .dy-season-hero-brand img{
+  display:block;width:164px;max-width:100%;height:auto;object-fit:contain;
+  filter:none!important;
+}
+html.dy-season-halloween .dy-home .dy-season-hero-web{
+  width:57px;height:47px;right:0;top:0;opacity:.91;
+}
+html.dy-season-halloween .dy-home .dy-season-logo-bat{
+  position:absolute;left:6px;top:-10px;width:26px;height:17px;
+  pointer-events:none;transform:rotate(-11deg);opacity:.89;
+}
+html.dy-season-halloween .dy-home .dy-season-logo-bat svg{width:100%;height:100%;display:block}
+html:not(.dy-season-halloween) .dy-season-logo-ornament,
+html:not(.dy-season-halloween) .dy-season-hero-brand{display:none!important}
+@media(max-width:640px){
+  html.dy-season-halloween #topbar .dy-season-header-web{
+    width:29px;height:26px;top:-1px;right:1px;opacity:.76;
+  }
+  html.dy-season-halloween .dy-home .dy-season-hero-brand{
+    min-width:154px;padding:5px 14px 6px 9px;margin-bottom:12px;border-radius:12px;
+  }
+  html.dy-season-halloween .dy-home .dy-season-hero-brand img{width:141px}
+  html.dy-season-halloween .dy-home .dy-season-hero-web{width:45px;height:38px}
+  html.dy-season-halloween .dy-home .dy-season-logo-bat{width:21px;top:-7px}
+}
+@media(prefers-reduced-motion:reduce){
+  html.dy-season-halloween .dy-season-logo-ornament,
+  html.dy-season-halloween .dy-season-hero-brand{animation:none!important;transition:none!important}
+}
