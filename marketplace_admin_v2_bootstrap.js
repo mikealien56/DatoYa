@@ -124,6 +124,7 @@ function registerAdminBusinessPreviewRoute(){
     const business=db.prepare(`SELECT b.id,b.slug,b.name,b.description,b.status,b.business_type,b.cover_image_data,b.sector,b.address,b.public_address_mode,b.opening_hours,b.pickup_enabled,b.delivery_enabled,b.phone,b.whatsapp,b.verified,b.created_at,b.updated_at,c.name AS comuna,u.name AS owner_name,u.email AS owner_email
       FROM businesses b JOIN users u ON u.id=b.owner_user_id LEFT JOIN comunas c ON c.id=b.comuna_id WHERE b.id=?`).get(id);
     if(!business)return res.status(404).json({error:'Negocio no encontrado'});
+    business.latest_review=db.prepare('SELECT action,note,created_at FROM business_review_notes WHERE business_id=? ORDER BY created_at DESC,id DESC LIMIT 1').get(id)||null;
     business.categories=db.prepare(`SELECT mc.name,mc.icon FROM business_category_links bl JOIN market_categories mc ON mc.id=bl.category_id WHERE bl.business_id=? ORDER BY bl.is_primary DESC,mc.sort_order`).all(id);
     const products=db.prepare(`SELECT p.id,p.name,p.description,p.price,p.promo_price,p.active,p.stock,p.stock_tracking,p.image_data,mc.name AS category_name,mc.icon AS category_icon
       FROM products p LEFT JOIN market_categories mc ON mc.id=p.category_id WHERE p.business_id=? ORDER BY p.created_at DESC,p.id DESC`).all(id);
