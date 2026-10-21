@@ -8,7 +8,7 @@ if(fs.existsSync(idx)){
   let html=fs.readFileSync(idx,'utf8');
   html=html.replace(/<link[^>]+href="\/beta_launch\.css[^"]*"[^>]*>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/beta_launch_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</head>','<link rel="stylesheet" href="/beta_launch.css?v=20260927-1">\n</head>');
-  html=html.replace('</body>','<script src="/beta_launch_ui.js?v=20260927-1"></script>\n</body>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/beta_launch.css?v=20261021-admin-review-link1">\n</head>');
+  html=html.replace('</body>','<script src="/beta_launch_ui.js?v=20261021-admin-review-link1"></script>\n</body>');
   fs.writeFileSync(idx,html);
 }
