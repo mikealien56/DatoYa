@@ -34,7 +34,7 @@ function runLogoScene(start='2026-10-21T12:00:00Z') {
   hero.appendChild(previousHeroText);
   const doc = {
     documentElement:{classList}, hidden:false, createElement:elt,
-    querySelector:s=>s==='#topbar a.logo'?header:s==='.dy-home .dy-hero-copy'?hero:null,
+    querySelector:s=>s==='#topbar a.logo'?header:s==='.dy-home .dy-hero'?hero:null,
     querySelectorAll:s=>s==='[data-dy-season-logo],[data-dy-season-brand]'?
       [header,hero,...hero.children].flatMap(node=>node.children.filter(child=>child.hasAttribute('data-dy-season-logo')||child.hasAttribute('data-dy-season-brand'))):[],
     addEventListener:(k,v)=>{handlers['doc:'+k]=v;}
@@ -57,26 +57,26 @@ test('El logo original queda intacto y recibe telaraña/arañita temporal en la 
   assert.equal(decor.getAttribute('aria-hidden'),'true');
 });
 
-test('Banner muestra logo real con telaraña y un murciélago, sin tocar el texto previo',()=>{
+test('Banner conserva la telaraña sin duplicar el logo, con el texto original intacto',()=>{
   const x=runLogoScene();
-  const plaque=x.hero.children.find(e=>e.hasAttribute('data-dy-season-brand'));
-  assert.ok(plaque);
-  assert.match(plaque.innerHTML,/brand\/datoya-logo-horizontal\.png/);
-  assert.match(plaque.innerHTML,/dy-season-logo-bat/);
+  assert.equal(x.hero.children.some(e=>e.hasAttribute('data-dy-season-brand')),false);
+  const decoration=x.hero.children.find(e=>e.hasAttribute('data-dy-season-logo'));
+  assert.ok(decoration);
+  assert.match(decoration.innerHTML,/dy-season-logo-web-art/);
+  assert.equal(decoration.getAttribute('aria-hidden'),'true');
   assert.equal(x.hero.children.includes(x.previousHeroText),true);
-  assert.ok(plaque.children.some(e=>e.hasAttribute('data-dy-season-logo')));
 });
 
-test('Cambiar de ruta no crea duplicados y volver a renderizar conserva el adorno',()=>{
+test('Volver al inicio no duplica la telaraña y recrea el adorno al renderizar',()=>{
   const x=runLogoScene();
   x.win.__datoyaSeasonalTheme.sync();
   x.handlers['datoya:market-home-rendered']();
   assert.equal(x.header.children.filter(e=>e.hasAttribute('data-dy-season-logo')).length,1);
-  assert.equal(x.hero.children.filter(e=>e.hasAttribute('data-dy-season-brand')).length,1);
-  const plaque=x.hero.children.find(e=>e.hasAttribute('data-dy-season-brand'));
-  plaque.remove();
+  assert.equal(x.hero.children.filter(e=>e.hasAttribute('data-dy-season-logo')).length,1);
+  const decoration=x.hero.children.find(e=>e.hasAttribute('data-dy-season-logo'));
+  decoration.remove();
   x.handlers['datoya:market-home-rendered']();
-  assert.equal(x.hero.children.filter(e=>e.hasAttribute('data-dy-season-brand')).length,1);
+  assert.equal(x.hero.children.filter(e=>e.hasAttribute('data-dy-season-logo')).length,1);
 });
 
 test('El 1 de noviembre Chile desaparecen los adornos, pero sigue el logo oficial',()=>{
@@ -87,7 +87,7 @@ test('El 1 de noviembre Chile desaparecen los adornos, pero sigue el logo oficia
   assert.equal(x.header.children.length,1);
   assert.equal(x.header.children[0],x.originalLogo);
   assert.equal(x.hero.children.includes(x.previousHeroText),true);
-  assert.equal(x.hero.children.some(e=>e.hasAttribute('data-dy-season-brand')),false);
+  assert.equal(x.hero.children.some(e=>e.hasAttribute('data-dy-season-logo')),false);
 });
 
 test('Accesibilidad, móviles, y recursos actualizados',()=>{
@@ -96,6 +96,8 @@ test('Accesibilidad, móviles, y recursos actualizados',()=>{
   assert.match(css,/@media\(max-width:640px\)/);
   assert.match(css,/html:not\(\.dy-season-halloween\)/);
   assert.match(css,/prefers-reduced-motion:reduce/);
-  assert.match(assets,/20261021-elegant-logo2/);
+  assert.match(assets,/20261021-compact-hero3/);
+  assert.doesNotMatch(source,/dy-season-hero-brand|dy-season-logo-bat/);
+  assert.match(css,/Banner Halloween compacto/);
   assert.doesNotMatch(source,/fetch\(|\/api\/|payment|checkout/i);
 });
