@@ -128,9 +128,9 @@
         <section class="dy-review-products">
           <h3>📦 Catálogo para revisar (${products.length})</h3>
           <div class="dy-review-grid">${products.map(p=>{
-            const pic=image(p.image_data);
+            const pic=image(p.image_data),pic2=image(p.image_data_2);
             return `<article class="card dy-review-product">
-              <div class="dy-review-product-image">${pic?`<img loading="lazy" src="${h(pic)}" alt="${h(p.name)}">`:'📦'}</div>
+              <div class="dy-review-product-image ${pic2?'has-second':''}">${pic?`<img loading="lazy" src="${h(pic)}" alt="${h(p.name)} — foto principal">`:'📦'}${pic2?`<img loading="lazy" src="${h(pic2)}" alt="${h(p.name)} — segunda foto">`:''}</div>
               <div class="dy-review-product-details">
                 <span>${h(p.category_icon||'🏷️')} ${h(p.category_name||'Sin categoría')}</span>
                 <h4>${h(p.name)}</h4>
