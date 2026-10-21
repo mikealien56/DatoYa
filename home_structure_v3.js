@@ -78,10 +78,19 @@
     if(!hero||!how||root.dataset.dyV3==='1')return;
     root.dataset.dyV3='1';
 
+    // V3 define el texto normal, pero nunca pisa la portada temporal.
+    // Guardar la versión normal como contenido de restauración para cuando acabe Halloween.
+    const seasonActive=document.documentElement.classList.contains('dy-season-halloween');
+    const setBaseHero=(node,html)=>{
+      if(!node)return;
+      if(seasonActive)node.setAttribute('data-dy-season-original',html);
+      else if(node.innerHTML!==html)node.innerHTML=html;
+    };
     const title=hero.querySelector('h1'),copy=hero.querySelector('.dy-hero-copy>p');
-    if(title)title.innerHTML='Encuentra lo que buscas <span>cerca de ti</span>';
-    if(copy)copy.textContent='Descubre negocios, productos y ofertas cerca de ti.';
-    const kicker=hero.querySelector('.dy-kicker');if(kicker)kicker.textContent='📍 Lo que buscas, cerca de ti';
+    setBaseHero(title,'Encuentra lo que buscas <span>cerca de ti</span>');
+    setBaseHero(copy,'Descubre negocios, productos y ofertas cerca de ti.');
+    const kicker=hero.querySelector('.dy-kicker');
+    setBaseHero(kicker,'📍 Lo que buscas, cerca de ti');
 
     compactHow(how);
 
@@ -124,6 +133,8 @@
       final.innerHTML='<div><span>💙</span><div><b>DatoYa crece cuando clientes y negocios locales se encuentran</b><p>Usar DatoYa para comprar o publicar un negocio puede seguir siendo gratis. Los extras pagados son opcionales.</p></div></div><a class="btn btn-primary" href="#/registro">Crear cuenta</a>';
       cursor.insertAdjacentElement('afterend',final);
     }
+    // La temporada es la única dueña del hero final en octubre.
+    window.__datoyaSeasonalTheme?.sync?.();
   }
 
   addEventListener('datoya:market-home-rendered',()=>setTimeout(restructureHome,35));
