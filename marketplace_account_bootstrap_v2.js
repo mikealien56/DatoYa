@@ -65,6 +65,10 @@ const findCategory=db.prepare('SELECT id FROM market_categories WHERE slug=? LIM
 const insertCategory=db.prepare('INSERT INTO market_categories(slug,name,icon,sort_order,active) VALUES(?,?,?,?,1)');
 for(const [slug,name,icon,order] of marketCategories){if(!findCategory.get(slug))insertCategory.run(slug,name,icon,order);}
 
+
+// Avisos administrativos durables: si Resend falla, no se pierde la revisión.
+db.exec("CREATE TABLE IF NOT EXISTS business_review_email_outbox (business_id INTEGER PRIMARY KEY REFERENCES businesses(id) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, last_attempt_at TEXT, sent_at TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))");
+
 const serverPath=path.join(__dirname,'server.js');
 let source=fs.readFileSync(serverPath,'utf8');
 source=source.replace("const finalRole = role === 'trabajador' ? 'trabajador' : 'cliente';","const finalRole = 'cliente';");
@@ -72,6 +76,49 @@ source=source.replace("const finalRole = role === 'trabajador' ? 'trabajador' : 
 if(!source.includes('DATOYA MARKETPLACE ACCOUNT V2')){
 const injection=`
 // ============ DATOYA MARKETPLACE ACCOUNT V2 ============
+
+const __dyBusinessReviewMailSending=new Set();
+function __dyReviewMailEscape(value){
+  return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});
+}
+async function __dySendBusinessReviewEmail(businessId){
+  const id=Number(businessId);
+  if(!Number.isSafeInteger(id)||id<=0||__dyBusinessReviewMailSending.has(id))return;
+  const row=db.prepare("SELECT o.business_id,o.status,o.attempts,b.name,b.status AS business_status,c.name AS comuna,u.name AS owner_name,u.email AS owner_email FROM business_review_email_outbox o JOIN businesses b ON b.id=o.business_id JOIN users u ON u.id=b.owner_user_id LEFT JOIN comunas c ON c.id=b.comuna_id WHERE o.business_id=?").get(id);
+  if(!row||row.status!=='pending'||Number(row.attempts)>=12)return;
+  __dyBusinessReviewMailSending.add(id);
+  try{
+    db.prepare("UPDATE business_review_email_outbox SET attempts=attempts+1,last_attempt_at=? WHERE business_id=?").run(new Date().toISOString(),id);
+    const link=__publicBaseUrl+'/#/admin/revisar-negocio/'+id;
+    const esc=__dyReviewMailEscape;
+    const html='<div style="font-family:Arial,sans-serif;color:#17324e;max-width:580px;margin:0 auto;padding:24px">'+
+      '<h2 style="color:#0b3a82">🏪 Nuevo negocio pendiente de revisión</h2>'+
+      '<p>Se registró un negocio en DatoYa. Debes revisar sus datos antes de aprobarlo.</p>'+
+      '<p><b>Negocio:</b> '+esc(row.name)+'</p>'+
+      '<p><b>Propietario:</b> '+esc(row.owner_name)+'</p>'+
+      '<p><b>Correo:</b> '+esc(row.owner_email)+'</p>'+
+      '<p><b>Comuna:</b> '+esc(row.comuna||'Sin comuna')+'</p>'+
+      '<p><b>Estado:</b> '+esc(row.business_status)+'</p>'+
+      '<p style="margin-top:24px"><a href="'+link+'" style="background:#0b3a82;color:#fff;text-decoration:none;padding:12px 16px;border-radius:10px">Revisar negocio en DatoYa</a></p>'+
+      '<p style="color:#64748b;font-size:12px;margin-top:25px">Notificación automática de DatoYa para administración. No se ha aprobado el negocio.</p></div>';
+    const ok=typeof __sendAuthEmail==='function'&&await __sendAuthEmail('soporte@datoya.cl','DatoYa · Negocio pendiente de revisión: '+String(row.name).slice(0,100),html);
+    if(ok){
+      db.prepare("UPDATE business_review_email_outbox SET status='sent',sent_at=? WHERE business_id=?").run(new Date().toISOString(),id);
+      console.log('[DatoYa][Business review email] Correo de revisión aceptado, negocio '+id);
+    }else console.error('[DatoYa][Business review email] Entrega no aceptada, se reintentará, negocio '+id);
+  }catch(err){console.error('[DatoYa][Business review email] Fallo: '+(err&&err.message||String(err)));}
+  finally{__dyBusinessReviewMailSending.delete(id);}
+}
+async function __dyFlushBusinessReviewEmails(){
+  try{
+    const threshold=new Date(Date.now()-120000).toISOString();
+    const pending=db.prepare("SELECT business_id FROM business_review_email_outbox WHERE status='pending' AND attempts<12 AND (last_attempt_at IS NULL OR last_attempt_at<?) ORDER BY created_at ASC LIMIT 5").all(threshold);
+    for(const row of pending)await __dySendBusinessReviewEmail(row.business_id);
+  }catch(err){console.error('[DatoYa][Business review email] Retry: '+err.message);}
+}
+setTimeout(__dyFlushBusinessReviewEmails,10000).unref();
+setInterval(__dyFlushBusinessReviewEmails,120000).unref();
+
 function __marketSlug(value){return String(value||'negocio').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'negocio';}
 
 function __marketNormalizeHours(raw){
@@ -136,6 +183,9 @@ app.post('/api/businesses',auth,(req,res)=>{
     return id;
   });
   const id=tx();
+  db.prepare("INSERT INTO business_review_email_outbox(business_id,status) VALUES(?,'pending') ON CONFLICT(business_id) DO NOTHING").run(id);
+  for(const admin of db.prepare("SELECT id FROM users WHERE role='admin' AND is_active=1").all())notify(admin.id,'negocio','Nuevo negocio pendiente de revisión: '+name,'#/admin/revisar-negocio/'+id);
+  __dySendBusinessReviewEmail(id).catch(err=>console.error('[DatoYa][Business review email] '+err.message));
   const business=db.prepare('SELECT b.*,c.name AS comuna,r.name AS region FROM businesses b LEFT JOIN comunas c ON c.id=b.comuna_id LEFT JOIN regions r ON r.id=c.region_id WHERE b.id=?').get(id);
   res.json({ok:true,business:__marketBusinessRow(business)});
 });
