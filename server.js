@@ -6,7 +6,7 @@ const path = require('path');
 const { db, hashPassword, verifyPassword, getSetting, setSetting, notify, seed } = require('./db');
 
 const app = express();
-app.use(express.json({ limit: '2mb', verify:(req,res,buf)=>{req.rawBody=Buffer.from(buf);} }));
+app.use(express.json({ limit: '5mb', verify:(req,res,buf)=>{req.rawBody=Buffer.from(buf);} }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
