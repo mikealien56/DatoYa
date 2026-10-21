@@ -84,8 +84,86 @@
   addEventListener('hashchange',()=>setTimeout(ensureAdminAccess,0));
   addEventListener('datoya:market-home-rendered',()=>setTimeout(ensureAdminAccess,0));
 
-  routes.admin=async function(tab='dashboard'){
+  async function renderAdminBusinessPreview(businessId){
+    const id=Number(businessId);
+    if(!Number.isSafeInteger(id)||id<=0){location.hash='#/admin/negocios';return;}
+    const image=value=>typeof value==='string'&&/^data:image\/(?:jpeg|png|webp);base64,/i.test(value)&&value.length<1800000?value:'';
+    const statusLabel=s=>({pending_review:'Pendiente de revisión',active:'Aprobado y activo',paused:'Pausado',rejected:'Rechazado',suspended:'Suspendido'})[s]||String(s||'Sin estado');
+    try{
+      const {business:b,products=[]}=await api('/admin/marketplace-v2/businesses/'+id+'/preview');
+      if(!b)throw new Error('Negocio no encontrado');
+      const cover=image(b.cover_image_data);
+      const coverHtml=cover?`<img src="${h(cover)}" alt="Portada del negocio">`:'<div class="dy-review-cover-empty">🏪</div>';
+      const detail=(label,value)=>`<div><span>${label}</span><b>${h(value||'No informado')}</b></div>`;
+      shell('Revisar negocio','Vista privada exclusiva para administración. No publica el negocio.',`
+        <div class="dy-review-actions">
+          <a class="btn btn-outline" href="#/admin/negocios">← Volver a negocios</a>
+          ${b.status!=='active'?'<button class="btn btn-primary" id="dy-review-approve">✓ Aprobar negocio</button>':''}
+          ${b.status!=='active'?'<button class="btn btn-outline" id="dy-review-corrections">Solicitar correcciones</button>':''}
+        </div>
+        <div class="dy-review-private">🔒 Vista previa privada · Este negocio continúa ${h(statusLabel(b.status).toLowerCase())} hasta que cambies su estado.</div>
+        <section class="card dy-review-business">
+          <div class="dy-review-cover">${coverHtml}</div>
+          <div class="dy-review-business-info">
+            <div class="dy-admin-tags">${badge(statusLabel(b.status),b.status==='active'?'ok':'warn')} ${badge(products.length+' productos')}</div>
+            <h2>${h(b.name)}</h2>
+            <p>${h(b.description||'Este negocio todavía no agregó una descripción.')}</p>
+            <div class="dy-review-categories">${(b.categories||[]).map(c=>`<span>${h(c.icon||'🏷️')} ${h(c.name)}</span>`).join('')||'<span>Sin categorías</span>'}</div>
+            <div class="dy-review-info">
+              ${detail('Responsable',b.owner_name)}
+              ${detail('Correo',b.owner_email)}
+              ${detail('Comuna',b.comuna)}
+              ${detail('Sector',b.sector)}
+              ${detail('Dirección (solo administración)',b.address)}
+              ${detail('Teléfono',b.phone)}
+              ${detail('WhatsApp',b.whatsapp)}
+              ${detail('Horario',b.opening_hours)}
+              ${detail('Tipo de negocio',b.business_type==='home_business'?'Emprendimiento desde casa':'Local físico')}
+              ${detail('Modalidades',[b.pickup_enabled?'Retiro':'',b.delivery_enabled?'Despacho':''].filter(Boolean).join(' · ')||'No informadas')}
+            </div>
+          </div>
+        </section>
+        <section class="dy-review-products">
+          <h3>📦 Catálogo para revisar (${products.length})</h3>
+          <div class="dy-review-grid">${products.map(p=>{
+            const pic=image(p.image_data);
+            return `<article class="card dy-review-product">
+              <div class="dy-review-product-image">${pic?`<img loading="lazy" src="${h(pic)}" alt="${h(p.name)}">`:'📦'}</div>
+              <div class="dy-review-product-details">
+                <span>${h(p.category_icon||'🏷️')} ${h(p.category_name||'Sin categoría')}</span>
+                <h4>${h(p.name)}</h4>
+                <p>${h(p.description||'Sin descripción.')}</p>
+                <strong>${money(p.price)}</strong>
+                ${p.promo_price!=null&&Number(p.promo_price)>0?`<small>Precio promocional: ${money(p.promo_price)}</small>`:''}
+                ${p.stock_tracking?`<small>Stock: ${Number(p.stock||0)}</small>`:''}
+                <small>${p.active?'✓ Marcado como visible':'Oculto por el negocio'} · ${b.status==='active'?'Negocio activo':'No visible públicamente'}</small>
+              </div>
+            </article>`;
+          }).join('')||'<p class="card dy-review-no-products">El negocio no tiene productos cargados.</p>'}</div>
+        </section>
+      `);
+      document.getElementById('dy-review-approve')?.addEventListener('click',async()=>{
+        if(!confirm('¿Aprobar y publicar "'+b.name+'"? Su perfil podrá aparecer para el público.'))return;
+        await window.dySetBusinessStatus(id,'active');
+      });
+      document.getElementById('dy-review-corrections')?.addEventListener('click',async()=>{
+        const note=prompt('¿Qué debe corregir este negocio?');
+        if(note===null)return;
+        if(note.trim().length<4){toast?.('Escribe al menos cuatro caracteres para solicitar una corrección.','err');return;}
+        try{
+          await api('/admin/marketplace/businesses/'+id+'/request-changes',{method:'POST',body:{note:note.trim()}});
+          toast?.('Solicitud de corrección enviada al negocio.','ok');
+          routes.admin('negocios');
+        }catch(e){toast?.(e.message||'No se pudieron solicitar correcciones.','err');}
+      });
+    }catch(e){
+      shell('Revisar negocio','No se pudo cargar la vista previa privada.',`<div class="card"><p>${h(e.message||'Ocurrió un error.')}</p><a class="btn btn-outline" href="#/admin/negocios">← Volver a negocios</a></div>`);
+    }
+  }
+
+  routes.admin=async function(tab='dashboard',businessId){
     if(!ME||ME.role!=='admin'){view.innerHTML='<div class="empty"><b>🛡️</b>Acceso solo para administradores.</div>';return;}
+    if(tab==='revisar-negocio')return renderAdminBusinessPreview(businessId);
     const managed=['dashboard','resumen','usuarios','negocios','productos','pedidos','finanzas','impulso','club','fundadores','impulso-semanal','destacado','analitica','moderacion','configuracion'];
     if(!managed.includes(tab))return previous.apply(this,arguments);
     try{
@@ -133,7 +211,7 @@
       if(tab==='negocios'){
         const {businesses=[]}=await api('/admin/marketplace-v2/businesses');
         shell('Negocios','Revisa, aprueba, pausa o suspende comercios.',inputFilter('Buscar negocio, dueño, correo o comuna')+
-          '<div class="dy-admin-list">'+businesses.map(b=>`<article class="card dy-admin-row" data-business-row data-search="${h([b.name,b.owner_name,b.owner_email,b.comuna,b.status].join(' ').toLowerCase())}"><div><b>🏪 ${h(b.name)}</b><div class="small muted">${h(b.owner_name)} · ${h(b.owner_email)} · ${h(b.comuna||'')}</div><div class="dy-admin-tags">${badge(b.status,b.status==='active'?'ok':b.status==='pending_review'?'warn':'')} ${badge(b.product_count+' productos')} ${badge(b.order_count+' pedidos')} ${b.impulse_expires_at?badge('⚡ Impulso hasta '+String(b.impulse_expires_at).slice(0,10),'ok'):badge('Gratis')}</div></div><div class="dy-admin-row-actions"><select onchange="dySetBusinessStatus(${Number(b.id)},this.value)"><option value="">Cambiar estado…</option><option value="active">Aprobar / activar</option><option value="pending_review">En revisión</option><option value="paused">Pausar</option><option value="rejected">Rechazar</option><option value="suspended">Suspender</option></select><a class="btn btn-outline btn-sm" href="#/negocio/${h(b.slug)}">Ver perfil</a></div></article>`).join('')+'</div>');
+          '<div class="dy-admin-list">'+businesses.map(b=>`<article class="card dy-admin-row" data-business-row data-search="${h([b.name,b.owner_name,b.owner_email,b.comuna,b.status].join(' ').toLowerCase())}"><div><b>🏪 ${h(b.name)}</b><div class="small muted">${h(b.owner_name)} · ${h(b.owner_email)} · ${h(b.comuna||'')}</div><div class="dy-admin-tags">${badge(({pending_review:'Pendiente de revisión',active:'Activo',paused:'Pausado',rejected:'Rechazado',suspended:'Suspendido'})[b.status]||b.status,b.status==='active'?'ok':b.status==='pending_review'?'warn':'')} ${badge(b.product_count+' productos')} ${badge(b.order_count+' pedidos')} ${b.impulse_expires_at?badge('⚡ Impulso hasta '+String(b.impulse_expires_at).slice(0,10),'ok'):badge('Gratis')}</div></div><div class="dy-admin-row-actions"><select onchange="dySetBusinessStatus(${Number(b.id)},this.value)"><option value="">Cambiar estado…</option><option value="active">Aprobar / activar</option><option value="pending_review">En revisión</option><option value="paused">Pausar</option><option value="rejected">Rechazar</option><option value="suspended">Suspender</option></select><a class="btn btn-outline btn-sm" href="#/admin/revisar-negocio/${Number(b.id)}">Revisar negocio</a></div></article>`).join('')+'</div>');
         wireSearch('[data-business-row]');return;
       }
 
