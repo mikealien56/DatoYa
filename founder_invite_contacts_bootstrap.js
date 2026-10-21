@@ -34,8 +34,8 @@ if (!source.includes(tag)) {
     "});",
     '// ============ FIN ' + tag + ' ============',
     ''
-  ].join('\\n');
-  source=source.replace(marker,insertion+'\\n'+marker);
+  ].join('\n');
+  source=source.replace(marker,insertion+'\n'+marker);
   fs.writeFileSync(serverFile,source);
 }
 console.log('[DatoYa] Agenda privada de invitaciones disponible para administración.');
