@@ -150,3 +150,6 @@
   .dy-joined-stage{animation:none!important}
   .dy-joined-dot{transition:none}
 }
+
+/* Ocultar definitivamente el monograma de letra sobre fotos de bienvenida. */
+.dy-joined-carousel .dy-joined-brand,.dy-joined-stage .dy-joined-brand{display:none!important}
