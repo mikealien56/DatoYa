@@ -38,7 +38,7 @@
       view.innerHTML=`<div class="dy-public-page dy-store-page">
         <a class="dy-public-back" href="#/">← Volver</a>
         ${ownerPreview?`<div class="dy-owner-preview-banner"><div><span>👁 VISTA PÚBLICA</span><b>Estás viendo tu negocio como lo ve un cliente</b><small>Estas visitas propias no se suman a tus estadísticas.</small></div><a class="btn btn-primary btn-sm" href="#/mi-negocio/${Number(b.id)}">Administrar negocio</a></div>`:''}
-        <section class="dy-store-hero dy-growth-store"><div class="dy-store-cover">${items.find(p=>p.image_data)?`<img src="${items.find(p=>p.image_data).image_data}" alt="${h(b.name)}">`:'<div class="dy-real-placeholder">🏪</div>'}</div>
+        <section class="dy-store-hero dy-growth-store"><div class="dy-store-cover">${/^data:image\/(?:jpeg|png|webp);base64,/.test(String(b.cover_image_data||''))?`<img src="${h(b.cover_image_data)}" alt="Portada de ${h(b.name)}" loading="eager" decoding="async">`:'<div class="dy-real-placeholder" role="img" aria-label="Negocio sin portada">🏪</div>'}</div>
         <div class="dy-store-info"><span>${b.business_type==='home_business'?'🏠 Emprendimiento desde casa':'🏬 Local físico'}${b.verified?' · ✓ Verificado':''}</span>${founder}<h1>${h(b.name)}</h1><p>${h(b.description||'Negocio local en DatoYa.')}</p>
         <div class="dy-store-meta"><span>📍 ${h(publicPlace||b.comuna||'Ubicación protegida')}</span>${b.opening_hours?`<span>🕒 ${h(b.opening_hours)}</span>`:''}<span>${b.pickup_enabled?'✓ Retiro':''}${b.pickup_enabled&&b.delivery_enabled?' · ':''}${b.delivery_enabled?'✓ Despacho':''}</span></div>
         <div class="dy-store-cats">${(b.categories||[]).map(c=>`<span>${h(c.icon)} ${h(c.name)}</span>`).join('')}</div>
