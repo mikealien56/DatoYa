@@ -286,8 +286,33 @@
       }
 
       if(tab==='club'){
-        const {members=[],history=[]}=await api('/admin/club-gifts/members');
-        shell('⭐ DatoYa Club','Miembros activos y Sorpresas Club. Los regalos son beneficios digitales; no reemplazan el pago normal de Club.',`
+        const [{members=[],history=[]},{customers=[]}]=await Promise.all([api('/admin/club-gifts/members'),api('/admin/club-passes/customers')]);
+        shell('⭐ DatoYa Club','Regala días Club a cualquier cliente registrado y administra las sorpresas de los socios.',`
+
+          <section class="card dy-club-gift-pass">
+            <span class="small muted">CORTESÍA DE ADMINISTRACIÓN</span>
+            <h3>🎁 Regalar pase DatoYa Club</h3>
+            <p class="small muted">Selecciona un cliente que ya tenga cuenta. No necesita comprar el Club: recibe los días directamente. Si tiene un pase vigente, los días se suman a su vencimiento.</p>
+            <form id="dy-club-gift-pass-form">
+              <div class="field dy-club-gift-customer-search">
+                <label for="dy-club-customer-search">Buscar cliente por nombre o correo</label>
+                <input id="dy-club-customer-search" type="search" placeholder="Ej: Paola o su correo" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="dy-club-customer-select">Cliente</label>
+                <select id="dy-club-customer-select" name="user_id" required>
+                  <option value="">Selecciona un cliente registrado</option>
+                  ${customers.map(c=>`<option value="${Number(c.id)}">${h(c.name)} · ${h(c.email)}${c.club_expires_at?' · Club hasta '+String(c.club_expires_at).slice(0,10):''}</option>`).join('')}
+                </select>
+              </div>
+              <div class="field">
+                <label for="dy-club-gift-days">Cantidad de días para regalar</label>
+                <input id="dy-club-gift-days" name="days" type="number" min="1" max="365" step="1" value="30" required>
+                <small>Entre 1 y 365 días. Esta acción no genera ningún cobro.</small>
+              </div>
+              <button type="submit" class="btn btn-primary">🎁 Regalar pase Club</button>
+            </form>
+          </section>
           <div class="dy-admin-kpis">
             <div><strong>${members.length}</strong><span>Club activos</span><small>Pases vigentes</small></div>
             <div><strong>${members.filter(x=>Number(x.pending_gifts)>0).length}</strong><span>Con sorpresa</span><small>Regalo pendiente por abrir</small></div>
@@ -298,6 +323,40 @@
           <div class="dy-admin-list">${members.map(m=>`<article class="card dy-admin-row" data-club-row data-search="${h([m.name,m.email,m.comuna].join(' ').toLowerCase())}"><div><b>⭐ ${h(m.name)}</b><div class="small muted">${h(m.email)} · ${h(m.comuna||'Sin comuna')}</div><div class="dy-admin-tags">${badge('Club hasta '+String(m.expires_at||'').slice(0,10),'ok')} ${Number(m.pending_gifts)?badge(m.pending_gifts+' sorpresa(s)','warn'):badge('Sin regalos pendientes')} ${badge(m.claimed_gifts+' abiertos')}</div></div><div class="dy-admin-row-actions"><select id="club-gift-${Number(m.id)}"><option value="radar_turbo:24">⚡ Radar Turbo 24 h</option><option value="hunt_slots:1">🎯 +1 Caza</option><option value="hunt_slots:2">🎯 +2 Cazas</option><option value="club_days:2">🎁 +2 días Club</option><option value="club_days:3">🎁 +3 días Club</option><option value="club_days:7">🎁 +7 días Club</option></select><button class="btn btn-primary btn-sm" onclick="dyGiftCustomerClub(${Number(m.id)},'${h(String(m.name).replace(/'/g,'&#39;'))}')">🎁 Enviar sorpresa</button></div></article>`).join('')||'<div class="card"><p class="muted">Todavía no hay miembros Club activos.</p></div>'}</div>
           <section class="card" style="margin-top:16px"><h3>Historial de Sorpresas Club</h3><div class="dy-admin-history">${history.slice(0,80).map(g=>`<div><b>${h(g.user_name)}</b><span>${h(g.kind)} · ${Number(g.value)} · ${h(g.status)} · ${dt(g.created_at)}</span></div>`).join('')||'<p class="muted">Aún no se han enviado regalos.</p>'}</div></section>
         `);
+        const clubCustomerSearch=document.getElementById('dy-club-customer-search');
+        const clubCustomerSelect=document.getElementById('dy-club-customer-select');
+        clubCustomerSearch?.addEventListener('input',()=>{
+          const q=clubCustomerSearch.value.trim().toLocaleLowerCase('es');
+          const selected=clubCustomerSelect?.value||'';
+          if(!clubCustomerSelect)return;
+          const matches=customers.filter(c=>[c.name,c.email].some(v=>String(v||'').toLocaleLowerCase('es').includes(q)));
+          clubCustomerSelect.innerHTML='<option value="">Selecciona un cliente registrado</option>'+matches.map(c=>'<option value="'+Number(c.id)+'">'+h(c.name)+' · '+h(c.email)+(c.club_expires_at?' · Club hasta '+String(c.club_expires_at).slice(0,10):'')+'</option>').join('');
+          if(matches.some(c=>String(c.id)===selected))clubCustomerSelect.value=selected;
+        });
+        const passForm=document.getElementById('dy-club-gift-pass-form');
+        let giftRequestId=null,giftRequestSignature='';
+        passForm?.addEventListener('submit',async e=>{
+          e.preventDefault();
+          const userId=Number(clubCustomerSelect?.value||0);
+          const days=Number(document.getElementById('dy-club-gift-days')?.value);
+          const customer=customers.find(c=>Number(c.id)===userId);
+          if(!customer)return toast?.('Selecciona un cliente de la lista','err');
+          if(!Number.isInteger(days)||days<1||days>365)return toast?.('Elige entre 1 y 365 días','err');
+          if(!confirm('¿Regalar '+days+' día'+(days===1?'':'s')+' de DatoYa Club a '+customer.name+'?'))return;
+          const signature=userId+':'+days;
+          if(!giftRequestId||giftRequestSignature!==signature){
+            giftRequestId=window.crypto?.randomUUID?.()||'club-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,15);
+            giftRequestSignature=signature;
+          }
+          const button=passForm.querySelector('button[type="submit"]');
+          button.disabled=true;
+          try{
+            const result=await api('/admin/club-passes/gift',{method:'POST',body:{user_id:userId,days,request_id:giftRequestId}});
+            toast?.(result.already_granted?'Este regalo ya había sido procesado.':days+' días Club regalados a '+customer.name,'ok');
+            giftRequestId=null;giftRequestSignature='';
+            routes.admin('club');
+          }catch(err){toast?.(err.message||'No se pudo regalar el pase Club','err');button.disabled=false;}
+        });
         wireSearch('[data-club-row]');return;
       }
 
