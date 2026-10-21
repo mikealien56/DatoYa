@@ -11,8 +11,8 @@ if(fs.existsSync(file)){
   let html=fs.readFileSync(file,'utf8');
   html=html.replace(/<link[^>]+href="\/seasonal_halloween\.css[^"]*"[^>]*>\s*/g,'');
   html=html.replace(/<script[^>]+src="\/seasonal_halloween_ui\.js[^"]*"[^>]*><\/script>\s*/g,'');
-  html=html.replace('</head>','<link rel="stylesheet" href="/seasonal_halloween.css?v=20261021-compact-hero3">\n</head>');
-  html=html.replace('</body>','<script src="/seasonal_halloween_ui.js?v=20261021-compact-hero3"></script>\n</body>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/seasonal_halloween.css?v=20261021-halloween-home-lock4">\n</head>');
+  html=html.replace('</body>','<script src="/seasonal_halloween_ui.js?v=20261021-halloween-home-lock4"></script>\n</body>');
   fs.writeFileSync(file,html);
 }
 console.log('[DatoYa] Capa Halloween temporal cargada, sin alterar la imagen de marca.');

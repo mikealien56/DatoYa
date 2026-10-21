@@ -80,7 +80,14 @@
 
     // V3 define el texto normal, pero nunca pisa la portada temporal.
     // Guardar la versión normal como contenido de restauración para cuando acabe Halloween.
-    const seasonActive=document.documentElement.classList.contains('dy-season-halloween');
+    const seasonActive=(()=>{
+      try{
+        if(typeof window.__datoyaSeasonalTheme?.isActiveAt==='function')return window.__datoyaSeasonalTheme.isActiveAt(new Date());
+        const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santiago',year:'numeric',month:'numeric',day:'numeric'}).formatToParts(new Date());
+        const date=Object.fromEntries(parts.filter(x=>x.type!=='literal').map(x=>[x.type,Number(x.value)]));
+        return date.year===2026&&date.month===10&&date.day>=1&&date.day<=31;
+      }catch(_){return document.documentElement.classList.contains('dy-season-halloween');}
+    })();
     const setBaseHero=(node,html)=>{
       if(!node)return;
       if(seasonActive)node.setAttribute('data-dy-season-original',html);

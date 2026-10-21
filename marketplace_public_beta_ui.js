@@ -6,6 +6,15 @@
   const money=n=>'$'+Number(n||0).toLocaleString('es-CL');
   const num=(k)=>{const raw=localStorage.getItem(k);if(raw===null||String(raw).trim()==='')return null;const v=Number(raw);return Number.isFinite(v)?v:null;};
   const isHome=()=>!location.hash||location.hash==='#'||location.hash==='#/';
+  // La temática se elige antes de construir el Home; nunca mostrar una portada intermedia.
+  function isHalloweenHome(){
+    try{
+      if(typeof window.__datoyaSeasonalTheme?.isActiveAt==='function')return window.__datoyaSeasonalTheme.isActiveAt(new Date());
+      const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santiago',year:'numeric',month:'numeric',day:'numeric'}).formatToParts(new Date());
+      const date=Object.fromEntries(parts.filter(x=>x.type!=='literal').map(x=>[x.type,Number(x.value)]));
+      return date.year===2026&&date.month===10&&date.day>=1&&date.day<=31;
+    }catch(_){return false;}
+  }
   const rad=d=>d*Math.PI/180;
   const distanceKm=(a,b,c,d)=>{const R=6371,dl=rad(c-a),dn=rad(d-b),x=Math.sin(dl/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
   const fmtDistance=d=>d==null?'':d<1?`${Math.max(50,Math.round(d*1000/50)*50)} m`:`${d.toFixed(d<10?1:0).replace('.',',')} km`;
@@ -160,11 +169,15 @@
       let featuredBusiness=null;
       if(featureZone){try{const result=await api('/featured-business/active?comuna_id='+featureZone);featuredBusiness=businesses.find(b=>Number(b.id)===Number(result.business?.id))||null;}catch(_){/* El resto de la portada sigue disponible. */}}
       if(renderSequence!==homeRenderSequence||!isHome())return;
+      const seasonal=isHalloweenHome();
+      const heroKicker=seasonal?'🎃 EDICIÓN HALLOWEEN · OCTUBRE 2026':'📍 Lo que buscas, cerca de ti';
+      const heroTitle=seasonal?'Halloween llegó <span>a DatoYa 🎃</span>':'Encuentra lo que buscas <span>cerca de ti</span>';
+      const heroCopy=seasonal?'Descubre negocios y productos escalofriantemente cerca de ti.':'Descubre negocios, productos y ofertas cerca de ti.';
       const visibleBusinesses=businesses.slice(0,8);
       const productCount=products.filter(p=>!p.stock_tracking||Number(p.stock)>0).length;
       view.innerHTML=`<div class="dy-home">
         <div class="dy-mobile-location"><div><span>📍 Tu ubicación</span><b data-dy-location-label>${h(loc.label)}</b></div><button type="button" data-dy-locate>Cambiar</button></div>
-        <section class="dy-hero"><div class="dy-hero-copy"><div class="dy-kicker">📍 Descubre lo mejor de tu zona</div><h1>Negocios locales <span>cerca de ti</span></h1><p>Encuentra negocios, productos y ofertas cerca de ti.</p><form class="dy-search" id="dy-beta-search"><label class="dy-search-field"><span class="dy-search-icon">⌕</span><input name="q" autocomplete="off" placeholder="¿Qué necesitas?" aria-label="Buscar negocios, productos o servicios"></label><div class="dy-location-field"><span class="dy-location-icon">📍</span><button type="button" class="dy-location-button" data-dy-locate><span data-dy-location-label>${h(loc.label)}</span></button></div><button class="dy-search-submit" type="submit">Buscar</button></form><div class="dy-trust-row"><span>✓ Negocios aprobados</span><span>${productCount>0?`📦 ${productCount} producto${productCount===1?'':'s'} disponible${productCount===1?'':'s'}`:'📦 Explora el catálogo'}</span><span>♡ Apoya lo local</span></div></div><div class="dy-hero-visual" aria-hidden="true"><div class="dy-visual-card"><div class="dy-visual-image"></div><div class="dy-visual-overlay"><span class="dy-live-pill"><i class="dy-live-dot"></i> DatoYa</span><h3>${businesses.length?`${businesses.length} negocios en esta vista`:'Sé de los primeros'}</h3><p>${businesses.length?'Contenido real publicado por comercios.':'Invita a un negocio local a registrarse.'}</p></div></div></div></section>
+        <section class="dy-hero"><div class="dy-hero-copy"><div class="dy-kicker">${heroKicker}</div><h1>${heroTitle}</h1><p>${heroCopy}</p><form class="dy-search" id="dy-beta-search"><label class="dy-search-field"><span class="dy-search-icon">⌕</span><input name="q" autocomplete="off" placeholder="¿Qué necesitas?" aria-label="Buscar negocios, productos o servicios"></label><div class="dy-location-field"><span class="dy-location-icon">📍</span><button type="button" class="dy-location-button" data-dy-locate><span data-dy-location-label>${h(loc.label)}</span></button></div><button class="dy-search-submit" type="submit">Buscar</button></form><div class="dy-trust-row"><span>✓ Negocios aprobados</span><span>${productCount>0?`📦 ${productCount} producto${productCount===1?'':'s'} disponible${productCount===1?'':'s'}`:'📦 Explora el catálogo'}</span><span>♡ Apoya lo local</span></div></div><div class="dy-hero-visual" aria-hidden="true"><div class="dy-visual-card"><div class="dy-visual-image"></div><div class="dy-visual-overlay"><span class="dy-live-pill"><i class="dy-live-dot"></i> DatoYa</span><h3>${businesses.length?`${businesses.length} negocios en esta vista`:'Sé de los primeros'}</h3><p>${businesses.length?'Contenido real publicado por comercios.':'Invita a un negocio local a registrarse.'}</p></div></div></div></section>
         <section class="dy-section dy-how-it-works" id="como-funciona" aria-labelledby="dy-how-title">
           <div class="dy-how-heading">
             <span class="dy-how-eyebrow">ASÍ FUNCIONA DATOYA</span>
