@@ -77,7 +77,30 @@
     return cache;
   }
 
-  const productPhoto=p=>p.image_data?`<img src="${p.image_data}" alt="${h(p.name)}" loading="lazy">`:'<div class="dy-real-placeholder">📦</div>';
+  // Dos fotos del mismo producto; los controles no crean publicaciones adicionales.
+  const productPhoto=p=>{
+    const photos=[p.image_data,p.image_data_2].filter(v=>typeof v==='string'&&/^data:image\/(?:jpeg|png|webp);base64,/.test(v));
+    if(!photos.length)return '<div class="dy-real-placeholder">📦</div>';
+    return '<div class="dy-product-photo-gallery" data-dy-photo-gallery data-index="0">'+
+      photos.map((src,i)=>`<img src="${h(src)}" alt="${h(p.name)} — foto ${i+1}" data-dy-gallery-photo loading="lazy" ${i?'hidden':''}>`).join('')+
+      (photos.length>1?'<button type="button" class="dy-photo-prev" data-dy-photo-nav="-1" aria-label="Foto anterior">‹</button><button type="button" class="dy-photo-next" data-dy-photo-nav="1" aria-label="Foto siguiente">›</button><span class="dy-photo-counter" data-dy-photo-counter>1 / 2</span>':'')+
+      '</div>';
+  };
+  document.addEventListener('click',event=>{
+    const btn=event.target.closest('[data-dy-photo-nav]');
+    if(!btn)return;
+    const gallery=btn.closest('[data-dy-photo-gallery]');
+    if(!gallery)return;
+    const photos=[...gallery.querySelectorAll('[data-dy-gallery-photo]')];
+    if(photos.length<2)return;
+    event.preventDefault();event.stopPropagation();
+    const next=(Number(gallery.dataset.index||0)+Number(btn.dataset.dyPhotoNav)+photos.length)%photos.length;
+    photos.forEach((photo,i)=>{photo.hidden=i!==next});
+    gallery.dataset.index=String(next);
+    const counter=gallery.querySelector('[data-dy-photo-counter]');
+    if(counter)counter.textContent=(next+1)+' / '+photos.length;
+  });
+
   const businessPhoto=(b,_products)=>{const cover=String(b.cover_image_data||'');if(/^data:image\/(?:jpeg|png|webp);base64,/.test(cover))return `<img src="${cover}" alt="Portada de ${h(b.name)}" loading="lazy" decoding="async">`;const initial=h(String(b.name||'N').trim().charAt(0).toLocaleUpperCase('es'));return `<div class="dy-business-brand-fallback" role="img" aria-label="${h(b.name)} sin foto de portada"><span class="dy-brand-emblem">${initial}</span><span class="dy-brand-fallback-name">${h(b.name)}</span><small>NEGOCIO LOCAL · DATOYA</small></div>`;};
   const categoryText=b=>(b.categories||[]).map(c=>`${c.icon||''} ${c.name}`).join(' · ')||'Negocio local';
   const searchNormalize=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').replace(/[^a-z0-9]+/g,' ').trim();
