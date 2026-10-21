@@ -64,9 +64,9 @@ const injection = `
 // ============ DATOYA ACCOUNT SECURITY V1 ============
 const __authRateBuckets = new Map();
 const __authTestMode = String(process.env.AUTH_TEST_MODE || '').toLowerCase() === 'true' || !['0','false','off','no'].includes(String(process.env.DEMO_MODE || 'true').toLowerCase());
-const __termsVersion = String(process.env.LEGAL_TERMS_VERSION || '2026-09-25-marketplace2');
-const __privacyVersion = String(process.env.LEGAL_PRIVACY_VERSION || '2026-09-25-marketplace2');
-const __paymentTermsVersion = String(process.env.LEGAL_PAYMENT_VERSION || '2026-09-25-marketplace2');
+const __termsVersion = String(process.env.LEGAL_TERMS_VERSION || '2026-10-21-marketplace3');
+const __privacyVersion = String(process.env.LEGAL_PRIVACY_VERSION || '2026-10-21-marketplace3');
+const __paymentTermsVersion = String(process.env.LEGAL_PAYMENT_VERSION || '2026-10-21-marketplace3');
 const __legalEnforcement = !['0','false','off','no'].includes(String(process.env.LEGAL_ENFORCEMENT || 'true').toLowerCase());
 const __publicBaseUrl = String(process.env.AUTH_PUBLIC_BASE_URL || 'https://datoya.cl').replace(/\\/$/,'');
 const __sha256 = value => crypto.createHash('sha256').update(String(value)).digest('hex');

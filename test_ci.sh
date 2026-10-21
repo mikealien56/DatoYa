@@ -8,13 +8,16 @@ echo "✅ Dependencias de producción sin vulnerabilidades altas/críticas"
 grep -q "legal_consent_recorded" account_security_bootstrap.js || { echo "Registro no persiste consentimiento legal"; exit 1; }
 grep -q "LEGAL_ENFORCEMENT || 'true'" account_security_bootstrap.js || { echo "Enforcement legal no queda activo por defecto"; exit 1; }
 echo "✅ Consentimiento legal integrado al registro"
-grep -q "Versión: 25 de septiembre de 2026" legal_final_ui.js || { echo "Textos legales no están versionados al 25-09-2026"; exit 1; }
+grep -q "Versión: 21 de octubre de 2026" legal_final_ui.js || { echo "Textos legales no están versionados al 21-10-2026"; exit 1; }
+grep -q "2026-10-21-marketplace3" account_security_bootstrap.js || { echo "Consentimiento del registro no usa la versión vigente"; exit 1; }
+grep -q "DatoYa Gratis:" legal_final_ui.js || { echo "Términos no explican la publicación gratuita"; exit 1; }
+grep -q "Regalos de lanzamiento:" legal_final_ui.js || { echo "Términos no explican cortesías Premium"; exit 1; }
 grep -q "Khipu" legal_final_ui.js || { echo "Textos legales no reflejan Khipu"; exit 1; }
 grep -q "1 de diciembre de 2026" legal_final_ui.js || { echo "Política de privacidad no contempla transición Ley 21.719"; exit 1; }
 grep -q "Mercado Pago" legal_final_ui.js || { echo "Los Términos no describen al proveedor Mercado Pago"; exit 1; }
 grep -q "2% sobre el subtotal de productos" legal_final_ui.js || { echo "Los Términos no informan el cargo de servicio al comprador"; exit 1; }
 if grep -Eqi 'mercadopago|Mercado Pago' account_security_bootstrap.js; then echo "Seguridad de cuentas contiene configuración del proveedor de pagos"; exit 1; fi
-grep -q "2026-09-25-marketplace2" marketplace_legal_version_fix.js || { echo "Falta nueva versión de consentimiento legal"; exit 1; }
+grep -q "2026-10-21-marketplace3" marketplace_legal_version_fix.js || { echo "Falta nueva versión de consentimiento legal"; exit 1; }
 echo "✅ Textos legales incluyen Khipu histórico, Mercado Pago y condiciones del cargo online"
 grep -q "current_legal_consent_enforcement_bootstrap" production_start.js || { echo "Guard de consentimiento vigente no montado"; exit 1; }
 grep -q "LEGAL_CONSENT_REQUIRED" app.js || { echo "Frontend no maneja reaceptación legal"; exit 1; }
