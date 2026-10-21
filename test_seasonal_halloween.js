@@ -78,7 +78,7 @@ test('Los assets se cargan en último lugar y en caché de la PWA',()=>{
   assert.match(startup,/require\('\.\/pwa_install_assets'\);require\('\.\/seasonal_halloween_assets'\)/);
   assert.match(assets,/seasonal_halloween\.css/);
   assert.match(assets,/seasonal_halloween_ui\.js/);
-  assert.match(sw,/const CACHE='datoya-shell-v119'/);
+  assert.match(sw,/const CACHE='datoya-shell-v120'/);
   assert.match(sw,/\/seasonal_halloween\.css/);
   assert.match(sw,/\/seasonal_halloween_ui\.js/);
 });
