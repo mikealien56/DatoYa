@@ -42,7 +42,7 @@ function harness({ savedGPS = false, withProducts = false } = {}) {
     document: { querySelectorAll: () => [], getElementById: () => null },
     localStorage: { getItem: key => Object.hasOwn(store, key) ? store[key] : null, setItem: (k,v) => {store[k]=v;} },
     sessionStorage: { getItem: () => null, setItem: () => {} },
-    URLSearchParams, addEventListener: () => {}, setTimeout: () => {},
+    URLSearchParams, addEventListener: () => {}, setTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
     console
   };
   vm.runInNewContext(source, context, { filename: 'marketplace_public_beta_ui.js', timeout: 3000 });
