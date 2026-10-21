@@ -35,7 +35,14 @@ test('Filtros de soporte responsivos y con campos identificados',()=>{
 
 test('Invitaciones: elegir existente, buscar, guardar y completar correo',()=>{
   assert.match(admin,/id="dy-founder-select-saved"/);
-  assert.match(admin,/id="dy-founder-search-saved"/);
+  assert.doesNotMatch(admin,/id="dy-founder-search-saved"/);
+  assert.match(admin,/id="dy-founder-manual-inputs"/);
+  assert.match(admin,/id="dy-founder-selected-summary"/);
+  assert.match(admin,/id="dy-founder-edit-selection"/);
+  assert.match(admin,/<details class="dy-founder-invite-history">/);
+  assert.match(admin,/manualInputs\.hidden=prefilled/);
+  assert.match(admin,/selectionSummary\.hidden=!prefilled/);
+  assert.match(css,/DATOYA FOUNDER INVITES COMPACT V2/);
   assert.match(admin,/id="dy-founder-contact-open"/);
   assert.match(admin,/id="dy-founder-contact-form"/);
   assert.match(admin,/const choices=\[/);

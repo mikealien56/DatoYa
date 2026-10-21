@@ -450,3 +450,28 @@
   .dy-admin-v2 .dy-support-filter-grid input,.dy-admin-v2 .dy-support-filter-grid select{height:46px}
   .dy-admin-v2 .dy-founder-select-box{padding:12px}
 }
+
+
+/* DATOYA FOUNDER INVITES COMPACT V2: formulario ágil y legible en móvil. */
+.dy-admin-v2 .dy-founder-invite-note{font-size:12px;line-height:1.4;margin:3px 0 12px;color:#607087}
+.dy-admin-v2 .dy-founder-invite-choice{display:grid;gap:5px;min-width:0;margin:0 0 12px}
+.dy-admin-v2 .dy-founder-invite-choice>label{font-size:13px;font-weight:800;color:#183759}
+.dy-admin-v2 .dy-founder-invite-choice>select{width:100%;max-width:100%;min-width:0;height:46px;padding:9px 12px;font:inherit;font-size:14px;color:#142b4a;border:1px solid #cbd5e1;border-radius:11px;background:#fff;box-sizing:border-box;text-overflow:ellipsis}
+.dy-admin-v2 .dy-founder-save-link{appearance:none;border:0;background:transparent;box-shadow:none;color:#0b3a82;padding:4px 0;font:inherit;font-size:12px;font-weight:750;text-decoration:underline;text-underline-offset:3px;text-align:left;cursor:pointer;justify-self:start}
+.dy-admin-v2 .dy-founder-save-link:hover{color:#087f77}
+.dy-admin-v2 .dy-founder-compact-form{display:grid;gap:11px;margin:0}
+.dy-admin-v2 .dy-founder-manual-inputs{display:grid;gap:9px;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}
+.dy-admin-v2 .dy-founder-manual-inputs[hidden],.dy-admin-v2 .dy-founder-selected-summary[hidden]{display:none!important}
+.dy-admin-v2 .dy-founder-manual-inputs .field{display:grid;gap:4px;margin:0;min-width:0}
+.dy-admin-v2 .dy-founder-manual-inputs .field label{font-size:12px;font-weight:800}
+.dy-admin-v2 .dy-founder-manual-inputs .field input{height:45px;min-width:0;width:100%;margin:0;padding:10px 12px;border-radius:11px;font-size:14px;box-sizing:border-box}
+.dy-admin-v2 .dy-founder-compact-form button[type="submit"]{width:100%;min-height:46px;margin:0;padding:10px 14px;border-radius:12px}
+.dy-admin-v2 .dy-founder-selected-summary{display:flex;align-items:center;justify-content:space-between;gap:11px;padding:9px 12px;background:#f0faf8;border:1px solid #ccebe3;border-radius:12px}
+.dy-admin-v2 .dy-founder-selected-summary>div{min-width:0;display:grid;gap:2px}
+.dy-admin-v2 .dy-founder-selected-summary strong{font-size:14px;overflow-wrap:anywhere}
+.dy-admin-v2 .dy-founder-selected-summary span{font-size:12px;color:#546a7c;overflow-wrap:anywhere}
+.dy-admin-v2 .dy-founder-selected-summary .dy-founder-save-link{flex:none}
+.dy-admin-v2 .dy-founder-invite-history{margin:14px 0 0;border-top:1px solid #e2e8f0;padding-top:10px;min-width:0}
+.dy-admin-v2 .dy-founder-invite-history summary{cursor:pointer;font-size:13px;font-weight:750;color:#0b3a82;padding:6px 0}
+.dy-admin-v2 .dy-founder-contact-form{margin:8px 0 12px;padding:12px}
+@media(max-width:680px){.dy-admin-v2 .dy-founder-manual-inputs{grid-template-columns:minmax(0,1fr)}.dy-admin-v2 .dy-founder-selected-summary{flex-wrap:wrap;gap:5px}}
