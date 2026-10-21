@@ -41,7 +41,6 @@
       '<div class="dy-joined-gradient" aria-hidden="true"></div>'+
       '<div class="dy-joined-content">'+
       '<span class="dy-joined-eyebrow">✦ ¡BIENVENIDOS A DATOYA!</span>'+
-      '<div class="dy-joined-brand" aria-hidden="true">'+first+'</div>'+
       '<p class="dy-joined-lead">Un nuevo negocio se ha unido</p>'+
       '<h2>'+esc(b.name)+'</h2>'+
       '<div class="dy-joined-meta"><span>'+esc(b.category||'Negocio local')+'</span>'+location+'</div>'+
