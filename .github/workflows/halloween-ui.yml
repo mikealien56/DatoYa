@@ -1,0 +1,29 @@
+name: DatoYa Halloween visual
+
+on:
+  pull_request:
+    paths:
+      - 'seasonal_halloween*'
+      - 'test_halloween_logo.js'
+      - 'test_seasonal_halloween.js'
+      - '.github/workflows/halloween-ui.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'seasonal_halloween*'
+      - 'test_halloween_logo.js'
+      - 'test_seasonal_halloween.js'
+      - '.github/workflows/halloween-ui.yml'
+
+jobs:
+  halloween-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Comprobar tema de Halloween
+        run: |
+          node --check seasonal_halloween_ui.js
+          node --test test_halloween_logo.js test_seasonal_halloween.js
