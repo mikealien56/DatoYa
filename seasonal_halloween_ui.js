@@ -12,11 +12,17 @@
     const values = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type, Number(x.value)]));
     return values.year === SEASON_YEAR && values.month === 10 && values.day >= 1 && values.day <= 31;
   }
+  const originalHomeText = {
+    '.dy-hero .dy-kicker':'📍 Lo que buscas, cerca de ti',
+    '.dy-hero h1':'Encuentra lo que buscas <span>cerca de ti</span>',
+    '.dy-hero-copy > p':'Descubre negocios, productos y ofertas cerca de ti.'
+  };
   function replaceOnlyIfHome(selector, html) {
     const node = document.querySelector('.dy-home ' + selector);
     if (!node) return;
     if (!node.hasAttribute('data-dy-season-original')) {
-      node.setAttribute('data-dy-season-original', node.innerHTML);
+      const base=node.innerHTML===html&&originalHomeText[selector]!==undefined?originalHomeText[selector]:node.innerHTML;
+      node.setAttribute('data-dy-season-original',base);
     }
     if (node.innerHTML !== html) node.innerHTML = html;
   }
@@ -87,6 +93,20 @@
   }
   window.__datoyaSeasonalTheme = { isActiveAt, sync };
   sync();
+  // Proteger el contenido de temporada de modificaciones tardías de módulos del Home.
+  const homeView=document.getElementById('view');
+  if(homeView&&typeof MutationObserver!=='undefined'){
+    const observer=new MutationObserver(()=>{
+      if(!document.documentElement.classList.contains(ROOT_CLASS))return;
+      const title=homeView.querySelector('.dy-home .dy-hero h1');
+      const kicker=homeView.querySelector('.dy-home .dy-hero .dy-kicker');
+      const copy=homeView.querySelector('.dy-home .dy-hero-copy > p');
+      if(title&&(title.innerHTML!=='Halloween llegó <span>a DatoYa 🎃</span>'||
+          kicker?.textContent!=='🎃 EDICIÓN HALLOWEEN · OCTUBRE 2026'||
+          copy?.textContent!=='Descubre negocios y productos escalofriantemente cerca de ti.'))sync();
+    });
+    observer.observe(homeView,{childList:true,subtree:true});
+  }
   window.addEventListener('datoya:market-home-rendered', sync);
   window.addEventListener('hashchange', () => { if (document.documentElement.classList.contains(ROOT_CLASS)) setTimeout(() => { decorateHome(); decorateLogos(); }, 0); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
