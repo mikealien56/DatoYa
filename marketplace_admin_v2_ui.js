@@ -319,11 +319,12 @@
           api('/admin/marketplace-v2/invite-contacts').catch(()=>({contacts:[]})),
           api('/admin/marketplace-v2/businesses').catch(()=>({businesses:[]}))
         ]);
+        const registeredNames=new Set(registered.map(x=>String(x.name||'').trim().toLocaleLowerCase('es')));
+        const registeredEmails=new Set(registered.map(x=>String(x.owner_email||'').trim().toLowerCase()).filter(Boolean));
         const choices=[
           ...contacts.map(x=>({name:x.business_name,email:x.email||'',source:'Mi lista'})),
-          ...invites.filter(x=>x.invitee_business_name&&x.invitee_email).map(x=>({name:x.invitee_business_name,email:x.invitee_email,source:'Invitación anterior'})),
-          ...registered.filter(x=>!['suspended','rejected'].includes(x.status)).map(x=>({name:x.name,email:x.owner_email||'',source:'Registrado en DatoYa'}))
-        ].filter(x=>x.name);
+          ...invites.filter(x=>x.invitee_business_name&&x.invitee_email).map(x=>({name:x.invitee_business_name,email:x.invitee_email,source:'Invitación anterior'}))
+        ].filter(x=>x.name&&!registeredNames.has(String(x.name).trim().toLocaleLowerCase('es'))&&!registeredEmails.has(String(x.email||'').trim().toLowerCase()));
         const founderRegistered=registered.filter(b=>Number(b.founder_business||0)===1);
         const founderCandidates=registered.filter(b=>b.status==='active'&&Number(b.founder_business||0)!==1).sort((a,b)=>String(a.name).localeCompare(String(b.name),'es'));
         shell('Fundadores y crecimiento','Reconoce negocios existentes sin repetir su inscripción, invita nuevos y configura beneficios.',`
@@ -347,8 +348,8 @@
           </div>
           <div class="dy-admin-grid2">
             <section class="card">
-              <span class="small muted">INVITACIONES</span><h3>Invitar un Negocio Fundador</h3>
-              <p class="small muted dy-founder-invite-note">Elige un negocio conocido o escribe uno nuevo. Cada invitación es personal y de un solo uso.</p>
+              <span class="small muted">NEGOCIOS NUEVOS</span><h3>Invitar un negocio que todavía no está registrado</h3>
+              <p class="small muted dy-founder-invite-note">Esta opción es solo para negocios sin cuenta. Los que ya están registrados se activan directamente en el formulario superior.</p>
               <div class="dy-founder-invite-choice">
                 <label for="dy-founder-select-saved">Negocio</label>
                 <select id="dy-founder-select-saved" aria-label="Seleccionar negocio conocido o uno nuevo"><option value="new">+ Nuevo negocio</option>${choices.map((x,i)=>`<option value="${i}">${h(x.name)}${x.email?' · '+h(x.email):''} (${h(x.source)})</option>`).join('')}</select>
@@ -452,6 +453,8 @@
           e.preventDefault();
           const form=e.currentTarget,btn=form.querySelector('button[type="submit"]');
           const business_name=form.elements.namedItem('business_name').value.trim(),email=form.elements.namedItem('email').value.trim();
+          const existing=registered.find(b=>String(b.owner_email||'').trim().toLowerCase()===email.toLowerCase()||String(b.name||'').trim().toLocaleLowerCase('es')===business_name.toLocaleLowerCase('es'));
+          if(existing){toast?.('Este negocio ya tiene cuenta. Asígnale Fundador desde la sección de arriba, sin invitarlo nuevamente.','err');return;}
           btn.disabled=true;
           try{
             const r=await api('/admin/marketplace-v2/founder-invites',{method:'POST',body:{business_name,email}});
