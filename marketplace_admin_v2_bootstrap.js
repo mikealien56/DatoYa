@@ -156,18 +156,23 @@ app.post('/api/admin/marketplace-v2/founders/assign-existing',auth,requireRole('
   if(!business)return res.status(404).json({error:'Negocio no encontrado'});
   if(business.status!=='active')return res.status(409).json({error:'Primero aprueba el negocio para activarlo como Fundador'});
   if(Number(business.founder_business||0)===1)return res.json({ok:true,already_founder:true,business_name:business.name,days_granted:0});
-  const days=Math.min(365,Math.max(0,Math.trunc(Number(getSetting('founder_impulso_days','30'))||0)));
-  const now=new Date().toISOString();
+  const configuredDays=Math.min(365,Math.max(0,Math.trunc(Number(getSetting('founder_impulso_days','30'))||0)));
+  const now=new Date().toISOString(),rewardRef='founder-existing-'+id;
+  let daysGranted=0;
   try{
     db.transaction(()=>{
-      // La bandera hace idempotente la asignación; un segundo clic no vuelve a regalar días.
+      // Comprobar sello y recompensa previa para evitar regalar dos veces al reactivar.
       const current=db.prepare('SELECT founder_business FROM businesses WHERE id=?').get(id);
       if(Number(current?.founder_business||0)===1)return;
+      const priorGift=db.prepare('SELECT id FROM business_impulse_memberships WHERE business_id=? AND payment_reference=? LIMIT 1').get(id,rewardRef);
       db.prepare("UPDATE businesses SET founder_business=1,founder_since=COALESCE(founder_since,?),updated_at=? WHERE id=?").run(now,now,id);
-      if(days>0)__dyAddImpulseDays(id,days,'gift',req.user.id,0,'gift','founder-existing-'+id);
+      if(configuredDays>0&&!priorGift){
+        __dyAddImpulseDays(id,configuredDays,'gift',req.user.id,0,'gift',rewardRef);
+        daysGranted=configuredDays;
+      }
     })();
-    notify(business.owner_user_id,'negocio','🏅 Tu negocio fue reconocido como Fundador de DatoYa'+(days>0?' y recibió '+days+' días de Impulso.':'.'),'#/mi-negocio/'+id);
-    res.json({ok:true,business_name:business.name,founder_business:true,days_granted:days});
+    notify(business.owner_user_id,'negocio','🏅 Tu negocio fue reconocido como Fundador de DatoYa'+(daysGranted>0?' y recibió '+daysGranted+' días de Impulso.':'.'),'#/mi-negocio/'+id);
+    res.json({ok:true,business_name:business.name,founder_business:true,days_granted:daysGranted});
   }catch(error){console.error('[DatoYa] Error al asignar Fundador:',error.message);res.status(500).json({error:'No fue posible asignar Fundador al negocio'});}
 });
 
