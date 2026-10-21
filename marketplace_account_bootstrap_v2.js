@@ -170,7 +170,7 @@ app.post('/api/businesses',auth,(req,res)=>{
   const hoursSchedule=__marketNormalizeHours(body.hours_schedule),hoursSummary=__marketHoursSummary(hoursSchedule),acceptClosed=!!body.accept_orders_when_closed;
   const slug=__marketSlug(name)+'-'+crypto.randomBytes(3).toString('hex');
   const tx=db.transaction(()=>{
-    db.prepare("INSERT INTO businesses(owner_user_id,name,slug,description,business_type,comuna_id,province_id,latitude,longitude,location_accuracy,location_source,sector,address,public_address_mode,phone,whatsapp,opening_hours,hours_schedule,accept_orders_when_closed,pickup_enabled,delivery_enabled,status,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_review',datetime('now'))").run(
+    db.prepare("INSERT INTO businesses(owner_user_id,name,slug,description,business_type,comuna_id,province_id,latitude,longitude,location_accuracy,location_source,sector,address,public_address_mode,phone,whatsapp,opening_hours,hours_schedule,accept_orders_when_closed,pickup_enabled,delivery_enabled,status,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'draft',datetime('now'))").run(
       req.user.id,name,slug,description,businessType,comunaId,null,hasCoords?lat:null,hasCoords?lng:null,Number.isFinite(accuracy)?accuracy:null,locationSource,
       String(body.sector||'').trim().slice(0,120)||null,address||null,publicMode,
       String(body.phone||'').trim().slice(0,40)||null,String(body.whatsapp||'').trim().slice(0,40)||null,hoursSummary,JSON.stringify(hoursSchedule),acceptClosed?1:0,
@@ -179,13 +179,11 @@ app.post('/api/businesses',auth,(req,res)=>{
     const id=Number(created&&created.id);
     if(!id)throw new Error('No se pudo identificar el negocio creado');
     for(let i=0;i<categoryIds.length;i++)db.prepare('INSERT INTO business_category_links(business_id,category_id,is_primary) VALUES(?,?,?)').run(id,categoryIds[i],i===0?1:0);
-    notify(req.user.id,'negocio','Recibimos el registro de '+name+'. Lo revisaremos antes de publicarlo.','#/perfil');
+    notify(req.user.id,'negocio','Tu negocio '+name+' quedó en borrador. Sube la portada y conecta Mercado Pago antes de enviarlo a revisión.','#/mi-negocio/'+id);
     return id;
   });
   const id=tx();
-  db.prepare("INSERT INTO business_review_email_outbox(business_id,status) VALUES(?,'pending') ON CONFLICT(business_id) DO NOTHING").run(id);
-  for(const admin of db.prepare("SELECT id FROM users WHERE role='admin' AND is_active=1").all())notify(admin.id,'negocio','Nuevo negocio pendiente de revisión: '+name,'#/admin/revisar-negocio/'+id);
-  __dySendBusinessReviewEmail(id).catch(err=>console.error('[DatoYa][Business review email] '+err.message));
+  // Solo un borrador: avisar a administración después de completar las dos condiciones obligatorias.
   const business=db.prepare('SELECT b.*,c.name AS comuna,r.name AS region FROM businesses b LEFT JOIN comunas c ON c.id=b.comuna_id LEFT JOIN regions r ON r.id=c.region_id WHERE b.id=?').get(id);
   res.json({ok:true,business:__marketBusinessRow(business)});
 });
