@@ -13,11 +13,23 @@ ID="$(curl -fsS -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BA
 curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c 'import json,sys;assert json.load(sys.stdin)["business"] is None'
 curl -fsS -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/$ID/activate" -d '{}' >/dev/null
 curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c "import json,sys;d=json.load(sys.stdin);assert int(d['business']['id'])==$BIZ;assert len(d['businesses'])==1;assert d['max_per_comuna']==5"
-SECOND="$(curl -fsS -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/gift" -d "{\"business_id\":$BIZ}" | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')"
-code="$(curl -s -o "$TMP/clash" -w '%{http_code}' -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/$SECOND/activate" -d '{}')"
+code="$(curl -s -o "$TMP/duplicate" -w '%{http_code}' -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/gift" -d "{\"business_id\":$BIZ}")"
 [ "$code" = 409 ] || { echo 'Duplicate featured business was accepted'; exit 1; }
-node - "$ID" <<'NODE'
-const db=require('./db').db,id=Number(process.argv[2]);db.prepare('UPDATE featured_business_placements SET ends_at=? WHERE id=?').run(new Date(Date.now()-1000).toISOString(),id);
+OTHER="$(node - "$BIZ" "$ZONE" <<'NODE'
+const db=require('./db').db,existing=Number(process.argv[2]),zone=Number(process.argv[3]);
+const row=db.prepare("SELECT id FROM businesses WHERE status='active' AND comuna_id=? AND id<>? LIMIT 1").get(zone,existing);
+if(row)process.stdout.write(String(row.id));
+NODE
+)"
+OTHER_ID=0
+if [ -n "$OTHER" ]; then
+  OTHER_ID="$(curl -fsS -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/gift" -d "{\"business_id\":$OTHER}" | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')"
+  curl -fsS -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/$OTHER_ID/activate" -d '{}' >/dev/null
+  curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c "import json,sys;d=json.load(sys.stdin);assert len(d['businesses'])==2;assert {int(x['id']) for x in d['businesses']}=={$BIZ,$OTHER}"
+fi
+node - "$ID" "$OTHER_ID" <<'NODE'
+const db=require('./db').db;
+for(const raw of process.argv.slice(2)){const id=Number(raw);if(id>0)db.prepare('UPDATE featured_business_placements SET ends_at=? WHERE id=?').run(new Date(Date.now()-1000).toISOString(),id);}
 NODE
 curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c 'import json,sys;assert json.load(sys.stdin)["business"] is None'
 echo 'Featured business flow OK: auth, review, max five per zone, one slot per business, expiry'
