@@ -254,7 +254,17 @@
 .dy-featured-week-grid .dy-featured-week-card p{font-size:13px;color:#52617a;margin:2px 0 13px}
 .dy-featured-week-content .btn{margin-top:auto}
 @media(max-width:640px){
-  .dy-featured-week-grid{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding:2px 2px 12px;scrollbar-width:thin}
-  .dy-featured-week-grid .dy-featured-week-card{flex:0 0 min(84vw,310px);scroll-snap-align:start;height:auto}
-  .dy-featured-week-grid .dy-featured-week-photo{height:160px}
+  /* Mostrar todos los destacados a simple vista, sin tarjetas ocultas fuera de la pantalla. */
+  .dy-featured-week-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;overflow:visible;padding:0;scroll-snap-type:none}
+  .dy-featured-week-grid .dy-featured-week-card{display:flex;flex-direction:column;min-width:0;width:100%;height:auto;padding:8px;scroll-snap-align:none}
+  .dy-featured-week-grid .dy-featured-week-photo{height:115px}
+  .dy-featured-week-grid .dy-featured-week-card h3{font-size:15px;line-height:1.24;margin:7px 0 3px}
+  .dy-featured-week-grid .dy-featured-week-card p{font-size:12px;line-height:1.3}
+  .dy-featured-week-grid .dy-featured-week-content{padding:8px 1px 2px}
+  .dy-featured-week-grid .dy-featured-week-label{font-size:10px;line-height:1.2}
+  .dy-featured-week-grid .dy-featured-week-content .btn{font-size:12px;padding:9px 10px;max-width:100%;white-space:normal}
+}
+@media(max-width:340px){
+  .dy-featured-week-grid{grid-template-columns:1fr}
+  .dy-featured-week-grid .dy-featured-week-photo{height:150px}
 }
