@@ -22,6 +22,7 @@ const file=path.join(__dirname,'server.js');
 let source=fs.readFileSync(file,'utf8');
 if(!source.includes('DATOYA FEATURED BUSINESS V1')){
   const code=`// ============ DATOYA FEATURED BUSINESS V1 ============
+const MAX_FEATURED_PER_COMUNA=5;
 function __dyFeaturedRefresh(){const now=new Date().toISOString();db.prepare("UPDATE featured_business_placements SET status='ended',updated_at=? WHERE status='active' AND ends_at<=?").run(now,now);}
 function __dyFeaturedPrice(){const n=Number(getSetting('featured_business_weekly_price','4990'));return Number.isInteger(n)&&n>=1000&&n<=100000?n:4990;}
 async function __dyFeaturedSync(row){
@@ -38,9 +39,9 @@ async function __dyFeaturedSync(row){
 }
 app.get('/api/featured-business/active',(req,res)=>{
   __dyFeaturedRefresh();const zone=Number(req.query.comuna_id||0),now=new Date().toISOString();
-  if(!Number.isSafeInteger(zone)||zone<1)return res.json({business:null});
-  const row=db.prepare("SELECT b.id,b.name,b.description,b.slug,b.comuna_id,b.business_type,b.verified,f.ends_at,f.source FROM featured_business_placements f JOIN businesses b ON b.id=f.business_id WHERE f.comuna_id=? AND b.comuna_id=? AND b.status='active' AND f.status='active' AND f.starts_at<=? AND f.ends_at>? ORDER BY f.starts_at DESC,f.id DESC LIMIT 1").get(zone,zone,now,now);
-  res.json({business:row||null});
+  if(!Number.isSafeInteger(zone)||zone<1)return res.json({business:null,businesses:[],max_per_comuna:MAX_FEATURED_PER_COMUNA});
+  const rows=db.prepare("SELECT b.id,b.name,b.description,b.slug,b.comuna_id,b.business_type,b.verified,c.name AS comuna,f.ends_at,f.source FROM featured_business_placements f JOIN businesses b ON b.id=f.business_id LEFT JOIN comunas c ON c.id=b.comuna_id WHERE f.comuna_id=? AND b.comuna_id=? AND b.status='active' AND f.status='active' AND f.starts_at<=? AND f.ends_at>? ORDER BY f.starts_at DESC,f.id DESC LIMIT 5").all(zone,zone,now,now);
+  res.json({business:rows[0]||null,businesses:rows,max_per_comuna:MAX_FEATURED_PER_COMUNA});
 });
 app.get('/api/businesses/:id/featured-week/status',auth,(req,res)=>{
   const b=__dyOwnBusiness(req.user.id,Number(req.params.id));if(!b)return res.status(403).json({error:'Negocio no autorizado'});
@@ -71,7 +72,7 @@ app.post('/api/businesses/:id/featured-week/sync',auth,async(req,res)=>{try{
 }catch(e){res.status(e.status||500).json({error:'No se pudo confirmar el pago'});}});
 app.get('/api/admin/featured-business',auth,requireRole('admin'),(req,res)=>{
   __dyFeaturedRefresh();const rows=db.prepare('SELECT f.*,b.name AS business_name,b.status AS business_status,c.name AS comuna FROM featured_business_placements f JOIN businesses b ON b.id=f.business_id LEFT JOIN comunas c ON c.id=f.comuna_id ORDER BY f.id DESC LIMIT 100').all();
-  res.json({price:__dyFeaturedPrice(),placements:rows});
+  res.json({price:__dyFeaturedPrice(),placements:rows,max_per_comuna:MAX_FEATURED_PER_COMUNA});
 });
 app.put('/api/admin/featured-business/price',auth,requireRole('admin'),(req,res)=>{
   const n=Number(req.body?.price);if(!Number.isInteger(n)||n<1000||n>100000)return res.status(400).json({error:'Precio inválido'});
@@ -80,16 +81,22 @@ app.put('/api/admin/featured-business/price',auth,requireRole('admin'),(req,res)
 app.post('/api/admin/featured-business/gift',auth,requireRole('admin'),(req,res)=>{
   const b=db.prepare("SELECT * FROM businesses WHERE id=? AND status='active'").get(Number(req.body?.business_id));
   if(!b)return res.status(404).json({error:'Negocio activo no encontrado'});
+  __dyFeaturedRefresh();
+  const pending=db.prepare("SELECT id FROM featured_business_placements WHERE business_id=? AND status IN ('pending_payment','paid_pending_review','active') LIMIT 1").get(b.id);
+  if(pending)return res.status(409).json({error:'Este negocio ya tiene un destacado en curso'});
   const now=new Date().toISOString(),result=db.prepare("INSERT INTO featured_business_placements(business_id,comuna_id,amount,source,status,created_at,updated_at) VALUES(?,?,0,'gifted','paid_pending_review',?,?)").run(b.id,b.comuna_id,now,now);
   res.json({id:Number(result.lastInsertRowid)});
 });
 app.post('/api/admin/featured-business/:id/activate',auth,requireRole('admin'),(req,res)=>{
+  __dyFeaturedRefresh();
   const row=db.prepare('SELECT f.*,b.status AS business_status,b.comuna_id AS current_comuna FROM featured_business_placements f JOIN businesses b ON b.id=f.business_id WHERE f.id=?').get(Number(req.params.id));
   if(!row||row.status!=='paid_pending_review'||row.business_status!=='active'||Number(row.comuna_id)!==Number(row.current_comuna))return res.status(409).json({error:'Solicitud no aprobada o negocio no disponible'});
   const start=new Date(),end=new Date(start.getTime()+7*86400000),now=start.toISOString(),until=end.toISOString();
   const apply=db.transaction(()=>{
-    const clash=db.prepare("SELECT id FROM featured_business_placements WHERE comuna_id=? AND status='active' AND starts_at<? AND ends_at>? LIMIT 1").get(row.comuna_id,until,now);
-    if(clash)throw new Error('Ya existe un destacado activo en esta comuna');
+    const duplicate=db.prepare("SELECT id FROM featured_business_placements WHERE business_id=? AND status='active' AND starts_at<? AND ends_at>? LIMIT 1").get(row.business_id,until,now);
+    if(duplicate)throw new Error('Este negocio ya está destacado');
+    const occupied=db.prepare("SELECT COUNT(*) AS total FROM featured_business_placements WHERE comuna_id=? AND status='active' AND starts_at<? AND ends_at>?").get(row.comuna_id,until,now);
+    if(Number(occupied.total)>=MAX_FEATURED_PER_COMUNA)throw new Error('Ya hay cinco negocios destacados activos en esta comuna');
     db.prepare("UPDATE featured_business_placements SET status='active',starts_at=?,ends_at=?,updated_at=? WHERE id=? AND status='paid_pending_review'").run(now,until,now,row.id);
   });
   try{apply();res.json({ok:true,ends_at:until});}catch(e){res.status(409).json({error:e.message});}

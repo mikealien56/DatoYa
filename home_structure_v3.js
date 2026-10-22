@@ -132,7 +132,7 @@
       const p=categories.querySelector('.dy-section-head p');if(p)p.textContent='Empieza por una categoría o usa el buscador de arriba.';
     }
     if(featured){
-      const h2=featured.querySelector('h2');if(h2)h2.textContent='Negocio destacado';
+      const h2=featured.querySelector('h2');if(h2)h2.textContent='Negocios destacados';
     }
 
     if(!document.getElementById('dy-home-v3-final')){

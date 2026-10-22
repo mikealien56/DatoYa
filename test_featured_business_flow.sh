@@ -12,12 +12,12 @@ curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c 'imp
 ID="$(curl -fsS -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/gift" -d "{\"business_id\":$BIZ}" | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')"
 curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c 'import json,sys;assert json.load(sys.stdin)["business"] is None'
 curl -fsS -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/$ID/activate" -d '{}' >/dev/null
-curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c "import json,sys;assert int(json.load(sys.stdin)['business']['id'])==$BIZ"
+curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c "import json,sys;d=json.load(sys.stdin);assert int(d['business']['id'])==$BIZ;assert len(d['businesses'])==1;assert d['max_per_comuna']==5"
 SECOND="$(curl -fsS -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/gift" -d "{\"business_id\":$BIZ}" | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')"
 code="$(curl -s -o "$TMP/clash" -w '%{http_code}' -b "$TMP/admin" -H 'Content-Type: application/json' -X POST "$BASE/api/admin/featured-business/$SECOND/activate" -d '{}')"
-[ "$code" = 409 ] || { echo 'Featured slot overlap was accepted'; exit 1; }
+[ "$code" = 409 ] || { echo 'Duplicate featured business was accepted'; exit 1; }
 node - "$ID" <<'NODE'
 const db=require('./db').db,id=Number(process.argv[2]);db.prepare('UPDATE featured_business_placements SET ends_at=? WHERE id=?').run(new Date(Date.now()-1000).toISOString(),id);
 NODE
 curl -fsS "$BASE/api/featured-business/active?comuna_id=$ZONE" | python3 -c 'import json,sys;assert json.load(sys.stdin)["business"] is None'
-echo 'Featured business flow OK: auth, review, one slot per zone, expiry'
+echo 'Featured business flow OK: auth, review, max five per zone, one slot per business, expiry'

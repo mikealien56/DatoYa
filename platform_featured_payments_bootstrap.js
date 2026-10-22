@@ -107,8 +107,8 @@ function mount(app,auth,verifyEmail,db,notify){
   }
   const existing=db.prepare("SELECT id FROM featured_business_placements WHERE business_id=? AND status IN ('pending_payment','paid_pending_review','active') ORDER BY id DESC LIMIT 1").get(b.id);
   if(existing)return error(res,'Ya existe un destacado en curso para este negocio');
-  const zone=db.prepare("SELECT id FROM featured_business_placements WHERE comuna_id=? AND status='active' AND ends_at>? LIMIT 1").get(b.comuna_id,new Date().toISOString());
-  if(zone)return error(res,'Ya existe un destacado activo en esta comuna');
+  const zone=db.prepare("SELECT COUNT(*) AS total FROM featured_business_placements WHERE comuna_id=? AND status='active' AND ends_at>?").get(b.comuna_id,new Date().toISOString());
+  if(Number(zone.total)>=5)return error(res,'Los cinco espacios destacados de esta comuna están ocupados');
   const price=Number(db.prepare("SELECT value FROM settings WHERE key='featured_business_weekly_price'").get()?.value||4990);
   if(!Number.isSafeInteger(price)||price<1000||price>100000)return error(res,'El precio del destacado debe revisarse',503);
   const reference=mp.reference(),now=new Date().toISOString();

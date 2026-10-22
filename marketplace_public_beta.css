@@ -243,3 +243,18 @@
     right:9px!important;
   }
 }
+
+
+/* Varios negocios destacados: cuadrícula adaptable y desplazamiento táctil. */
+.dy-featured-week-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px;align-items:stretch}
+.dy-featured-week-grid .dy-featured-week-card{display:flex;flex-direction:column;align-items:stretch;min-width:0;gap:0;padding:10px;height:100%}
+.dy-featured-week-grid .dy-featured-week-photo{height:150px;width:100%;flex-shrink:0}
+.dy-featured-week-content{display:flex;flex-direction:column;align-items:flex-start;flex:1;padding:10px 3px 3px}
+.dy-featured-week-grid .dy-featured-week-card h3{font-size:19px;line-height:1.25;overflow-wrap:anywhere}
+.dy-featured-week-grid .dy-featured-week-card p{font-size:13px;color:#52617a;margin:2px 0 13px}
+.dy-featured-week-content .btn{margin-top:auto}
+@media(max-width:640px){
+  .dy-featured-week-grid{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding:2px 2px 12px;scrollbar-width:thin}
+  .dy-featured-week-grid .dy-featured-week-card{flex:0 0 min(84vw,310px);scroll-snap-align:start;height:auto}
+  .dy-featured-week-grid .dy-featured-week-photo{height:160px}
+}
