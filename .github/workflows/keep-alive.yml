@@ -2,28 +2,40 @@ name: DatoYa - comprobacion de disponibilidad
 
 on:
   schedule:
-    # Cada 13 minutos aproximadamente (el planificador de GitHub puede retrasarse).
-    - cron: '*/13 * * * *'
+    # Cada 5 minutos, evitando el inicio de cada hora.
+    # GitHub Actions puede retrasar o saltarse ejecuciones.
+    - cron: '2-57/5 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: datoya-keep-alive
+  cancel-in-progress: false
+
 jobs:
   comprobar:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - name: Comprobar que el servidor web responde
         shell: bash
         run: |
           set -euo pipefail
           url="https://datoya.onrender.com/"
-          http_code="$(curl --silent --show-error --location \
-            --connect-timeout 15 --max-time 100 \
-            --output /dev/null --write-out '%{http_code}' "$url")"
-          echo "DatoYa HTTP $http_code"
-          if [[ ! "$http_code" =~ ^(2|3)[0-9]{2}$ ]]; then
-            echo "DatoYa no respondio correctamente."
-            exit 1
-          fi
+          for intento in 1 2 3; do
+            codigo="$(curl --silent --show-error --location \
+              --connect-timeout 15 --max-time 90 \
+              --header 'Cache-Control: no-cache' \
+              --output /dev/null --write-out '%{http_code}' "$url")" || codigo="000"
+            echo "DatoYa HTTP $codigo, intento $intento"
+            if [[ "$codigo" =~ ^(2|3)[0-9]{2}$ ]]; then
+              exit 0
+            fi
+            if (( intento < 3 )); then
+              sleep 10
+            fi
+          done
+          echo "DatoYa no respondio correctamente tras 3 intentos."
+          exit 1
