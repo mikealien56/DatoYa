@@ -56,10 +56,10 @@ register_account "$BUSINESS_JAR" "$BUSINESS_EMAIL" "business" "Encargado QA"
 verify_account "$BUSINESS_JAR"
 curl -fsS -b "$BUSINESS_JAR" "$BASE/api/businesses/mine" | python3 -c 'import sys,json; assert json.load(sys.stdin).get("businesses")==[]'
 
-echo "4/12 Negocio nuevo queda pendiente de revisión"
+echo "4/12 Negocio nuevo queda en borrador hasta completar requisitos de revisión"
 BIZ_JSON="$(curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" \
   -d "{\"name\":\"$BUSINESS_NAME\",\"description\":\"Negocio de prueba E2E para beta\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"sector\":\"Sector QA\",\"address\":\"Dirección QA 123\",\"public_address_mode\":\"approximate\",\"phone\":\"+56922223333\",\"whatsapp\":\"+56922223333\",\"pickup_enabled\":true,\"delivery_enabled\":false}")"
-BIZ_ID="$(printf '%s' "$BIZ_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["business"]["status"]=="pending_review"; print(d["business"]["id"])')"
+BIZ_ID="$(printf '%s' "$BIZ_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["business"]["status"] in ("draft","pending_review"); print(d["business"]["id"])')"
 curl -fsS "$BASE/api/market/businesses?q=$BUSINESS_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); assert not any(int(x['id'])==int('$BIZ_ID') for x in d.get('businesses',[]))"
 
 echo "5/12 Admin aprueba el negocio"
