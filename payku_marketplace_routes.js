@@ -17,7 +17,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
       status:s?s.status:'not_registered',bank_last4:s&&s.bank_last4||null,
       bank_code:s&&s.bank_code||null,sandbox:c.sandbox,enabled:c.enabled,
       credentials_configured:c.credentials,approval_configured:c.approved,
-      datoya_commission_pct:0,customer_service_fee_percent:2,payku_mall_enabled:c.mall_enabled};
+      datoya_commission_pct:0,customer_service_fee_percent:require('./datoya_service_fee').RATE_PERCENT,payku_mall_enabled:c.mall_enabled};
   }
   function failure(err,res){
     const status=err&&[400,401,403,404,409,503,504].includes(Number(err.status))?Number(err.status):502;
@@ -51,7 +51,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
   app.get('/api/payku/marketplace/config',auth,(req,res)=>{
     const c=cfg();res.json({provider:'payku_mall',enabled:c.mall_enabled,sandbox:c.sandbox,
       approval_configured:c.approved,mall_split_approved:c.mall_enabled,
-      customer_service_fee_percent:2,merchant_commission_percent:0});
+      customer_service_fee_percent:require('./datoya_service_fee').RATE_PERCENT,merchant_commission_percent:0});
   });
   app.get('/api/payku/marketplace/banks',auth,async(req,res)=>{
     try{
@@ -122,9 +122,9 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
     if(o.status==='cancelled'||o.payment_status!=='pending')return res.status(409).json({error:'Este pedido no está pendiente de pago'});
     if(db.prepare('SELECT order_id FROM mp_split_attempts WHERE order_id=?').get(o.id))return res.status(409).json({error:'Este pedido ya tiene un intento con Mercado Pago. Revisa su resultado antes de cambiar de proveedor.'});
     const c=cfg(),s=seller(o.business_id);
-    if(!c.mall_enabled||!s||!(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review')))return res.status(503).json({error:'El cobro del 2% aún no está habilitado con Payku Mall para este negocio'});
+    if(!c.mall_enabled||!s||!(s.status==='ready'||(c.sandbox&&s.status==='linked_pending_review')))return res.status(503).json({error:'El cobro de la tarifa de servicio aún no está habilitado con Payku Mall para este negocio'});
     let price;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)});}catch(_){return res.status(400).json({error:'Total de compra inconsistente'});}
-    if(price.service_fee<1)return res.status(400).json({error:'El pedido es demasiado pequeño para un cargo online de 2%. Usa un pago directo.'});
+    if(price.service_fee<1)return res.status(400).json({error:'El pedido es demasiado pequeño para un cargo online de servicio. Usa un pago directo.'});
     const previous=trxFor(o.id);
     if(previous){
       if(previous.status==='pending'&&previous.payment_url)
@@ -166,7 +166,7 @@ module.exports=function mountPaykuMarketplace(app,auth,requireRole,db,notify){
   app.get('/api/admin/payku/marketplace/status',auth,requireRole('admin'),(req,res)=>{
     const c=cfg();
     res.json({provider:'payku_mall',enabled:c.mall_enabled,sandbox:c.sandbox,approved:c.approved,
-      credentials:c.credentials,customer_service_fee_percent:2,
+      credentials:c.credentials,customer_service_fee_percent:require('./datoya_service_fee').RATE_PERCENT,
       sellers:db.prepare('SELECT status,COUNT(*) AS count FROM payku_marketplace_sellers GROUP BY status').all(),
       payments:db.prepare('SELECT status,COUNT(*) AS count FROM payku_marketplace_transactions GROUP BY status').all(),
       confirmed_gross:db.prepare("SELECT COALESCE(SUM(service_fee),0) AS datoya_fee_gross_clp,COALESCE(SUM(business_amount),0) AS business_gross_clp,COALESCE(SUM(amount),0) AS customer_paid_gross_clp FROM payku_marketplace_transactions WHERE status='paid'").get()});
