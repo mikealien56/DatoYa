@@ -62,7 +62,7 @@ if grep -Eqi 'mercadopago|marketplace_payments' current_legal_consent_enforcemen
 grep -q '4% sobre el subtotal de productos' legal_final_ui.js || fail 'Términos de pagos no revelan el cargo DatoYa al comprador'
 grep -q 'Mercado Pago' legal_final_ui.js || fail 'Términos de pagos deben informar proveedor disponible'
 if grep -Eqi 'mercadopago|Mercado Pago' account_security_bootstrap.js; then fail 'Seguridad de cuentas contiene referencias al proveedor de pagos'; fi
-grep -q "2026-09-25-marketplace2" marketplace_legal_version_fix.js || fail 'Versión legal vigente no corresponde al 25-09-2026'
+grep -q "2026-10-23-checkout4" marketplace_legal_version_fix.js || fail 'Versión legal vigente no corresponde al 23-10-2026'
 grep -q "if(req.path==='/khipu/webhook') return next();" account_security_bootstrap.js || fail 'Origin guard no reconoce webhook Khipu'
 # Beta privada: RBAC, propiedad e IDOR deben seguir protegidos en backend.
 grep -Fq "app.get('/api/admin/private-beta',auth,requireRole('admin')" beta_private_features_bootstrap.js || fail 'Admin beta privada no exige rol admin'
