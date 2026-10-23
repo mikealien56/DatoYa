@@ -2,7 +2,7 @@
 // No cambia la fecha histórica de consentimientos ya registrados.
 const fs=require('fs'),path=require('path');
 const file=path.join(__dirname,'server.js');
-const currentVersion='2026-10-21-marketplace3';
+const currentVersion='2026-10-23-checkout4';
 if(fs.existsSync(file)){
   const original=fs.readFileSync(file,'utf8');
   let src=original;
