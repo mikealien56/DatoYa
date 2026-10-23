@@ -18,14 +18,14 @@ test('pilot fails closed unless one precise customer, seller and product are con
  for(const key of ['MP_SPLIT_LIVE_ALLOWED','MP_SPLIT_CHECKOUT_ENABLED','MP_SPLIT_ENABLED'])
   assert.equal(mp.config({...env,[key]:'false'}).checkout,false);
 });
-test('Berlin product 50 pesos yields exactly one peso 2 percent service fee',()=>{
+test('Berlin product 50 pesos yields exactly two pesos 4 percent service fee',()=>{
  const q=quote({subtotal:50,delivery_fee:0,total:50});
- assert.equal(q.service_fee,1);
+ assert.equal(q.service_fee,2);
  assert.equal(q.business_amount,50);
- assert.equal(q.checkout_total,51);
+ assert.equal(q.checkout_total,52);
  const preference=mp.preferenceBody({order_id:42,subtotal:50,delivery_fee:0,total:50,email:'pilot@example.com',site:'https://www.datoya.cl'});
- assert.equal(preference.marketplace_fee,1);
- assert.equal(preference.items.reduce((sum,item)=>sum+item.unit_price,0),51);
+ assert.equal(preference.marketplace_fee,2);
+ assert.equal(preference.items.reduce((sum,item)=>sum+item.unit_price,0),52);
 });
 test('pilot protects order creation, checkout and payment verification on the server',()=>{
  const orders=fs.readFileSync('marketplace_commerce_bootstrap.js','utf8');

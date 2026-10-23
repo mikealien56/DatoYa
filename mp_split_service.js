@@ -30,7 +30,7 @@ function err(message,status=502){const e=new Error(message);e.status=status;retu
 // A merchant may connect while DatoYa reviews its shop. Approval is still mandatory
 // before accepting any real order or payment.
 function canConnectBusiness(status){
-  return ['draft','pending_review','active','paused','rejected'].includes(String(status||''));
+  return ['draft','pending_review','active','paused'].includes(String(status||''));
 }
 // In test mode OAuth can prepare an authentic seller account without enabling charges.
 // Checkout validates the seller's live_mode separately and production remains strict.
@@ -152,7 +152,7 @@ function preferenceBody({order_id,subtotal,delivery_fee,total,email,site}){
   return {external_reference:'DYMP'+order_id,
     items:[{id:'datoya-order-'+order_id,title:'Pedido DatoYa DY'+order_id,
       currency_id:'CLP',quantity:1,unit_price:p.business_amount},
-      {id:'datoya-service-'+order_id,title:'Tarifa de servicio DatoYa (2%)',
+      {id:'datoya-service-'+order_id,title:'Tarifa de servicio DatoYa ('+p.rate_percent+'%)',
       currency_id:'CLP',quantity:1,unit_price:p.service_fee}],
     marketplace_fee:p.service_fee,
     payer:{email:String(email||'')},

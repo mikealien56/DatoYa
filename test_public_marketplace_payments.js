@@ -29,12 +29,12 @@ test('public checkout still checks vendor OAuth and owns correct order',()=>{
 });
 test('checkout amount remains inclusive of service fee, calculated by server',()=>{
  const q=quote({subtotal:3000,delivery_fee:0,total:3000});
- assert.equal(q.service_fee,60);
+ assert.equal(q.service_fee,120);
  assert.equal(q.business_amount,3000);
- assert.equal(q.checkout_total,3060);
+ assert.equal(q.checkout_total,3120);
  const pref=mp.preferenceBody({order_id:154,subtotal:3000,delivery_fee:0,total:3000,email:'buyer@example.com',site:'https://www.datoya.cl'});
- assert.equal(pref.marketplace_fee,60);
- assert.equal(pref.items.reduce((sum,item)=>sum+Number(item.unit_price),0),3060);
+ assert.equal(pref.marketplace_fee,120);
+ assert.equal(pref.items.reduce((sum,item)=>sum+Number(item.unit_price),0),3120);
 });
 test('buyer is taken to verified provider checkout immediately after saving order',()=>{
  assert.match(paymentUI,/const result=await api\('\/orders\/'\+orderId\+'\/mp-split\/checkout'/);

@@ -39,7 +39,7 @@ function harness({ savedGPS = false, withProducts = false } = {}) {
     routes: {}, view, location, api,
     ME: null,
     window: {},
-    document: { querySelectorAll: () => [], getElementById: () => null },
+    document: { querySelectorAll: () => [], getElementById: () => null, addEventListener: () => {} },
     localStorage: { getItem: key => Object.hasOwn(store, key) ? store[key] : null, setItem: (k,v) => {store[k]=v;} },
     sessionStorage: { getItem: () => null, setItem: () => {} },
     URLSearchParams, addEventListener: () => {}, setTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},

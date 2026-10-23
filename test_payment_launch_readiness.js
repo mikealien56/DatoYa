@@ -52,7 +52,7 @@ test('admin response contains no encrypted credential and never claims settlemen
   assert.equal(x.featured_week.checkout_enabled,false);
 });
 test('services can be marked ready only with explicitly enabled production configuration',()=>{
-  const params={platform:{mode:'production',checkout:true}};
+  const params={platform:{mode:'production',checkout:true,publicClubCheckout:true,publicGrowthCheckout:true}};
   const x=assess(params);
   assert.equal(x.club.checkout_enabled,true);
   assert.equal(x.plans.checkout_enabled,true);

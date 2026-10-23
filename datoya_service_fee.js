@@ -1,6 +1,6 @@
 // DatoYa: service fee on online checkout with Mercado Pago; charged to buyer.
 // All calculations use integer CLP values supplied by the SERVER order record.
-const RATE_PERCENT=2;
+const RATE_PERCENT=4;
 function exact(value,label){
   if(!Number.isSafeInteger(value)||value<0||value>999999999)
     throw new RangeError((label||'Monto')+' inválido');

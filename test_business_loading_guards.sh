@@ -20,7 +20,7 @@ grep -q 'DATOYA_CENTRAL_MARKETPLACE_PAYMENTS_20261017' datoya_central_payment_po
 grep -q 'MARKETPLACE_CHECKOUT_NOT_READY' datoya_central_payment_policy_bootstrap.js || fail "No se bloquea compra sin checkout online"
 grep -q "dy-direct-pay-summary" mp_split_ui.js || fail "Mercado Pago ya no aparece primero"
 grep -q "Conecta tu cuenta para recibir pagos online" direct_merchant_payments_ui.js || fail "El panel no indica cómo recibir pagos"
-grep -q "2% sobre el subtotal de productos" legal_final_ui.js || fail "La tarifa del servicio debe quedar explicada en Términos de pagos"
+grep -q "4% sobre el subtotal de productos" legal_final_ui.js || fail "La tarifa del servicio debe quedar explicada en Términos de pagos"
 grep -q "Cargo por servicio en compras online" legal_final_ui.js || fail "Faltan condiciones comerciales para el comprador"
 
 grep -q "planLoading" business_growth_plans_v2_ui.js || fail "Growth Plans V2 no muestra carga explícita"

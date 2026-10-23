@@ -35,7 +35,7 @@ app.get('/api/marketplace/central-payments/status',(req,res)=>{
     "SELECT b.id FROM businesses b JOIN mp_split_sellers s ON s.business_id=b.id WHERE b.id=? AND b.status='active' AND s.verified_at IS NOT NULL").get(id);
   res.json({checkout_enabled:!pilot&&__dyMarketplaceCentralReady(id),pilot_only:pilot,
     merchant_payment_connected:!!connected,
-    provider:'mercadopago',service_fee_percent:2,weekly_price:__dyMarketplaceWeeklyPrice(),
+    provider:'mercadopago',service_fee_percent:require('./datoya_service_fee').RATE_PERCENT,weekly_price:__dyMarketplaceWeeklyPrice(),
     weekly_checkout_enabled:false});
 });
 app.get('/api/marketplace/mp-split-pilot-access',auth,(req,res)=>{

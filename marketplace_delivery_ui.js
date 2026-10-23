@@ -49,22 +49,26 @@
     }catch(_){}
   };
 
+  // Delivery pricing is loaded before the unified Mercado Pago checkout renders.
+  // Do not clone the form: cloning removed its validated payment redirect listener.
   const previousCart=routes.carrito;
   if(previousCart)routes.carrito=async function(){
-    await previousCart.apply(this,arguments);
-    let c;try{c=JSON.parse(localStorage.getItem('datoya_cart_v1')||'null')}catch(_){}
-    if(!c?.business_id)return;
-    const form=document.getElementById('dy-checkout-form');if(!form)return;
+    const result=await previousCart.apply(this,arguments);
+    let cart;
+    try{cart=JSON.parse(localStorage.getItem('datoya_cart_v1')||'null')}catch(_){}
+    const form=document.getElementById('dy-checkout-form');
+    if(!cart?.business_id||!form)return result;
+    form.dataset.deliveryFeeStatus='unavailable';
     try{
-      const {delivery:d}=await api('/market/business/'+Number(c.business_id)+'/delivery');
-      if(!d.enabled)return;
-      const subtotal=(c.items||[]).reduce((s,x)=>s+Number(x.price||0)*Number(x.quantity||0),0);
-      const detail=document.createElement('div');detail.className='dy-delivery-checkout';detail.innerHTML=`<div><span>Subtotal</span><b>${money(subtotal)}</b></div><div id="dy-delivery-fee-row"><span>Despacho</span><b>${money(d.free_from&&subtotal>=d.free_from?0:d.fee)}</b></div><div class="dy-delivery-total"><span>Total estimado</span><strong>${money(subtotal+(d.free_from&&subtotal>=d.free_from?0:d.fee))}</strong></div>${d.min_order&&subtotal<d.min_order?`<p class="dy-delivery-warning">Para despacho faltan ${money(d.min_order-subtotal)} para llegar al mínimo.</p>`:''}${d.free_from&&subtotal<d.free_from?`<p>Agrega ${money(d.free_from-subtotal)} más y el despacho queda gratis.</p>`:''}<p><small>Radio de despacho: hasta ${Number(d.radius_km)} km. Si autorizas ubicación, DatoYa lo valida sin guardar tus coordenadas.</small></p>`;
-      form.insertBefore(detail,form.querySelector('button[type="submit"]'));
-      const old=form.cloneNode(true);form.replaceWith(old);
-      const deliveryAddress=document.getElementById('dy-delivery-address');
-      const toggle=()=>{const isDelivery=old.fulfillment_method.value==='delivery';if(deliveryAddress)deliveryAddress.style.display=isDelivery?'block':'none';old.querySelector('.dy-delivery-checkout').style.display=isDelivery?'block':'none'};old.fulfillment_method.addEventListener('change',toggle);toggle();
-      old.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button[type="submit"]'),isDelivery=f.fulfillment_method.value==='delivery';if(isDelivery&&d.min_order&&subtotal<d.min_order)return toast?.('El pedido mínimo para despacho es '+money(d.min_order),'err');btn.disabled=true;btn.textContent='Enviando pedido…';let coords={};if(isDelivery&&navigator.geolocation){try{coords=await new Promise(resolve=>navigator.geolocation.getCurrentPosition(p=>resolve({delivery_latitude:p.coords.latitude,delivery_longitude:p.coords.longitude}),()=>resolve({}),{enableHighAccuracy:false,timeout:5000,maximumAge:300000}))}catch(_){}}try{if(!c.checkout_request_id){c.checkout_request_id=(globalThis.crypto?.randomUUID?.()||('dy-'+Date.now()+'-'+Math.random().toString(36).slice(2))).slice(0,100);try{localStorage.setItem('datoya_cart_v1',JSON.stringify(c))}catch(_){}}const body={business_id:c.business_id,fulfillment_method:f.fulfillment_method.value,customer_name:f.customer_name.value.trim(),customer_phone:f.customer_phone.value.trim(),delivery_address:f.delivery_address.value.trim(),notes:f.notes.value.trim(),items:(c.items||[]).map(x=>({product_id:x.product_id,impulse_id:x.impulse_id,quantity:x.quantity})),source_weekly_id:c.source_weekly_id||null,client_request_id:c.checkout_request_id,...coords};const r=await api('/orders',{method:'POST',body});localStorage.removeItem('datoya_cart_v1');document.getElementById('dy-cart-bubble')?.remove();toast?.('Pedido '+r.order.reference+' enviado','ok');location.hash='#/pedidos';}catch(err){btn.disabled=false;btn.textContent='Enviar pedido';toast?.(err.message,'err')}});
+      const {delivery:d}=await api('/market/business/'+Number(cart.business_id)+'/delivery');
+      if(!form.isConnected)return result;
+      if(d?.enabled){
+        form.dataset.deliveryFeeStatus='available';
+        form.dataset.deliveryFee=String(Math.max(0,Math.round(Number(d.fee||0))));
+        form.dataset.deliveryFreeFrom=String(d.free_from==null?0:Math.max(0,Math.round(Number(d.free_from))));
+        form.dataset.deliveryMinOrder=String(Math.max(0,Math.round(Number(d.min_order||0))));
+      }
     }catch(_){}
+    return result;
   };
 })();

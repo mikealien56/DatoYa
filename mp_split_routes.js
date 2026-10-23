@@ -3,7 +3,7 @@
 const crypto=require('crypto');
 const mp=require('./mp_split_service');
 const splitReceipts=require('./mp_split_receipts');
-const {quote}=require('./datoya_service_fee');
+const {quote,RATE_PERCENT}=require('./datoya_service_fee');
 module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
   splitReceipts.setup(db);
   const ready=()=>mp.config();
@@ -33,6 +33,19 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
       Number(lines[0].unit_price)===50&&Number(lines[0].quantity)===1;
   }
   const attempt=id=>db.prepare('SELECT * FROM mp_split_attempts WHERE order_id=?').get(Number(id))||null;
+  // Existing preferences keep their originally quoted amount and buyer fee.
+  // New orders use the current 4% policy; legacy pending/paid 2% payments stay unchanged.
+  function payableQuote(o,t){
+    const current=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)});
+    if(!t)return current;
+    const fee=Number(t.service_fee),total=Number(t.amount);
+    if(!Number.isSafeInteger(fee)||fee<1||!Number.isSafeInteger(total)||
+       total!==current.business_amount+fee)return null;
+    if(fee===current.service_fee)return current;
+    const legacyPercent=2;
+    if(fee!==Math.round(current.products_amount*legacyPercent/100))return null;
+    return Object.freeze({...current,rate_percent:legacyPercent,service_fee:fee,checkout_total:total});
+  }
   const statusErr=(res,e)=>res.status([400,401,403,404,409,503,504].includes(e.status)?e.status:502).json({error:e.message||'No fue posible completar la operación'});
   async function access(s,{verificationOnly=false}={}){
     if(!s||!s.credential_blob)throw Object.assign(new Error('El negocio debe vincular su cuenta de Mercado Pago'),{status:503});
@@ -77,13 +90,13 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
       if(!result.valid)continue;
       if(t.payment_id&&String(t.payment_id)!==String(id))throw Object.assign(new Error('La compra tiene otro pago vinculado; revisar'),{status:409});
       if(result.paid){
-        // Match the actual approved payment to the exact preference that charged DatoYa's 2%.
+        // Match the approved payment to the original preference and its exact recorded fee.
         const merchantOrderId=p.order&&p.order.id;
         if(!/^\d{1,25}$/.test(String(merchantOrderId||'')))
           throw Object.assign(new Error('Pago aprobado sin orden comercial verificable; requiere conciliación'),{status:409});
         const merchantOrder=await mp.api('GET','/merchant_orders/'+merchantOrderId,token);
         if(!mp.verifyMerchantOrder(merchantOrder,expected,id))
-          throw Object.assign(new Error('El pago no corresponde a la preferencia DatoYa con 2%'),{status:409});
+          throw Object.assign(new Error('El pago no corresponde a la preferencia original de DatoYa'),{status:409});
         const now=new Date().toISOString();
         const o=db.prepare('SELECT id,user_id,reference,payment_status,payment_method FROM commerce_orders WHERE id=?').get(t.order_id);
         if(!o||o.payment_status==='paid'&&o.payment_method!=='mercadopago_split')
@@ -118,7 +131,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
   }
   app.get('/api/mp-split/config',auth,(req,res)=>{
     const c=ready();res.json({provider:'mercadopago_split_1_1',configured:c.configured,
-      onboarding:c.onboarding,checkout:c.checkout,mode:c.mode,customer_service_fee_percent:2});
+      onboarding:c.onboarding,checkout:c.checkout,mode:c.mode,customer_service_fee_percent:RATE_PERCENT});
   });
   app.get('/api/businesses/:id/mp-split',auth,(req,res)=>{
     const b=owned(req.user.id,req.params.id);if(!b)return res.status(403).json({error:'Negocio no autorizado'});
@@ -198,13 +211,13 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     const o=order(req.user.id,req.params.id);
     if(!o)return res.status(404).json({error:'Pedido no encontrado'});
     const t=attempt(o.id),s=seller(o.business_id),c=ready();
-    let price=null;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)})}catch(_){}
+    let price=null;try{price=payableQuote(o,t)}catch(_){}
     if(t&&t.preference_id&&t.status!=='paid'){
       try{await sync(t)}catch(e){console.warn('[DatoYa] MP Split pendiente de conciliación:',e.message)}
     }
     const fresh=attempt(o.id);
     const b=db.prepare('SELECT status FROM businesses WHERE id=?').get(o.business_id);
-    res.json({available:!!(pilotAllowed(o,req.user.id)&&c.checkout&&s&&s.verified_at&&b&&b.status==='active'&&o.status!=='cancelled'&&o.payment_status==='pending'&&!db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id)),
+    res.json({available:!!(price&&pilotAllowed(o,req.user.id)&&c.checkout&&s&&s.verified_at&&b&&b.status==='active'&&o.status!=='cancelled'&&o.payment_status==='pending'&&!db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id)),
       quote:price,checkout_started:!!fresh,payment_status:fresh?fresh.status:'not_started',
       paid:o.payment_status==='paid'||!!fresh&&fresh.status==='paid',
       checkout_url:fresh&&fresh.status==='pending'?fresh.checkout_url:null});
@@ -219,9 +232,10 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
     if(!c.checkout||!s||!s.verified_at||!b||b.status!=='active')return res.status(503).json({error:'Este negocio aún no tiene Mercado Pago Split habilitado'});
     if(db.prepare('SELECT order_id FROM payku_marketplace_transactions WHERE order_id=?').get(o.id))
       return res.status(409).json({error:'Existe un intento de pago de Payku; requiere conciliación'});
-    let price;try{price=quote({subtotal:Number(o.subtotal),delivery_fee:Number(o.delivery_fee),total:Number(o.total)})}catch(e){return res.status(400).json({error:'Importes del pedido inconsistentes'})}
-    if(price.service_fee<1)return res.status(400).json({error:'El importe es insuficiente para pago online'});
     const existing=attempt(o.id);
+    let price;try{price=payableQuote(o,existing)}catch(e){return res.status(400).json({error:'Importes del pedido inconsistentes'})}
+    if(!price)return res.status(409).json({error:'La tarifa del pago original no coincide; contacta soporte para revisar el pedido.'});
+    if(price.service_fee<1)return res.status(400).json({error:'El importe es insuficiente para pago online'});
     if(existing){
       if(existing.status==='pending'&&existing.checkout_url)
         return res.json({url:existing.checkout_url,quote:price,existing:true});

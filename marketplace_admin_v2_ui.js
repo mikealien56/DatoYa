@@ -363,7 +363,7 @@
       if(tab==='impulso'){
         const {businesses=[],history=[],config={}}=await api('/admin/marketplace-v2/impulso');
         const tiers=config.tiers||{};
-        shell('⚡ Planes para negocios','Gratis, Impulso, Impulso+ y Premium por 1, 7, 15 o 30 días. Las compras online tendrán cargo de servicio del 2% al comprador.',`
+        shell('⚡ Planes para negocios','Gratis, Impulso, Impulso+ y Premium por 1, 7, 15 o 30 días. Las compras online tendrán cargo de servicio del 4% al comprador.',`
           <div class="card dy-admin-note"><b>Modelo actual:</b> DatoYa Gratis $0 · Impulso desde ${money(tiers.impulso?.prices?.[1]||990)} · Impulso+ desde ${money(tiers.impulso_plus?.prices?.[1]||1490)} · Premium desde ${money(tiers.premium?.prices?.[1]||2490)}. Los pagos corresponden solo a servicios DatoYa.</div>
           ${inputFilter('Buscar negocio, dueño o correo')}
           <div class="dy-admin-list">${businesses.map(b=>`<article class="card dy-admin-row" data-imp-row data-search="${h([b.name,b.owner_name,b.owner_email,b.comuna,b.tier].join(' ').toLowerCase())}"><div><b>🏪 ${h(b.name)}</b><div class="small muted">${h(b.owner_name)} · ${h(b.owner_email)}</div><div class="dy-admin-tags">${b.expires_at?badge((b.tier==='premium'?'🚀 Premium':b.tier==='impulso_plus'?'⚡⚡ Impulso+':'⚡ Impulso')+' hasta '+String(b.expires_at).slice(0,10),'ok'):badge('DatoYa Gratis')} ${b.source?badge('Origen '+b.source):''}</div></div><div class="dy-admin-row-actions"><select id="gift-tier-${Number(b.id)}"><option value="impulso">⚡ Impulso</option><option value="impulso_plus" selected>⚡⚡ Impulso+</option><option value="premium">🚀 Premium</option></select><select id="gift-days-${Number(b.id)}"><option value="1">1 día</option><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>30 días</option></select><button class="btn btn-primary btn-sm" onclick="dyGiftGrowthPlan(${Number(b.id)},'${h(String(b.name).replace(/'/g,'&#39;'))}')">🎁 Regalar</button></div></article>`).join('')}</div>
@@ -372,11 +372,17 @@
       }
 
       if(tab==='fundadores'){
-        const [{referrals=[]},{settings={}},{businesses:registered=[]}]=await Promise.all([
+        const [{referrals=[],invites=[]},{settings={}},{businesses:registered=[]},{contacts=[]}]=await Promise.all([
           api('/admin/marketplace-v2/founders'),
           api('/admin/marketplace-v2/growth-settings'),
-          api('/admin/marketplace-v2/businesses')
+          api('/admin/marketplace-v2/businesses'),
+          api('/admin/marketplace-v2/invite-contacts')
         ]);
+        const choices=[
+          ...registered.filter(b=>b.status==='active').map(b=>({key:'business:'+b.id,name:b.name,email:b.owner_email||'',origin:'Negocio registrado'})),
+          ...contacts.map(b=>({key:'contact:'+b.id,name:b.business_name,email:b.email||'',origin:'Agenda privada'})),
+          ...invites.filter(i=>i.status==='active'&&i.used_count<i.max_uses).map(i=>({key:'invite:'+i.id,name:i.invitee_business_name||i.label,email:i.invitee_email||'',origin:'Invitación existente'}))
+        ];
         const founderRegistered=registered.filter(b=>Number(b.founder_business||0)===1);
         const founderCandidates=registered.filter(b=>b.status==='active'&&Number(b.founder_business||0)!==1).sort((a,b)=>String(a.name).localeCompare(String(b.name),'es'));
         shell('Fundadores y crecimiento','Reconoce negocios existentes sin repetir su inscripción, invita nuevos y configura beneficios.',`
@@ -392,6 +398,36 @@
               <button type="button" id="dy-founder-existing-assign" class="btn btn-primary" disabled>🏅 Activar Fundador</button>
             </div>
             <p class="small muted">${founderCandidates.length?founderCandidates.length+' negocios disponibles para reconocer.':'Todos los negocios activos ya son Fundadores o no hay negocios activos.'} ${founderRegistered.length?'· '+founderRegistered.length+' reconocidos en DatoYa.':''}</p>
+          </section>
+          <section class="card dy-founder-select-box">
+            <h3>Invitar un negocio Fundador</h3>
+            <p class="dy-founder-invite-note">Escoge un negocio o contacto guardado. Solo necesitas su correo para crear una invitación privada de un uso.</p>
+            <form class="dy-founder-compact-form" id="dy-founder-invite-form">
+              <div class="dy-founder-invite-choice">
+                <label for="dy-founder-select-saved">Negocio invitado</label>
+                <select id="dy-founder-select-saved"><option value="">Escribir un negocio nuevo</option>
+                  ${choices.map((b,i)=>`<option value="${i}">${h(b.name)} · ${h(b.origin)}</option>`).join('')}
+                </select>
+              </div>
+              <div id="dy-founder-selected-summary" class="dy-founder-selected-summary" hidden>
+                <div><strong id="dy-founder-summary-name"></strong><span id="dy-founder-summary-email"></span></div>
+                <button type="button" id="dy-founder-edit-selection" class="dy-founder-save-link">Editar</button>
+              </div>
+              <div id="dy-founder-manual-inputs" class="dy-founder-manual-inputs">
+                <div class="field"><label>Nombre del negocio</label><input name="business_name" id="dy-founder-invite-name" maxlength="100" required></div>
+                <div class="field"><label>Correo del negocio</label><input name="email" id="dy-founder-invite-email" type="email" maxlength="160" required></div>
+              </div>
+              <button class="btn btn-primary" type="submit">Crear invitación personal</button>
+            </form>
+            <button type="button" class="dy-founder-save-link" id="dy-founder-contact-open">Guardar nuevo contacto en mi agenda</button>
+            <form id="dy-founder-contact-form" class="dy-founder-contact-form" hidden>
+              <div class="field"><label>Nombre del negocio</label><input name="business_name" minlength="2" maxlength="100" required></div>
+              <div class="field"><label>Correo (opcional)</label><input name="email" type="email" maxlength="160"></div>
+              <div class="dy-admin-row-actions"><button type="submit" class="btn btn-primary">Guardar contacto</button><button type="button" id="dy-founder-contact-cancel" class="btn btn-outline">Cancelar</button></div>
+            </form>
+            <details class="dy-founder-invite-history"><summary>Invitaciones anteriores (${invites.length})</summary>
+              <div class="dy-admin-list">${invites.map(i=>`<article class="dy-admin-row"><div><b>${h(i.invitee_business_name||i.label)}</b><div class="small muted">${h(i.invitee_email||'Sin correo')} · ${h(i.status)}</div></div><div class="dy-admin-row-actions"><button type="button" class="btn btn-outline btn-sm" data-dy-share-invite="${h(i.code)}" data-dy-invite-name="${h(i.invitee_business_name||i.label)}">Compartir WhatsApp</button><button type="button" class="btn btn-outline btn-sm" data-dy-invite-toggle="${Number(i.id)}" data-dy-invite-next="${i.status!=='active'?'1':'0'}" ${i.status==='used'?'disabled':''}>${i.status==='active'?'Pausar':'Activar'}</button></div></article>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div>
+            </details>
           </section>
           <div class="dy-admin-kpis">
             <div><strong>${founderRegistered.length}</strong><span>Fundadores</span><small>Negocios activos reconocidos</small></div>
@@ -413,6 +449,55 @@
           <div class="dy-admin-list">${founderRegistered.map(b=>`<article class="card dy-admin-row"><div><b>🏅 ${h(b.name)}</b><div class="small muted">${h(b.owner_name||'')} · ${h(b.owner_email||'')}</div></div><div class="dy-admin-tags">${badge('Fundador','ok')} ${b.impulse_expires_at?badge('Impulso hasta '+dt(b.impulse_expires_at)):''}</div></article>`).join('')||'<p class="muted">Todavía no hay negocios registrados con el sello Fundador.</p>'}</div></section>
           <section class="card" style="margin-top:16px"><span class="small muted">REFERIDOS</span><h3>Negocios recomendados</h3><div class="dy-admin-history">${referrals.map(r=>`<div><b>${h(r.referred_name)}</b><span>Invitado por ${h(r.founder_name)} · ${r.status==='rewarded'?'beneficio entregado':'beneficio pendiente'}</span></div>`).join('')||'<p class="muted">Aún no hay referidos.</p>'}</div></section>
         `);
+
+        document.querySelectorAll('[data-dy-share-invite]').forEach(button=>{
+          button.addEventListener('click',()=>window.dyShareFounderInvite?.(button.dataset.dyShareInvite,button.dataset.dyInviteName));
+        });
+        document.querySelectorAll('[data-dy-invite-toggle]').forEach(button=>{
+          button.addEventListener('click',()=>window.dyFounderInviteToggle?.(Number(button.dataset.dyInviteToggle),button.dataset.dyInviteNext==='1',button));
+        });
+        const selectBusiness=document.getElementById('dy-founder-select-saved');
+        const manualInputs=document.getElementById('dy-founder-manual-inputs');
+        const selectionSummary=document.getElementById('dy-founder-selected-summary');
+        const invitedName=document.getElementById('dy-founder-invite-name');
+        const invitedEmail=document.getElementById('dy-founder-invite-email');
+        const fillChoice=()=>{
+          const index=Number(selectBusiness?.value);
+          const choice=selectBusiness?.value!==''&&Number.isSafeInteger(index)?choices[index]:null;
+          if(choice){invitedName.value=choice.name||'';invitedEmail.value=choice.email||'';}
+          else{invitedName.value='';invitedEmail.value='';}
+          const prefilled=!!choice&&!!choice.email;
+          manualInputs.hidden=prefilled;
+          selectionSummary.hidden=!prefilled;
+          if(prefilled){
+            document.getElementById('dy-founder-summary-name').textContent=choice.name;
+            document.getElementById('dy-founder-summary-email').textContent=choice.email;
+          }
+        };
+        selectBusiness?.addEventListener('change',fillChoice);
+        document.getElementById('dy-founder-edit-selection')?.addEventListener('click',()=>{
+          manualInputs.hidden=false;selectionSummary.hidden=true;invitedEmail.focus();
+        });
+        document.getElementById('dy-founder-invite-form')?.addEventListener('submit',async e=>{
+          e.preventDefault();const f=e.currentTarget;
+          const body={business_name:invitedName.value.trim(),email:invitedEmail.value.trim()};
+          if(body.business_name.length<2||!body.email.includes('@'))return toast?.('Escribe nombre y correo del negocio','err');
+          const button=f.querySelector('[type="submit"]');if(button)button.disabled=true;
+          try{
+            const data=await api('/admin/marketplace-v2/founder-invites',{method:'POST',body});
+            toast?.('Invitación creada para '+body.business_name,'ok');
+            if(data.invite?.code)window.dyShareFounderInvite?.(data.invite.code,body.business_name);
+            routes.admin('fundadores');
+          }catch(err){toast?.(err.message||'No se pudo crear la invitación','err');if(button)button.disabled=false;}
+        });
+        const contactForm=document.getElementById('dy-founder-contact-form');
+        document.getElementById('dy-founder-contact-open')?.addEventListener('click',()=>{contactForm.hidden=false;contactForm.querySelector('input')?.focus();});
+        document.getElementById('dy-founder-contact-cancel')?.addEventListener('click',()=>{contactForm.hidden=true;});
+        contactForm?.addEventListener('submit',async e=>{
+          e.preventDefault();const f=e.currentTarget,body={business_name:f.business_name.value.trim(),email:f.email.value.trim()};
+          try{await api('/admin/marketplace-v2/invite-contacts',{method:'POST',body});toast?.('Negocio guardado en tu agenda privada','ok');routes.admin('fundadores');}
+          catch(err){toast?.(err.message||'No se pudo guardar el contacto','err');}
+        });
         const existingSelect=document.getElementById('dy-founder-existing-select');
         const existingButton=document.getElementById('dy-founder-existing-assign');
         existingSelect?.addEventListener('change',()=>{if(existingButton)existingButton.disabled=!existingSelect.value;});

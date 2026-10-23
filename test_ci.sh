@@ -8,16 +8,16 @@ echo "✅ Dependencias de producción sin vulnerabilidades altas/críticas"
 grep -q "legal_consent_recorded" account_security_bootstrap.js || { echo "Registro no persiste consentimiento legal"; exit 1; }
 grep -q "LEGAL_ENFORCEMENT || 'true'" account_security_bootstrap.js || { echo "Enforcement legal no queda activo por defecto"; exit 1; }
 echo "✅ Consentimiento legal integrado al registro"
-grep -q "Versión: 21 de octubre de 2026" legal_final_ui.js || { echo "Textos legales no están versionados al 21-10-2026"; exit 1; }
+grep -q "Versión: 23 de octubre de 2026" legal_final_ui.js || { echo "Textos legales no están versionados al 21-10-2026"; exit 1; }
 grep -q "2026-10-21-marketplace3" account_security_bootstrap.js || { echo "Consentimiento del registro no usa la versión vigente"; exit 1; }
 grep -q "DatoYa Gratis:" legal_final_ui.js || { echo "Términos no explican la publicación gratuita"; exit 1; }
 grep -q "Regalos de lanzamiento:" legal_final_ui.js || { echo "Términos no explican cortesías Premium"; exit 1; }
 grep -q "Khipu" legal_final_ui.js || { echo "Textos legales no reflejan Khipu"; exit 1; }
 grep -q "1 de diciembre de 2026" legal_final_ui.js || { echo "Política de privacidad no contempla transición Ley 21.719"; exit 1; }
 grep -q "Mercado Pago" legal_final_ui.js || { echo "Los Términos no describen al proveedor Mercado Pago"; exit 1; }
-grep -q "2% sobre el subtotal de productos" legal_final_ui.js || { echo "Los Términos no informan el cargo de servicio al comprador"; exit 1; }
+grep -q "4% sobre el subtotal de productos" legal_final_ui.js || { echo "Los Términos no informan el cargo de servicio al comprador"; exit 1; }
 if grep -Eqi 'mercadopago|Mercado Pago' account_security_bootstrap.js; then echo "Seguridad de cuentas contiene configuración del proveedor de pagos"; exit 1; fi
-grep -q "2026-10-21-marketplace3" marketplace_legal_version_fix.js || { echo "Falta nueva versión de consentimiento legal"; exit 1; }
+grep -q "2026-10-23-checkout4" marketplace_legal_version_fix.js || { echo "Falta nueva versión de consentimiento legal"; exit 1; }
 echo "✅ Textos legales incluyen Khipu histórico, Mercado Pago y condiciones del cargo online"
 grep -q "current_legal_consent_enforcement_bootstrap" production_start.js || { echo "Guard de consentimiento vigente no montado"; exit 1; }
 grep -q "LEGAL_CONSENT_REQUIRED" app.js || { echo "Frontend no maneja reaceptación legal"; exit 1; }
@@ -190,7 +190,7 @@ done
 if [ "$READY" -ne 1 ]; then echo "Timeout esperando DatoYa"; cat /tmp/datoya-ci.log; exit 1; fi
 
 curl -fsS http://localhost:3000/health | grep -q '"ok":true'
-curl -fsS http://localhost:3000/api/public/business-plans | python3 -c 'import sys,json; d=json.load(sys.stdin); assert "cargo de servicio del 2%" in d["rule"]; assert len(d["offers"])==3; assert d["durations"]==[1,7,15,30]' || { echo "Planes públicos de negocio incorrectos"; exit 1; }
+curl -fsS http://localhost:3000/api/public/business-plans | python3 -c 'import sys,json; d=json.load(sys.stdin); assert "cargo de servicio del 4%" in d["rule"]; assert len(d["offers"])==3; assert d["durations"]==[1,7,15,30]' || { echo "Planes públicos de negocio incorrectos"; exit 1; }
 curl -fsS http://localhost:3000/api/public/club | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["no_auto_renew"] is True; assert int(d["free_hunts"])>=1' || { echo "Club público incorrecto"; exit 1; }
 CATS=$(curl -fsS http://localhost:3000/api/market/categories | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["categories"]))')
 [ "$CATS" -ge 20 ] || { echo "Catálogo comercial incompleto: $CATS"; exit 1; }
@@ -570,7 +570,7 @@ assert(!ui.includes('Abrir DatoYa'),'La cabecera admin repite acceso al mismo si
 assert(!ui.includes('El cargo por compras online se informa aparte.'),'Fundadores tiene un texto comercial antiguo');
 assert(ui.includes("api('/mp-split/config')"),'Finanzas no consulta el estado de pagos actual');
 assert(ui.includes('No equivalen a saldo disponible en Mercado Pago'),'Las finanzas no distinguen facturación de liquidación');
-assert(assets.includes('20261019-payment-gates2'),'Caché Admin no se renueva');
+assert(assets.includes('20261023-checkout4-founder-invites'),'Caché Admin no se renueva');
 assert(Number(worker.match(/datoya-shell-v(\d+)/)?.[1]||0)>=105,'PWA no invalida su caché antiguo');
 console.log('Admin UX: menú único, móvil sin carrusel y finanzas Mercado Pago OK');
 NODE

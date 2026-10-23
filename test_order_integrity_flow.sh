@@ -56,10 +56,10 @@ register_account "$BUSINESS_JAR" "$BUSINESS_EMAIL" "business" "Encargado QA"
 verify_account "$BUSINESS_JAR"
 curl -fsS -b "$BUSINESS_JAR" "$BASE/api/businesses/mine" | python3 -c 'import sys,json; assert json.load(sys.stdin).get("businesses")==[]'
 
-echo "4/12 Negocio nuevo queda pendiente de revisión"
+echo "4/12 Negocio nuevo queda en borrador hasta completar requisitos de revisión"
 BIZ_JSON="$(curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/businesses" \
   -d "{\"name\":\"$BUSINESS_NAME\",\"description\":\"Negocio de prueba E2E para beta\",\"business_type\":\"physical_store\",\"comuna_id\":$COMUNA_ID,\"category_ids\":[$CATEGORY_ID],\"sector\":\"Sector QA\",\"address\":\"Dirección QA 123\",\"public_address_mode\":\"approximate\",\"phone\":\"+56922223333\",\"whatsapp\":\"+56922223333\",\"pickup_enabled\":true,\"delivery_enabled\":false}")"
-BIZ_ID="$(printf '%s' "$BIZ_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["business"]["status"]=="pending_review"; print(d["business"]["id"])')"
+BIZ_ID="$(printf '%s' "$BIZ_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["business"]["status"] in ("draft","pending_review"); print(d["business"]["id"])')"
 curl -fsS "$BASE/api/market/businesses?q=$BUSINESS_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); assert not any(int(x['id'])==int('$BIZ_ID') for x in d.get('businesses',[]))"
 
 echo "5/12 Admin aprueba el negocio"
@@ -94,6 +94,12 @@ ORDER_ID="$(printf '%s' "$ORDER_JSON" | python3 -c 'import sys,json; d=json.load
 curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "$ORDER_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('idempotent') is True and int(d['order']['id'])==int('$ORDER_ID')"
 curl -fsS "$BASE/api/market/products?q=$PRODUCT_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); p=next(x for x in d['products'] if int(x['id'])==int('$PRODUCT_ID')); assert int(p['stock'])==4"
 
+# Simulate a provider-confirmed payment in isolated AUTH_TEST_MODE only.
+# Production requires a real, verified Mercado Pago payment; this does not call a payment provider.
+PENDING_PICKUP="$(curl -s -o /dev/null -w '%{http_code}' -b "$CLIENT_JAR" "$BASE/api/orders/$ORDER_ID/pickup-qr.svg")"
+[ "$PENDING_PICKUP" = "409" ] || fail "Un pedido impago mostró QR de retiro (HTTP $PENDING_PICKUP)"
+curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$BIZ_ID/orders/$ORDER_ID/payment" -d '{"payment_status":"paid"}' | python3 -c 'import sys,json; assert json.load(sys.stdin).get("ok") is True'
+
 echo "9/12 Retiro usa código privado y QR"
 curl -fsS -b "$BUSINESS_JAR" "$BASE/api/businesses/$BIZ_ID/orders" | python3 -c "import sys,json; o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$ORDER_ID')); assert 'pickup_code' not in o"
 PICKUP_CODE="$(curl -fsS -b "$CLIENT_JAR" "$BASE/api/orders/mine" | python3 -c "import sys,json; o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$ORDER_ID')); c=str(o.get('pickup_code') or ''); assert len(c)==6 and c.isdigit(); print(c)")"
@@ -123,6 +129,9 @@ DELIVERY_ID="$(printf '%s' "$DELIVERY_JSON" | python3 -c 'import sys,json; o=jso
 curl -fsS -b "$CLIENT_JAR" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "$DELIVERY_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('idempotent') is True and int(d['order']['id'])==int('$DELIVERY_ID')"
 curl -fsS "$BASE/api/market/products?q=$PRODUCT_NAME" | python3 -c "import sys,json; d=json.load(sys.stdin); p=next(x for x in d['products'] if int(x['id'])==int('$PRODUCT_ID')); assert int(p['stock'])==3"
 curl -fsS -b "$BUSINESS_JAR" "$BASE/api/businesses/$BIZ_ID/orders" | python3 -c "import sys,json; o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$DELIVERY_ID')); assert 'delivery_code' not in o"
+PENDING_DELIVERY="$(curl -s -o /dev/null -w '%{http_code}' -b "$CLIENT_JAR" "$BASE/api/orders/$DELIVERY_ID/fulfillment-qr.svg")"
+[ "$PENDING_DELIVERY" = "409" ] || fail "Un pedido impago mostró QR de despacho (HTTP $PENDING_DELIVERY)"
+curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$BIZ_ID/orders/$DELIVERY_ID/payment" -d '{"payment_status":"paid"}' | python3 -c 'import sys,json; assert json.load(sys.stdin).get("ok") is True'
 for state in confirmed preparing ready; do
   curl -fsS -b "$BUSINESS_JAR" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$BIZ_ID/orders/$DELIVERY_ID/status" -d "{\"status\":\"$state\"}" >/dev/null
 done

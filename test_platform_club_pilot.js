@@ -31,7 +31,7 @@ test('pilot restrictions apply on the server before any external checkout',async
    get:(path,...args)=>route.set('GET '+path,args.at(-1)),
    post:(path,...args)=>route.set('POST '+path,args.at(-1))
  };
- const db={prepare(sql){
+ const db={exec(_ddl){return undefined;},prepare(sql){
   return {
    get(...args){
     if(sql.includes('auth_email_verifications'))return {id:1};

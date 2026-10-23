@@ -111,7 +111,7 @@
     const note=form.querySelector('.dy-commerce-note');
     const subtotal=Number(form.dataset.subtotal||0);
     const businessId=Number(form.dataset.businessId||0);
-    let ready=false,rate=2,pilotNeedsConnection=false,pilotBlocked=false,statusKnown=false;
+    let ready=false,rate=4,pilotNeedsConnection=false,pilotBlocked=false,statusKnown=false;
     try{
       const config=await api('/marketplace/central-payments/status?business_id='+businessId);
       statusKnown=true;
@@ -127,40 +127,64 @@
         ready=pilot?.checkout_enabled===true&&pilot?.pilot_selected===true&&exactCart;
         pilotBlocked=!ready&&!pilotNeedsConnection;
       }
-      rate=Number(config?.service_fee_percent||2);
+      const publishedRate=Number(config?.service_fee_percent);
+      if(Number.isFinite(publishedRate)&&publishedRate>=0&&publishedRate<=50)rate=publishedRate;
     }catch(_){}
     if(!form.isConnected)return rendered;
-    const fee=Math.round(subtotal*rate/100);
-    if(note){
-      note.replaceChildren();
-      note.appendChild(node('b','','Resumen del pago'));
-      if(Number.isSafeInteger(subtotal)&&subtotal>0){
-        const breakdown=node('div','dy-checkout-price-breakdown');
-        const addLine=(label,amount,kind='')=>{
-          const line=node('div','dy-checkout-price-line'+(kind?' '+kind:'')),
-                title=node('span','',label),value=node('strong','',clp(amount));
-          line.append(title,value);breakdown.appendChild(line);
-        };
-        addLine('Productos',subtotal);
-        addLine('Servicio DatoYa',fee);
-        addLine('Total previsto',subtotal+fee,'dy-checkout-grand-total');
-        note.appendChild(breakdown);
+    const renderPaymentSummary=()=>{
+      const isDelivery=form.fulfillment_method?.value==='delivery';
+      const shippingKnown=!isDelivery||form.dataset.deliveryFeeStatus==='available';
+      const baseShipping=Number(form.dataset.deliveryFee||0);
+      const freeFrom=Number(form.dataset.deliveryFreeFrom||0);
+      const minOrder=Number(form.dataset.deliveryMinOrder||0);
+      const deliveryFee=isDelivery&&shippingKnown?(freeFrom>0&&subtotal>=freeFrom?0:baseShipping):0;
+      const minOrderUnmet=isDelivery&&shippingKnown&&minOrder>0&&subtotal<minOrder;
+      const validAmounts=Number.isSafeInteger(subtotal)&&subtotal>0&&
+        Number.isSafeInteger(deliveryFee)&&deliveryFee>=0;
+      const fee=validAmounts?Math.round(subtotal*rate/100):0;
+      const finalTotal=subtotal+deliveryFee+fee;
+      const canPay=!!(ready&&shippingKnown&&!minOrderUnmet&&validAmounts&&
+        Number.isSafeInteger(finalTotal));
+      form.dataset.serviceFeePercent=String(rate);
+      form.dataset.expectedCheckoutTotal=canPay?String(finalTotal):'';
+      if(note){
+        note.replaceChildren();
+        note.appendChild(node('b','','Resumen del pago'));
+        if(validAmounts){
+          const breakdown=node('div','dy-checkout-price-breakdown');
+          const addLine=(label,amount,kind='')=>{
+            const line=node('div','dy-checkout-price-line'+(kind?' '+kind:'')),
+                  title=node('span','',label),value=node('strong','',clp(amount));
+            line.append(title,value);breakdown.appendChild(line);
+          };
+          addLine('Productos',subtotal);
+          if(isDelivery&&shippingKnown)addLine('Despacho del negocio',deliveryFee);
+          addLine('Servicio DatoYa ('+rate+'%)',fee);
+          if(shippingKnown)addLine('Total a pagar',finalTotal,'dy-checkout-grand-total');
+          note.appendChild(breakdown);
+        }
+        const message=!shippingKnown?
+          'No pudimos confirmar el costo de despacho. No se puede cobrar hasta conocer el total final.':
+          minOrderUnmet?'El pedido mínimo para despacho es '+clp(minOrder)+'. Agrega más productos o selecciona retiro.':
+          canPay?'Al continuar se abrirá Mercado Pago Checkout Pro con el total indicado. La compra se marcará como pagada solo después de verificar el pago.':
+          pilotNeedsConnection?'El negocio todavía no ha vinculado su cuenta receptora de Mercado Pago. Tu carrito queda guardado para continuar luego.':
+          pilotBlocked?'Esta compra de prueba no está habilitada para la cuenta o los artículos seleccionados.':
+          statusKnown?'El pago online está deshabilitado para este negocio. Su titular debe revisar la conexión y verificación de Mercado Pago. El carrito permanecerá guardado.':'No pudimos verificar el estado del pago. Intenta nuevamente más tarde.';
+        note.appendChild(node('p','dy-checkout-payment-status',message));
+        const terms=node('a','dy-checkout-terms','Ver términos y condiciones');
+        terms.href='#/terminos';note.appendChild(terms);
       }
-      const message=ready?
-        'El pago se realizará de forma segura en Mercado Pago.':
-        pilotNeedsConnection?'El Negocio todavía no ha vinculado su cuenta receptora de Mercado Pago. Tu carrito queda guardado y podrás pagar cuando su titular complete la conexión.':
-        pilotBlocked?'Esta compra de prueba no está habilitada para la cuenta o los artículos seleccionados.':
-        statusKnown?'El pago online está deshabilitado para este negocio. Su titular debe revisar la vinculación y verificación de Mercado Pago desde Mi negocio → Pagos. El carrito permanecerá guardado.':'No pudimos verificar el estado del pago. Intenta nuevamente más tarde.';
-      note.appendChild(node('p','dy-checkout-payment-status',message));
-      const terms=node('a','dy-checkout-terms','Ver términos y condiciones');
-      terms.href='#/terminos';note.appendChild(terms);
-    }
-    if(submit){
-      submit.disabled=!ready;
-      submit.textContent=ready?'Continuar al pago con Mercado Pago':
-        pilotNeedsConnection?'Falta conectar Mercado Pago del negocio':
-        pilotBlocked?'Pago no disponible para esta compra':'Esperando habilitación de pagos del negocio';
-    }
+      if(submit){
+        submit.disabled=!canPay;
+        submit.textContent=canPay?'Pagar '+clp(finalTotal)+' con Mercado Pago':
+          !shippingKnown?'No se pudo calcular el despacho':
+          minOrderUnmet?'No cumple el pedido mínimo para despacho':
+          pilotNeedsConnection?'Falta conectar Mercado Pago del negocio':
+          pilotBlocked?'Pago no disponible para esta compra':'Esperando habilitación de pagos del negocio';
+      }
+    };
+    form.fulfillment_method?.addEventListener('change',renderPaymentSummary);
+    renderPaymentSummary();
     return rendered;
   };
   const old=routes.pedidos;
@@ -175,7 +199,7 @@
         const s=await api('/orders/'+Number(o.id)+'/mp-split/status').catch(()=>null);
         if(!s)continue;
         const q=s.quote;
-        if(!q||q.rate_percent!==2||!Number.isInteger(q.checkout_total)||!Number.isInteger(q.service_fee))continue;
+        if(!q||![2,4].includes(Number(q.rate_percent))||!Number.isInteger(q.checkout_total)||!Number.isInteger(q.service_fee))continue;
         const wasPaid=s.paid&&o.payment_method==='mercadopago_split';
         if(!s.available&&!wasPaid)continue;
         if(card.querySelector('.dy-mp-split-order'))continue;
@@ -184,7 +208,7 @@
         const product=node('p','','Productos: '+clp(q.products_amount));
         area.appendChild(product);
         if(q.delivery_fee)area.appendChild(node('p','','Despacho: '+clp(q.delivery_fee)));
-        area.appendChild(node('p','','Servicio DatoYa: '+clp(q.service_fee)));
+        area.appendChild(node('p','','Servicio DatoYa ('+q.rate_percent+'%): '+clp(q.service_fee)));
         area.appendChild(node('strong','dy-mp-total','Total: '+clp(q.checkout_total)));
         if(!wasPaid){
           area.appendChild(node('small','dy-mp-sub','Mercado Pago aplica además sus propias tarifas al negocio.'));

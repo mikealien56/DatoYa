@@ -60,7 +60,7 @@ test('payment confirmation, email receipts and recovery paths are wired for each
  assert.match(routes,/await receipts\.sendClubReceipt\(db,row\.id\)/);
  assert.match(routes,/reconcilePending=async/);
  assert.match(routes,/auth_email_verifications WHERE user_id=\?/);
- assert.match(growthReceipt,/status='approved'/);
+ assert.ok(growthReceipt.includes("row.status!=='approved'"));
  assert.match(growthReceipt,/business_impulse_memberships/);
  assert.match(growthReceipt,/platform_payment_receipts/);
  assert.match(feature,/await featuredReceipts\.send\(db,row\.id\)/);
