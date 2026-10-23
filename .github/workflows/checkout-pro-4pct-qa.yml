@@ -1,0 +1,33 @@
+name: Checkout Pro - tarifa transparente 4%
+
+on:
+  pull_request:
+    paths:
+      - 'datoya_service_fee.js'
+      - 'mp_split_*.js'
+      - 'marketplace_commerce_ui.js'
+      - 'marketplace_delivery_ui.js'
+      - 'datoya_central_payment_policy_bootstrap.js'
+      - 'business_growth_plans_v2_bootstrap.js'
+      - 'test_checkout_payment_summary.js'
+      - 'test_mp_split*.js'
+      - '.github/workflows/checkout-pro-4pct-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check fee, delivery checkout and Mercado Pago protections
+        run: node --test test_mp_split.js test_mp_split_private_berlin.js test_checkout_payment_summary.js test_central_marketplace_payment_policy.js
