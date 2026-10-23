@@ -39,7 +39,7 @@ test('unlinked merchant cannot charge but shows precise message instead of gener
  const {note,submit}=await testCheckout(false);
  assert.equal(submit.disabled,true);
  assert.match(submit.textContent,/Falta conectar Mercado Pago/);
- assert.match(note.children.find(x=>x.className==='dy-checkout-payment-status')?.textContent,/El Negocio todavía no ha vinculado/);
+ assert.match(note.children.find(x=>x.className==='dy-checkout-payment-status')?.textContent,/El negocio todavía no ha vinculado/);
 });
 test('verified merchant gives active provider checkout button under exact private pilot',async()=>{
  const {note,submit}=await testCheckout(true);
