@@ -84,17 +84,17 @@ test('affiliation tokens are encrypted per business and cannot be cross-used',()
 });
 
 
-test('2% charged only on products in CLP; delivery is not surcharged',()=>{
+test('4% charged only on products in CLP; delivery is not surcharged',()=>{
   assert.deepEqual(fee.quote({subtotal:20000,delivery_fee:0,total:20000}),{
-    currency:'CLP',rate_percent:2,products_amount:20000,
-    delivery_fee:0,business_amount:20000,service_fee:400,
-    checkout_total:20400,payer:'customer',provider:'mercadopago_split'
+    currency:'CLP',rate_percent:4,products_amount:20000,
+    delivery_fee:0,business_amount:20000,service_fee:800,
+    checkout_total:20800,payer:'customer',provider:'mercadopago_split'
   });
   const withDelivery=fee.quote({subtotal:20000,delivery_fee:1500,total:21500});
-  assert.equal(withDelivery.service_fee,400);
+  assert.equal(withDelivery.service_fee,800);
   assert.equal(withDelivery.business_amount,21500);
-  assert.equal(withDelivery.checkout_total,21900);
-  assert.equal(fee.quote({subtotal:125,delivery_fee:0,total:125}).service_fee,3);
+  assert.equal(withDelivery.checkout_total,22300);
+  assert.equal(fee.quote({subtotal:125,delivery_fee:0,total:125}).service_fee,5);
   assert.throws(()=>fee.quote({subtotal:20000,delivery_fee:0,total:100}));
   assert.throws(()=>fee.quote({subtotal:-100,delivery_fee:0,total:-100}));
 });
