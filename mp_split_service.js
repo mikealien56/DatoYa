@@ -30,7 +30,7 @@ function err(message,status=502){const e=new Error(message);e.status=status;retu
 // A merchant may connect while DatoYa reviews its shop. Approval is still mandatory
 // before accepting any real order or payment.
 function canConnectBusiness(status){
-  return ['draft','pending_review','active','paused','rejected'].includes(String(status||''));
+  return ['draft','pending_review','active','paused'].includes(String(status||''));
 }
 // In test mode OAuth can prepare an authentic seller account without enabling charges.
 // Checkout validates the seller's live_mode separately and production remains strict.
