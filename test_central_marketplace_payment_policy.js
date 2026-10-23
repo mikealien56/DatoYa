@@ -31,7 +31,7 @@ function harness(env={},mpConfig={mode:'test',checkout:false},seller=false){
 test('production catalog remains accessible but orders cannot bypass Mercado Pago',()=>{
   const app=harness();
   assert.equal(app.config().checkout_enabled,false);
-  assert.equal(app.config().service_fee_percent,2);
+  assert.equal(app.config().service_fee_percent,4);
   assert.equal(app.config().weekly_price,4990);
   const request=app.request('POST','/api/orders',{business_id:2});
   assert.equal(request.code,503);assert.equal(request.json.code,'MARKETPLACE_CHECKOUT_NOT_READY');
