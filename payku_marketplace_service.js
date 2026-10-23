@@ -139,7 +139,7 @@ function mallSignature(path,payload,secret){
 }
 async function mallRequest(method,path,body,env=process.env,transport=global.fetch){
   const cfg=config(env);
-  if(!cfg.mall_enabled)throw httpError('La tarifa del 2% aún no está habilitada en Payku Mall',503);
+  if(!cfg.mall_enabled)throw httpError('La tarifa de servicio aún no está habilitada en Payku Mall',503);
   if(!/^\/api\/mall(?:\/mal[l]?[a-z0-9]{10,40})?$/.test(path))throw httpError('Ruta Mall no permitida',400);
   const secret=String(env.PAYKU_MARKETPLACE_PRIVATE_TOKEN||'');
   const controller=new AbortController();
