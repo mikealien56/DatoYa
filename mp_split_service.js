@@ -152,7 +152,7 @@ function preferenceBody({order_id,subtotal,delivery_fee,total,email,site}){
   return {external_reference:'DYMP'+order_id,
     items:[{id:'datoya-order-'+order_id,title:'Pedido DatoYa DY'+order_id,
       currency_id:'CLP',quantity:1,unit_price:p.business_amount},
-      {id:'datoya-service-'+order_id,title:'Tarifa de servicio DatoYa (2%)',
+      {id:'datoya-service-'+order_id,title:'Tarifa de servicio DatoYa ('+p.rate_percent+'%)',
       currency_id:'CLP',quantity:1,unit_price:p.service_fee}],
     marketplace_fee:p.service_fee,
     payer:{email:String(email||'')},
