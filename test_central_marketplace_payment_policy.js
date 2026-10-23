@@ -9,8 +9,8 @@ function harness(env={},mpConfig={mode:'test',checkout:false},seller=false){
   const gets=new Map(),middleware=[];
   const app={get(route,handler){gets.set(route,handler)},use(handler){middleware.push(handler)}};
   const db={prepare(){return {get(id){return seller?{id:Number(id)}:null}}}};
-  const context={app,db,getSetting:(key,fallback)=>fallback,process:{env},
-    require:(name)=>{assert.equal(name,'./mp_split_service');return {config:()=>mpConfig}}};
+  const context={app,db,getSetting:(key,fallback)=>fallback,process:{env},auth:(req,res,next)=>next(),
+    require:(name)=>{if(name==='./datoya_service_fee')return {RATE_PERCENT:4};assert.equal(name,'./mp_split_service');return {config:()=>mpConfig}}};
   vm.runInNewContext(injected,context);
   assert.equal(middleware.length,1);
   function request(method,requestPath,body={},query={}){
