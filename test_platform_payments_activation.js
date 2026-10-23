@@ -13,6 +13,7 @@ function harness({preferenceOK=true,paymentOK=true}={}){
   const app={post:(path,...handlers)=>routes.set('POST '+path,handlers.at(-1)),
     get:(path,...handlers)=>routes.set('GET '+path,handlers.at(-1))};
   const db={
+    exec(_ddl){return undefined;}, // Receipts schema creation in isolated in-memory harness.
     prepare(sql){
       return {
         get(...p){
