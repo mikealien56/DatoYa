@@ -80,6 +80,9 @@ echo "8/9 Al quinto pedido completado se premia al Fundador"
 for N in 1 2 3 4 5; do
   OJSON="$(curl -fsS -b "$C" -H 'Content-Type: application/json' -X POST "$BASE/api/orders" -d "{\"business_id\":$RBIZ,\"fulfillment_method\":\"pickup\",\"customer_name\":\"Cliente Growth\",\"customer_phone\":\"+56911112222\",\"client_request_id\":\"growth-ref-$STAMP-$N\",\"items\":[{\"product_id\":$RPROD,\"quantity\":1}]}")"
   OID="$(printf '%s' "$OJSON"|python3 -c 'import sys,json;print(json.load(sys.stdin)["order"]["id"])')"
+  # Provider approval is simulated only in the isolated AUTH_TEST_MODE QA database.
+  # A real order cannot be completed while payment is pending.
+  curl -fsS -b "$R" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$RBIZ/orders/$OID/payment" -d '{"payment_status":"paid"}' >/dev/null
   PCODE="$(curl -fsS -b "$C" "$BASE/api/orders/mine" | python3 -c "import sys,json;o=next(x for x in json.load(sys.stdin)['orders'] if int(x['id'])==int('$OID'));print(o['pickup_code'])")"
   for STATE in confirmed preparing ready; do
     curl -fsS -b "$R" -H 'Content-Type: application/json' -X PUT "$BASE/api/businesses/$RBIZ/orders/$OID/status" -d "{\"status\":\"$STATE\"}" >/dev/null
