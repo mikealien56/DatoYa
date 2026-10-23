@@ -18,7 +18,7 @@ test('manifest provides official standalone experience and brand icons',()=>{
 test('site ships native install prompt and a manual browser fallback, not an APK',()=>{
  assert.match(script,/beforeinstallprompt/);
  assert.match(script,/appinstalled/);
- assert.match(script,/installPrompt\.prompt\(\)/);
+ assert.match(script,/await prompt\.prompt\(\)/);
  assert.match(script,/Agregar a pantalla/);
  assert.match(script,/navigator\.serviceWorker\.register/);
  assert.match(script,/isInstalled/);
@@ -33,7 +33,8 @@ test('CSS and deployment install assets are present and versioned',()=>{
  assert.match(assets,/pwa_install\.css/);
  assert.match(assets,/20261020-install1/);
  assert.match(entry,/require\('\.\/pwa_install_assets'\)/);
- assert.match(sw,/datoya-shell-v117/);
+ const cacheVersion=Number(sw.match(/datoya-shell-v(\d+)/)?.[1]||0);
+ assert.ok(cacheVersion>=117,'La versión de caché PWA debe ser >=117');
  assert.match(sw,/\/pwa_install_ui\.js/);
  assert.match(sw,/\/pwa_install\.css/);
 });
