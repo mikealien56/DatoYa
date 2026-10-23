@@ -6,12 +6,12 @@ La integración técnica existe en la rama `feature/mp-split-1to1-20261008`, con
 Mercado Pago documenta Split 1:1 para Chile con Checkout Pro y `marketplace_fee`. Para funcionar requiere que la plataforma tenga una **aplicación de Mercado Pago** y cada negocio vincule su propia **cuenta verificada** mediante OAuth. No usar el token de DatoYa para cobrar ventas de otro comerciante.
 
 ### Distribución por pedido
-El 2% de DatoYa se añade al **subtotal de productos**, no al despacho.
-- Productos $20.000, retiro: tarifa $400, **comprador paga $20.400**.
-- Productos $20.000, despacho $1.500: tarifa $400, **comprador paga $21.900**.
-- Posible venta de prueba con productos de $50: tarifa $1, **comprador pagaría $51**, **si Mercado Pago acepta ese monto mínimo**. No hay garantía de aceptación de ese importe.
+El 4% de DatoYa se añade al **subtotal de productos**, no al despacho.
+- Productos $20.000, retiro: tarifa $800, **comprador paga $20.800**.
+- Productos $20.000, despacho $1.500: tarifa $800, **comprador paga $22.300**.
+- Posible venta de prueba con productos de $50: tarifa $2, **comprador pagaría $52**, **si Mercado Pago acepta ese monto mínimo**. No hay garantía de aceptación de ese importe.
 
-Se crea una sola preferencia de checkout **usando el token OAuth del negocio**, con el total completo en CLP y `marketplace_fee=400`. Mercado Pago separa el cobro de la plataforma; **su propia comisión de procesamiento se deduce del importe del vendedor** según sus reglas. La plataforma debe conciliar la comisión realmente acreditada.
+Se crea una sola preferencia de checkout **usando el token OAuth del negocio**, con el total completo en CLP y `marketplace_fee=800`. Mercado Pago separa el cobro de la plataforma; **su propia comisión de procesamiento se deduce del importe del vendedor** según sus reglas. La plataforma debe conciliar la comisión realmente acreditada.
 
 La integración no cobra tarifa DatoYa a pagos directos al retirar, entregar ni transferencia bancaria.
 
@@ -63,7 +63,7 @@ Esto **sí permite dinero real**: establecer únicamente tras comprobar contrato
 En **Mi negocio → Pagos**, cada comercio autorizado verá un botón para vincular su cuenta Mercado Pago sin compartir contraseñas ni copiar tokens. La conexión OAuth queda cifrada con AES-256-GCM asociado al negocio. La integración refresca el token del comercio si caduca.
 
 ## Experiencia del comprador
-Para un pedido de negocio con Mercado Pago Split habilitado: en **Mis pedidos**, revisar subtotal + despacho + tarifa DatoYa 2% + total, confirmar y abrir Checkout Pro en el sitio de Mercado Pago. Una vuelta a DatoYa o un parámetro del navegador NO autoriza marcar pagado.
+Para un pedido de negocio con Mercado Pago Split habilitado: en **Mis pedidos**, revisar subtotal + despacho + tarifa DatoYa 4% + total, confirmar y abrir Checkout Pro en el sitio de Mercado Pago. Una vuelta a DatoYa o un parámetro del navegador NO autoriza marcar pagado.
 
 El backend comprueba la preferencia existente y el valor `marketplace_fee`, consulta el pago al proveedor, y valida referencia de pedido, comercio receptor, monto total, moneda y estado. Para webhooks exige firma HMAC correcta.
 
