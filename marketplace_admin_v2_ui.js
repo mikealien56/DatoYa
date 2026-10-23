@@ -426,7 +426,7 @@
               <div class="dy-admin-row-actions"><button type="submit" class="btn btn-primary">Guardar contacto</button><button type="button" id="dy-founder-contact-cancel" class="btn btn-outline">Cancelar</button></div>
             </form>
             <details class="dy-founder-invite-history"><summary>Invitaciones anteriores (${invites.length})</summary>
-              <div class="dy-admin-list">${invites.map(i=>`<article class="dy-admin-row"><div><b>${h(i.invitee_business_name||i.label)}</b><div class="small muted">${h(i.invitee_email||'Sin correo')} · ${h(i.status)}</div></div><div class="dy-admin-row-actions"><button type="button" class="btn btn-outline btn-sm" onclick="dyShareFounderInvite('${h(i.code)}','${h(i.invitee_business_name||i.label)}')">Compartir WhatsApp</button><button type="button" class="btn btn-outline btn-sm" onclick="dyFounderInviteToggle(${Number(i.id)},${i.status!=='active'},this)" ${i.status==='used'?'disabled':''}>${i.status==='active'?'Pausar':'Activar'}</button></div></article>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div>
+              <div class="dy-admin-list">${invites.map(i=>`<article class="dy-admin-row"><div><b>${h(i.invitee_business_name||i.label)}</b><div class="small muted">${h(i.invitee_email||'Sin correo')} · ${h(i.status)}</div></div><div class="dy-admin-row-actions"><button type="button" class="btn btn-outline btn-sm" data-dy-share-invite="${h(i.code)}" data-dy-invite-name="${h(i.invitee_business_name||i.label)}">Compartir WhatsApp</button><button type="button" class="btn btn-outline btn-sm" data-dy-invite-toggle="${Number(i.id)}" data-dy-invite-next="${i.status!=='active'?'1':'0'}" ${i.status==='used'?'disabled':''}>${i.status==='active'?'Pausar':'Activar'}</button></div></article>`).join('')||'<p class="muted">Sin invitaciones todavía.</p>'}</div>
             </details>
           </section>
           <div class="dy-admin-kpis">
@@ -450,6 +450,12 @@
           <section class="card" style="margin-top:16px"><span class="small muted">REFERIDOS</span><h3>Negocios recomendados</h3><div class="dy-admin-history">${referrals.map(r=>`<div><b>${h(r.referred_name)}</b><span>Invitado por ${h(r.founder_name)} · ${r.status==='rewarded'?'beneficio entregado':'beneficio pendiente'}</span></div>`).join('')||'<p class="muted">Aún no hay referidos.</p>'}</div></section>
         `);
 
+        document.querySelectorAll('[data-dy-share-invite]').forEach(button=>{
+          button.addEventListener('click',()=>window.dyShareFounderInvite?.(button.dataset.dyShareInvite,button.dataset.dyInviteName));
+        });
+        document.querySelectorAll('[data-dy-invite-toggle]').forEach(button=>{
+          button.addEventListener('click',()=>window.dyFounderInviteToggle?.(Number(button.dataset.dyInviteToggle),button.dataset.dyInviteNext==='1',button));
+        });
         const selectBusiness=document.getElementById('dy-founder-select-saved');
         const manualInputs=document.getElementById('dy-founder-manual-inputs');
         const selectionSummary=document.getElementById('dy-founder-selected-summary');
