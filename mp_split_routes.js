@@ -3,7 +3,7 @@
 const crypto=require('crypto');
 const mp=require('./mp_split_service');
 const splitReceipts=require('./mp_split_receipts');
-const {quote}=require('./datoya_service_fee');
+const {quote,RATE_PERCENT}=require('./datoya_service_fee');
 module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
   splitReceipts.setup(db);
   const ready=()=>mp.config();
@@ -77,13 +77,13 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
       if(!result.valid)continue;
       if(t.payment_id&&String(t.payment_id)!==String(id))throw Object.assign(new Error('La compra tiene otro pago vinculado; revisar'),{status:409});
       if(result.paid){
-        // Match the actual approved payment to the exact preference that charged DatoYa's 2%.
+        // Match the approved payment to the original preference and its exact recorded fee.
         const merchantOrderId=p.order&&p.order.id;
         if(!/^\d{1,25}$/.test(String(merchantOrderId||'')))
           throw Object.assign(new Error('Pago aprobado sin orden comercial verificable; requiere conciliación'),{status:409});
         const merchantOrder=await mp.api('GET','/merchant_orders/'+merchantOrderId,token);
         if(!mp.verifyMerchantOrder(merchantOrder,expected,id))
-          throw Object.assign(new Error('El pago no corresponde a la preferencia DatoYa con 2%'),{status:409});
+          throw Object.assign(new Error('El pago no corresponde a la preferencia original de DatoYa'),{status:409});
         const now=new Date().toISOString();
         const o=db.prepare('SELECT id,user_id,reference,payment_status,payment_method FROM commerce_orders WHERE id=?').get(t.order_id);
         if(!o||o.payment_status==='paid'&&o.payment_method!=='mercadopago_split')
@@ -118,7 +118,7 @@ module.exports=function mountMpSplit(app,auth,requireRole,db,notify){
   }
   app.get('/api/mp-split/config',auth,(req,res)=>{
     const c=ready();res.json({provider:'mercadopago_split_1_1',configured:c.configured,
-      onboarding:c.onboarding,checkout:c.checkout,mode:c.mode,customer_service_fee_percent:2});
+      onboarding:c.onboarding,checkout:c.checkout,mode:c.mode,customer_service_fee_percent:RATE_PERCENT});
   });
   app.get('/api/businesses/:id/mp-split',auth,(req,res)=>{
     const b=owned(req.user.id,req.params.id);if(!b)return res.status(403).json({error:'Negocio no autorizado'});
